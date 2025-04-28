@@ -1,0 +1,70 @@
+{
+  "name": "xfz",
+  "version": "0.1.0",
+  "private": true,
+  "description": "小风筝",
+  "author": "小风筝",
+  "scripts": {
+    "serve": "vue-cli-service serve",
+    "build": "vue-cli-service build",
+    "lint": "vue-cli-service lint",
+    "electron:build": "vue-cli-service electron:build",
+    "electron:serve": "vue-cli-service electron:serve",
+    "postinstall": "electron-builder install-app-deps",
+    "postuninstall": "electron-builder install-app-deps"
+  },
+  "main": "background.js",
+  "dependencies": {
+    "@element-plus/icons-vue": "^2.1.0",
+    "axios": "^1.7.7",
+    "core-js": "^3.30.2",
+    "electron-log": "^4.4.8",
+    "element-plus": "^2.3.4",
+    "js-cookie": "^3.0.5",
+    "vue": "^3.3.4",
+    "vue-router": "^4.2.1",
+    "vuex": "^4.0.2"
+  },
+  "devDependencies": {
+    "@babel/core": "7.21.8",
+    "@babel/eslint-parser": "7.21.8",
+    "@esbuild-plugins/node-modules-polyfill": "^0.2.2",
+    "@iconify-json/ep": "^1.1.10",
+    "@vue/cli-plugin-babel": "~5.0.8",
+    "@vue/cli-plugin-eslint": "~5.0.8",
+    "@vue/cli-service": "^5.0.8",
+    "@vue/compiler-sfc": "^3.3.4",
+    "autoprefixer": "^10.4.14",
+    "electron": "24.3.1",
+    "electron-devtools-installer": "^3.2.0",
+    "eslint": "^8.41.0",
+    "eslint-plugin-vue": "^9.13.0",
+    "postcss": "^8.4.23",
+    "tailwindcss": "^3.3.2",
+    "unplugin-icons": "^0.16.1",
+    "unplugin-vue-components": "^0.24.1",
+    "vue-cli-plugin-electron-builder": "~2.1.1"
+  },
+  "eslintConfig": {
+    "root": true,
+    "env": {
+      "node": true
+    },
+    "extends": [
+      "plugin:vue/vue3-essential"
+    ],
+    "parserOptions": {
+      "parser": "@babel/eslint-parser"
+    },
+    "rules": {
+      "space-before-function-paren": 0,
+      "eol-last": "off",
+      "vue/multi-word-component-names": "off"
+    }
+  },
+  "browserslist": [
+    "> 1%",
+    "last 2 versions",
+    "not dead"
+  ]
+}
