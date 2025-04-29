@@ -75,9 +75,9 @@ const post = function (url, postData, newheaders) {
     for (let key in postData) {
       param += (key + '=' + postData[key] + '&');
     }
-    let encodeParams =  encodeURI(param) // 解决服务端中文乱码
-    request.write(encodeParams);
-    // request.write(param);
+    // let encodeParams =  encodeURI(param) // 解决服务端中文乱码
+    // request.write(encodeParams);
+    request.write(param);
     request.end();
   });
 }
@@ -97,7 +97,7 @@ const postToken = async function (platform, cookie, localStorage, sessionStorage
       platform_id: platform.id,
       originalUsername: originalUsername,
       avatar: avatar,
-      name: name
+      name: encodeURIComponent(name)
     }, { 'X-Sjq-Token': '' });//{ 'X-Sjq-Token': userToken || '' });
     resultData = JSON.parse(resultData);
     if (resultData.code == 1) {
