@@ -117,3 +117,4 @@ dist
 
 dist_electron/
 cookie-op/
+.DS_Store

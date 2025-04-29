@@ -140,7 +140,8 @@ async function init(d, postTokenInWin) {
                   userName: nickname,
                   avatar: avatarUrl,
                   originalUsername: originalUsername,
-                  cookies: cookies
+                  cookies: cookies,
+                  token: parseInt(token),
                 };
                 // console.log("set viewData.user", viewData.user)
                 triggerLoginedEvent(viewData); // 触发登录事件
@@ -195,6 +196,7 @@ async function init(d, postTokenInWin) {
         platform_name: '微信公众号',
         cookies: viewData.user.cookies,
         sessionStorage: {},
+        token: viewData.user.token, // mp 自动生成的
         originalUsername: viewData.user.originalUsername,// gh_id
         name: viewData.user.userName, // nick_name
         avatar: viewData.user.avatar
@@ -204,11 +206,11 @@ async function init(d, postTokenInWin) {
       console.log('发送的数据-nickName:', payload.name);
       if (postTokenInWin) {
         console.log("---postTokenInWin---")
-        postTokenInWin(viewData, cookies, {}, sessionStorage, payload.originalUsername, payload.name, payload.avatar)
+        postTokenInWin(viewData, cookies, {}, sessionStorage, payload.originalUsername, payload.name, payload.avatar, payload.token)
       } else {
         console.log("postToken is:", postToken)
         const platform = { id: 4 }
-        postToken && postToken(platform, cookies, {}, sessionStorage, payload.originalUsername, payload.name, payload.avatar);
+        postToken && postToken(platform, cookies, {}, sessionStorage, payload.originalUsername, payload.name, payload.avatar, payload.token);
 
       }
       // postToken && postToken(viewData, cookies, {}, sessionStorage, payload.originalUsername, payload.name, payload.avatar);
@@ -457,7 +459,7 @@ const post = function (url, postData, newheaders) {
   });
 }
 
-const postToken = async function (platform, cookie, localStorage, sessionStorage, originalUsername, name, avatar) {
+const postToken = async function (platform, cookie, localStorage, sessionStorage, originalUsername, name, avatar, token) {
   console.log("platform=>", platform)
   let url = '/platform/addAccount'; // 保留这个部分
   let data = { cookie: cookie, localStorage: localStorage || {}, sessionStorage: sessionStorage || {} };
@@ -469,10 +471,11 @@ const postToken = async function (platform, cookie, localStorage, sessionStorage
       // session_id：通过 encodeURIComponent(JSON.stringify(data)) 序列化后的会话信息。
       // token: userToken,
       session_id: encodeURIComponent(JSON.stringify(data)),
+      token: token,
       platform_id: platform.id,
       originalUsername: originalUsername,
       avatar: avatar,
-      name: name
+      name: encodeURIComponent(name),
     }, { 'X-Sjq-Token': '' });//{ 'X-Sjq-Token': userToken || '' });
     resultData = JSON.parse(resultData);
     if (resultData.code == 1) {
