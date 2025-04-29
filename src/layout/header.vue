@@ -36,22 +36,26 @@ const router = useRouter();
 const current = computed(() => {
   return router.currentRoute.value.path
 })
-const menuList = ref([{
-  name:'管理中心',
-  url:'/home',
-  icon:require('@/assets/image/menu.png'),
-  icon_active:require('@/assets/image/menu_active.png')
-},{
+const menuList = ref([
+//   {
+//   name:'管理中心',
+//   url:'/home',
+//   icon:require('@/assets/image/menu.png'),
+//   icon_active:require('@/assets/image/menu_active.png')
+// },
+{
   name:'账号中心',
   url:'/tabbar',
   icon:require('@/assets/image/account.png'),
   icon_active:require('@/assets/image/account_active.png')
-},{
-  name:'爆热集',
-  url:'/hot',
-  icon:require('@/assets/image/hot.png'),
-  icon_active:require('@/assets/image/hot_active.png')
-},{
+},
+// {
+//   name:'爆热集',
+//   url:'/hot',
+//   icon:require('@/assets/image/hot.png'),
+//   icon_active:require('@/assets/image/hot_active.png')
+// },
+{
   name:'编辑器',
   url:'/editor',
   icon:require('@/assets/image/hot.png'),

@@ -2,16 +2,16 @@
   <div style="display: flex;height: 100%">
     <div style="width: 300px;display: flex;flex-direction: column;height: 100%;padding: 10px;">
       <el-row :gutter="10">
-        <el-col :span="12">
+        <!-- <el-col :span="12">
           <select-platform v-model="listQuery.platform_id"></select-platform>
         </el-col>
         <el-col :span="12">
           <select-user v-model="listQuery.user_id"></select-user>
-        </el-col>
+        </el-col> 
         <el-col :span="12" style="margin-top: 10px">
           <select-group v-model="listQuery.cate_id"></select-group>
-        </el-col>
-        <el-col :span="12" style="margin-top: 10px">
+        </el-col> -->
+        <el-col :span="24" style="margin-top: 10px">
           <el-input v-model="listQuery.keyword" clearable style="width: 100%;" placeholder="请输入账号关键词" />
         </el-col>
         <el-col :span="24" style="padding-top: 10px;">
@@ -94,8 +94,8 @@
       <el-row :gutter="10">
         <el-col :span="3" v-for="(item, index) in platform_list" :key="index" style="margin-bottom: 10px;">
           <div @click="handleAddAccount(item, index)"
-            style="display: flex;flex-direction: column;align-items: center;justify-content: center;width: 100%;">
-            <img style="width: 60px;height: 60px;margin-bottom: 5px;" :src="item.image" />
+            style="cursor:pointer;display: flex;flex-direction: column;align-items: center;justify-content: center;width: 100%;">
+            <img style="height: 60px; margin-bottom: 5px;" :src="item.image" />
             <span>{{ item.name }}</span>
           </div>
         </el-col>
@@ -116,7 +116,7 @@ import {
 import { listPlatform } from '@/api/platform'
 import selectPlatform from "../components/selectPlatform";
 import selectUser from "../components/selectUser";
-import selectGroup from "../components/selectGroup";
+// import selectGroup from "../components/selectGroup";
 const tabs = ref([])
 const currentTabId = ref(0)
 const currentTab = ref({})
@@ -166,7 +166,9 @@ const dialogAddAccountVisible = ref(false)
 const platform_list = ref([])
 listPlatform({}).then(response => {
   if (response.data && response.data.data && Array.isArray(response.data.data.list)) {
-    platform_list.value = response.data.data.list.map(item => ({
+    const platforms = response.data.data.list
+    console.log("platforms=>", platforms)
+    platform_list.value = platforms.filter(p => p.platform_name === "公众号").map(item => ({
       id: item.platform_id,
       name: item.platform_name,
       image: item.platform_icon

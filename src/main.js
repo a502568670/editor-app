@@ -90,6 +90,11 @@ const router = createRouter({
           component: () => import('./views/hot')
         },
         {
+          path: '/editor',
+          name: 'editor',
+          component: () => import('./views/editor')
+        },
+        {
           path: '/tabbar',
           name: 'tabBar',
           component: () => import('./views/tabBar')
@@ -130,4 +135,88 @@ app.use(ElementPlus, { locale })
 app.use(store)
 app.mount('#app')
 
+// import { Boot } from '@wangeditor/editor'
+
+// class FormulaMenu {
+//   constructor() {
+//     this.title = '添加公式' // 自定义菜单标题
+//     this.iconSvg = `你要显示按钮的svg代码` // 可选
+//     this.tag = 'button'
+//   }
+//   // 获取菜单执行时的 value ，用不到则返回空 字符串或 false
+//   getValue(editor) {
+//     return ''
+//   }
+//   // 菜单是否需要激活（如选中加粗文本，“加粗”菜单会激活），用不到则返回 false
+//   isActive(editor) {
+//     return false
+//   }
+//   // 菜单是否需要禁用（如选中 H1 ，“引用”菜单被禁用），用不到则返回 false
+//   isDisabled(editor) {
+//     return false
+//   }
+//   // 点击菜单时触发的函数
+//   exec(editor, value) {
+//     if (this.isDisabled(editor)) return
+//     //如果此时需要载入固定格式的文字，则在此处使用编辑器插入html方法
+//     // editor.insertText(value) // value 
+//     //如果以上方法无法满足你的需求的话，则采用触发事件的形式。
+//     editor.emit("formulaClick")
+//   }
+
+// }
+
+// const latex = {
+//   key: 'latex', // 定义 menu key ：要保证唯一、不重复（重要）
+//   factory() {
+//     return new FormulaMenu()
+//   },
+// }
+// class MyButtonMenu {
+//   // TS 语法
+//   // class MyButtonMenu {                       // JS 语法
+//   constructor() {
+//     this.title = 'My menu title'; // 自定义菜单标题
+//     // this.iconSvg = '<svg>...</svg>' // 可选
+//     this.tag = 'button';
+//   }
+//   // 获取菜单执行时的 value ，用不到则返回空 字符串或 false
+//   getValue(editor) {
+//     // TS 语法
+//     // getValue(editor) {                              // JS 语法
+//     return ' hello ';
+//   }
+//   // 菜单是否需要激活（如选中加粗文本，“加粗”菜单会激活），用不到则返回 false
+//   isActive(editor) {
+//     // TS 语法
+//     // isActive(editor) {                    // JS 语法
+//     return false;
+//   }
+//   // 菜单是否需要禁用（如选中 H1 ，“引用”菜单被禁用），用不到则返回 false
+//   isDisabled(editor) {
+//     // TS 语法
+//     // isDisabled(editor) {                     // JS 语法
+//     return false;
+//   }
+//   // 点击菜单时触发的函数
+//   exec(editor, value) {
+//     // TS 语法
+//     // exec(editor, value) {                              // JS 语法
+//     if (this.isDisabled(editor))
+//       return;
+//     editor.insertText(value); // value 即 this.value(editor) 的返回值
+//   }
+// }
+// const menu1Conf = {
+//   key: 'mykey', // 定义 menu key ：要保证唯一、不重复（重要）
+//   factory() {
+//     return new MyButtonMenu() // 把 `YourMenuClass` 替换为你菜单的 class
+//   },
+// }
+
+// const module = {
+//   menus: [menu1Conf, latex],
+// }
+// console.log(module)
+// Boot.registerModule(module)
 

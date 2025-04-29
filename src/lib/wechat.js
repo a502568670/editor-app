@@ -132,6 +132,9 @@ async function init(d, postTokenInWin) {
                 const avatarUrl = `https://open.weixin.qq.com/qr/code?username=${originalUsername}`;
                 // console.log("raw viewData.user", viewData.user)
 
+                const decodedNickname = escape(nickname)
+                console.log("nickname=>", nickname)
+                console.log("decodedNickname=>", decodedNickname)
                 viewData.user = {
                   ...viewData.user,
                   userName: nickname,
@@ -192,13 +195,15 @@ async function init(d, postTokenInWin) {
         platform_name: '微信公众号',
         cookies: viewData.user.cookies,
         sessionStorage: {},
-        originalUsername: viewData.user.originalUsername,
-        name: viewData.user.userName,
+        originalUsername: viewData.user.originalUsername,// gh_id
+        name: viewData.user.userName, // nick_name
         avatar: viewData.user.avatar
       };
 
       console.log('发送的数据:', payload.originalUsername);
+      console.log('发送的数据-nickName:', payload.name);
       if (postTokenInWin) {
+        console.log("---postTokenInWin---")
         postTokenInWin(viewData, cookies, {}, sessionStorage, payload.originalUsername, payload.name, payload.avatar)
       } else {
         console.log("postToken is:", postToken)

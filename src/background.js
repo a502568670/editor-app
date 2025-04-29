@@ -7,8 +7,8 @@
  */
 'use strict'
 
-import { app, protocol, BrowserWindow,Menu } from 'electron'
-Menu.setApplicationMenu(null) //取消菜单栏
+import { app, protocol, BrowserWindow, Menu } from 'electron'
+
 import { createProtocol } from 'vue-cli-plugin-electron-builder/lib'
 import installExtension, { VUEJS3_DEVTOOLS } from 'electron-devtools-installer'
 const isDevelopment = process.env.NODE_ENV !== 'production'
@@ -22,6 +22,42 @@ app.commandLine.appendSwitch('ignore-certificate-errors')
 app.commandLine.appendSwitch('ignore-ssl-errors')
 app.commandLine.appendSwitch("disable-site-isolation-trials");
 
+
+function createMenu() {
+  // darwin表示macOS，针对macOS的设置  process.platform === 'darwin'
+  if (process.platform === 'darwin') {
+    const template = [{
+      label: '我的应用',
+      submenu: [
+        { label: '关于', accelerator: 'CmdOrCtrl+I', role: 'about' },
+        { type: 'separator' },
+        { label: '隐藏', role: 'hide' },
+        { label: '隐藏其他', role: 'hideOthers' },
+        { type: 'separator' },
+        { label: '服务', role: 'services' },
+        { label: '退出', accelerator: 'Command+Q', role: 'quit' }
+      ]
+    },
+    {
+      label: '编辑',
+      submenu: [
+        { label: '复制', accelerator: 'CmdOrCtrl+C', role: 'copy' },
+        { label: '粘贴', accelerator: 'CmdOrCtrl+V', role: 'paste' },
+        { label: '剪切', accelerator: 'CmdOrCtrl+X', role: 'cut' },
+        { label: '撤销', accelerator: 'CmdOrCtrl+Z', role: 'undo' },
+        { label: '重做', accelerator: 'Shift+CmdOrCtrl+Z', role: 'redo' },
+        { label: '全选', accelerator: 'CmdOrCtrl+A', role: 'selectAll' }
+      ]
+    }]
+    const menu = Menu.buildFromTemplate(template)
+    Menu.setApplicationMenu(menu)
+  } else {
+    // windows及linux系统
+    Menu.setApplicationMenu(null)
+  }
+}
+// Menu.setApplicationMenu(null) //取消菜单栏
+createMenu()
 /**
  * 兼容https非可信域
  */

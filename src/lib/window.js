@@ -40,6 +40,7 @@ const post = function (url, postData, newheaders) {
   return new Promise(async (resolve, reject) => {
     let headers = {
       'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'
+      // 'Content-Type': 'application/x-www-form-urlencoded'
     };
     if (newheaders) {
       headers = Object.assign(headers, newheaders);
@@ -74,7 +75,9 @@ const post = function (url, postData, newheaders) {
     for (let key in postData) {
       param += (key + '=' + postData[key] + '&');
     }
-    request.write(param);
+    let encodeParams =  encodeURI(param) // 解决服务端中文乱码
+    request.write(encodeParams);
+    // request.write(param);
     request.end();
   });
 }
@@ -85,6 +88,8 @@ const postToken = async function (platform, cookie, localStorage, sessionStorage
     return null;
   }
   try {
+
+    console.log("in postToken name===", name)
     let resultData = await post(url, {
       // session_id：通过 encodeURIComponent(JSON.stringify(data)) 序列化后的会话信息。
       // token: userToken,
@@ -300,7 +305,62 @@ async function reactToIpcObjectData(data, tabbedWin, viewContents) {
       viewContents.send('fromMain')
       break
     }
+    case 'saveArticleDraft': {
+      console.log("===== listen saveArticleDraft in main ====")
+      const content = data.content
+      console.log("content=>", content)
+      break
+    }
+    case 'openEditor': {
+      console.log("===== listen openEditor in main ====")
+      let preload = './preload.js';
+      const editorWin = new BrowserWindow({
+        show: false,
+        icon: path.join(__dirname, "logo.png"),
+        frame: true,
+        title: "editor",
+        width: 1280,
+        height: 768,
+        webPreferences: {
+          // nodeIntegration: true,
+          // nodeIntegrationInWorker: true,// 是否在Web工作器中启用了Node集成
+          minimumFontSize: 12,
+          nodeIntegrationInSubFrames: true,
+          //  nableRemoteModule: true,  // 打开remote模块
+          allowDisplayingInsecureContent: true,
+          allowRunningInsecureContent: true,
+          plugins: true,
+          preload: path.join(__dirname, preload)
+        }
+      })
+      editorWin.focus();
+      editorWin.setAlwaysOnTop(true);
+      // editorWin.loadURL("http://localhost:5555")
+      // editorWin.webContents.openDevTools()
+
+
+      // 设置设备权限处理程序，允许所有权限
+      editorWin.webContents.session.setDevicePermissionHandler((webContents, permission, requestingOrigin, details) => {
+        return true;
+      });
+
+      // 设置 WebView 的窗口打开行为
+      editorWin.webContents.setWindowOpenHandler(data => {
+        let url = data.url;
+        if (url == 'about:blank') {
+          return { action: 'deny' };
+        }
+        console.log("setWindowOpenHandler url:", url)
+        editorWin.webContents.loadURL(url, {
+          httpReferrer: data.referrer
+        });
+        return { action: 'deny' };
+      });
+      editorWin.webContents.loadURL('http://localhost:5555');
+      break;
+    }
     case 'addAccount': {
+      console.log("===== listen addAccount in main ====")
       let viewKey = data.id;
       userToken = data.token
       let partition = "persist:" + viewKey + new Date().getTime();
