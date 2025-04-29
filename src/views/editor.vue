@@ -5,6 +5,18 @@
       <el-input v-model="extractUrl" clearable style="width: 400px;" placeholder="请输入文章提取地址" />
       <button @click="extractArticle" style="padding:4px;margin-bottom:2px;">立即提取</button>
       <button @click="saveArticle" style="padding:4px;margin-bottom:2px;">保存文章</button>
+      
+      <el-select  v-model="selectedAccount" :style="{'max-width': '200px'}" value-key="id"
+      clearable filterable placeholder="选择发布公众账号" @input="emitInput" @change="emitChange">
+        <el-option
+          v-for="(item) in accountsRef"
+          :key="item.id"
+          :label="item.name"
+          :value="item"
+          
+        />
+      </el-select>
+      <!-- <select-account v-model="selectedAccount"></select-account> -->
     </div>
     <hr />
     <Toolbar style="border-bottom: 1px solid #ccc" :editor="editorRef" :defaultConfig="toolbarConfig" :mode="mode" />
@@ -30,26 +42,42 @@
 </style>
 <script>
 import '@wangeditor/editor/dist/css/style.css' // 引入 css
-import { getArticleContent, getArticleContent2 } from '@/api/jzl'
+import { listAccount } from '@/api/account'
+import { getArticleContent, getArticleContent2, saveArticleContent } from '@/api/jzl'
 import { onBeforeUnmount, ref, shallowRef, onMounted } from 'vue'
 import { Editor, Toolbar } from '@wangeditor/editor-for-vue'
 import { DomEditor } from '@wangeditor/editor';
-import { IButtonMenu, IDomEditor, Boot } from '@wangeditor/editor'
+import { nextTick } from 'vue'
+// import { IButtonMenu, IDomEditor, Boot } from '@wangeditor/editor'
+// import SelectAccount from "../components/selectAccount";
 console.log("====enter editor====")
 
 export default {
-  components: { Editor, Toolbar },
+  components: { Editor, Toolbar,  },
 
   setup() {
-    
-    
+    let selectedAccount = ref(null)
+    const articleData = {
+      "cookies": "1",
+      "token": 123,
+      "material_list": [
+        {
+          "content_noencode": "内容1",
+          "cdn_url": "https://example.com/cdn1",
+          "desc": "描述1",
+          "title": "标题1",
+          "author": "作者1",
+          "copyright_type": 1
+        }
+      ]
+    }
     // 编辑器实例，必须用 shallowRef
     const editorRef = shallowRef()
 
     // 内容 HTML
     const valueHtml = ref('<section>hello</section>')
     const extractUrl = "https://mp.weixin.qq.com/s/ECdk1kmW2FYNY6EaXZTYGQ"
-
+    let accountsRef = ref([])
     // 模拟 ajax 异步获取内容
     onMounted(() => {
 //       setTimeout(() => {
@@ -60,6 +88,14 @@ export default {
 //                   data-type="jpg" data-w="1080" /></section>
 // `
 //       }, 1500)
+         listAccount().then(response => {
+          // accountsRef.value = [...response.data.data.list]
+          accountsRef.value = response.data.data.list
+          console.log("load accounts:", accountsRef.value)
+          if (accountsRef.value.length >0) {
+            selectedAccount.value = accountsRef.value[0];
+          }
+        })
     })
 
 
@@ -71,34 +107,11 @@ export default {
     })
 
     
-    // class AlertMenu extends BtnMenu {
-    //   constructor(editor) {
-    //     const $elem = editor.value.$(
-    //       `<div class="w-e-menu" data-title="Alert" style="width:52px;">
-    //         <button class="save">保存</button>
-    //     </div>`
-    //     )
-    //     super($elem, editor.value)
-    //   }
-    //   clickHandler() {
-    //     console.log('自定义保存按钮')
-    //   }
-    //   tryChangeActive() {
-    //     this.active()
-    //   }
-    // }
-
-  
-
     const toolbarConfig = {
       excludeKeys: [
         'bold', // 排除菜单组，写菜单组 key 的值即可
       ],
     };
-    // toolbarConfig.insertKeys = {
-    //   index: 5, // 插入的位置，基于当前的 toolbarKeys
-    //   keys: ['menux'],
-    // };
 
     const editorConfig = { placeholder: '请输入内容...', MENU_CONF: {}, htmlSanitize: false };
 
@@ -106,19 +119,10 @@ export default {
       server: '/api/upload-image',
       fieldName: 'custom-field-name',
       // 继续写其他配置...
-
-      //【注意】不需要修改的不用写，wangEditor 会去 merge 当前其他配置
     };
 
     const handleCreated = (editor) => {
       editorRef.value = editor // 记录 editor 实例，重要！
-      // const menuKey = 'alertMenuKey'
-      // 注册菜单
-      // const module = {
-      //   menus: [latex],
-      // }
-      // editor.registerMenu(menuKey, AlertMenu)
-      // Boot.registerMenu(module)
     }
 
     const insertText = () => {
@@ -153,16 +157,74 @@ export default {
       valueHtml.value = "<p>" + extractContent + "<p>"
     }
 
+    const serializeCookie = (arr) => {
+      const items = []
+      arr.forEach((v) => {
+        items.push(`${encodeURIComponent(v["name"])}=${encodeURIComponent(v["value"])}`)
+      });
+      // console.log("items=>", items)
+      return items.join(";")
+    }
+
+
     const saveArticle = async() => {
+      
+      const {token, name, session_id} = selectedAccount.value
       const saveContent = valueHtml.value
-      window.ipcRenderer.send('toMain', {
-      tag: 'saveArticleDraft',
-      content: saveContent
-    })
+      console.log("token:", token)
+      console.log("name:", name)
+      console.log("cookie:", serializeCookie(JSON.parse(session_id)["cookie"]))
+//       {
+//   "cookies": "1",
+//   "token": 123,
+//   "material_list": [
+//     {
+//       "content_noencode": "内容1",
+//       "cdn_url": "https://example.com/cdn1",
+//       "desc": "描述1",
+//       "title": "标题1",
+//       "author": "作者1",
+//       "copyright_type": 1
+//     }
+//   ]
+// }
+      const postData = {
+        cookies: serializeCookie(JSON.parse(session_id)["cookie"]),
+        token: parseInt(token),
+        material_list: [{
+            content_noencode: saveContent,
+            cdn_url: "https://mmbiz.qpic.cn/sz_mmbiz_jpg/4WT2I2qqeFAibhrnd1BP6uhtX6Y395tHhMxfXaJrWW5w8JpQibmicJCqfdGL1uWQErUlUVyScV2bs59oj9rhicnTaQ/640?wx_fmt=jpeg&from=appmsg&wxfrom=13&tp=wxpic",
+            desc: "这是描述1",
+            title: "标题1",
+            copyright_type: 0
+          }]
+      }
+      console.log("postData=>", postData)
+      const res = await saveArticleContent(postData)
+      console.log("res=>", res)
+      
+      // 暂时从前端提交
+      //   window.ipcRenderer.send('toMain', {
+      //   tag: 'saveArticleDraft',
+      //   content: postData
+      // })
+    }
+
+    const emitInput = (val) => {
+      // this.$emit('input', val)
+    }
+    const emitChange = (val) => {
+      // console.log("emitChange=>", val)
+      selectedAccount.value = val;
+      // console.log("selectedAccount=>", selectedAccount)
+      // this.$emit('change', val)
     }
 
 
     return {
+      accountsRef,
+      selectedAccount,
+      articleData,
       editorRef,
       valueHtml,
       extractUrl,
@@ -173,6 +235,8 @@ export default {
       insertText,
       extractArticle,
       saveArticle,
+      emitInput,
+      emitChange,
     }
   },
 }

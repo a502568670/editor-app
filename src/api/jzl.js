@@ -31,3 +31,19 @@ export function getArticleContent2(url) {
     }
   })
 }
+
+
+const service2 = axios.create({
+  baseURL: 'http://192.168.10.150:9001', // api 的 base_url
+  timeout: 500000, // request timeout
+  headers: { 'Content-Type': 'application/json' },
+  withCredentials: true // 允许携带cookie
+})
+
+export function saveArticleContent(data) {
+  return service2({
+    url: '/save_material',
+    method: 'post',
+    data
+  })
+}
