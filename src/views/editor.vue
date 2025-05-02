@@ -1,15 +1,21 @@
 <template>
-  <div class="main bg-slate-300" style="border: 1px solid #ccc; background-color:#e9f9f1">
+  <div class="main bg-slate-300" style="border: 1px solid #ccc; background-color:#e9f9f1" >
     <div class="left basis-1/4 p-2" >
         <div class="bg-white  shadow-xl">
           <div @click="loadArticle(item)" v-for="(item, index) in mp_msgsRef" :key="item.msg_id"
             class="flex items-center p-2 border-b w-full">
             <div v-if="index === 0"
               :style="{ '--image-url': 'url(' + item.cdn_url + ')' }"
-              class='w-full flex h-40 items-end bg-no-repeat bg-center bg-cover bg-[image:var(--image-url)]'
+              class='w-full flex h-40 justify-between items-end bg-no-repeat bg-center bg-cover bg-[image:var(--image-url)]'
               :class="{ 'border-2 border-[#07C160]': (item.msg_id === msg_idRef) }"
               >
               <div class="flex text-white p-1">{{ item.title }}</div>
+              <div class="flex justify-between pr-1 space-x-2 pb-1 text-white" v-if="item.msg_id === msg_idRef">
+                <el-icon class="cursor-pointer" @click="swapDown(item.msg_id)">
+                  <component :is="ArrowDown"></component>
+                </el-icon>
+                <el-icon class="cursor-pointer" @click="deleteArticle(item.msg_id)"><component :is="Delete"></component></el-icon>
+              </div>
             </div>
             <div class="w-full flex h-20 items-center p-1"
             :class="{ 'border-2 border-[#07C160]': (item.msg_id === msg_idRef) }"
@@ -19,9 +25,18 @@
                 <div class=" text-sm flex-0" style="color: #51ce94">{{ item.author }}</div>
               </div>
               <img class="w-10 h-10 rounded-sm" :src="item.cdn_url" />
+              <div class="flex flex-col justify-around px-1 h-full" v-if="item.msg_id === msg_idRef">
+                <el-icon class="cursor-pointer" @click="swapUp(item.msg_id)">
+                  <component :is="ArrowUp"></component>
+                </el-icon>
+                <el-icon class="cursor-pointer" @click="swapDown(item.msg_id)">
+                  <component :is="ArrowDown" v-if="index < mp_msgsRef.length-1"></component>
+                </el-icon>
+                <el-icon class="cursor-pointer" @click="deleteArticle(item.msg_id)"><component :is="Delete"></component></el-icon>
+              </div>
             </div>
           </div>
-          <div  class="w-full flex h-20 items-center p-1 justify-center " >
+          <div class="w-full flex h-20 items-center p-1 justify-center" >
               <div @click="newArticle()"  class="cursor-pointer">+新建文章</div>
           </div>
         </div>
@@ -121,12 +136,15 @@
 <script>
 import '@wangeditor/editor/dist/css/style.css' // 引入 css
 import { listAccount } from '@/api/account'
-import {saveArticleDraft, listArticlesByAppMsg} from "@/api/article"
+import {saveArticleDraft, listArticlesByAppMsg, swapArticles, deleteArticleDraft} from "@/api/article"
 import { getArticleContent, getArticleContent2 } from '@/api/jzl'
 import { onBeforeUnmount, ref, shallowRef, onMounted } from 'vue'
 import { Editor, Toolbar } from '@wangeditor/editor-for-vue'
 import { DomEditor } from '@wangeditor/editor';
-import { ElMessage,ElMessageBox } from 'element-plus'
+import { ElMessage,ElMessageBox, ElLoading } from 'element-plus'
+import {
+  ArrowUp, ArrowDown,Delete
+} from '@element-plus/icons-vue'
 // import { IButtonMenu, IDomEditor, Boot } from '@wangeditor/editor'
 // import SelectAccount from "../components/selectAccount";
 console.log("====enter editor====")
@@ -135,10 +153,10 @@ export default {
   components: { Editor, Toolbar,  },
 
   setup() {
-    console.log("window", window.envVars)
+    // console.log("window", window.envVars)
     // 编辑器实例，必须用 shallowRef
     const editorRef = shallowRef()
-
+    
     // mp_msgs
     const msg_idRef = ref(0)
     const mp_msgsRef = ref([])
@@ -382,6 +400,15 @@ export default {
       return true
     }
 
+    const testLoading = async() => {
+      const loader = ElLoading.service({
+        target: '.main'
+      })
+      setTimeout(() => {
+        loader.close()
+      }, 2000)
+    }
+
     const saveArticle = async() => {
       if (!validateArticleData()) {
         return
@@ -389,17 +416,15 @@ export default {
 
       const {token, name, session_id, wechat_id} = selectedAccount.value
       // const saveContent = currentArticleRef.value.content_noencode
-      console.log("token:", token)
-      console.log("name:", name)
-      console.log("wechat_id:", wechat_id)
-      const msg_id = msg_idRef.value
-      const appmsgid = appmsgidRef.value 
-      console.log("msg_id", msg_id)
-      console.log("appmsgid", appmsgid)
-      
+      // console.log("token:", token)
+      console.log("save name:", name)
+      // console.log("wechat_id:", wechat_id)
       // console.log("content_noencode:", currentArticleRef.value.content_noencode)
       
-
+      const msg_id = msg_idRef.value
+      const appmsgid = appmsgidRef.value 
+      // console.log("msg_id", msg_id)
+      // console.log("appmsgid", appmsgid)
       // console.log("cookie:", serializeCookie(JSON.parse(session_id)["cookie"]))
       const postData = {
         cookies: serializeCookie(JSON.parse(session_id)["cookie"]),
@@ -421,15 +446,77 @@ export default {
         //   }],
         ...cdnRef.value
       }
-      console.log("postData=>", postData)
-      const res = await saveArticleDraft(postData)
+      console.log("save postData=>", postData)
+      const loader = ElLoading.service({
+        target: '.main'
+      })
+      const res = await saveArticleDraft(postData).finally(() => {
+        loader.close()
+      })
       console.log("res=>", res)
+      ElMessage({
+          message: `文章保存成功`,
+          type: 'success',
+          duration: 2 * 1000
+      })
       await listArticles()
       // 暂时从前端提交
       //   window.ipcRenderer.send('toMain', {
       //   tag: 'saveArticleDraft',
       //   content: postData
       // })
+    }
+
+    const swapUp = async (msg_id) => {
+      const idx = mp_msgsRef.value.findIndex(v => v.msg_id === msg_id)
+      const prev =mp_msgsRef.value[idx - 1].msg_id
+      console.log("prev index:", prev)
+      await swapArticles(prev, msg_id)
+      await listArticles()
+    }
+    const swapDown = async (msg_id) => {
+      const idx = mp_msgsRef.value.findIndex(v => v.msg_id === msg_id)
+      const next = mp_msgsRef.value[idx + 1].msg_id
+      console.log("next index:", next)
+      await swapArticles(msg_id, next)
+      await listArticles()
+    }
+
+    const deleteArticle = async (msg_id) => {
+
+      ElMessageBox.confirm(
+        '此操作将删除该文章, 是否继续?',
+        '提示',
+        {
+          confirmButtonText: '确定',
+          cancelButtonText: '取消',
+          type: 'warning',
+        }
+      ).then(async () => {
+        const {token, session_id, wechat_id} = selectedAccount.value
+        const postData = {
+          cookies: serializeCookie(JSON.parse(session_id)["cookie"]),
+          token: parseInt(token),
+          wechat_id,
+          msg_id,
+        }
+        console.log("delete postData=>", postData)
+        const loader = ElLoading.service({
+          target: '.main'
+        })
+        await deleteArticleDraft(postData).finally(() => {
+          loader.close()
+        })
+        ElMessage({
+          message: `文章删除成功`,
+          type: 'success',
+          duration: 2 * 1000
+        })
+        await listArticles()
+      }).catch(() => {
+        console.log('取消')
+      })
+      
     }
 
     const emitInput = (val) => {
@@ -481,6 +568,7 @@ export default {
     
 
     return {
+      testLoading,
       msg_idRef,
       // titleRef,
       // authorRef,
@@ -499,9 +587,15 @@ export default {
       loadArticle,
       newArticle,
       saveArticle,
+      swapUp,
+      swapDown,
+      deleteArticle,
       emitInput,
       emitChange,
       handleImage,
+      ArrowUp: shallowRef(ArrowUp), 
+      ArrowDown: shallowRef(ArrowDown),
+      Delete: shallowRef(Delete),
     }
   },
 }

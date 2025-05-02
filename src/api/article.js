@@ -18,7 +18,7 @@ import request from '@/utils/requestJson'
 
 export function saveArticleDraft(data) {
   return request({
-    url: '/save_material',
+    url: '/mp_msg/save',
     method: 'post',
     data
   })
@@ -27,6 +27,25 @@ export function saveArticleDraft(data) {
 export function listArticlesByAppMsg(appmsgid) {
   return request({
     url: `/mp_msg/${appmsgid}/list`
+  })
+}
+
+export function swapArticles(msg_id1, msg_id2) {
+  return request({
+    url: `/mp_msg/swap`,
+    method: 'post',
+    data: {
+      msg_id1, 
+      msg_id2
+    }
+  })
+}
+
+export function deleteArticleDraft(data) {
+  return request({
+    url: `/mp_msg/delete`,
+    method: 'post',
+    data
   })
 }
 
