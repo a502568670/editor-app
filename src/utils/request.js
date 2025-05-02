@@ -2,10 +2,10 @@ import axios from 'axios'
 import { ElMessage,ElMessageBox } from 'element-plus'
 import {getToken} from "./auth";
 import Qs from 'qs'
-
+// console.log("window.envVars", window.envVars.backend_url, envVars)
 // create an axios instance
 const service = axios.create({
-  baseURL: 'http://127.0.0.1:8000', // api 的 base_url
+  baseURL: window.envVars.backend_url, //'http://127.0.0.1:8000', // api 的 base_url
   timeout: 500000, // request timeout
   headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
   withCredentials: true // 允许携带cookie

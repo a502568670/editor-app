@@ -35,7 +35,7 @@ module.exports = {
   },
   chainWebpack: (config) => {
     config.plugin('html').tap((args) => {
-      args[0].title = '小风筝'
+      args[0].title = 'dajiala编辑器'
       return args
     })
   },

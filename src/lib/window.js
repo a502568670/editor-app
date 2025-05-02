@@ -137,7 +137,7 @@ export async function createTabbedWin(stockList) {
   }
   console.log("baseUrl:", baseUrl)
 
-  const winHeight = Math.round(height * 0.7);
+  const winHeight = Math.round(height * 0.9);
   const winOptions = {
     icon: path.join(__dirname, "logo.png"),
     backgroundColor: nativeTheme.shouldUseDarkColors
