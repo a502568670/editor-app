@@ -240,7 +240,7 @@ const changeTab = (tabId) => {
 
 // 1.添加新tab
 const addNewTab = (account) => {
-  let a = Object.assign({}, account)
+  let a = Object.assign({userToken: getToken()}, account)
   console.log("a=>", a)
   window.ipcRenderer.send('new-tab', a)
 }

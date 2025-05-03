@@ -188,29 +188,32 @@ async function init(d, postTokenInWin) {
   // 定义处理Logined事件的函数
   async function handleLoginedEvent(data, viewData) {
     try {
-      const cookies = viewData.user.cookies;
-      let sessionStorage = {};
-
+      // const cookies = viewData.user.cookies;
+      // console.log('handleLoginedEvent viewData:', viewData);
+     
       const payload = {
-        platform_id: 4,
-        platform_name: '微信公众号',
+        // platform_id: 4,
+        // platform_name: '微信公众号',
+        platform: { id: 4 },
         cookies: viewData.user.cookies,
+        localStorage: {},
         sessionStorage: {},
         token: viewData.user.token, // mp 自动生成的
         originalUsername: viewData.user.originalUsername,// gh_id
         name: viewData.user.userName, // nick_name
-        avatar: viewData.user.avatar
+        avatar: viewData.user.avatar,
+        userToken: viewData.user.userToken
       };
-
-      console.log('发送的数据:', payload.originalUsername);
-      console.log('发送的数据-nickName:', payload.name);
+      // console.log('发送的数据:', payload.originalUsername);
+      // console.log('发送的数据-nickName:', payload.name);
       if (postTokenInWin) {
         console.log("---postTokenInWin---")
-        postTokenInWin(viewData, cookies, {}, sessionStorage, payload.originalUsername, payload.name, payload.avatar, payload.token)
+        postTokenInWin(viewData, payload.cookies, payload.localStorage, payload.sessionStorage, payload.originalUsername, payload.name, payload.avatar, payload.token)
       } else {
-        console.log("postToken is:", postToken)
-        const platform = { id: 4 }
-        postToken && postToken(platform, cookies, {}, sessionStorage, payload.originalUsername, payload.name, payload.avatar, payload.token);
+        console.log("postToken is exisst:")
+        // const platform = { id: 4 }
+        // (platform, cookies, {}, sessionStorage, payload.originalUsername, payload.name, payload.avatar, payload.token)
+        postToken && postToken(payload);
 
       }
       // postToken && postToken(viewData, cookies, {}, sessionStorage, payload.originalUsername, payload.name, payload.avatar);
@@ -416,7 +419,7 @@ const setCookies = async function (cookies, webContents) {
 // HTTP POST 请求封装函数
 const post = function (url, postData, newheaders) {
   // console.log("数据接收完成", url);
-  console.log("要发送的数据", postData);
+  // console.log("要发送的数据", postData);
   return new Promise(async (resolve, reject) => {
     let headers = {
       'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'
@@ -459,10 +462,14 @@ const post = function (url, postData, newheaders) {
   });
 }
 
-const postToken = async function (platform, cookie, localStorage, sessionStorage, originalUsername, name, avatar, token) {
+// (platform, cookies, {}, sessionStorage, payload.originalUsername, payload.name, payload.avatar, payload.token)
+const postToken = async function (payload) {
+  const {platform, cookies, localStorage, sessionStorage, originalUsername, name, avatar, token, userToken} = payload
   console.log("platform=>", platform)
+  console.log("cookies=>", cookies)
+  console.log("userToken=>", userToken)
   let url = '/platform/addAccount'; // 保留这个部分
-  let data = { cookie: cookie, localStorage: localStorage || {}, sessionStorage: sessionStorage || {} };
+  let data = { cookie: cookies, localStorage: localStorage || {}, sessionStorage: sessionStorage || {} };
   if (!platform || !platform.id) {
     return null;
   }
@@ -476,7 +483,7 @@ const postToken = async function (platform, cookie, localStorage, sessionStorage
       originalUsername: originalUsername,
       avatar: avatar,
       name: encodeURIComponent(name),
-    }, { 'X-Sjq-Token': '' });//{ 'X-Sjq-Token': userToken || '' });
+    }, { 'Authorization': `Bearer ${userToken}`, 'X-Sjq-Token': '' });//{ 'X-Sjq-Token': userToken || '' });
     resultData = JSON.parse(resultData);
     if (resultData.code == 1) {
       // tabbedWin.win.webContents.send('fromMain', "");

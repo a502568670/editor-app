@@ -14,6 +14,9 @@ const service = axios.create({
 //  请求拦截器
 service.interceptors.request.use(
   config => {
+    const token = getToken()
+    config.headers.Authorization =  `Bearer ${token}`;
+    // 下面的是之前的token用法，找时间去除
     if (config.url.indexOf('storage/add') > -1 || config.url.indexOf('storage/update') > -1) {
       config.headers['Content-Type'] = 'multipart/form-data'
     } else {
@@ -21,12 +24,12 @@ service.interceptors.request.use(
         if (!config.data) {
           config.data = {}
         }
-        config.data['token'] = getToken()
+        config.data['token'] = token
         config.data = Qs.stringify(config.data, { arrayFormat: 'repeat' })
 
       } else if (config.method === 'get') {
         config.params = {
-          token:getToken(),
+          token,
           ...config.params
         }
       }

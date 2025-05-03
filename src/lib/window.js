@@ -37,9 +37,11 @@ let userToken = '';
 const post = function (url, postData, newheaders) {
   // console.log("数据接收完成", url);
   console.log("要发送的数据", postData);
+  console.log("userToken", userToken);
   return new Promise(async (resolve, reject) => {
     let headers = {
-      'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'
+      'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8',
+      'Authorization': `Bearer ${userToken}`
       // 'Content-Type': 'application/x-www-form-urlencoded'
     };
     if (newheaders) {
