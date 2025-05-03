@@ -1,6 +1,7 @@
 <template>
   <div class="main bg-slate-300" style="border: 1px solid #ccc; background-color:#e9f9f1" >
     <div class="left basis-1/4 p-2" >
+        <div class="flex h-16">文章列表</div>
         <div class="bg-white  shadow-xl">
           <div @click="loadArticle(item)" v-for="(item, index) in mp_msgsRef" :key="item.msg_id"
             class="flex items-center p-2 border-b w-full">
@@ -145,6 +146,7 @@ import { ElMessage,ElMessageBox, ElLoading } from 'element-plus'
 import {
   ArrowUp, ArrowDown,Delete
 } from '@element-plus/icons-vue'
+// import { useStore } from 'vuex'
 // import { IButtonMenu, IDomEditor, Boot } from '@wangeditor/editor'
 // import SelectAccount from "../components/selectAccount";
 console.log("====enter editor====")
@@ -154,6 +156,8 @@ export default {
 
   setup() {
     // console.log("window", window.envVars)
+    
+
     // 编辑器实例，必须用 shallowRef
     const editorRef = shallowRef()
     

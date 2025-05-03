@@ -11,34 +11,28 @@ const service = axios.create({
   withCredentials: true // 允许携带cookie
 })
 
-// //  请求拦截器
-// service.interceptors.request.use(
-//   config => {
-//     if (config.url.indexOf('storage/add') > -1 || config.url.indexOf('storage/update') > -1) {
-//       config.headers['Content-Type'] = 'multipart/form-data'
-//     } else {
-//       if (config.method === 'post') {
-//         if (!config.data) {
-//           config.data = {}
-//         }
-//         config.data['token'] = getToken()
-//         config.data = Qs.stringify(config.data, { arrayFormat: 'repeat' })
-
-//       } else if (config.method === 'get') {
-//         config.params = {
-//           token:getToken(),
-//           ...config.params
-//         }
-//       }
-//     }
-//     return config
-//   },
-//   error => {
-//     // Do something with request error 处理请求错误
-//     console.log(error) // for debug
-//     Promise.reject(error)
-//   }
-// )
+//  请求拦截器
+service.interceptors.request.use(
+  config => {
+    const token = getToken()
+    config.headers.Authorization =  `Bearer ${token}`;
+    // if (config.method === 'post') {
+      
+    // }
+    // else if (config.method === 'get') {
+    //   config.params = {
+    //     token: getToken(),
+    //     ...config.params
+    //   }
+    // }
+    return config
+  },
+  error => {
+    // Do something with request error 处理请求错误
+    console.log(error) // for debug
+    Promise.reject(error)
+  }
+)
 
 //  响应拦截器
 service.interceptors.response.use(

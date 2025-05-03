@@ -205,33 +205,36 @@ export default {
   },
 
   methods: {
-    // handleLogin() {
-    //   this.$refs.loginForm.validate(valid => {
-    //     if (valid && !this.loading) {
-    //       this.loading = true
-    //       store.dispatch('LoginByUsername', this.loginForm).then(response => {
-    //         // if(this.jzmm){
-    //         //   localStorage.setItem("mobile",this.loginForm.username)
-    //         //   localStorage.setItem("password",this.loginForm.password)
-    //         // }
-    //         this.loading = false
-    //         router.push({ path: '/home' })
-    //       }).catch(response => {
-    //         console.info(response)
-    //         if(response.data?.msg) {
-    //           this.$notify.error({
-    //             title: '失败',
-    //             message: response.data.msg
-    //           })
-    //         }
-    //         this.loading = false
-    //       })
-    //     } else {
-    //       return false
-    //     }
-    //   })
-    // },
     async handleLogin() {
+      await this.$refs.loginForm.validate(valid => {
+        if (valid && !this.loading) {
+          this.loading = true
+          // console.log('this.loginForm=>', this.loginForm)
+          store.dispatch('LoginByUsernameSimple', this.loginForm).then(response => {
+            // console.log('LoginByUsernameSimple response=>', response)
+            if(this.jzmm){
+              localStorage.setItem("username",this.loginForm.username)
+              localStorage.setItem("password",this.loginForm.password)
+            }
+            this.loading = false
+            // router.push({ path: '/home' })
+            router.push({ path: '/home', replace: true });
+          }).catch(response => {
+            console.info(response)
+            if(response.data?.msg) {
+              this.$notify.error({
+                title: '失败',
+                message: response.data.msg
+              })
+            }
+            this.loading = false
+          })
+        } else {
+          return false
+        }
+      })
+    },
+    async handleLogin2() {
       try {
         // 显示加载状态
         this.isLoading = true;
@@ -262,6 +265,7 @@ export default {
           // 存储token（如果需要）
           if (data.data?.token) {
             localStorage.setItem("auth_token", data.data.token);
+            
           }
 
           // 跳转首页

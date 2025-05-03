@@ -44,6 +44,7 @@ service.interceptors.request.use(
 service.interceptors.response.use(
   response => {
     const res = response.data
+    console.log("res=>", res)
     if (res.code === 501) {
       MessageBox.alert(res.errmsg, '错误', {
         confirmButtonText: '确定',
@@ -86,6 +87,7 @@ service.interceptors.response.use(
       return Promise.reject('error')
     } else if (res.code !== 1) {
       // 非5xx的错误属于业务错误，留给具体页面处理
+      console.log("=======非5xx的错误属于业务错误，留给具体页面处理")
       return Promise.reject(response)
     } else {
       return response

@@ -112,6 +112,7 @@ router.beforeEach((to, from, next) => {
       next({ path: '/home' })
     } else {
       store.dispatch('GetUserInfo').then(res => { // 拉取user_info
+        // console.log("GetUserInfo=>", res)
         next()
         //next({ ...to, replace: true })
       }).catch((err) => {

@@ -1,5 +1,5 @@
 import { createStore } from 'vuex';
-import { loginByUsername, logout, getUserInfo } from '@/api/login'
+import { loginByUsername, loginByUsernameSimple, logout, getUserInfo } from '@/api/login'
 import { removeToken, setToken, getToken } from '@/utils/auth'
 import { newGetconfig } from '@/api/config'
 export default createStore({
@@ -48,6 +48,21 @@ export default createStore({
           commit('SET_TOKEN', response.data.data.token)
           resolve(response.data.data)
         }).catch(error => {
+          reject(error)
+        })
+      })
+    },
+     // 用户名登录
+    LoginByUsernameSimple({ commit, state }, userInfo) {
+      const username = (userInfo.username || '').trim()
+      return new Promise((resolve, reject) => {
+        loginByUsernameSimple(username, userInfo.password).then(response => {
+          // console.info(response.data.data.token)
+          commit('SET_TOKEN', response.data.data.token)
+          // console.log("commit SET_TOKEN =>response.data.data.token", state)
+          resolve(response.data.data)
+        }).catch(error => {
+          console.log("error=>", error)
           reject(error)
         })
       })
