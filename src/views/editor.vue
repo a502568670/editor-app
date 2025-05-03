@@ -1,7 +1,18 @@
 <template>
   <div class="main bg-slate-300" style="border: 1px solid #ccc; background-color:#e9f9f1" >
     <div class="left basis-1/4 p-2" >
-        <div class="flex h-16">文章列表</div>
+        <div class="flex h-16">
+          <el-select  v-model="selected_mp_msg_groupRef" :style="{'max-width': '200px'}" value-key="appmsgid"
+          clearable filterable placeholder="文章列表" @change="emitChangeForAppMsgGroup">
+            <el-option
+              v-for="(item) in mp_msg_groupsRef"
+              :key="item.appmsgid"
+              :label="item.name"
+              :value="item"
+              
+            />
+          </el-select>
+        </div>
         <div class="bg-white  shadow-xl">
           <div @click="loadArticle(item)" v-for="(item, index) in mp_msgsRef" :key="item.msg_id"
             class="flex items-center p-2 border-b w-full">
@@ -11,7 +22,7 @@
               :class="{ 'border-2 border-[#07C160]': (item.msg_id === msg_idRef) }"
               >
               <div class="flex text-white p-1">{{ item.title }}</div>
-              <div class="flex justify-between pr-1 space-x-2 pb-1 text-white" v-if="item.msg_id === msg_idRef">
+              <div class="flex justify-between px-1 space-x-2 py-1 text-white bg-gray-600 opacity-50" v-if="item.msg_id === msg_idRef">
                 <el-icon class="cursor-pointer" @click="swapDown(item.msg_id)">
                   <component :is="ArrowDown"></component>
                 </el-icon>
@@ -72,7 +83,7 @@
         @onCreated="handleCreated" />
       <div class="block-area save-area" >
         <el-select  v-model="selectedAccount" :style="{'max-width': '200px'}" value-key="id"
-        clearable filterable placeholder="选择发布公众账号" @input="emitInput" @change="emitChange">
+        clearable filterable placeholder="选择发布公众账号"  @change="emitChangeForAccount">
           <el-option
             v-for="(item) in accountsRef"
             :key="item.id"
@@ -137,15 +148,14 @@
 <script>
 import '@wangeditor/editor/dist/css/style.css' // 引入 css
 import { listAccount } from '@/api/account'
-import {saveArticleDraft, listArticlesByAppMsg, swapArticles, deleteArticleDraft} from "@/api/article"
+import {saveArticleDraft, listArticlesByAppMsg, listArticleGroups, swapArticles, deleteArticleDraft} from "@/api/article"
 import { getArticleContent, getArticleContent2 } from '@/api/jzl'
 import { onBeforeUnmount, ref, shallowRef, onMounted } from 'vue'
 import { Editor, Toolbar } from '@wangeditor/editor-for-vue'
 import { DomEditor } from '@wangeditor/editor';
 import { ElMessage,ElMessageBox, ElLoading } from 'element-plus'
-import {
-  ArrowUp, ArrowDown,Delete
-} from '@element-plus/icons-vue'
+import {ArrowUp, ArrowDown,Delete} from '@element-plus/icons-vue'
+import { removeAppMsgId, setAppMsgId, getAppMsgId } from '@/utils/editor'
 // import { useStore } from 'vuex'
 // import { IButtonMenu, IDomEditor, Boot } from '@wangeditor/editor'
 // import SelectAccount from "../components/selectAccount";
@@ -156,15 +166,18 @@ export default {
 
   setup() {
     // console.log("window", window.envVars)
-    
-
+  
     // 编辑器实例，必须用 shallowRef
     const editorRef = shallowRef()
     
     // mp_msgs
     const msg_idRef = ref(0)
     const mp_msgsRef = ref([])
-    const appmsgidRef = ref(100000115)
+    const mp_msg_groupsRef = ref([])
+    const selected_mp_msg_groupRef = ref(null)
+    // const init_appmsgid = getAppMsgId()
+    // console.log("appmsgid=>", init_appmsgid)
+    // const appmsgidRef = ref(init_appmsgid)
 
     // 文章内容
     const currentArticleRef = ref({
@@ -191,14 +204,8 @@ export default {
     
     // 模拟 ajax 异步获取内容
     onMounted(async () => {
-//       setTimeout(() => {
-//         // valueHtml.value = '<p>模拟 Ajax 异步设置内容</p>'
-//         valueHtml.value = `<section><img
-//                   data-ratio="1.737037037037037"
-//                   src="https://mmbiz.qpic.cn/sz_mmbiz_jpg/I5RHldhvmKmffAQ3F7YCb7Zib3fnrnXxnhncicZLQyILtsWfAV25rVia2OhXtJRWNQIM14I0iaCOQSayL5A6iciaJJhA/640?wx_fmt=jpeg"
-//                   data-type="jpg" data-w="1080" /></section>
-// `
-//       }, 1500)
+//      
+        await _listArticleGroups()
         listArticles()
         listAccount().then(response => {
           // accountsRef.value = [...response.data.data.list]
@@ -295,7 +302,9 @@ export default {
     const handleCreated = (editor) => {
       editorRef.value = editor // 记录 editor 实例，重要！
     }
-
+    const _getAppMsgId = () => {
+      return selected_mp_msg_groupRef.value?.appmsgid
+    }
     const insertText = () => {
       const editor = editorRef.value; // 获取 editor ，必须等待它渲染完之后
       if (editor == null) return;
@@ -344,17 +353,49 @@ export default {
     }
 
     const listArticles = async () => {
-      mp_msgsRef.value = await listArticlesByAppMsg(appmsgidRef.value).then(response => {
+      const appmsgid = _getAppMsgId()
+      // appmsgidRef.value
+      mp_msgsRef.value = await listArticlesByAppMsg(appmsgid).catch((err) => {}).then(response => {
         return response.data;
       })
       console.log("mp_msgsRef.value=>", mp_msgsRef.value)
     }
 
+    const _listArticleGroups = async () => {
+      mp_msg_groupsRef.value = await listArticleGroups().catch((err) => {}).then(response => {
+        return response.data;
+      })
+      console.log("mp_msg_groupsRef.value=>", mp_msg_groupsRef.value)
+      
+      if (!selected_mp_msg_groupRef.value) {
+        const init_appmsgid = getAppMsgId()
+        console.log("init_appmsgid=>", init_appmsgid)
+        if (init_appmsgid) {
+          const find_group = mp_msg_groupsRef.value.find(v => v.appmsgid === parseInt(init_appmsgid))
+          console.log("find_group=>", find_group)
+          if (find_group) {
+            selected_mp_msg_groupRef.value = find_group
+            return
+          }
+        }
+        selected_mp_msg_groupRef.value = mp_msg_groupsRef.value[0]
+        setAppMsgId(val.appmsgid)
+      }
+    }
+
+
     const loadArticle = (mp_msg) => {
       msg_idRef.value = mp_msg.msg_id
-      appmsgidRef.value = mp_msg.appmsgid
+      // appmsgidRef.value = mp_msg.appmsgid
       currentArticleRef.value = {
         ...mp_msg,
+      }
+    }
+    const loadArticleByMsgId = (msg_id) => {
+      const mp_msg = mp_msgsRef.value.find(v => v.msg_id === msg_id)
+      if (mp_msg) {
+        console.log("find mp_msg=>", mp_msg)
+        loadArticle(mp_msg)
       }
     }
     const newArticle = () => {
@@ -413,6 +454,11 @@ export default {
       }, 2000)
     }
 
+    const needRefreshGroup = (msg_id) => {
+      const idx = mp_msgsRef.value.findIndex(v => v.msg_id === msg_id)
+      return idx === 0
+    }
+
     const saveArticle = async() => {
       if (!validateArticleData()) {
         return
@@ -426,7 +472,8 @@ export default {
       // console.log("content_noencode:", currentArticleRef.value.content_noencode)
       
       const msg_id = msg_idRef.value
-      const appmsgid = appmsgidRef.value 
+      // const appmsgid =  appmsgidRef.value 
+      const appmsgid = _getAppMsgId()
       // console.log("msg_id", msg_id)
       // console.log("appmsgid", appmsgid)
       // console.log("cookie:", serializeCookie(JSON.parse(session_id)["cookie"]))
@@ -454,16 +501,27 @@ export default {
       const loader = ElLoading.service({
         target: '.main'
       })
-      const res = await saveArticleDraft(postData).finally(() => {
+      await saveArticleDraft(postData).then(async (res) => {
+        console.log("111res=>", res)
+        if (res) {
+
+        }
+        ElMessage({
+            message: `文章保存成功`,
+            type: 'success',
+            duration: 2 * 1000
+        })
+        if (needRefreshGroup(msg_id)) {
+          await _listArticleGroups()
+        }
+        await listArticles()
+        if (msg_id === 0) {
+
+        }
+      }).catch((err) => {}).finally(() => {
         loader.close()
       })
-      console.log("res=>", res)
-      ElMessage({
-          message: `文章保存成功`,
-          type: 'success',
-          duration: 2 * 1000
-      })
-      await listArticles()
+      
       // 暂时从前端提交
       //   window.ipcRenderer.send('toMain', {
       //   tag: 'saveArticleDraft',
@@ -475,7 +533,10 @@ export default {
       const idx = mp_msgsRef.value.findIndex(v => v.msg_id === msg_id)
       const prev =mp_msgsRef.value[idx - 1].msg_id
       console.log("prev index:", prev)
-      await swapArticles(prev, msg_id)
+      await swapArticles(prev, msg_id).catch((err) => {})
+      if (needRefreshGroup(prev)) {
+        await _listArticleGroups()
+      }
       await listArticles()
     }
     const swapDown = async (msg_id) => {
@@ -483,6 +544,9 @@ export default {
       const next = mp_msgsRef.value[idx + 1].msg_id
       console.log("next index:", next)
       await swapArticles(msg_id, next)
+      if (idx === 0) {
+        await _listArticleGroups()
+      }
       await listArticles()
     }
 
@@ -508,7 +572,7 @@ export default {
         const loader = ElLoading.service({
           target: '.main'
         })
-        await deleteArticleDraft(postData).finally(() => {
+        await deleteArticleDraft(postData).catch((err) => {}).finally(() => {
           loader.close()
         })
         ElMessage({
@@ -516,7 +580,16 @@ export default {
           type: 'success',
           duration: 2 * 1000
         })
+        
         await listArticles()
+        if (mp_msgsRef.value.length === 0) {
+          //该系列下没有文章，删除localStorage中保存的数据
+          removeAppMsgId()
+          selected_mp_msg_groupRef.value = null
+        }
+        if (needRefreshGroup(msg_id)) {
+          await _listArticleGroups()
+        }
       }).catch(() => {
         console.log('取消')
       })
@@ -526,11 +599,19 @@ export default {
     const emitInput = (val) => {
       // this.$emit('input', val)
     }
-    const emitChange = (val) => {
+    const emitChangeForAppMsgGroup = (val) => {
+      console.log("emitChangeForAppMsgGroup val=>", val)
+      if (val) {
+        selected_mp_msg_groupRef.value = val
+        listArticles()
+        setAppMsgId(val.appmsgid)
+      }
+    }
+    const emitChangeForAccount = (val) => {
       // console.log("emitChange=>", val)
       selectedAccount.value = val;
       setImageUploadConfig()
-      print("editorConfigRef=>", editorConfigRef.value)
+      console.log("editorConfigRef=>", editorConfigRef.value)
       // console.log("selectedAccount=>", selectedAccount)
       // this.$emit('change', val)
     }
@@ -548,8 +629,8 @@ export default {
           const cdn_content_type = matches[1];  // 图像MIME类型 (image/webp)
           const cdn_base64_image = matches[2]; // Base64编码数据
          
-          console.log("cdn_content_type:", cdn_content_type);
-          console.log("cdn_base64_image:", cdn_base64_image);
+          // console.log("cdn_content_type:", cdn_content_type);
+          // console.log("cdn_base64_image:", cdn_base64_image);
           cdnRef.value = {cdn_content_type, cdn_base64_image}
 
         } else {
@@ -574,6 +655,8 @@ export default {
     return {
       testLoading,
       msg_idRef,
+      mp_msg_groupsRef,
+      selected_mp_msg_groupRef,
       // titleRef,
       // authorRef,
       currentArticleRef,
@@ -595,7 +678,8 @@ export default {
       swapDown,
       deleteArticle,
       emitInput,
-      emitChange,
+      emitChangeForAppMsgGroup,
+      emitChangeForAccount,
       handleImage,
       ArrowUp: shallowRef(ArrowUp), 
       ArrowDown: shallowRef(ArrowDown),

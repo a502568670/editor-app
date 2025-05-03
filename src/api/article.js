@@ -30,6 +30,12 @@ export function listArticlesByAppMsg(appmsgid) {
   })
 }
 
+export function listArticleGroups() {
+  return request({
+    url: `/mp_msg/groups`
+  })
+}
+
 export function swapArticles(msg_id1, msg_id2) {
   return request({
     url: `/mp_msg/swap`,

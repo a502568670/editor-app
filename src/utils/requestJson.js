@@ -43,12 +43,14 @@ service.interceptors.response.use(
     console.log(error.code, error.response)
     const http_code = error.response.status
     const message = error.response.data.detail
+    console.warn("http_code=>", http_code)
     console.warn("message=>", message)
     if (http_code >= 400 && http_code < 499) {
       ElMessageBox.alert(message, '参数错误', {
         confirmButtonText: '确定',
         type: 'error'
       })
+
     } else if (http_code >= 500 && http_code < 599) {
       ElMessageBox.alert(message, '服务器内部错误', {
         confirmButtonText: '确定',
@@ -62,7 +64,7 @@ service.interceptors.response.use(
       })
     }
 
-    // return Promise.reject(error)
+    return Promise.reject(error)
   })
 
 export default service
