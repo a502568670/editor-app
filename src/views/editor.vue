@@ -1,9 +1,9 @@
 <template>
   <div class="main bg-slate-300" style="border: 1px solid #ccc; background-color:#e9f9f1" >
     <div class="left basis-1/4 p-2" >
-        <div class="flex h-16">
-          <el-select  v-model="selected_mp_msg_groupRef" :style="{'max-width': '200px'}" value-key="appmsgid"
-          clearable filterable placeholder="文章列表" @change="emitChangeForAppMsgGroup">
+        <div class="flex h-10 space-x-2">
+          <el-select  v-model="selected_mp_msg_groupRef" :style="{'max-width': '150px'}" value-key="appmsgid"
+           filterable placeholder="文章列表" @change="emitChangeForAppMsgGroup">
             <el-option
               v-for="(item) in mp_msg_groupsRef"
               :key="item.appmsgid"
@@ -12,10 +12,12 @@
               
             />
           </el-select>
+          <el-button @click="newArticleGroup" type="primary" >新列表</el-button>
         </div>
         <div class="bg-white  shadow-xl">
           <div @click="loadArticle(item)" v-for="(item, index) in mp_msgsRef" :key="item.msg_id"
             class="flex items-center p-2 border-b w-full">
+            <img :src="item.cdn_url" style="width:0px;height:0px;"  referrerpolicy="no-referrer" />
             <div v-if="index === 0"
               :style="{ '--image-url': 'url(' + item.cdn_url + ')' }"
               class='w-full flex h-40 justify-between items-end bg-no-repeat bg-center bg-cover bg-[image:var(--image-url)]'
@@ -83,7 +85,7 @@
         @onCreated="handleCreated" />
       <div class="block-area save-area" >
         <el-select  v-model="selectedAccount" :style="{'max-width': '200px'}" value-key="id"
-        clearable filterable placeholder="选择发布公众账号"  @change="emitChangeForAccount">
+         filterable placeholder="选择发布公众账号"  @change="emitChangeForAccount">
           <el-option
             v-for="(item) in accountsRef"
             :key="item.id"
@@ -155,7 +157,7 @@ import { Editor, Toolbar } from '@wangeditor/editor-for-vue'
 import { DomEditor } from '@wangeditor/editor';
 import { ElMessage,ElMessageBox, ElLoading } from 'element-plus'
 import {ArrowUp, ArrowDown,Delete} from '@element-plus/icons-vue'
-import { removeAppMsgId, setAppMsgId, getAppMsgId } from '@/utils/editor'
+import { removeAppMsgId, setAppMsgId, getAppMsgId, getSelectedAccountId, setSelectedAccountId } from '@/utils/editor'
 // import { useStore } from 'vuex'
 // import { IButtonMenu, IDomEditor, Boot } from '@wangeditor/editor'
 // import SelectAccount from "../components/selectAccount";
@@ -182,7 +184,7 @@ export default {
     // 文章内容
     const currentArticleRef = ref({
       title: "",
-      author: "parker",
+      author: "",
       copyright_type: 0,
       cdn_url: "",
       desc: "",
@@ -207,13 +209,27 @@ export default {
 //      
         await _listArticleGroups()
         listArticles()
-        listAccount().then(response => {
+        listAccount().catch(()=>{}).then(response => {
           // accountsRef.value = [...response.data.data.list]
           accountsRef.value = response.data.data.list
           console.log("load accounts:", accountsRef.value)
-          if (accountsRef.value.length >0) {
-            selectedAccount.value = accountsRef.value[0];
-            setImageUploadConfig()
+          
+
+          const init_account_id = getSelectedAccountId()
+          console.log("init_account_id=>", init_account_id)
+          if (init_account_id) {
+            const find_account = accountsRef.value.find(v => v.id === parseInt(init_account_id))
+            console.log("find_account=>", find_account)
+            if (find_account) {
+              selectedAccount.value = find_account
+              setImageUploadConfig()
+            }
+          } else {
+            if (accountsRef.value.length >0) {
+              selectedAccount.value = accountsRef.value[0];
+              setImageUploadConfig()
+              setSelectedAccountId(selectedAccount.value.id)
+            }
           }
         })
     })
@@ -281,6 +297,7 @@ export default {
     };
 
     const setImageUploadConfig = () => {
+      console.log("selectedAccount  in setImageUploadConfig=>", selectedAccount.value)
       const {token, name, session_id} = selectedAccount.value
       const cookies = serializeCookie(JSON.parse(session_id)["cookie"])
 
@@ -455,8 +472,11 @@ export default {
     }
 
     const needRefreshGroup = (msg_id) => {
-      const idx = mp_msgsRef.value.findIndex(v => v.msg_id === msg_id)
-      return idx === 0
+      if (msg_id > 0) {
+        const idx = mp_msgsRef.value.findIndex(v => v.msg_id === msg_id)
+        return idx === 0
+      }
+      return true
     }
 
     const saveArticle = async() => {
@@ -502,22 +522,23 @@ export default {
         target: '.main'
       })
       await saveArticleDraft(postData).then(async (res) => {
-        console.log("111res=>", res)
-        if (res) {
-
-        }
         ElMessage({
             message: `文章保存成功`,
             type: 'success',
             duration: 2 * 1000
         })
+        console.log("saveArticleDraft res=>", res)
+        if (msg_id === 0 && (!appmsgid && res.data.data.appmsgid)) {
+          // 新列表 需要设置新的appmsgid到localstorage
+          setAppMsgId(res.data.data.appmsgid)
+        }
         if (needRefreshGroup(msg_id)) {
           await _listArticleGroups()
         }
+        
+        
         await listArticles()
-        if (msg_id === 0) {
-
-        }
+        
       }).catch((err) => {}).finally(() => {
         loader.close()
       })
@@ -596,6 +617,19 @@ export default {
       
     }
 
+    const newArticleGroup = () => {
+      msg_idRef.value = 0
+      selected_mp_msg_groupRef.value = null
+      currentArticleRef.value = {
+        title: "",
+        author: "",
+        copyright_type: 0,
+        cdn_url: "",
+        desc: "",
+        content_noencode: "",
+      }
+    }
+
     const emitInput = (val) => {
       // this.$emit('input', val)
     }
@@ -603,15 +637,19 @@ export default {
       console.log("emitChangeForAppMsgGroup val=>", val)
       if (val) {
         selected_mp_msg_groupRef.value = val
-        listArticles()
+        listArticles().then(()=>{
+          loadArticle(mp_msgsRef.value[0])
+        })
         setAppMsgId(val.appmsgid)
+        
       }
     }
     const emitChangeForAccount = (val) => {
-      // console.log("emitChange=>", val)
+      console.log("emitChange=>", val)
       selectedAccount.value = val;
       setImageUploadConfig()
-      console.log("editorConfigRef=>", editorConfigRef.value)
+      setSelectedAccountId(selectedAccount.value.id)
+      // console.log("editorConfigRef=>", editorConfigRef.value)
       // console.log("selectedAccount=>", selectedAccount)
       // this.$emit('change', val)
     }
@@ -677,6 +715,7 @@ export default {
       swapUp,
       swapDown,
       deleteArticle,
+      newArticleGroup,
       emitInput,
       emitChangeForAppMsgGroup,
       emitChangeForAccount,
