@@ -644,13 +644,17 @@ export default {
         })
         
         await listArticles()
+        console.log("mp_msgsRef.value=>", mp_msgsRef.value)
         if (mp_msgsRef.value.length === 0) {
           //该系列下没有文章，删除localStorage中保存的数据
           removeAppMsgId()
           selected_mp_msg_groupRef.value = null
         }
-        if (needRefreshGroup(msg_id)) {
+        if (needRefreshGroup(msg_id) || mp_msgsRef.value.length === 0) {
           await _listArticleGroups()
+          listArticles().then(()=>{
+            loadArticle(mp_msgsRef.value[0])
+          })
         }
       }).catch(() => {
         console.log('取消')
