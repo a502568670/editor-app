@@ -3,7 +3,7 @@
   <div class="home">
     <el-breadcrumb :separator-icon="ArrowRight">
       <el-breadcrumb-item>首页</el-breadcrumb-item>
-      <el-breadcrumb-item>小风筝</el-breadcrumb-item>
+      <el-breadcrumb-item>极致了编辑器</el-breadcrumb-item>
       <el-breadcrumb-item><span style="color: #51ce94">v1.0.0</span></el-breadcrumb-item>
     </el-breadcrumb>
     <el-row :gutter="20" style="margin-top:20px;background-color: #FFF">

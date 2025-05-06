@@ -56,6 +56,14 @@ export function register(data) {
   })
 }
 
+export function registerSimple(data) {
+  return request({
+    url: '/login/register',
+    method: 'post',
+    data
+  })
+}
+
 export function modifypassword(data) {
   return request({
     url: '/login/modifypassword',

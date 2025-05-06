@@ -391,10 +391,12 @@ export default {
     const listArticles = async () => {
       const appmsgid = _getAppMsgId()
       // appmsgidRef.value
-      mp_msgsRef.value = await listArticlesByAppMsg(appmsgid).catch((err) => {}).then(response => {
-        return response.data;
-      })
-      console.log("mp_msgsRef.value=>", mp_msgsRef.value)
+        if (appmsgid) {
+          mp_msgsRef.value = await listArticlesByAppMsg(appmsgid).catch((err) => {}).then(response => {
+          return response.data;
+        })
+        console.log("mp_msgsRef.value=>", mp_msgsRef.value)
+      }
     }
 
     const _listArticleGroups = async () => {
@@ -411,11 +413,18 @@ export default {
           console.log("find_group=>", find_group)
           if (find_group) {
             selected_mp_msg_groupRef.value = find_group
+            console.log("1 selected_mp_msg_groupRef.value=>", selected_mp_msg_groupRef.value)
+            setAppMsgId(selected_mp_msg_groupRef.value.appmsgid)
             return
           }
         }
-        selected_mp_msg_groupRef.value = mp_msg_groupsRef.value[0]
-        setAppMsgId(val.appmsgid)
+        if (mp_msg_groupsRef.value.length > 0) {
+          selected_mp_msg_groupRef.value = mp_msg_groupsRef.value[0]
+          console.log("2 selected_mp_msg_groupRef.value=>", selected_mp_msg_groupRef.value)
+          setAppMsgId(selected_mp_msg_groupRef.value.appmsgid)
+        } else {
+          setAppMsgId("")
+        }
       }
     }
 
@@ -456,7 +465,19 @@ export default {
       return items.join(";")
     }
 
+    const validateAccount = () => {
+      if (!selectedAccount.value) {
+        ElMessageBox.alert('发布的公众账号不存在,请先到账号中心添加', '错误', {
+          confirmButtonText: '确定',
+          type: 'error'
+        })
+        return false;
+      }
+      return true
+    }
+
     const validateArticleData = () => {
+
       if (!currentArticleRef.value.title.trim()) {
         ElMessageBox.alert('标题不能为空', '错误', {
           confirmButtonText: '确定',
@@ -500,7 +521,8 @@ export default {
     }
 
     const saveArticle = async() => {
-      if (!validateArticleData()) {
+      
+      if (!validateAccount() || !validateArticleData()) {
         return
       }
 
@@ -592,7 +614,6 @@ export default {
     }
 
     const deleteArticle = async (msg_id) => {
-
       ElMessageBox.confirm(
         '此操作将删除该文章, 是否继续?',
         '提示',

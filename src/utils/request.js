@@ -49,7 +49,7 @@ service.interceptors.response.use(
     const res = response.data
     console.log("res=>", res)
     if (res.code === 501) {
-      MessageBox.alert(res.errmsg, '错误', {
+      ElMessageBox.alert(res.errmsg, '错误', {
         confirmButtonText: '确定',
         type: 'error'
       }).then(() => {
@@ -96,7 +96,17 @@ service.interceptors.response.use(
       return response
     }
   }, error => {
-    console.log('err' + error)// for debug
+    console.log('err', error.response)// for debug
+    const code = error.response.status
+    
+    if (code === 500) {
+      const err = error.response.data.detail
+      ElMessageBox.alert(err, '服务器错误', {
+        confirmButtonText: '确定',
+        type: 'error'
+      })
+      return Promise.reject('error')
+    }
     ElMessage({
       message: '系统错误，请检查网络是否正常',
       type: 'error',

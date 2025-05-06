@@ -2,8 +2,8 @@
   "name": "xfz",
   "version": "0.1.0",
   "private": true,
-  "description": "小风筝",
-  "author": "小风筝",
+  "description": "极致了编辑器",
+  "author": "jzl_editor",
   "scripts": {
     "serve": "vue-cli-service serve",
     "build": "vue-cli-service build",

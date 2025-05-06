@@ -21,10 +21,10 @@
           <div style="width: 100%">
             <el-button  :loading="loading" type="success" style="width: 100%; height:46px; display: flex; align-items: center; justify-content: center; background-color: #2cc47d; border-color: #2cc47d;" @click.prevent="handleLogin">登录</el-button>
           </div>
-          <div style="display:flex;align-items: center;justify-content: space-between;width: 100%;margin-top: 10px;">
+          <!-- <div style="display:flex;align-items: center;justify-content: space-between;width: 100%;margin-top: 10px;">
             <span @click="type='password'">忘记密码</span>
             <span @click="type='register'">注册</span>
-          </div>
+          </div> -->
         </el-form-item>
       </el-form>
     </div>
@@ -121,7 +121,7 @@
 </template>
 
 <script>
-import {send_sms,register,modifypassword} from '@/api/login'
+import {send_sms,register, registerSimple,modifypassword} from '@/api/login'
 import { useStore } from 'vuex'
 import { useRouter } from 'vue-router'
 import axios from "axios";
@@ -148,6 +148,8 @@ export default {
         callback()
       }
     }
+    const init_username = localStorage.getItem("username")
+    const init_password  = localStorage.getItem("password")
     return {
       dialogVisible: false,
       htmlSrc:'',
@@ -155,8 +157,8 @@ export default {
       type:'login',
       jzmm:true,
       loginForm: {
-        username: '12345678911',
-        password: '123456',
+        username: init_username,
+        password: init_password,
         r_password:'',
         checked:false,
         code: ''
@@ -337,11 +339,11 @@ export default {
     register(){
       this.$refs.registerForm.validate(valid => {
         if (valid) {
-          register({
+          registerSimple({
             mobile:this.loginForm.username,
             password:this.loginForm.password,
             r_password:this.loginForm.r_password,
-            code:this.loginForm.code
+            // code:this.loginForm.code
           }).then(response => {
             this.type='login';
             this.$notify.success({

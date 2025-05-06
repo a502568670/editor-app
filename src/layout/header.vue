@@ -3,7 +3,7 @@
     <el-col :span="4" style="display: flex;flex-direction: column;justify-content: center">
       <div style="font-size: 12px;margin-bottom: 5px;">{{$store.state.user?.mobile}}</div>
       <div v-if="$store.state.user?.vip_name" style="color:#999;font-size: 12px;">{{$store.state.user?.vip_name}}[{{$store.state.user?.vip_endtime}}]到期</div>
-      <div style="color:#999;font-size: 12px;" v-else>18314591618</div>
+      <div style="color:#999;font-size: 12px;" v-else>{{username}}</div>
     </el-col>
     <el-col :span="14">
       <div style="display:flex;align-items: center;">
@@ -16,7 +16,7 @@
     </el-col>
     <el-col :span="6" style="text-align: right">
       <div class="right">
-        <el-button @click="toBuyVip" type="primary" >购买会员</el-button>
+        <!-- <el-button @click="toBuyVip" type="primary" >购买会员</el-button> -->
         <el-button @click="toKf" type="success" >联系客服</el-button>
         <el-button @click="exit" type="danger" :icon="SwitchButton" circle></el-button>
       </div>
@@ -76,6 +76,7 @@ const toBuyVip = function () {
 const toKf = function () {
   router.push('/kf')
 }
+const username = ref(localStorage.getItem("username"))
 </script>
 
 <style  scoped>
