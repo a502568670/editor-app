@@ -15,43 +15,45 @@
           <el-button @click="newArticleGroup" type="primary" >新列表</el-button>
         </div>
         <div class="bg-white  shadow-xl">
-          <div @click="loadArticle(item)" v-for="(item, index) in mp_msgsRef" :key="item.msg_id"
-            class="flex items-center p-2 border-b w-full">
-            <img :src="item.cdn_url" style="width:0px;height:0px;"  referrerpolicy="no-referrer" />
-            <div v-if="index === 0"
-              :style="{ '--image-url': 'url(' + item.cdn_url + ')' }"
-              class='w-full flex h-40 justify-between items-end bg-no-repeat bg-center bg-cover bg-[image:var(--image-url)]'
+          <div v-if="mp_msgsRef">
+              <div @click="loadArticle(item)" v-for="(item, index) in mp_msgsRef" :key="item.msg_id"
+              class="flex items-center p-2 border-b w-full">
+              <img :src="item.cdn_url" style="width:0px;height:0px;"  referrerpolicy="no-referrer" />
+              <div v-if="index === 0"
+                :style="{ '--image-url': 'url(' + item.cdn_url + ')' }"
+                class='w-full flex h-40 justify-between items-end bg-no-repeat bg-center bg-cover bg-[image:var(--image-url)]'
+                :class="{ 'border-2 border-[#07C160]': (item.msg_id === msg_idRef) }"
+                >
+                <div class="flex text-white p-1">{{ item.title }}</div>
+                <div class="flex justify-between px-1 space-x-2 py-1 text-white bg-gray-600 opacity-50" v-if="item.msg_id === msg_idRef">
+                  <el-icon class="cursor-pointer" @click="swapDown(item.msg_id)">
+                    <component :is="ArrowDown"></component>
+                  </el-icon>
+                  <el-icon class="cursor-pointer" @click="deleteArticle(item.msg_id)"><component :is="Delete"></component></el-icon>
+                </div>
+              </div>
+              <div class="w-full flex h-20 items-center p-1"
               :class="{ 'border-2 border-[#07C160]': (item.msg_id === msg_idRef) }"
-              >
-              <div class="flex text-white p-1">{{ item.title }}</div>
-              <div class="flex justify-between px-1 space-x-2 py-1 text-white bg-gray-600 opacity-50" v-if="item.msg_id === msg_idRef">
-                <el-icon class="cursor-pointer" @click="swapDown(item.msg_id)">
-                  <component :is="ArrowDown"></component>
-                </el-icon>
-                <el-icon class="cursor-pointer" @click="deleteArticle(item.msg_id)"><component :is="Delete"></component></el-icon>
+              v-else>
+                <div class="flex flex-col flex-1 h-full">
+                  <div class="flex-1 h-2/3">{{ item.title }}</div>
+                  <div class=" text-sm flex-0" style="color: #51ce94">{{ item.author }}</div>
+                </div>
+                <img class="w-10 h-10 rounded-sm" :src="item.cdn_url" />
+                <div class="flex flex-col justify-around px-1 h-full" v-if="item.msg_id === msg_idRef">
+                  <el-icon class="cursor-pointer" @click="swapUp(item.msg_id)">
+                    <component :is="ArrowUp"></component>
+                  </el-icon>
+                  <el-icon class="cursor-pointer" @click="swapDown(item.msg_id)">
+                    <component :is="ArrowDown" v-if="index < mp_msgsRef.length-1"></component>
+                  </el-icon>
+                  <el-icon class="cursor-pointer" @click="deleteArticle(item.msg_id)"><component :is="Delete"></component></el-icon>
+                </div>
               </div>
             </div>
-            <div class="w-full flex h-20 items-center p-1"
-            :class="{ 'border-2 border-[#07C160]': (item.msg_id === msg_idRef) }"
-            v-else>
-              <div class="flex flex-col flex-1 h-full">
-                <div class="flex-1 h-2/3">{{ item.title }}</div>
-                <div class=" text-sm flex-0" style="color: #51ce94">{{ item.author }}</div>
-              </div>
-              <img class="w-10 h-10 rounded-sm" :src="item.cdn_url" />
-              <div class="flex flex-col justify-around px-1 h-full" v-if="item.msg_id === msg_idRef">
-                <el-icon class="cursor-pointer" @click="swapUp(item.msg_id)">
-                  <component :is="ArrowUp"></component>
-                </el-icon>
-                <el-icon class="cursor-pointer" @click="swapDown(item.msg_id)">
-                  <component :is="ArrowDown" v-if="index < mp_msgsRef.length-1"></component>
-                </el-icon>
-                <el-icon class="cursor-pointer" @click="deleteArticle(item.msg_id)"><component :is="Delete"></component></el-icon>
-              </div>
+            <div class="w-full flex h-20 items-center p-1 justify-center" >
+                <div @click="newArticle()"  class="cursor-pointer">+新建文章</div>
             </div>
-          </div>
-          <div class="w-full flex h-20 items-center p-1 justify-center" >
-              <div @click="newArticle()"  class="cursor-pointer">+新建文章</div>
           </div>
         </div>
     </div>
@@ -77,11 +79,11 @@
             <!-- <img v-if="currentArticleRef.cdn_url" :src="currentArticleRef.cdn_url" referrerpolicy="no-referrer"> -->
             <input @change="handleImage" class="custom-input" type="file" accept="image/*">
           </div>
-          <Toolbar style="border-bottom: 1px solid #ccc;" :editor="editorRef" :defaultConfig="toolbarConfig" :mode="mode" />
+          <Toolbar :key="currentArticleRef.msg_id" style="border-bottom: 1px solid #ccc;" :editor="editorRef" :defaultConfig="toolbarConfig" :mode="mode" />
       </div>
 
       <!-- <hr style="margin-top: 100px;" /> -->
-      <Editor style="margin-top: 200px; height: 500px; border:solid 1px #ccc; overflow-y: hidden;" v-model="currentArticleRef.content_noencode" :defaultConfig="editorConfig" :mode="mode"
+      <Editor :key="currentArticleRef.msg_id" style="margin-top: 200px; height: 500px; border:solid 1px #ccc; overflow-y: hidden;" v-model="currentArticleRef.content_noencode" :defaultConfig="editorConfig" :mode="mode"
         @onCreated="handleCreated" />
       <div class="block-area save-area" >
         <el-select  v-model="selectedAccount" :style="{'max-width': '200px'}" value-key="id"
@@ -188,7 +190,8 @@ export default {
       copyright_type: 0,
       cdn_url: "",
       desc: "",
-      content_noencode: "<section>hello</section>",
+      // content_noencode: "<section>hello</section>",
+      content_noencode: "",
     })
     // const titleRef = ref("")
     // const authorRef = ref("parker")
@@ -258,6 +261,17 @@ export default {
       //   token: 'xxx',
       //   cookies: 'yyy',
       // },
+      onBeforeUpload(file) {
+        console.log("file=>", file)        
+        // TS 语法
+        // onBeforeUpload(file) {    // JS 语法
+        // file 选中的文件，格式如 { key: file }
+        return file
+
+        // 可以 return
+        // 1. return file 或者 new 一个 file ，接下来将上传
+        // 2. return false ，不上传这个 file
+      },
       // 单个文件上传成功之后
       onSuccess(file, res) {
         // TS 语法
@@ -297,6 +311,9 @@ export default {
     };
 
     const setImageUploadConfig = () => {
+      if (!selectedAccount.value) {
+        return
+      }
       console.log("selectedAccount  in setImageUploadConfig=>", selectedAccount.value)
       const {token, name, session_id} = selectedAccount.value
       const cookies = serializeCookie(JSON.parse(session_id)["cookie"])
@@ -317,7 +334,9 @@ export default {
     }
 
     const handleCreated = (editor) => {
+      console.log("handleCreated=>", editor)
       editorRef.value = editor // 记录 editor 实例，重要！
+      setImageUploadConfig()
     }
     const _getAppMsgId = () => {
       return selected_mp_msg_groupRef.value?.appmsgid
@@ -407,6 +426,7 @@ export default {
       currentArticleRef.value = {
         ...mp_msg,
       }
+      console.log("currentArticleRef.value=>", currentArticleRef.value)
     }
     const loadArticleByMsgId = (msg_id) => {
       const mp_msg = mp_msgsRef.value.find(v => v.msg_id === msg_id)
