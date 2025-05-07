@@ -148,6 +148,9 @@
   margin:2px;
   line-height:0;
 }
+span[data-slate-zero-width="n"] {
+  padding: 0 1px !important;
+}
 </style>
 <script>
 import '@wangeditor/editor/dist/css/style.css' // 引入 css
