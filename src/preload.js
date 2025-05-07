@@ -9,10 +9,10 @@
 
 import { contextBridge, ipcRenderer } from "electron";
 
-console.log("BACKEND_URL=>", process.env.BACKEND_URL);
+// console.log("BACKEND_URL=>", process.env.BACKEND_URL);
 
 contextBridge.exposeInMainWorld('envVars', {
-  backend_url: process.env.BACKEND_URL
+  backend_url: process.env.BACKEND_URL 
 });
 
 // Expose protected methods that allow the renderer process to use the ipcRenderer without exposing the entire object. Reference: https://nklayman.github.io/vue-cli-plugin-electron-builder/guide/security.html#node-integration

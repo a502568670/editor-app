@@ -12,6 +12,8 @@ import { BrowserWindow, BrowserView, ipcMain, ipcRenderer } from "electron";
 import log from "electron-log";
 import EventEmitter from "events";
 import global from './global'
+const verbose_log = global.utils.verbose_log;
+const verbose_error = global.utils.verbose_error;
 
 
 const path = require("path");
@@ -77,9 +79,6 @@ export class TabbedWindow extends EventEmitter {
       winOptions = {},
     } = options;
 
-    console.log("controlPanel=>", controlPanel)
-    console.log("controlReferences=>", controlReferences)
-
     this.commonWebPreferences = {
       minimumFontSize: 12,
       contextIsolation: !process.env.ELECTRON_NODE_INTEGRATION,
@@ -93,7 +92,7 @@ export class TabbedWindow extends EventEmitter {
       plugins: true,
       sandbox: true // Support window.opener. See https://github.com/electron/electron/issues/1865#issuecomment-249989894 for more info.
     };
-    console.log("this.commonWebPreferences=>", this.commonWebPreferences)
+    verbose_log("this.commonWebPreferences=>", this.commonWebPreferences)
     this.defCurrentViewId = null;
     this.defTabConfigs = {};
     this.ipc = null; // IPC channel.
@@ -171,10 +170,10 @@ export class TabbedWindow extends EventEmitter {
    * @ignore
    */
   destroyView(viewId) {
-    console.log('indestroyView', viewId, this.views, this.views[viewId])
+    verbose_log('indestroyView', viewId, this.views, this.views[viewId])
     const view = this.views[viewId];
     if (view && view.webContents && !view.webContents.isDestroyed() && !this.win.isDestroyed()) {
-      console.log("before removeBrowserView")
+      verbose_log("before removeBrowserView")
       this.win.removeBrowserView(view);
       view.webContents.stop();
       view.webContents.close({ waitForBeforeUnload: global.common.WAIT_FOR_BEFORE_UNLOAD });
@@ -233,14 +232,14 @@ export class TabbedWindow extends EventEmitter {
 
       e.preventDefault();
       if (disposition === "new-window") {
-        console.log("new-window")
+        verbose_log("new-window")
         e.newGuest = new BrowserWindow(winOptions);
       } else if (disposition === "foreground-tab") {
-        console.log("foreground-tab")
+        verbose_log("foreground-tab")
         await this.newTab(newUrl, id);
         e.newGuest = new BrowserWindow({ ...winOptions, show: false }); // `newGuest` must be set to prevent freeze the trigger tab. The window will be destroyed automatically on the trigger tab closed.
       } else {
-        console.log("other")
+        verbose_log("other")
         webContents.loadURL(newUrl);
         //await this.newTab(newUrl, id);
       } // end nested if...else
@@ -324,14 +323,14 @@ export class TabbedWindow extends EventEmitter {
       for (let key in this.tabConfigs) {
         if (this.tabConfigs[key] && this.tabConfigs[key].account_id == url.id) {
           this.switchTab(parseInt(key));
-          console.log("is return from newTab...")
+          verbose_log("is return from newTab...")
           return;
         }
       }
     }
     let viewKey = typeof url === "object" ? url.id : url;
     let partition = "persist:" + viewKey;
-    console.log('this.commonWebPreferences=>', this.commonWebPreferences)
+    verbose_log('this.commonWebPreferences=>', this.commonWebPreferences)
     // console.log('references=>', references)
     // console.log('this.options.viewReferences=>', this.options.viewReferences)
     const view = new BrowserView({
@@ -345,7 +344,7 @@ export class TabbedWindow extends EventEmitter {
     // custom window.open() action
     view.webContents.setWindowOpenHandler((details) => {
       //this.newTab(details.url)
-      console.log("details=>", details)
+      verbose_log("details=>", details)
       if (details.url == 'about:blank') {
         return { action: 'deny' };
       }
@@ -371,7 +370,7 @@ export class TabbedWindow extends EventEmitter {
     this.setCurrentView(view.id);
     view.setAutoResize({ height: true, width: true });
     if (typeof url === "object") {
-      console.log('url 是一个对象，根据 url.platform_id 加载相应的平台模块:')
+      verbose_log('url 是一个对象，根据 url.platform_id 加载相应的平台模块:')
       this.loadURL('');
 
       this.setTabConfig(view.id, {
@@ -379,7 +378,7 @@ export class TabbedWindow extends EventEmitter {
       });
 
       let companyMap = {}
-      console.log('调试url.platform_id:', url.platform_id)
+      verbose_log('调试url.platform_id:', url.platform_id)
       switch (parseInt(url.platform_id)) {
         case 1:
           companyMap.bxgs = require('./blbl')
@@ -403,7 +402,7 @@ export class TabbedWindow extends EventEmitter {
       companyMap.partition = partition;
       companyMap.webview = view;
       companyMap.tabWin = this;
-      console.log('调试companyMap.bxgs:', companyMap.bxgs)
+      verbose_log('调试companyMap.bxgs:', companyMap.bxgs)
       if (companyMap.bxgs) {
         let setCookies = async function (cookies, webContents) {
           for (let cookiesItem of cookies) {
@@ -424,7 +423,7 @@ export class TabbedWindow extends EventEmitter {
             }
           }
         }
-        console.log('调用下面的方法来初始化和选择用户:', companyMap)
+        verbose_log('调用下面的方法来初始化和选择用户:', companyMap)
         companyMap.bxgs.init(companyMap)
         companyMap.bxgs.selectUser(companyMap, setCookies)
       }
@@ -512,8 +511,8 @@ export class TabbedWindow extends EventEmitter {
         this.emit("control-ready", e);
       },
       "new-tab": (e, url, references) => {
-        console.log('主进程接收到的new-tab url', url)
-        console.log('主进程接收到的new-tab references', references)
+        verbose_log('主进程接收到的new-tab url', url)
+        verbose_log('主进程接收到的new-tab references', references)
         this.newTab(url, null, references);
       },
       "switch-tab": (e, id) => {
@@ -634,17 +633,17 @@ export class TabbedWindow extends EventEmitter {
   } // end function setCurrentView
 
   raiseRenderAct(event, ...args) {
-    console.log('this.win.webContents=>', this.win.webContents)
+    verbose_log('this.win.webContents=>', this.win.webContents)
     this.win.webContents.send(event, ...args);
     if (event === "remove-account-session") {
 
-      console.log("currentView:", this.currentView)
+      verbose_log("currentView:", this.currentView)
       if (this.currentView) {
         const session = this.currentView.webContents.session;
         session.clearStorageData({
           storages: ['cookies', 'localstorage', 'caches']
         }, function (data) {
-          console.log('clearStorageData', data);
+          verbose_log('clearStorageData', data);
         })
         // 考虑关闭tab
         // sendCloseTab(this.currentView.id)

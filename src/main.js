@@ -109,7 +109,8 @@ router.beforeEach((to, from, next) => {
   if (getToken()) { // determine if there has token
     /* has token*/
     if (to.path === '/login') {
-      next({ path: '/home' })
+      // next({ path: '/home' })
+      next({ path: '/editor' })
     } else {
       store.dispatch('GetUserInfo').then(res => { // 拉取user_info
         // console.log("GetUserInfo=>", res)

@@ -13,6 +13,10 @@ import global from "./global.js";
 import log from "electron-log";
 import { platform } from "process";
 import * as zhCN from '../locales/zh-CN.json'
+const verbose_log = global.utils.verbose_log;
+const verbose_error = global.utils.verbose_error;
+const get_backend_url = global.utils.get_backend_url;
+
 let tabbedWin;
 function showMsg(msg) {
   dialog.showMessageBox({
@@ -22,9 +26,9 @@ function showMsg(msg) {
     buttons: ['关闭']
   }, (index) => {
     if (index == 0) {
-      console.log('You click ok.');
+      verbose_log('You click ok.');
     } else {
-      console.log('You click cancel');
+      verbose_log('You click cancel');
     }
   })
 }
@@ -35,9 +39,9 @@ let userToken = '';
 
 // HTTP POST 请求封装函数
 const post = function (url, postData, newheaders) {
-  // console.log("数据接收完成", url);
-  console.log("要发送的数据", postData);
-  console.log("userToken", userToken);
+  // verbose_log("数据接收完成", url);
+  verbose_log("要发送的数据", postData);
+  verbose_log("userToken", userToken);
   return new Promise(async (resolve, reject) => {
     let headers = {
       'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8',
@@ -47,12 +51,24 @@ const post = function (url, postData, newheaders) {
     if (newheaders) {
       headers = Object.assign(headers, newheaders);
     }
+
+    const [backend_protocol, backend_host, backend_port] = get_backend_url()
+    // const backend_url = process.env.BACKEND_URL
+    // verbose_log("post in wechat backend_url:", process.env.BACKEND_URL)
+    // let [backend_protocol, backend_host, backend_port] = backend_url.split(":")
+    // backend_protocol = backend_protocol + ":"
+    // backend_host = backend_host.substring(2)
+    // backend_port = parseInt(backend_port)
+    verbose_log("backend_protocol=>", backend_protocol)
+    verbose_log("backend_host=>", backend_host)
+    verbose_log("backend_port=>", backend_port)
+
     // 使用 net.request 创建一个 POST 请求，配置包括协议、主机地址、端口、路径和请求头。
     const request = net.request({
       method: 'post',
-      protocol: "http:", // 使用 http 协议
-      hostname: '127.0.0.1', // 设为本地地址
-      port: 8000, // 设为端口 8000
+      protocol: backend_protocol, // 使用 http 协议
+      hostname: backend_host, // 设为本地地址
+      port: backend_port, // 设为端口 8000
       path: url, // 直接使用传入的 url
       headers: headers
     });
@@ -63,9 +79,9 @@ const post = function (url, postData, newheaders) {
         data += chunk.toString();
       });
       response.on('end', () => {
-        console.log("数据接收完成");
+        verbose_log("数据接收完成");
         if (response.statusCode == 200) {
-          console.log("数据接收完成", data);
+          verbose_log("数据接收完成", data);
           resolve(data);
         } else {
           reject();
@@ -91,7 +107,7 @@ const postToken = async function (platform, cookie, localStorage, sessionStorage
   }
   try {
 
-    console.log("in postToken name===", name)
+    verbose_log("in postToken name===", name)
     let resultData = await post(url, {
       // session_id：通过 encodeURIComponent(JSON.stringify(data)) 序列化后的会话信息。
       // token: userToken,
@@ -107,7 +123,7 @@ const postToken = async function (platform, cookie, localStorage, sessionStorage
       tabbedWin.win.webContents.send('fromMain', "");
       companyMap.webview.close();
       if (Notification.isSupported()) {
-        console.log('notification is supported');
+        verbose_log('notification is supported');
         new Notification({
           title: '消息提示',
           subtitle: '登录信息上传成功',
@@ -118,7 +134,7 @@ const postToken = async function (platform, cookie, localStorage, sessionStorage
       showMsg(resultData.msg);
     }
   } catch (e) {
-    console.error(e); // 添加错误处理输出
+    verbose_error(e); // 添加错误处理输出
   }
 }
 
@@ -127,7 +143,6 @@ const postToken = async function (platform, cookie, localStorage, sessionStorage
 
 export async function createTabbedWin(stockList) {
   global.tabItemCount = 0;
-
   const { height, width } = screen.getPrimaryDisplay().workAreaSize;
   let baseUrl;
 
@@ -137,7 +152,7 @@ export async function createTabbedWin(stockList) {
   } else {
     baseUrl = process.env.WEBPACK_DEV_SERVER_URL; // Load the dev server URL if it exists.
   }
-  console.log("baseUrl:", baseUrl)
+  verbose_log("baseUrl:", baseUrl)
 
   const winHeight = Math.round(height * 0.9);
   const winOptions = {
@@ -208,10 +223,10 @@ function initialiseCustomisedWinListener(tabbedWin) {
   })
   tabbedWin.on('control-ready', async () => {
     // auto update
-    // console.log('check update start')
+    // verbose_log('check update start')
   })
   tabbedWin.on('new-tab', () => {
-    console.log("----tabbedWin received `new-tab`")
+    verbose_log("----tabbedWin received `new-tab`")
     global.tabItemCount++
   })
   tabbedWin.win.on("close", (e) => {
@@ -231,16 +246,16 @@ function initialiseCustomisedWinListener(tabbedWin) {
 
 // 监听主窗口的事件，最大化，最小化、关闭等
 function initialiseIpcMainListener(stockList, tabbedWin) {
-  console.log('initialiseIpcMainListener监听主窗口事件')
+  verbose_log('initialiseIpcMainListener监听主窗口事件')
   ipcMain.removeAllListeners(['toMain'])
   ipcMain.on('toMain', async (event, data) => {
     const viewContents = webContents.fromId(event.sender.id)
 
     if (typeof data === "object") {
-      console.log('接收到toMain事件的数据类型是对象：', data)
+      verbose_log('接收到toMain事件的数据类型是对象：', data)
       await reactToIpcObjectData(data, tabbedWin, viewContents)
     } else {
-      console.log('接收到toMain事件的数据类型不是对象：', data)
+      verbose_log('接收到toMain事件的数据类型不是对象：', data)
       await reactToIpcIdData(data, stockList, tabbedWin, viewContents)
     }
   })
@@ -309,13 +324,13 @@ async function reactToIpcObjectData(data, tabbedWin, viewContents) {
       break
     }
     case 'saveArticleDraft': {
-      console.log("===== listen saveArticleDraft in main ====")
+      verbose_log("===== listen saveArticleDraft in main ====")
       const content = data.content
-      console.log("content=>", content)
+      verbose_log("content=>", content)
       break
     }
     case 'openEditor': {
-      console.log("===== listen openEditor in main ====")
+      verbose_log("===== listen openEditor in main ====")
 
       // let preload = './preload.js';
       // const editorWin = new BrowserWindow({
@@ -364,7 +379,7 @@ async function reactToIpcObjectData(data, tabbedWin, viewContents) {
       break;
     }
     case 'addAccount': {
-      console.log("===== listen addAccount in main ====")
+      verbose_log("===== listen addAccount in main ====")
       let viewKey = data.id;
       userToken = data.token
       let partition = "persist:" + viewKey + new Date().getTime();

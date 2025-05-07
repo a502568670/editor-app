@@ -1,5 +1,5 @@
 {
-  "name": "xfz",
+  "name": "jzl_editor",
   "version": "0.1.0",
   "private": true,
   "description": "极致了编辑器",
@@ -9,7 +9,8 @@
     "build": "vue-cli-service build",
     "lint": "vue-cli-service lint",
     "electron:build": "vue-cli-service electron:build",
-    "electron:serve": "BACKEND_URL=http://127.0.0.1:8000 vue-cli-service electron:serve",
+    "electron:serve": "BACKEND_URL=http://127.0.0.1:8000 VERBOSE=true vue-cli-service electron:serve",
+    "electron:serve-prod": "BACKEND_URL=http://47.96.22.8:8006 vue-cli-service electron:serve",
     "postinstall": "electron-builder install-app-deps",
     "postuninstall": "electron-builder install-app-deps"
   },
