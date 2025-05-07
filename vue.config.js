@@ -33,9 +33,10 @@ module.exports = {
       })
     ]
   },
+  // publicPath: './',
   chainWebpack: (config) => {
     config.plugin('html').tap((args) => {
-      args[0].title = 'dajiala编辑器'
+      args[0].title = '极致了编辑器'
       return args
     })
   },
@@ -50,7 +51,7 @@ module.exports = {
           createStartMenuShortcut: true,
           allowToChangeInstallationDirectory: true,
           createDesktopShortcut: "always",
-          shortcutName: "小风筝",
+          shortcutName: "极致了编辑器",
           installerLanguages: "zh_CN",
           language: "2052",
           oneClick: false,
@@ -64,6 +65,12 @@ module.exports = {
           requestedExecutionLevel: 'asInvoker',  // 启动模式，普通用户或管理员权限
           verifyUpdateCodeSignature: false
         },
+        protocols: {
+            "name": "app",
+            "schemes": [
+                "app"
+            ]
+        },
         mac: {
           category: "public.app-category.utilities",
           target: [
@@ -72,6 +79,7 @@ module.exports = {
               target: "default", // Squirrel.Mac requires the zip target. Reference: https://www.electron.build/auto-update#quick-setup-guide
             },
           ],
+          extendInfo: "app"
         },
       },
       preload: './src/preload.js'

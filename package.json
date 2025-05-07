@@ -9,7 +9,7 @@
     "build": "vue-cli-service build",
     "lint": "vue-cli-service lint",
     "electron:build": "vue-cli-service electron:build",
-    "electron:build_mac": "cross-env PYTHON_PATH=/opt/anaconda3/bin/python3 vue-cli-service electron:build",
+    "electron:build_mac": "cross-env PYTHON_PATH=/usr/bin/python3 vue-cli-service electron:build",
     "electron:serve": "cross-env BACKEND_URL=http://127.0.0.1:8000 VERBOSE=true vue-cli-service electron:serve",
     "electron:serve-prod": "cross-env BACKEND_URL=http://47.96.22.8:8006 vue-cli-service electron:serve",
     "postinstall": "electron-builder install-app-deps",

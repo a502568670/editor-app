@@ -148,7 +148,8 @@ export async function createTabbedWin(stockList) {
 
   if (process.env.WEBPACK_DEV_SERVER_URL == null) {
     createProtocol(global.common.APP_SCHEME);
-    baseUrl = `${global.common.APP_SCHEME}://./index.html/`; // Load "index.html" if the dev server URL does not exist.
+    // baseUrl = `${global.common.APP_SCHEME}://./index.html/`; // Load "index.html" if the dev server URL does not exist.
+    baseUrl = `${global.common.APP_SCHEME}://./index.html`; // Load "index.html" if the dev server URL does not exist.
   } else {
     baseUrl = process.env.WEBPACK_DEV_SERVER_URL; // Load the dev server URL if it exists.
   }
@@ -199,8 +200,9 @@ export async function createTabbedWin(stockList) {
 
   // 打开开发者工具
   if (process.env.NODE_ENV === 'development') {
-    tabbedWin.win.webContents.openDevTools();
+    tabbedWin.win.webContents.openDevTools();  
   }
+  
 
   // 监听tab控制事件
   initialiseCustomisedWinListener(tabbedWin)

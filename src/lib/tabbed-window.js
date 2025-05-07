@@ -110,6 +110,7 @@ export class TabbedWindow extends EventEmitter {
         ...controlReferences, // Put it here to overwrite existing values in the above properties.
       },
     });
+    console.log("controlPanel=>", controlPanel)
     this.win.loadURL(controlPanel);
     this.setChannel();
   } // end constructor

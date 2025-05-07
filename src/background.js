@@ -91,6 +91,9 @@ protocol.registerSchemesAsPrivileged([
     }
   }
 ]);
+
+app.setAsDefaultProtocolClient('app');
+
 let tabbedWin = null
 
 
