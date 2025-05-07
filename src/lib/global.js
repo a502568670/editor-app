@@ -14,8 +14,8 @@ global.common = {
   TAB_BAR_VIEW: "tabBar",
   DARK_WIN_COLOUR: "#000",
   LIGHT_WIN_COLOUR: "#FFF",
-  MIN_WIN_HEIGHT: 600,
-  MIN_WIN_WIDTH: 800,
+  MIN_WIN_HEIGHT: 768,
+  MIN_WIN_WIDTH: 1024,
   MACOS: "darwin",
   TITLE_BAR_OVERLAY_COLOUR: "#0f172a",
   TAB_BAR_HEIGHT: 100,  // tab栏的高度

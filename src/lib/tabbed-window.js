@@ -111,6 +111,8 @@ export class TabbedWindow extends EventEmitter {
       },
     });
     console.log("controlPanel=>", controlPanel)
+    console.log("width=>", width)
+    console.log("height=>", height)
     this.win.loadURL(controlPanel);
     this.setChannel();
   } // end constructor
