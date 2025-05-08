@@ -52,7 +52,8 @@
               </div>
             </div>
             <div class="w-full flex h-20 items-center p-1 justify-center" >
-                <div @click="newArticle()"  class="cursor-pointer">+新建文章</div>
+                <!-- <div @click="newArticle()"  class="cursor-pointer">+新建文章</div> -->
+                <el-button @click="newArticle" type="primary" >新建文章</el-button>
             </div>
           </div>
         </div>
@@ -60,10 +61,11 @@
     <div class="right flex-1">
       <div class="wrapper-container">
         <div class="wrapper">
-          <div class="block-area" >
+          <div class="block-area flex space-x-2" >
             <!-- <button @click="insertText" style="padding:4px;margin-bottom:2px;">导入url</button> -->
             <el-input v-model="extractUrlRef" clearable style="width: 400px;" placeholder="请输入文章提取地址" />
-            <button @click="extractLinkToArticle" style="padding:4px;margin-bottom:2px;">立即提取</button>
+            <!-- <button @click="extractLinkToArticle" style="padding:4px;margin-bottom:2px;">立即提取</button> -->
+            <el-button @click="extractLinkToArticle" type="primary" >提取链接内容</el-button>
           </div>
           
           <div class="block-area" >
@@ -74,17 +76,19 @@
           </div>
           <div class="block-area">
             <label>封面图</label>
-            <div v-if="currentArticleRef.cdn_url" :style="{ '--image-url': 'url(' + currentArticleRef.cdn_url + ')' }"
-            class='w-[100px] flex h-16 bg-no-repeat bg-center bg-cover bg-[image:var(--image-url)]'
-            ></div>
-            <!-- <img v-if="currentArticleRef.cdn_url" :src="currentArticleRef.cdn_url" referrerpolicy="no-referrer"> -->
+            <img class="h-8" v-if="currentArticleRef.cdn_url" :src="currentArticleRef.cdn_url" referrerpolicy="no-referrer">
+            <!-- <div v-if="currentArticleRef.cdn_url" :style="{ '--image-url': 'url(' + currentArticleRef.cdn_url + ')' }"
+            class='w-[100px] flex h-8 bg-no-repeat bg-center bg-cover bg-[image:var(--image-url)]'
+            ></div> -->
             <input @change="handleImage" class="custom-input" type="file" accept="image/*">
           </div>
           <Toolbar :key="currentArticleRef.msg_id" style="border-bottom: 1px solid #ccc; min-width: 768px;" :editor="editorRef" :defaultConfig="toolbarConfig" :mode="mode" />
         </div>
       </div>
       <!-- <hr style="margin-top: 100px;" /> -->
-      <Editor :key="currentArticleRef.msg_id" style="min-width: 768px;min-height: 490px; height: calc(100vh - 312px); border:solid 1px #ccc; overflow-y: hidden;" v-model="currentArticleRef.content_noencode" :defaultConfig="editorConfig" :mode="mode"
+      <Editor :key="currentArticleRef.msg_id" 
+      :class="{ inImportScope : isInImportScopeRef }"
+      class="min-w-[768px] min-h-[490px]" style="height: calc(100vh - 312px); border:solid 1px #ccc; overflow-y: hidden;" v-model="currentArticleRef.content_noencode" :defaultConfig="editorConfig" :mode="mode"
         @onCreated="handleCreated" />
       <div class="block-area save-area" >
         <el-select  v-model="selectedAccount" :style="{'max-width': '200px'}" value-key="id"
@@ -105,6 +109,14 @@
   </div>
 </template>
 <style>
+.inImportScope .w-e-text-container [data-slate-editor] p:has(:not(span)){
+  padding:0;
+  margin:2px;
+  line-height:0;
+}
+
+</style>
+<style scoped>
 .main{
   display: flex;
   border: 1px solid #ccc; background-color:white;
@@ -144,6 +156,9 @@
 .block-area > label {
   margin: 0 5px;
 }
+.block-area > img {
+  margin: 0 5px;
+}
 .save-area {
   position:fixed;
   bottom: 0;
@@ -151,11 +166,7 @@
   background-color: white;
   opacity: 1;
 }
-/* .w-e-text-container [data-slate-editor] p:has(:not(span)){
-  padding:0;
-  margin:2px;
-  line-height:0;
-} */
+
 span[data-slate-zero-width="n"] {
   padding: 0 1px !important;
 }
@@ -190,6 +201,7 @@ export default {
     const mp_msgsRef = ref([])
     const mp_msg_groupsRef = ref([])
     const selected_mp_msg_groupRef = ref(null)
+    const isInImportScopeRef = ref(false)
     // const init_appmsgid = getAppMsgId()
     // console.log("appmsgid=>", init_appmsgid)
     // const appmsgidRef = ref(init_appmsgid)
@@ -216,7 +228,8 @@ export default {
 
     // 内容 HTML
     // const valueHtml = ref('<section>hello</section>') //<section>hello</section>
-    const extractUrlRef = ref("https://mp.weixin.qq.com/s/ECdk1kmW2FYNY6EaXZTYGQ")
+    // const extractUrlRef = ref("https://mp.weixin.qq.com/s/ECdk1kmW2FYNY6EaXZTYGQ")
+    const extractUrlRef = ref("")
     
     // 模拟 ajax 异步获取内容
     onMounted(async () => {
@@ -228,7 +241,6 @@ export default {
           accountsRef.value = response.data.data.list
           console.log("load accounts:", accountsRef.value)
           
-
           const init_account_id = getSelectedAccountId()
           console.log("init_account_id=>", init_account_id)
           if (init_account_id) {
@@ -362,179 +374,32 @@ export default {
       // console.log('toolbar=>', toolbar, toolbarConfig);
       const curToolbarConfig = toolbar.getConfig();
       console.log(curToolbarConfig.toolbarKeys); // 当前菜单排序和分组
-      console.log('menuconfig=>', editor.getMenuConfig('uploadImage'));
+      // console.log('menuconfig=>', editor.getMenuConfig('uploadImage'));
     };
 
-    const hasValidImageTag = (str) => {
-      // 正则表达式匹配img标签
-      const imgPattern = /<img[^>]*src=["'](.*?)["']/i;
-
-      // 使用match方法查找匹配项
-      const match = str.match(imgPattern);
-
-      // 如果找到匹配项并且src属性不为空，返回true；否则返回false
-      return match && match[1];
-    }
-
-    const convert2ValidHtml = (html) => {
-      if (!html) {
-        return '';
-      }
-      // // 不能正确识别font
-      // html = html.replace(/<font/gi, '<div').replace(/<\/font>/gi, '</div>');
-      try {
-        // 使用DOMParser将HTML字符串解析为DOM
-          const parser = new DOMParser();
-          const doc = parser.parseFromString(html, 'text/html');
-
-          // 获取所有的img标签
-          const imgs = doc.getElementsByTagName('img');
-
-          // 遍历所有的img标签
-          for (let i = 0; i < imgs.length; i++) {
-            const img = imgs[i];
-
-            // 检查img标签是否存在
-            if (!img) {
-              continue;
-            }
-
-            // 检查src是否以http或https开头
-            const src = img.getAttribute('src');
-            if (!src || !/^https?:\/\//.test(src)) {
-              console.log('src未识别', src);
-              continue;
-            }
-
-            let imgNode = doc.createElement('img');
-            imgNode.src = img.src;
-            // 将img标签放入p标签中
-            let pNode = doc.createElement('p');
-
-            // 获取img标签的直接父级，即p标签
-            let imgFirstParentNode = img.parentNode;
-            // 检查img标签的直接父级是否存在，不存在则将该节点包裹一个p
-            if (!imgFirstParentNode) {
-              pNode.appendChild(imgNode);
-              img.replaceWith(pNode);
-              continue;
-            }
-
-            //找父级标签，直到找到body节点 如div
-            let lastParentNode = img.parentNode;
-            while (imgFirstParentNode && imgFirstParentNode.tagName.toLowerCase() != 'body') {
-              console.log('处理之前imgFirstParentNode==', imgFirstParentNode);
-              if (imgFirstParentNode.tagName.toLowerCase() == 'p') {
-                // 如果是p标签，直接将img标签替换为p标签，也可以不处理，editor对p可以识别
-                pNode.appendChild(imgNode);
-                img.replaceWith(pNode);
-                imgFirstParentNode = imgFirstParentNode.parentNode;
-                continue;
-              }
-              // 处理wangEditor的标签
-              if (imgFirstParentNode.tagName.toLowerCase() == 'div' || imgFirstParentNode.tagName.toLowerCase() == 'a' || imgFirstParentNode.tagName.toLowerCase() == 'span') {
-                //如果是有文字的，父级被替换前，将文字放到一个新的p标签
-                if (imgFirstParentNode.innerText) {
-                  let spanNode = doc.createElement('span');
-                  spanNode.innerText = imgFirstParentNode.innerText;
-                  pNode.appendChild(spanNode);
-                }
-              }
-
-              //当前节点的父节点已经是body节点 <body><div><img></div></body>
-              if (imgFirstParentNode.parentNode) {
-                if (imgFirstParentNode.parentNode.tagName.toLowerCase() == 'body') {
-                  console.log('当前节点的父节点已经是body节点imgFirstParentNode', imgFirstParentNode);
-                  lastParentNode = imgFirstParentNode;
-                  break;
-                } else if (imgFirstParentNode.parentNode.tagName.toLowerCase() == 'div' || imgFirstParentNode.parentNode.tagName.toLowerCase() == 'span') {
-                  //这时想要对嵌套多层div的进行处理,获取包裹img标签的div的兄弟节点，如果兄弟很多，则不方便如此处理，直接正则全局处理，不要样式
-                  let imgParentBrothers = imgFirstParentNode.parentNode.childNodes;
-                  if (imgParentBrothers.length > 1) {
-                    console.log('img所在div兄弟很多，则不方便如此处理，直接正则全局处理');
-                    return html
-                      .replace(/<span/gi, '<p')
-                      .replace(/<\/span>/gi, '</p>')
-                      .replace(/<div/gi, '<p')
-                      .replace(/<\/div>/gi, '</p>')
-                      .replace(/<a/gi, '<p')
-                      .replace(/<\/a>/gi, '</p>')
-                      .replace(/<font/gi, '<span')
-                      .replace(/<\/font>/gi, '</span>'); //font标签替换成div，有显示问题，再替换为span标签，解决报错问题
-                  }
-                }
-              }
-              // 检查父节点的父节点 <body><div><div><img></div></div></body>
-              imgFirstParentNode = imgFirstParentNode.parentNode;
-              if (imgFirstParentNode.parentNode && imgFirstParentNode.parentNode.tagName.toLowerCase() == 'body') {
-                console.log('节点的父节点的父节点已经是body节点imgFirstParentNode', imgFirstParentNode);
-                lastParentNode = imgFirstParentNode;
-              }
-              console.log('处理之后imgFirstParentNode==', imgFirstParentNode);
-            }
-            console.log('lastParentNodee==', imgFirstParentNode);
-            pNode.appendChild(imgNode);
-            lastParentNode.replaceWith(pNode);
-          }
-          return doc.documentElement.innerHTML
-            .replace(/<head><\/head>/gi, '')
-            .replace(/<body>/gi, '')
-            .replace(/<\/body>/gi, '')
-            .replace(/<p><\/p>/gi, '')
-            .replace(/<font/gi, '<span')
-            .replace(/<\/font>/gi, '</span>');
-        } catch (error) {
-          console.log('转换失败:', error);
-        }
-        // 或者其他适当的默认值
-        return html;
-    }
-
+  
     const extractLinkToArticle = async () => {
       const editor = editorRef.value; // 获取 editor ，必须等待它渲染完之后
       if (editor == null) return;
 
+      if (!extractUrlRef.value) {
+        ElMessageBox.alert('请输入有效的提取链接', '警告', {
+          confirmButtonText: '确定',
+          type: 'warning'
+        }).catch(()=>{})
+        return
+      }
+
       // console.log("导入url=>", extractUrlRef)
       const v = await getArticleContent2(extractUrlRef.value)
+      isInImportScopeRef.value = true
       // console.log("v=>", v)
       const {content_noencode, title, nick_name, copyright_stat, cdn_url} = v.data
-      console.log("content_noencode=>", content_noencode)
-
-      // await navigator.clipboard.write([
-      //   new window.ClipboardItem({
-      //     'text/html': new Blob([content_noencode], { type: 'text/html' }),
-      //     'text/plain': new Blob([content_noencode], { type: 'text/plain' }),
-      //   }),
-      // ]);
-
-      // // console.log('rawExtractContent=>', rawExtractContent)
-      // const reg1 = /<p/g, reg2 = /p>/g, reg3 = /data-src/g, reg4 = /&quot;/g
-      // const replaceTag = "div"
-      // let extractContent = content_noencode
-      //   .replaceAll(reg1, `<${replaceTag}`)
-      //   .replaceAll(reg2, `${replaceTag}>`)
-      // //   .replaceAll(reg3, "src")
-      // //   .replaceAll(reg4, "");
-      // console.log("extractContent1=>", extractContent);
-
-      // const hasImgs = hasValidImageTag(extractContent);
-      // console.log('hasImgs', hasImgs);
-      // if (hasImgs) {
-      //   extractContent = convert2ValidHtml(extractContent);
-      // }
-
-       
-      // console.log("extractContent2=>", extractContent);
-
-
-      // titleRef.value = title
-      // authorRef.value = nick_name
-      // valueHtml.value = "<p>" + extractContent + "<p>"
-
+      // console.log("content_noencode=>", content_noencode)
       currentArticleRef.value = {
         ...currentArticleRef.value,
-        content_noencode: content_noencode,
-        // content_noencode: "<p class='extractContent'>" + content_noencode + "<p>",
+        // content_noencode: content_noencode.replace(/[\u200B-\u200D\uFEFF]/gim, ''),
+        content_noencode: "<p>" + content_noencode + "<p>",
         title,
         author: nick_name, 
         copyright_type: copyright_stat,
@@ -590,6 +455,7 @@ export default {
       currentArticleRef.value = {
         ...mp_msg,
       }
+      isInImportScopeRef.value = false
       console.log("currentArticleRef.value=>", currentArticleRef.value)
     }
     const loadArticleByMsgId = (msg_id) => {
@@ -609,6 +475,7 @@ export default {
         desc: "",
         content_noencode: "",
       }
+      isInImportScopeRef.value = false
     }
 
     const serializeCookie = (arr) => {
@@ -625,7 +492,7 @@ export default {
         ElMessageBox.alert('发布的公众账号不存在,请先到账号中心添加', '错误', {
           confirmButtonText: '确定',
           type: 'error'
-        })
+        }).catch(()=>{})
         return false;
       }
       return true
@@ -637,21 +504,21 @@ export default {
         ElMessageBox.alert('标题不能为空', '错误', {
           confirmButtonText: '确定',
           type: 'error'
-        })
+        }).catch(()=>{})
         return false;
       }
       if (!currentArticleRef.value.author.trim()) {
         ElMessageBox.alert('作者不能为空', '错误', {
           confirmButtonText: '确定',
           type: 'error'
-        })
+        }).catch(()=>{})
         return false;
       }
       if (mp_msgsRef.value.length >= 8 && msg_idRef.value === 0) {
         ElMessageBox.alert('超出单消息最大文章数8篇', '错误', {
           confirmButtonText: '确定',
           type: 'error'
-        })
+        }).catch(()=>{})
         return false;
       }
 
@@ -828,6 +695,7 @@ export default {
         desc: "",
         content_noencode: "",
       }
+      isInImportScopeRef.value = false
     }
 
     const emitInput = (val) => {
@@ -892,6 +760,7 @@ export default {
 
     return {
       testLoading,
+      isInImportScopeRef,
       msg_idRef,
       mp_msg_groupsRef,
       selected_mp_msg_groupRef,

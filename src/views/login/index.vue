@@ -21,10 +21,11 @@
           <div style="width: 100%">
             <el-button  :loading="loading" type="success" style="width: 100%; height:46px; display: flex; align-items: center; justify-content: center; background-color: #2cc47d; border-color: #2cc47d;" @click.prevent="handleLogin">登录</el-button>
           </div>
-          <!-- <div style="display:flex;align-items: center;justify-content: space-between;width: 100%;margin-top: 10px;">
-            <span @click="type='password'">忘记密码</span>
-            <span @click="type='register'">注册</span>
-          </div> -->
+          <div style="display:flex;align-items: center;justify-content: space-between;width: 100%;margin-top: 10px;">
+            <!-- <span @click="type='password'">忘记密码</span>
+            <span @click="type='register'">注册</span> -->
+            <span @click="outDownload('https://wwv.lanzoum.com/iIFYv2fqt18h')">极致了助手</span>
+          </div>
         </el-form-item>
       </el-form>
     </div>
