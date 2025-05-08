@@ -74,13 +74,15 @@
             <label>作者</label>
             <el-input v-model="currentArticleRef.author" clearable style="width: 200px;" placeholder="请输入文章作者" />
           </div>
-          <div class="block-area">
+          <div class="block-area flex justify-between">
             <label>封面图</label>
             <img class="h-8" v-if="currentArticleRef.cdn_url" :src="currentArticleRef.cdn_url" referrerpolicy="no-referrer">
             <!-- <div v-if="currentArticleRef.cdn_url" :style="{ '--image-url': 'url(' + currentArticleRef.cdn_url + ')' }"
             class='w-[100px] flex h-8 bg-no-repeat bg-center bg-cover bg-[image:var(--image-url)]'
             ></div> -->
-            <input @change="handleImage" class="custom-input" type="file" accept="image/*">
+            <input ref="cdnFileInputRef"  @change="handleImage" type="file" accept="image/*">
+            <label v-if="selectedCdnImageRef">预览</label>
+            <img class="h-8" v-if="selectedCdnImageRef" :src="selectedCdnImageRef">
           </div>
           <Toolbar :key="currentArticleRef.msg_id" style="border-bottom: 1px solid #ccc; min-width: 768px;" :editor="editorRef" :defaultConfig="toolbarConfig" :mode="mode" />
         </div>
@@ -221,6 +223,8 @@ export default {
 
     // 封面
     const cdnRef = ref(null)
+    const selectedCdnImageRef = ref(null)
+    const cdnFileInputRef = ref(null)
 
     // 账号
     let selectedAccount = ref(null)
@@ -456,6 +460,8 @@ export default {
         ...mp_msg,
       }
       isInImportScopeRef.value = false
+      selectedCdnImageRef.value = null
+      cdnFileInputRef.value.value = ""
       console.log("currentArticleRef.value=>", currentArticleRef.value)
     }
     const loadArticleByMsgId = (msg_id) => {
@@ -476,6 +482,8 @@ export default {
         content_noencode: "",
       }
       isInImportScopeRef.value = false
+      selectedCdnImageRef.value = null
+      cdnFileInputRef.value.value = ""
     }
 
     const serializeCookie = (arr) => {
@@ -696,6 +704,8 @@ export default {
         content_noencode: "",
       }
       isInImportScopeRef.value = false
+      selectedCdnImageRef.value = null
+      cdnFileInputRef.value.value = ""
     }
 
     const emitInput = (val) => {
@@ -748,13 +758,19 @@ export default {
         }
         // console.log('image_base64:',cover.value)
         // this.uploadImage();
+        selectedCdnImageRef.value = reader.result
       };
       reader.readAsDataURL(fileObject);
     }
 
     const handleImage = (e) => {
       const selectedImage = e.target.files[0]; // get first file
-      createBase64Image(selectedImage);
+      if (selectedImage) {
+        createBase64Image(selectedImage);
+      } else {
+        selectedCdnImageRef.value = null
+        cdnFileInputRef.value.value = ""
+      }
     }
     
 
@@ -764,6 +780,8 @@ export default {
       msg_idRef,
       mp_msg_groupsRef,
       selected_mp_msg_groupRef,
+      selectedCdnImageRef,
+      cdnFileInputRef,
       // titleRef,
       // authorRef,
       currentArticleRef,
