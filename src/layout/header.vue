@@ -17,6 +17,7 @@
     <el-col :span="6" style="text-align: right">
       <div class="right">
         <!-- <el-button @click="toBuyVip" type="primary" >购买会员</el-button> -->
+        <el-button @click="gotoExternal(jzl_assistant_url)" type="primary" >极致了助手</el-button>
         <el-button @click="toKf" type="success" >联系客服</el-button>
         <el-button @click="exit" type="danger" :icon="SwitchButton" circle></el-button>
       </div>
@@ -31,6 +32,8 @@ import { useStore } from 'vuex'
 import {
   SwitchButton
 } from '@element-plus/icons-vue'
+import { gotoExternal } from "@/utils/openWindow"
+
 const store = useStore()
 const router = useRouter();
 const current = computed(() => {
@@ -77,6 +80,7 @@ const toKf = function () {
   router.push('/kf')
 }
 const username = ref(localStorage.getItem("username"))
+const jzl_assistant_url = store.state.config?.jzl_assistant_url
 </script>
 
 <style  scoped>

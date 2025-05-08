@@ -24,3 +24,11 @@ export default function openWindow(url, title, w, h) {
   }
 }
 
+export function gotoExternal (url) {
+  window.ipcRenderer.send('toMain', {
+    tag: 'gotoExternal',
+    content: {
+      url
+    }
+  })
+}

@@ -12,6 +12,7 @@ import { createProtocol } from "vue-cli-plugin-electron-builder/lib";
 import global from "./global.js";
 import log from "electron-log";
 import { platform } from "process";
+const shell = require('electron').shell;
 import * as zhCN from '../locales/zh-CN.json'
 const verbose_log = global.utils.verbose_log;
 const verbose_error = global.utils.verbose_error;
@@ -331,52 +332,11 @@ async function reactToIpcObjectData(data, tabbedWin, viewContents) {
       verbose_log("content=>", content)
       break
     }
-    case 'openEditor': {
-      verbose_log("===== listen openEditor in main ====")
-
-      // let preload = './preload.js';
-      // const editorWin = new BrowserWindow({
-      //   show: false,
-      //   icon: path.join(__dirname, "logo.png"),
-      //   frame: true,
-      //   title: "editor",
-      //   width: 1280,
-      //   height: 768,
-      //   webPreferences: {
-      //     // nodeIntegration: true,
-      //     // nodeIntegrationInWorker: true,// 是否在Web工作器中启用了Node集成
-      //     minimumFontSize: 12,
-      //     nodeIntegrationInSubFrames: true,
-      //     //  nableRemoteModule: true,  // 打开remote模块
-      //     allowDisplayingInsecureContent: true,
-      //     allowRunningInsecureContent: true,
-      //     plugins: true,
-      //     preload: path.join(__dirname, preload)
-      //   }
-      // })
-      // editorWin.focus();
-      // editorWin.setAlwaysOnTop(true);
-      // // editorWin.loadURL("http://localhost:5555")
-      // // editorWin.webContents.openDevTools()
-
-
-      // // 设置设备权限处理程序，允许所有权限
-      // editorWin.webContents.session.setDevicePermissionHandler((webContents, permission, requestingOrigin, details) => {
-      //   return true;
-      // });
-
-      // // 设置 WebView 的窗口打开行为
-      // editorWin.webContents.setWindowOpenHandler(data => {
-      //   let url = data.url;
-      //   if (url == 'about:blank') {
-      //     return { action: 'deny' };
-      //   }
-      //   console.log("setWindowOpenHandler url:", url)
-      //   editorWin.webContents.loadURL(url, {
-      //     httpReferrer: data.referrer
-      //   });
-      //   return { action: 'deny' };
-      // });
+    case 'gotoExternal': {
+      verbose_log("===== listen gotoExternal in main ====")
+      const url = data.content.url
+      verbose_log("open external url=>", url)
+      shell.openExternal(url)
       // editorWin.webContents.loadURL('http://localhost:5555');
       break;
     }

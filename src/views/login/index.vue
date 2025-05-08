@@ -24,7 +24,6 @@
           <div style="display:flex;align-items: center;justify-content: space-between;width: 100%;margin-top: 10px;">
             <!-- <span @click="type='password'">忘记密码</span>
             <span @click="type='register'">注册</span> -->
-            <span @click="outDownload('https://wwv.lanzoum.com/iIFYv2fqt18h')">极致了助手</span>
           </div>
         </el-form-item>
       </el-form>
@@ -100,6 +99,10 @@
         </div>
       </el-form>
     </div>
+    <span class="absolute right-2 top-2 flex justify-center items-center cursor-pointer text-green-800" @click="gotoExternal(jzl_assistant_url)">
+      极致了助手
+      <svg viewBox="0 0 24 24" width="1.2em" height="1.2em" class="link-icon"><path fill="currentColor" d="M10 6v2H5v11h11v-5h2v6a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h6zm11-3v8h-2V6.413l-7.793 7.794l-1.414-1.414L17.585 5H13V3h8z"></path></svg>
+    </span>
     <el-dialog
       title="用户授权协议"
       v-model="dialogVisible"
@@ -123,6 +126,7 @@
 
 <script>
 import {send_sms,register, registerSimple,modifypassword} from '@/api/login'
+import { gotoExternal } from "@/utils/openWindow"
 import { useStore } from 'vuex'
 import { useRouter } from 'vue-router'
 import axios from "axios";
@@ -155,6 +159,7 @@ export default {
       dialogVisible: false,
       htmlSrc:'',
       bg:'',
+      jzl_assistant_url: '',
       type:'login',
       jzmm:true,
       loginForm: {
@@ -203,6 +208,7 @@ export default {
   created() {
     store.dispatch('GetConfig').then(() => {
       this.bg=store.state.config?.home_bg
+      this.jzl_assistant_url = store.state.config?.jzl_assistant_url
       this.htmlSrc=store.state.config?.register_agree
     })
   },
@@ -293,7 +299,18 @@ export default {
         this.isLoading = false;
       }
     },
-
+    gotoExternal,
+    // async goto(url){
+    //   gotoExternal(url)
+    // },
+    // async gotoExternal (url) {
+    //   window.ipcRenderer.send('toMain', {
+    //     tag: 'gotoExternal',
+    //     content: {
+    //       url
+    //     }
+    //   })
+    // },
 
     // async handleLogin() {
     //   const params = new URLSearchParams();

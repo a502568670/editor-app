@@ -67,7 +67,7 @@ const menu1Conf = {
     return new MyButtonMenu(); // 把 `YourMenuClass` 替换为你菜单的 class
   },
 };
-console.log("Boot.registerMenu", menu1Conf)
+// console.log("Boot.registerMenu", menu1Conf)
 Boot.registerMenu(menu1Conf);
 
 </script>
