@@ -124,6 +124,86 @@ export function convert2ValidHtml (html) {
     return html;
 }
 
+export function format_to_wangEditor_html (html) {
+  console.log("to format:", html)
+  const reg01 = /<section/g, reg02 = /section>/g
+  const replace01 = "<p", replace02 = "p>"
+  // const replaceTag = "div"
+  const reg1 = /<p>(<br\/?>)<\/p>/g, reg2 = /<p\s+\bstyle(?:="[^"]*")?\s*><br(\/)?><\/p>/g, reg3 = /(<p)([^>]*)>(<br\/?>)(<\/p>)/g;
+  const reg4 = /data-src/g, reg5 = /&quot;/g
+  const replace1 = "<p data-p-br>$1<\/p>", replace2 = "<p data-p-br><br\/><\/p>", replace3 = "<p$2 data-p-br>$3<\/p>"
+    // const replaceTag = "div"
+  let formated = html
+    .replaceAll(reg01, replace01)
+    .replaceAll(reg02, replace02)
+    .replaceAll(reg1, "")
+    .replaceAll(reg2, "")
+    .replaceAll(reg4, "src")
+    .replaceAll(reg5, "");
+    // .replaceAll(reg3, replace3)
+  //   .replaceAll(reg3, "src")
+  //   .replaceAll(reg4, "");
+  console.log("formated=>", formated);
+  return formated
+}
+
+
+
+export function restore_from_wangEditor_html (html) {
+  const reg01 = /(<p data-section)([^>]*)>(<br\/?>)(<\/p>)/g
+  const replace01 = "<section$2>$3<\/section>"
+  // const replaceTag = "div"
+  const reg1 = /<p data-p-br>(<br\/?>)<\/p>/g, reg2 = /(<p)([^>]*) data-p-br>(<br\/?>)(<\/p>)/g
+
+  const replace1 = "<p>$1<\/p>", replace2 = "<p$2>$3<\/p>"
+    // const replaceTag = "div"
+  let restored = html
+    .replaceAll(reg01, replace01)
+    .replaceAll(reg1, replace1)
+    .replaceAll(reg2, replace2)
+  //   .replaceAll(reg3, "src")
+  //   .replaceAll(reg4, "");
+  console.log("restored=>", restored);
+  return restored
+}
+
+export function format_ad_content(html) {
+  const reg1 = /<section class="wx-edui-media-wrp custom_select_card_wrp audio_card_wrp"><mpcpc class="js_cpc_area res_iframe cpc_iframe" js_editor_cpcad="" data-category_id_list="([^"]+)" data-id="(\d+)" src="\/cgi-bin\/readtemplate\?t=tmpl\/cpc_tmpl#\d+">&nbsp;<\/mpcpc><\/section>/gm
+  const matches = html.matchAll(reg1)
+  let category_id_list = "", ad_id = 0
+  // console.log("matches=>", matches)
+  let hasMatched = false
+  for (const match of matches) {
+    if (match[1] && match[2]) {
+      // console.log(`category_id_list: ${match[1]} / id: ${match[2]}.`);
+      // console.log("match=>", match)
+      category_id_list = match[1]
+      ad_id = parseInt(match[2])
+      hasMatched = true
+      break;
+    }
+  }
+  let formated = html
+  if (hasMatched) {
+    formated = html.replaceAll(reg1, "<h1>===手工广告，请勿修改===<\/h1>")
+  }
+  return {
+    formated,
+    category_id_list,
+    ad_id
+  }
+}
+
+// ===手工广告，请勿修改===
+// 50|47|28|55|56|39|8|1|64|66|35|29|5|31|6|63|59|51|7|57|46|41|24|37|42|58|61|62|48|65|36|60|21|43|16|2
+export function restore_ad_content(html, category_id_list) {
+  const ts = +new Date()
+  const ad_content_template = `<section class="wx-edui-media-wrp custom_select_card_wrp audio_card_wrp"><mpcpc class="js_cpc_area res_iframe cpc_iframe" js_editor_cpcad="" data-category_id_list="${category_id_list}" data-id="${ts}" src="/cgi-bin/readtemplate?t=tmpl/cpc_tmpl#${ts}">&nbsp;</mpcpc></section>`
+  const reg1 = /<h1>===手工广告，请勿修改===<\/h1>/gm
+  let replaced = html.replaceAll(reg1, ad_content_template)
+  return replaced
+}
+
 
 // await navigator.clipboard.write([
       //   new window.ClipboardItem({

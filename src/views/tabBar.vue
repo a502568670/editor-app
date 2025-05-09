@@ -27,7 +27,7 @@
           <img style="width: 40px; height: 40px;border-radius: 50%" :src="item.avatar" />
           <div style="margin-left: 10px">
             <div>{{ item.name }}</div>
-            <div style="color: #51ce94">{{ item.platform_name + "(" + item.name + ")" + "-" + item.id }}</div>
+            <div style="color: #51ce94">{{ item.platform_name + "(" + item.name + ")" }}</div>
           </div>
         </div>
       </div>
