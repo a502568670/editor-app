@@ -72,6 +72,8 @@
           <div class="block-area">
             <el-checkbox label="声明原创" v-model="copyrightRef" />
             <el-input v-model="currentArticleRef.sourceurl" clearable style="width: 200px;" placeholder="原文链接" />
+            <label></label>
+            <el-button @click="openAdDialog" type="primary">插入广告</el-button>
           </div>
           <div class="block-area">
             <el-checkbox label="打开留言" v-model="needOpenCommentRef" />
@@ -110,11 +112,47 @@
         </el-select>
         <div>&nbsp;</div>
         <el-button @click="saveArticle" type="primary">保存文章</el-button>
-        <el-button @click="insertAd" type="primary">插入广告</el-button>
+        
         <!-- <button @click="saveArticle" style="padding:4px;margin-bottom:2px;">保存文章</button> -->
       </div>
     </div>
   </div>
+  <el-dialog :close-on-click-modal="false" title="设置广告" v-model="dialogAdVisibleRef" width="600px">
+      <el-form ref="dataForm" :rules="rules" :model="dataForm" status-icon label-position="top" label-width="100px" style="width: 950px;">
+        <el-row :gutter="40">
+          <el-col :span="12">
+            <el-form-item label="插入方式" >
+              <el-radio-group v-model="insertAdTypeRef">
+              <!-- works when >=2.6.0, recommended ✔️ not work when <2.6.0 ❌ -->
+              <el-radio value="2">智能插入</el-radio>
+              <!-- works when <2.6.0, deprecated act as value when >=3.0.0 -->
+              <el-radio label="1">手动插入</el-radio>
+              <el-radio label="0">不插入</el-radio>
+            </el-radio-group>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="40">
+          <el-col :span="12">
+            <el-form-item label="商品类目" >
+              <el-checkbox label="全部类目" @change="clickAllCategory"></el-checkbox>
+              <el-checkbox-group :disabled="insertAdTypeRef != '1'" v-model="adCategoryChoosedRef">
+                <el-checkbox v-for="(item) in adCategoryRef" :key="item.id" :label="item.id">
+                  {{ item.name }}
+                </el-checkbox>
+                <!-- <el-checkbox label="Option 2 & Value 2" /> -->
+              </el-checkbox-group>
+            </el-form-item>
+          </el-col>
+        </el-row>
+      </el-form>
+      <template #footer>
+        <div class="dialog-footer">
+          <el-button @click="dialogAdVisibleRef = false">取消</el-button>
+          <el-button @click="insertAd" type="primary">确定</el-button>
+        </div>
+      </template>
+    </el-dialog>
 </template>
 <style>
 /* .inImportScope .w-e-text-container [data-slate-editor] p:has(:not(span)){
@@ -192,7 +230,8 @@ import '@wangeditor/editor/dist/css/style.css' // 引入 css
 import { listAccount } from '@/api/account'
 import { saveArticleDraft, listArticlesByAppMsg, listArticleGroups, swapArticles, deleteArticleDraft } from "@/api/article"
 import { getArticleContent, getArticleContent2 } from '@/api/jzl'
-import { format_to_wangEditor_html, restore_from_wangEditor_html, format_ad_content, restore_ad_content } from "@/utils/dom";
+import { format_to_wangEditor_html, restore_from_wangEditor_html } from "@/utils/dom";
+import { ad_categorys, format_ad_content, restore_ad_content, has_ad_in_wangEditor, has_ad_in_raw } from "@/utils/ad"
 import { onBeforeUnmount, ref, shallowRef, onMounted } from 'vue'
 import { Editor, Toolbar } from '@wangeditor/editor-for-vue'
 import { DomEditor } from '@wangeditor/editor';
@@ -264,6 +303,13 @@ export default {
     const needOpenCommentRef = ref(false)
     const commentTypeRef = ref("0") // 0-全部 1-只有粉丝 
 
+    // 广告
+    const ad_idRef = ref(0)
+    const dialogAdVisibleRef = ref(false)
+    const adCategoryRef = ref(ad_categorys)
+    const adCategoryChoosedRef = ref([])
+    const insertAdTypeRef = ref("1") // 0-不插入 1-手动 2-智能 
+
     // 账号
     let selectedAccount = ref(null)
     let accountsRef = ref([])
@@ -271,7 +317,7 @@ export default {
     // 内容 HTML
     // const valueHtml = ref('<section>hello</section>') //<section>hello</section>
     // const extractUrlRef = ref("https://mp.weixin.qq.com/s/ECdk1kmW2FYNY6EaXZTYGQ")
-    const extractUrlRef = ref("")
+    const extractUrlRef = ref("https://mp.weixin.qq.com/s/G2TYEsgZsTJ1VWj4R2F2hQ?from=kdocs_link")
 
     // 模拟 ajax 异步获取内容
     onMounted(async () => {
@@ -487,7 +533,25 @@ export default {
       const editor = editorRef.value; // 获取 editor ，必须等待它渲染完之后
       if (editor == null) return;
 
-      editor.dangerouslyInsertHtml(`<h1>===手工广告，请勿修改===</h1>`); // 执行 editor API
+     
+
+      if (insertAdTypeRef.value == "1") {
+        const found = has_ad_in_wangEditor(currentArticleRef.value.content_noencode)
+        console.log("found=>", found)
+        if (!found) {
+          editor.dangerouslyInsertHtml(`<h1>===手工广告，请勿修改===</h1>`); // 执行 editor API
+        }
+        currentArticleRef.value.can_insert_ad = 1
+        currentArticleRef.value.insert_ad_mode = 1
+      } else if (insertAdTypeRef.value == "2") {
+        currentArticleRef.value.can_insert_ad = 1
+        currentArticleRef.value.insert_ad_mode = 2
+      } else {
+        currentArticleRef.value.can_insert_ad = 0
+        currentArticleRef.value.insert_ad_mode = 0
+      }
+      
+      dialogAdVisibleRef.value = false;
       // const toolbar = DomEditor.getToolbar(editor);
       // console.log('toolbar=>', toolbar, toolbarConfig);
       // const curToolbarConfig = toolbar.getConfig();
@@ -576,6 +640,7 @@ export default {
       const { formated, category_id_list, ad_id } = format_ad_content(mp_msg.content_noencode)
       console.log("category_id_list=>", category_id_list)
       console.log("ad_id=>", ad_id)
+      ad_idRef.value = ad_id
       mp_msg.content_noencode = format_to_wangEditor_html(formated)
       
       // appmsgidRef.value = mp_msg.appmsgid
@@ -596,13 +661,21 @@ export default {
         commentTypeRef.value = "1"
       }
 
-      const toolbar = DomEditor.getToolbar(editorRef.value);
-      console.log("toolbar keys:", toolbar.getConfig().toolbarKeys)
-      console.log("menu keys:", editorRef.value.getAllMenuKeys())
+      // 广告
+      adCategoryChoosedRef.value = category_id_list.split("|").map(v => parseInt(v))
+      if (currentArticleRef.value.can_insert_ad == 0) {
+        insertAdTypeRef.value = "0"
+      } else {
+        insertAdTypeRef.value = ""+currentArticleRef.value.insert_ad_mode
+      }
+
+      // const toolbar = DomEditor.getToolbar(editorRef.value);
+      // console.log("toolbar keys:", toolbar.getConfig().toolbarKeys)
+      // console.log("menu keys:", editorRef.value.getAllMenuKeys())
 
       // console.log("format_ad_content=>", format_ad_content(`abcde<section class="wx-edui-media-wrp custom_select_card_wrp audio_card_wrp"><mpcpc class="js_cpc_area res_iframe cpc_iframe" js_editor_cpcad="" data-category_id_list="50|47|28|55|56|39|8|1|64|66|35|29|5|31|6|63|59|51|7|57|46|41|24|37|42|58|61|62|48|65|36|60|21|43|16|2" data-id="1746772291564" src="/cgi-bin/readtemplate?t=tmpl/cpc_tmpl#1746772291564">&nbsp;</mpcpc></section>12345`))
 
-      console.log("currentArticleRef.value=>", currentArticleRef.value)
+      // console.log("currentArticleRef.value=>", currentArticleRef.value)
     }
     const loadArticleByMsgId = (msg_id) => {
       const mp_msg = mp_msgsRef.value.find(v => v.msg_id === msg_id)
@@ -619,11 +692,27 @@ export default {
         copyright_type: 0,
         cdn_url: "",
         desc: "",
+        need_open_comment: 1,
+        only_fans_can_comment: 0,
+        only_fans_days_can_comment: 0,
+        sourceurl: "",
+        insert_ad_mode: 2,
+        can_insert_ad: 1,
         content_noencode: "",
       }
       isInImportScopeRef.value = false
       selectedCdnImageRef.value = null
       cdnFileInputRef.value.value = ""
+
+      copyrightRef.value = false
+      needOpenCommentRef.value = false
+      commentTypeRef.value = "0"
+   
+      // 广告
+      adCategoryChoosedRef.value = []
+      insertAdTypeRef.value = "1"
+      ad_idRef.value = 0
+
     }
 
     const serializeCookie = (arr) => {
@@ -657,6 +746,13 @@ export default {
       }
       if (!currentArticleRef.value.author.trim()) {
         ElMessageBox.alert('作者不能为空', '错误', {
+          confirmButtonText: '确定',
+          type: 'error'
+        }).catch(() => { })
+        return false;
+      }
+      if (!currentArticleRef.value.cdn_url && !cdnRef.value) {
+        ElMessageBox.alert('封面图片不能为空', '错误', {
           confirmButtonText: '确定',
           type: 'error'
         }).catch(() => { })
@@ -715,22 +811,34 @@ export default {
         currentArticleRef.value.only_fans_days_can_comment = 0
       }
 
+      
+      console.log("adCategoryChoosedRef=>", adCategoryChoosedRef.value)
+
       console.log(currentArticleRef.value)
       const { token, name, session_id, wechat_id } = selectedAccount.value
       // const saveContent = currentArticleRef.value.content_noencode
       // console.log("token:", token)
       console.log("save name:", name)
+      
 
       // console.log("wechat_id:", wechat_id)
       // console.log("raw content_noencode:", debug_content_noencode_ref.value)
 
       // console.log("restore content_noencode:", currentArticleRef.value.content_noencode)
-      // const to_save_content_noencode = restore_from_wangEditor_html(currentArticleRef.value.content_noencode);
-      // console.log("to_save_content_noencode:", to_save_content_noencode)
-
-      const vhtml = restore_ad_content(currentArticleRef.value.content_noencode, "50|47|28|55|56|39|8|1|64|66|35|29|5|31|6|63|59|51|7|57|46|41|24|37|42|58|61|62|48|65|36|60|21|43|16|2")
+      // const parser = new DOMParser();
+      // const doc1 = parser.parseFromString(debug_content_noencode_ref.value, "text/html");
+      // const doc2 = parser.parseFromString(currentArticleRef.value.content_noencode, "text/html");
+      // console.log("compare", doc1, doc2)
+      const to_save_content_noencode = restore_from_wangEditor_html(currentArticleRef.value.content_noencode);
+      console.log("to_save_content_noencode:", to_save_content_noencode)
+      
+      const category_id_list = adCategoryChoosedRef.value.join("|")
+      console.log("category_id_list:", category_id_list)
+      
+      const vhtml = restore_ad_content(to_save_content_noencode, category_id_list, ad_idRef.value)
       console.log("ad vhtml=>", vhtml)
       currentArticleRef.value.content_noencode = vhtml
+      
 
       const msg_id = msg_idRef.value
       // const appmsgid =  appmsgidRef.value 
@@ -779,6 +887,8 @@ export default {
 
 
         await listArticles()
+        const new_msg_id = res.data.data.msg_id
+        loadArticleByMsgId(new_msg_id)
 
       }).catch((err) => { }).finally(() => {
         loader.close()
@@ -942,6 +1052,19 @@ export default {
       }
     }
 
+    const openAdDialog = () => {
+      dialogAdVisibleRef.value = true
+    }
+
+    const clickAllCategory = (checkedAll) => {
+      console.log("clickAllCategory=>", checkedAll)
+      if (checkedAll) {
+        adCategoryChoosedRef.value = adCategoryRef.value.map(v => v.id)
+      } else {
+        adCategoryChoosedRef.value = []
+      }
+    }
+
 
     return {
       testLoading,
@@ -956,7 +1079,11 @@ export default {
       currentArticleRef,
       needOpenCommentRef,
       commentTypeRef,
+      dialogAdVisibleRef,
       copyrightRef,
+      adCategoryRef,
+      adCategoryChoosedRef,
+      insertAdTypeRef,
       mp_msgsRef,
       accountsRef,
       selectedAccount,
@@ -980,6 +1107,8 @@ export default {
       emitChangeForAppMsgGroup,
       emitChangeForAccount,
       handleImage,
+      openAdDialog,
+      clickAllCategory,
       ArrowUp: shallowRef(ArrowUp),
       ArrowDown: shallowRef(ArrowDown),
       Delete: shallowRef(Delete),
