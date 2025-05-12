@@ -99,6 +99,7 @@
             :editor="editorRef" :defaultConfig="toolbarConfigRef" :mode="mode" />
         </div>
       </div>
+      
       <!-- <hr style="margin-top: 100px;" /> -->
       <Editor :key="currentArticleRef.msg_id" :class="{ inImportScope: isInImportScopeRef }"
         class="min-w-[768px] min-h-[490px]"
@@ -112,7 +113,6 @@
         </el-select>
         <div>&nbsp;</div>
         <el-button @click="saveArticle" type="primary">保存文章</el-button>
-        
         <!-- <button @click="saveArticle" style="padding:4px;margin-bottom:2px;">保存文章</button> -->
       </div>
     </div>

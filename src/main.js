@@ -16,8 +16,14 @@ import './assets/styles/global.css'
 import Layout from '@/layout/index.vue'
 import Home from '@/layout/home.vue'
 import {getToken} from "./utils/auth";
+import CKEditor from '@mayasabha/ckeditor4-vue3';
+import VueUeditorWrap from 'vue-ueditor-wrap';
 
 let app=createApp(App)
+app.use( CKEditor);
+app.use(VueUeditorWrap);
+
+
 // 创建router实例
 const router = createRouter({
   history: createWebHashHistory(),
@@ -93,6 +99,21 @@ const router = createRouter({
           path: '/editor',
           name: 'editor',
           component: () => import('./views/editor')
+        },
+        {
+          path: '/editor2',
+          name: 'editor2',
+          component: () => import('./views/editor2')
+        },
+        {
+          path: '/editor3',
+          name: 'editor3',
+          component: () => import('./views/editor3')
+        },
+        {
+          path: '/editor4',
+          name: 'editor4',
+          component: () => import('./views/editor4')
         },
         {
           path: '/tabbar',

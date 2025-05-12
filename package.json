@@ -18,6 +18,7 @@
   "main": "background.js",
   "dependencies": {
     "@element-plus/icons-vue": "^2.1.0",
+    "@mayasabha/ckeditor4-vue3": "^1.0.9",
     "@wangeditor/editor-for-vue": "^5.1.12",
     "axios": "^1.7.7",
     "core-js": "^3.30.2",
@@ -25,9 +26,11 @@
     "electron-log": "^4.4.8",
     "element-plus": "^2.3.4",
     "js-cookie": "^3.0.5",
+    "lucide-vue-next": "^0.509.0",
     "qs": "^6.14.0",
     "vue": "^3.3.4",
     "vue-router": "^4.2.1",
+    "vue-ueditor-wrap": "^3.0.8",
     "vuex": "^4.0.2"
   },
   "devDependencies": {

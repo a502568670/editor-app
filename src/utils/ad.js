@@ -120,9 +120,61 @@ export const ad_categorys = [{
   "id": 68
 }]
 
-const adMarkerContent = "<h1>===手工广告，请勿修改===<\/h1>"
+export const adMarkerContentInUEditor = `<section style="display:flex;justify-content:center;align-items:center;width:100%;height:60px;border:solid 1px #ccc;background-color:#8c8c8c;padding:2px;">===手工广告区域，请勿修改===<\/section>`
+const regAdMarkerInUEditor = /<section style="display:flex;justify-content:center;align-items:center;width:100%;height:60px;border:solid 1px #ccc;background-color:#8c8c8c;padding:2px;">===手工广告区域，请勿修改===<\/section>/gm
 const regAdMarkerInWangEditor = /<h1>===手工广告，请勿修改===<\/h1>/gm
 const regAdMarkerInRaw = /<section class="wx-edui-media-wrp custom_select_card_wrp audio_card_wrp"><mpcpc class="js_cpc_area res_iframe cpc_iframe" js_editor_cpcad="" data-category_id_list="([^"]+)" data-id="(\d+)" src="\/cgi-bin\/readtemplate\?t=tmpl\/cpc_tmpl#\d+">&nbsp;<\/mpcpc><\/section>/gm
+
+export function has_ad_in_raw(html) {
+  const match = html.match(regAdMarkerInRaw)
+  return match && match[1];
+}
+
+export function has_ad_in_UEditor(html) {
+  console.log("=====has_ad_in_UEditor====", html)
+  const match = html.match(regAdMarkerInUEditor)
+  console.log("match=>", match)
+  return match && match[0];
+}
+
+export function format_ad_content_in_UEditor(html) {
+  // const reg1 = /<section class="wx-edui-media-wrp custom_select_card_wrp audio_card_wrp"><mpcpc class="js_cpc_area res_iframe cpc_iframe" js_editor_cpcad="" data-category_id_list="([^"]+)" data-id="(\d+)" src="\/cgi-bin\/readtemplate\?t=tmpl\/cpc_tmpl#\d+">&nbsp;<\/mpcpc><\/section>/gm
+  const matches = html.matchAll(regAdMarkerInRaw)
+  let category_id_list = "", ad_id = 0
+  console.log("matches=>", matches)
+  let hasMatched = false
+  for (const match of matches) {
+    if (match[1] && match[2]) {
+      // console.log(`category_id_list: ${match[1]} / id: ${match[2]}.`);
+      // console.log("match=>", match)
+      category_id_list = match[1]
+      ad_id = parseInt(match[2])
+      hasMatched = true
+      break;
+    }
+  }
+  let formated = html
+  if (hasMatched) {
+    formated = html.replaceAll(regAdMarkerInRaw, adMarkerContentInUEditor)
+    console.log("adMarkerContentInUEditor=>", adMarkerContentInUEditor)
+  }
+  
+  return {
+    formated,
+    category_id_list,
+    ad_id
+  }
+}
+
+export function restore_ad_content_from_UEditor(html, category_id_list, ad_id) {
+  const ts = +new Date()
+  if (ad_id === 0) {
+    ad_id = ts
+  }
+  const ad_content_template = `<section class="wx-edui-media-wrp custom_select_card_wrp audio_card_wrp"><mpcpc class="js_cpc_area res_iframe cpc_iframe" js_editor_cpcad="" data-category_id_list="${category_id_list}" data-id="${ad_id}" src="/cgi-bin/readtemplate?t=tmpl/cpc_tmpl#${ad_id}">&nbsp;</mpcpc></section>`
+  let replaced = html.replaceAll(regAdMarkerInUEditor, ad_content_template)
+  return replaced
+}
 
 export function has_ad_in_wangEditor(html) {
   console.log("=====has_ad_in_wangEditor====", html)
@@ -131,10 +183,7 @@ export function has_ad_in_wangEditor(html) {
   return match && match[0];
 }
 
-export function has_ad_in_raw(html) {
-  const match = html.match(regAdMarkerInRaw)
-  return match && match[1];
-}
+
 
 export function format_ad_content(html) {
   // const reg1 = /<section class="wx-edui-media-wrp custom_select_card_wrp audio_card_wrp"><mpcpc class="js_cpc_area res_iframe cpc_iframe" js_editor_cpcad="" data-category_id_list="([^"]+)" data-id="(\d+)" src="\/cgi-bin\/readtemplate\?t=tmpl\/cpc_tmpl#\d+">&nbsp;<\/mpcpc><\/section>/gm
@@ -154,7 +203,7 @@ export function format_ad_content(html) {
   }
   let formated = html
   if (hasMatched) {
-    formated = html.replaceAll(regAdMarkerInRaw, adMarkerContent)
+    formated = html.replaceAll(regAdMarkerInRaw, adMarkerContentInWangEditor)
   }
   return {
     formated,

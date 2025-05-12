@@ -63,6 +63,21 @@ const menuList = ref([
   url:'/editor',
   icon:require('@/assets/image/hot.png'),
   icon_active:require('@/assets/image/hot_active.png')
+},{
+  name:'CKEditor',
+  url:'/editor2',
+  icon:require('@/assets/image/hot.png'),
+  icon_active:require('@/assets/image/hot_active.png')
+},{
+  name:'UEditor',
+  url:'/editor3',
+  icon:require('@/assets/image/hot.png'),
+  icon_active:require('@/assets/image/hot_active.png')
+},{
+  name:'UEditorPlus',
+  url:'/editor4',
+  icon:require('@/assets/image/hot.png'),
+  icon_active:require('@/assets/image/hot_active.png')
 }])
 
 const exit = function () {

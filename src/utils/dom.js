@@ -172,7 +172,28 @@ export function restore_from_wangEditor_html (html) {
   return restored
 }
 
-
+export function format_to_UEditor_html (html) {
+  const reg03 = /data-src/g, reg04 = /&quot;/g
+  const  replace03 = "src", replace04 = ""
+  // const replaceTag = "div"
+  const reg1 = /<p([^>]*)>(<br\/?>)<\/p>/g, reg2 = /<p\s+\bstyle(?:="[^"]*")?\s*><br(\/)?><\/p>/g, reg3 = /(<p)([^>]*)>(<br\/?>)(<\/p>)/g;
+  const reg4 = /data-src/g, reg5 = /&quot;/g
+  const replace1 = "<p data-p-br>$1<\/p>", replace2 = "<p data-p-br><br\/><\/p>", replace3 = "<p$2 data-p-br>$3<\/p>"
+    // const replaceTag = "div"
+  let formated = html
+    .replaceAll(reg03, replace03)
+    .replaceAll(reg04, replace04)
+    // .replaceAll(reg1, "")
+    // .replaceAll(reg2, "")
+    // console.log("formated1========>>>>", formated)
+  // formated = formated.replaceAll(reg1, "").replaceAll(reg2, "")
+    // .replaceAll(reg3, replace3)
+  //   .replaceAll(reg3, "src")
+  //   .replaceAll(reg4, "");
+  // console.log("========>>>>")
+  // console.log("formated2=>", formated);
+  return formated
+}
 
 // await navigator.clipboard.write([
       //   new window.ClipboardItem({

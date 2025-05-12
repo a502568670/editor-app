@@ -119,3 +119,7 @@ dist_electron/
 cookie-op/
 .DS_Store
 tmp/
+public/ckeditor/
+public/ckeditor2/
+public/UEditorPlus/
+public2/
