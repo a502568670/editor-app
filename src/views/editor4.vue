@@ -341,7 +341,8 @@ let selectedAccount = ref(null)
 let accountsRef = ref([])
 
 // 提取链接
-const extractArticleUrlRef = ref("https://mp.weixin.qq.com/s/G2TYEsgZsTJ1VWj4R2F2hQ?from=kdocs_link")
+// const extractArticleUrlRef = ref("https://mp.weixin.qq.com/s/G2TYEsgZsTJ1VWj4R2F2hQ?from=kdocs_link")
+const extractArticleUrlRef = ref("")
 const dialogExtractMpAritcleUrlRef = ref(false)
 
 
