@@ -122,6 +122,8 @@ export const ad_categorys = [{
 
 export const adMarkerContentInUEditor = `<section style="display:flex;justify-content:center;align-items:center;width:100%;height:60px;border:solid 1px #ccc;background-color:#8c8c8c;padding:2px;">===手工广告区域，请勿修改===<\/section>`
 const regAdMarkerInUEditor = /<section style="display:flex;justify-content:center;align-items:center;width:100%;height:60px;border:solid 1px #ccc;background-color:#8c8c8c;padding:2px;">===手工广告区域，请勿修改===<\/section>/gm
+
+export const adMarkerContentInWangEditor = `<h1>===手工广告，请勿修改===<\/h1>`
 const regAdMarkerInWangEditor = /<h1>===手工广告，请勿修改===<\/h1>/gm
 const regAdMarkerInRaw = /<section class="wx-edui-media-wrp custom_select_card_wrp audio_card_wrp"><mpcpc class="js_cpc_area res_iframe cpc_iframe" js_editor_cpcad="" data-category_id_list="([^"]+)" data-id="(\d+)" src="\/cgi-bin\/readtemplate\?t=tmpl\/cpc_tmpl#\d+">&nbsp;<\/mpcpc><\/section>/gm
 

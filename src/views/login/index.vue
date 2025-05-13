@@ -227,7 +227,7 @@ export default {
             }
             this.loading = false
             // router.push({ path: '/home' })
-            router.push({ path: '/editor', replace: true });
+            router.push({ path: '/editor4', replace: true });
           }).catch(response => {
             console.info(response)
             if(response.data?.msg) {

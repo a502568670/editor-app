@@ -54,18 +54,20 @@
         </div>
       </div>
     </el-col>
-    <el-col :span="12" class="h-full flex flex-col">
-      <div class="grid-content flex space-x-2 p-2 bg-slate-100 text-blue-500">
-        <el-icon :size="20" class="cursor-pointer" @click="openExtractMpArticleUrlDialog" title="提取链接内容">
-          <Link />
-        </el-icon>
-        <el-icon :size="20" class="cursor-pointer" @click="openAdDialog" title="设置广告">
-          <RadioTower />
-        </el-icon>
-      </div>
-      <div class="flex-1">
-        <vue-ueditor-wrap v-model="currentArticleRef.content_noencode" editor-id="editor" @ready="ready"
-          :config="editorConfig" :editorDependencies="['ueditor.config.js', 'ueditor.all.js']" />
+    <el-col :span="12" class="h-full">
+      <div class="h-full flex flex-col">
+        <div class="grid-content flex items-center  space-x-2 p-2 bg-slate-100 text-blue-500">
+          <el-icon :size="20" class="cursor-pointer flex justify-center" @click="openExtractMpArticleUrlDialog" title="提取链接内容">
+            <Link />
+          </el-icon>
+          <el-icon :size="20" class="cursor-pointer flex justify-center" @click="openAdDialog" title="设置广告">
+            <RadioTower />
+          </el-icon>
+        </div>
+        <div ref="ueditor_wrapper" class="flex-1">
+          <vue-ueditor-wrap v-model="currentArticleRef.content_noencode" editor-id="editor" @ready="ready"
+            :config="editorConfigRef" :editorDependencies="['ueditor.config.js', 'ueditor.all.js']" />
+        </div>
       </div>
     </el-col>
     <el-col :span="6" class="h-full pr-1 pt-1">
@@ -209,6 +211,13 @@
 .grid-content-control {
   max-width: 180px;
 }
+#edui1 {
+  height: 100%;
+}
+
+.ueditor_wrapper{
+  height: calc(100vh - 96px);
+}
 </style>
 <script setup>
 import { ref, shallowRef, onMounted, onBeforeUnmount } from 'vue';
@@ -221,19 +230,81 @@ import { ElMessage, ElMessageBox, ElLoading } from 'element-plus'
 import { ArrowUp, ArrowDown, Delete } from '@element-plus/icons-vue'
 import { removeAppMsgId, setAppMsgId, getAppMsgId, getSelectedAccountId, setSelectedAccountId } from '@/utils/editor'
 import { Link, RadioTower } from 'lucide-vue-next';
+import axios from 'axios'
 
+console.log('envVars.backend_url=>', envVars.backend_url)
 // editor 
+const ueditor_wrapper = ref(null)
 const editorRef = shallowRef()
-const editorConfig = {
+const editorConfigRef = ref({
   // 后端服务地址，后端处理参考
   // https://open-doc.modstart.com/ueditor-plus/backend.html
-  serverUrl: '/api/path/to/server',
+  serverUrl: envVars.backend_url + '/upload-ueditor-image',
   UEDITOR_HOME_URL: '/UEditorPlus/',
   UEDITOR_CORS_URL: '/UEditorPlus/',
+  autoHeightEnabled: false,
   initialFrameWidth: '100%',
-  initialFrameHeight: 500,
-  loadConfigFromServer: false,
-}
+  // initialFrameHeight: '100%',
+  // loadConfigFromServer: false,
+  imageConfig: {
+    disableOnline: true,
+  },
+  videoConfig: {
+    disableUpload: true,
+  },
+  uploadServiceEnable: true,
+  uploadServiceUpload: function (type, file, callback, option) {
+    console.log('uploadServiceUpload', type, file, callback, option);
+    const editor = editorRef.value
+    var call = function () {
+      const formData = new FormData();
+      let blob = file instanceof Blob ? file: file.blob.source
+      formData.append(editor.getOpt("imageFieldName"), blob, blob.name);
+      const { token, name, session_id } = selectedAccount.value
+      if (!session_id) {
+        ElMessage({
+          message: `当前账号(${name})未登录,请重新登录`,
+          type: 'error',
+          duration: 2 * 1000
+        })
+        return
+      }
+      const cookies = serializeCookie(JSON.parse(session_id)["cookie"])
+      formData.append("cookies", cookies)
+      formData.append("token", token)
+      axios.post(envVars.backend_url + '/upload-editor-image',
+        formData,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data'
+          }
+        }
+      ).then(function (data) {
+        console.log(data.data.data);
+        callback.success({
+          "state": "SUCCESS",
+          "url": data.data.data.url,
+        })
+      }).catch(function (e) {
+        console.log('FAILURE!!', e);
+        const err = e.response.data.detail
+        if (err.includes("redis ticket invalid")) {
+          ElMessage({
+            message: `当前账号(${name})session过期,请重新登录`,
+            type: 'error',
+            duration: 2 * 1000
+          })
+          // callback.error(`当前账号(${name})session过期,请重新登录`)
+        } else {
+          callback.error(err)
+        }
+      });
+
+      return;
+    }
+    call();
+  }
+})
 
 // component
 const ArrowUpRef = shallowRef(ArrowUp);
@@ -297,12 +368,21 @@ const currentArticleRef = ref({
 function ready(editorInstance) {
   console.log(`编辑器实例${editorInstance.key}: `, editorInstance);
   editorRef.value = editorInstance;
+  const wrapprHeight = ueditor_wrapper.value.clientHeight
+  // console.log("wrapprHeight=>", wrapprHeight)
+  // document.querySelector('#edui1_iframeholder').style.height = 'calc(100% - 100px)';
+  const toolbarHeight = document.querySelector(".edui-editor-toolbarbox .edui-default").clientHeight
+  // const conatinerHeight = document.querySelector("#edui1").clientHeight
+  // console.log("toolbarHeight:", toolbarHeight)
+  // console.log("conatinerHeight:", conatinerHeight)
+  editorInstance.setHeight(wrapprHeight - toolbarHeight - 30)
 }
 
 
 // 组件生命周期
 onMounted(async () => {
   console.log("==onMounted==")
+  
   await loadArticleGroups()
   listArticles()
   listAccount().catch(() => { }).then(response => {
@@ -354,6 +434,25 @@ const serializeCookie = (arr) => {
   // console.log("items=>", items)
   return items.join(";")
 }
+
+// const setImageUploadConfig = () => {
+//   console.log("==setImageUploadConfig==")
+//   if (!selectedAccount.value) {
+//     return
+//   }
+//   const editor = editorRef.value; // 获取 editor ，必须等待它渲染完之后
+//   if (editor == null) return;
+
+//   console.log("selectedAccount  in setImageUploadConfig=>", selectedAccount.value)
+//   const { token, name, session_id } = selectedAccount.value
+//   const cookies = serializeCookie(JSON.parse(session_id)["cookie"])
+
+//   editorConfigRef.value.serverHeaders = {
+//     cookies,
+//     token: parseInt(token),
+//   }
+//   // console.log("config.MENU_CONF.uploadImage=>", config.MENU_CONF.uploadImage)
+// }
 
 const validateAccount = () => {
   if (!selectedAccount.value) {
@@ -609,7 +708,7 @@ const saveArticle = async () => {
   console.log("adCategoryChoosedRef=>", adCategoryChoosedRef.value)
 
   console.log(currentArticleRef.value)
-  
+
   const { token, name, session_id, wechat_id } = selectedAccount.value
   console.log("session_id=>", session_id)
   // const saveContent = currentArticleRef.value.content_noencode
@@ -820,7 +919,7 @@ const handleExtractMpArticleUrl = async () => {
     target: '.main'
   })
   const v = await getArticleContent(extractArticleUrlRef.value)
-  // console.log("v=>", v)
+  console.log("v.data=>", v.data)
   const { content_noencode, title, nick_name, copyright_stat, cdn_url } = v.data
   // console.log("content_noencode=>", content_noencode)
 
