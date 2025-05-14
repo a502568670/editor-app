@@ -30,7 +30,7 @@
             <div class="w-full flex h-20 items-center p-1"
               :class="{ 'border-2 border-[#07C160]': (item.msg_id === msg_idRef) }" v-else>
               <div class="flex flex-col flex-1 h-full">
-                <div class="flex-1 h-2/3">{{ item.title }}</div>
+                <div class="flex-1 h-2/3 w-full max-w-full max-h-2/3 overflow-y-hidden">{{ item.title }}</div>
                 <!-- <div class=" text-sm flex-0" style="color: #51ce94">{{ item.author }}</div> -->
               </div>
               <img class="w-10 h-10 rounded-sm" :src="item.cdn_url" />
@@ -57,7 +57,8 @@
     <el-col :span="12" class="h-full">
       <div class="h-full flex flex-col">
         <div class="grid-content flex items-center  space-x-2 p-2 bg-slate-100 text-blue-500">
-          <el-icon :size="20" class="cursor-pointer flex justify-center" @click="openExtractMpArticleUrlDialog" title="提取链接内容">
+          <el-icon :size="20" class="cursor-pointer flex justify-center" @click="openExtractMpArticleUrlDialog"
+            title="提取链接内容">
             <Link />
           </el-icon>
           <el-icon :size="20" class="cursor-pointer flex justify-center" @click="openAdDialog" title="设置广告">
@@ -211,11 +212,12 @@
 .grid-content-control {
   max-width: 180px;
 }
+
 #edui1 {
   height: 100%;
 }
 
-.ueditor_wrapper{
+.ueditor_wrapper {
   height: calc(100vh - 96px);
 }
 </style>
@@ -258,7 +260,7 @@ const editorConfigRef = ref({
     const editor = editorRef.value
     var call = function () {
       const formData = new FormData();
-      let blob = file instanceof Blob ? file: file.blob.source
+      let blob = file instanceof Blob ? file : file.blob.source
       formData.append(editor.getOpt("imageFieldName"), blob, blob.name);
       const { token, name, session_id } = selectedAccount.value
       if (!session_id) {
@@ -289,10 +291,18 @@ const editorConfigRef = ref({
         console.log('FAILURE!!', e);
         const err = e.response.data.detail
         if (err.includes("redis ticket invalid")) {
-          ElMessage({
-            message: `当前账号(${name})session过期,请重新登录`,
-            type: 'error',
-            duration: 2 * 1000
+          // ElMessage({
+          //   message: `当前账号(${name})session过期,请切换到账号中心重新登录`,
+          //   type: 'error',
+          //   duration: 2 * 1000
+          // })
+          ElMessageBox.alert(`当前账号(${name})session过期,请切换到*账号中心*重新登录`, '错误', {
+            confirmButtonText: '确定',
+            type: 'error'
+          }).then(() => {
+            console.log("then")
+          }).catch(() => {
+            console.log("catch")
           })
           // callback.error(`当前账号(${name})session过期,请重新登录`)
         } else {
@@ -383,7 +393,7 @@ function ready(editorInstance) {
 // 组件生命周期
 onMounted(async () => {
   console.log("==onMounted==")
-  
+
   await loadArticleGroups()
   listArticles()
   listAccount().catch(() => { }).then(response => {
@@ -457,7 +467,7 @@ const serializeCookie = (arr) => {
 
 const validateAccount = () => {
   if (!selectedAccount.value) {
-    ElMessageBox.alert('发布的公众账号不存在,请先到账号中心添加', '错误', {
+    ElMessageBox.alert('发布的公众账号不存在,请先到*账号中心*添加', '错误', {
       confirmButtonText: '确定',
       type: 'error'
     }).catch(() => { })
@@ -679,6 +689,28 @@ const newArticle = () => {
 
 }
 
+const handleActionErr = (account_name, e) => {
+  console.error('handleActionErr:', e);
+  const err = e.response.data.detail
+  if (err?.base_resp?.err_msg?.includes("session")) {
+    ElMessageBox.alert(`当前账号(${account_name})session过期,请切换到*账号中心*重新登录`, '错误', {
+      confirmButtonText: '确定',
+      type: 'error'
+    }).then(() => {
+      console.log("then")
+    }).catch(() => {
+      console.log("catch")
+    })
+    // callback.error(`当前账号(${name})session过期,请重新登录`)
+  } else {
+    ElMessage({
+      message: `服务器错误:${err}`,
+      type: 'error',
+      duration: 2 * 1000
+    })
+  }
+}
+
 const saveArticle = async () => {
 
   if (!validateAccount() || !validateArticleData()) {
@@ -742,7 +774,19 @@ const saveArticle = async () => {
   const appmsgid = _getAppMsgId()
   // console.log("msg_id", msg_id)
   // console.log("appmsgid", appmsgid)
-  // console.log("cookie:", serializeCookie(JSON.parse(session_id)["cookie"]))
+  console.log("session_id:", session_id)
+  if (!session_id) {
+    ElMessageBox.alert(`当前账号(${name})session过期,请切换到*账号中心*重新登录`, '错误', {
+      confirmButtonText: '确定',
+      type: 'error'
+    }).then(() => {
+      console.log("then")
+    }).catch(() => {
+      console.log("catch")
+    })
+    return
+  }
+
   const postData = {
     cookies: serializeCookie(JSON.parse(session_id)["cookie"]),
     token: parseInt(token),
@@ -787,7 +831,9 @@ const saveArticle = async () => {
     const new_msg_id = res.data.data.msg_id
     loadArticleByMsgId(new_msg_id)
 
-  }).catch((err) => { }).finally(() => {
+  }).catch((e) => {
+    handleActionErr(name, e)
+  }).finally(() => {
     loader.close()
   })
 
@@ -808,7 +854,7 @@ const deleteArticle = async (msg_id) => {
       type: 'warning',
     }
   ).then(async () => {
-    const { token, session_id, wechat_id } = selectedAccount.value
+    const { token, name, session_id, wechat_id } = selectedAccount.value
     const postData = {
       cookies: serializeCookie(JSON.parse(session_id)["cookie"]),
       token: parseInt(token),
@@ -819,7 +865,10 @@ const deleteArticle = async (msg_id) => {
     const loader = ElLoading.service({
       target: '.main'
     })
-    await deleteArticleDraft(postData).catch((err) => { }).finally(() => {
+
+    await deleteArticleDraft(postData).catch((e) => {
+      handleActionErr(name, e)
+    }).finally(() => {
       loader.close()
     })
     ElMessage({
@@ -926,7 +975,7 @@ const handleExtractMpArticleUrl = async () => {
   // console.log("content_noencode=>", content_noencode)
   if (item_show_type === 5) {
     // 独立视频
-    const {video_id} = v.data
+    const { video_id } = v.data
     content_noencode = `<iframe class="edui-video-iframe" data-vidtype="2" data-mpvid="${video_id}" data-cover="${cdn_url}" allowfullscreen="" frameborder="0" data-w="1080" data-ratio="0.5625" style="border-radius: 4px;" src="https://mp.weixin.qq.com/cgi-bin/readtemplate?t=tmpl/video_tmpl&vid=${video_id}" width="420" height="280" frameborder="0" allowfullscreen=""></iframe>` + content_noencode
   }
 

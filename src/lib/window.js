@@ -341,7 +341,7 @@ async function reactToIpcObjectData(data, tabbedWin, viewContents) {
       break;
     }
     case 'addAccount': {
-      verbose_log("===== listen addAccount in main ====")
+      verbose_log("===== listen addAccount in main ====", data)
       let viewKey = data.id;
       userToken = data.token
       let partition = "persist:" + viewKey + new Date().getTime();
@@ -406,7 +406,9 @@ async function reactToIpcObjectData(data, tabbedWin, viewContents) {
       companyMap.partition = partition;
       companyMap.webview = view;
       if (companyMap.bxgs) {
+        
         companyMap.bxgs.init(companyMap, postToken)
+        verbose_log("===== companyMap.bxgs.init in add account ====")
       }
       break
     }

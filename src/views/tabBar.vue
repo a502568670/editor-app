@@ -42,8 +42,10 @@
           <el-button :disabled="accountTotalPage <= listQuery.page" @click="nextPage">下一页</el-button>
         </el-col>
         <el-col :span="24" style="padding-top: 10px;">
-          <el-button style="width: 100%;background-color: #51ce94;border: none" type="primary"
-            @click="openAddAccountDialog">添加账号</el-button>
+          <!-- <el-button style="width: 100%;background-color: #51ce94;border: none" type="primary"
+            @click="openAddAccountDialog">添加账号</el-button> -->
+            <el-button style="width: 100%;background-color: #51ce94;border: none" type="primary"
+            @click="handleAddMPAccount(mp_platform)">登录微信公众号</el-button>
         </el-col>
       </el-row>
     </div>
@@ -71,24 +73,20 @@
         </div>
       </div>
 
-
-
-
-
-
-      <div v-show="tabs.length > 0"
+      <div v-show="isDebugRef && tabs.length > 0"
         style="height: auto;display: flex;align-items: center;justify-content: space-between;padding: 10px;background-color: #FFF;z-index: 1000">
-        <div>
+        <div v-if="isDebugRef">
           <el-button @click="goBack">后退</el-button>
           <el-button @click="goForward">前进</el-button>
         </div>
-        <div style="flex: 1;padding-left: 15px;">{{ currentTab.url }}</div>
-        <div>
+        <div v-if="isDebugRef" style="flex: 1;padding-left: 15px;">{{ currentTab.url }}</div>
+        <div v-if="isDebugRef">
           <el-button @click="refresh()">刷新</el-button>
           <el-button @click="copy(currentTab.url)">复制链接</el-button>
         </div>
+        <div v-if="!isDebugRef">&nbsp;</div>
       </div>
-      <div ref="webRef" style="flex: 1"></div>
+      <div ref="webRef" style="flex: 1;margin-top:2px;"></div>
     </div>
     <el-dialog :close-on-click-modal="false" title="选择添加账号的平台" v-model="dialogAddAccountVisible" width="800px">
       <el-row :gutter="10">
@@ -100,7 +98,6 @@
           </div>
         </el-col>
       </el-row>
-
     </el-dialog>
   </div>
 </template>
@@ -122,6 +119,7 @@ const currentTabId = ref(0)
 const currentTab = ref({})
 const elTabsRef = ref({})
 const webRef = ref({})
+const isDebugRef = ref(window.envVars.is_debug)
 
 const listQuery = ref({
   page: 1,
@@ -132,6 +130,8 @@ const listQuery = ref({
 const accountTotal = ref(0)
 const accountTotalPage = ref(0)
 const accounts = ref([])
+const selectedAccount = ref(null)
+const selectedAccountLoginStatus = ref({})
 
 const getList = () => {
   listAccount(listQuery.value).then(response => {
@@ -164,6 +164,7 @@ handleFilter();
 
 const dialogAddAccountVisible = ref(false)
 const platform_list = ref([])
+const mp_platform = ref(null)
 listPlatform({}).then(response => {
   if (response.data && response.data.data && Array.isArray(response.data.data.list)) {
     const platforms = response.data.data.list
@@ -173,6 +174,7 @@ listPlatform({}).then(response => {
       name: item.platform_name,
       image: item.platform_icon
     }))
+    mp_platform.value = platform_list.value[0]
   } else {
     console.error('Unexpected response structure:', response)
   }
@@ -182,6 +184,15 @@ listPlatform({}).then(response => {
 
 
 
+const handleAddMPAccount = (item) => {
+  console.log("handleAddMPAccount", item)
+  window.ipcRenderer.send('toMain', {
+      tag: 'addAccount',
+      token: getToken(),
+      ...item,
+      session_id: null // 确保每次创建新的 webview 时 session_id 为 null
+    })
+}
 
 
 const openAddAccountDialog = () => {
@@ -190,6 +201,7 @@ const openAddAccountDialog = () => {
 }
 
 const handleAddAccount = (item, index) => {
+  console.log("handleAddAccount", item, index)
   dialogAddAccountVisible.value = false
   if (index < 4) {
     window.ipcRenderer.send('toMain', {
@@ -242,6 +254,11 @@ const changeTab = (tabId) => {
 const addNewTab = (account) => {
   let a = Object.assign({userToken: getToken()}, account)
   console.log("a=>", a)
+  if (selectedAccount.value && selectedAccount.value.id === a.id ) {
+    console.log("已经选中>", a)
+  } else {
+    selectedAccount.value = account
+  }
   window.ipcRenderer.send('new-tab', a)
 }
 
@@ -285,6 +302,15 @@ const throttleFunc = throttle(() => {
 }, 200);
 onMounted(() => {
 
+  window.ipcRenderer.receive('account_check_login', async (isLoggedIn) => {
+    console.log("isLoggedIn => ", isLoggedIn)
+    selectedAccountLoginStatus.value = {...selectedAccountLoginStatus.value, [selectedAccount.value.id]: isLoggedIn }
+    console.log("selectedAccountLoginStatus.value  => ", selectedAccountLoginStatus.value )
+    if (selectedAccount.value.id && selectedAccountLoginStatus.value[selectedAccount.value.id] === false) {
+      handleAddMPAccount(mp_platform.value)
+    }
+  })
+
   window.ipcRenderer.receive('remove-account-session', async (account_session_id) => {
     // console.log("account_session_id => ", account_session_id)
     if (account_session_id) {
@@ -293,6 +319,7 @@ onMounted(() => {
       handleFilter();
     }
   })
+  
   window.ipcRenderer.receive('refresh-account-session', async (wechat_id, session_id) => {
     console.log("== refresh-account-session ==")
     console.log("param => ", wechat_id, session_id)
@@ -394,17 +421,18 @@ window.ipcRenderer.send('control-ready')
 <style scoped>
 .tab-control-wrap {
   width: 100%;
-  height: 40px;
-  background-color: #e9f9f1;
+  height: 60px;
+  /* background-color: #e9f9f1; */
+  background-color: #ccc;
   display: flex;
   justify-content: space-between;
   flex-wrap: nowrap;
   -webkit-app-region: drag;
 }
 
-.el-tabs--border-card {
+/* .el-tabs--border-card {
   border: none;
-}
+} */
 
 .el-tabs--border-card>.el-tabs__header .el-tabs__item.is-active {
   color: #51ce94

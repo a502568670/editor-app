@@ -139,7 +139,7 @@ async function init(d, postTokenInWin) {
               }
               if (originalUsername) {
                 const avatarUrl = `https://open.weixin.qq.com/qr/code?username=${originalUsername}`;
-                
+
 
                 const decodedNickname = escape(nickname)
                 verbose_log("nickname=>", nickname)
@@ -181,7 +181,7 @@ async function init(d, postTokenInWin) {
         //     }
         //   }, 1000);
         // });
-      } 
+      }
       else if (currentURL.indexOf('mp.weixin.qq.com/cgi-bin/wticketcontractorverify?action=bind_admin_page') > -1) {
         verbose_error('==管理员被解绑==');
         return false;
@@ -218,7 +218,7 @@ async function init(d, postTokenInWin) {
     try {
       // const cookies = viewData.user.cookies;
       // console.log('handleLoginedEvent viewData:', viewData);
-     
+
       const payload = {
         // platform_id: 4,
         // platform_name: '微信公众号',
@@ -310,14 +310,14 @@ async function init(d, postTokenInWin) {
     if (url === "https://mp.weixin.qq.com/") {
       // 退出登陆
       verbose_log('退出登陆 viewData.user:', viewData.user);
-      const accounlt_session_id = viewData.user.account_session_id
-      verbose_log("accounlt_session_id:", accounlt_session_id)
-      if (accounlt_session_id) {
-        viewData.tabWin.raiseRenderAct('remove-account-session', accounlt_session_id)
-        verbose_log("send remove-account-session event to ipcRenderer")
-      }
-    } else {
-
+      if(viewData.user) {
+        const accounlt_session_id = viewData.user.account_session_id
+        verbose_log("accounlt_session_id:", accounlt_session_id)
+        if (accounlt_session_id) {
+          viewData.tabWin.raiseRenderAct('remove-account-session', accounlt_session_id)
+          verbose_log("send remove-account-session event to ipcRenderer")
+        }
+      } 
     }
 
     verbose_log("=================")
@@ -337,6 +337,11 @@ async function init(d, postTokenInWin) {
     verbose_log('调用checkLoginStatus检查登录状态');
     const isLoggedIn = await checkLoginStatus();
     verbose_log('登录状态:', isLoggedIn);
+    verbose_log("viewData.tabWin=>", viewData.tabWin)
+    if (viewData.tabWin) {
+      verbose_log("send to ipcRender: account_check_login =>", isLoggedIn)
+      viewData.tabWin.raiseRenderAct('account_check_login', isLoggedIn)
+    }
 
     // 如果已登录但尚未发送 logined 事件（可能在页面刷新后）
     // if (isLoggedIn && viewData.user) {
@@ -466,7 +471,7 @@ const post = function (url, postData, newheaders) {
     verbose_log("backend_protocol=>", backend_protocol)
     verbose_log("backend_host=>", backend_host)
     verbose_log("backend_port=>", backend_port)
-    
+
     const request = net.request({
       method: 'post',
       protocol: backend_protocol, // 使用 http 协议
@@ -503,7 +508,7 @@ const post = function (url, postData, newheaders) {
 
 // (platform, cookies, {}, sessionStorage, payload.originalUsername, payload.name, payload.avatar, payload.token)
 const postToken = async function (payload) {
-  const {platform, cookies, localStorage, sessionStorage, originalUsername, name, avatar, token, userToken} = payload
+  const { platform, cookies, localStorage, sessionStorage, originalUsername, name, avatar, token, userToken } = payload
   // verbose_log("platform=>", platform)
   // verbose_log("cookies=>", cookies)
   // verbose_log("userToken=>", userToken)

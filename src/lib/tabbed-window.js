@@ -653,6 +653,8 @@ export class TabbedWindow extends EventEmitter {
         // this.destroyView(this.currentView.id);
         
       }
+    } else if (event === "account_check_login") {
+      verbose_log("in main print account_check_login:", args)
 
     }
   }
