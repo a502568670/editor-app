@@ -55,3 +55,19 @@ export function deleteArticleDraft(data) {
   })
 }
 
+export function genArticleDraftPreviewUrl(data) {
+  return request({
+    url: `/mp_msg/gen_preview_url`,
+    method: 'post',
+    data
+  })
+}
+
+// http://mp.weixin.qq.com/s?__biz=Mzk0NzI2NTI3Ng==&tempkey=MTMyMl9oRC92Vit1NmRQdUZsRDFPREVDSldoYkF3RXJGeUh3M2lwQk9EWlFRYkFnMGxwVGFMVkIxRGY3YnRBODdBczYxY19GV1VJRXFhLWlxTGtPbHBBNGRZMC1mRWdsLVBLYk5JWXd6WWl1QnJsQXFRbVptQ2hyZjVzSXBOTGVHeUR6T3YxOERvNUFtdWtwTFoxNEEzbEduVGg0ejlUTkhGcTNmWC12Q053fn4%3D&chksm=4378ca1a740f430ce42b4b1675a3644c192ce468ec7b61c5ddfb4332f15329121231a91ac238#rd
+
+export function previewArticleDraft(url) {
+  return request({
+    url: `/mp_msg/proxy_preview_url?url=${url}`,
+  })
+}
+

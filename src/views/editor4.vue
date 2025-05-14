@@ -64,6 +64,14 @@
           <el-icon :size="20" class="cursor-pointer flex justify-center" @click="openAdDialog" title="设置广告">
             <RadioTower />
           </el-icon>
+          <div class="flex-1"></div>
+          <el-icon :size="20" class="cursor-pointer flex justify-center" @click="handlePreview" title="文章预览">
+            <Eye />
+          </el-icon>
+          <el-icon v-if="isDebugRef" :size="20" class="cursor-pointer flex justify-center" @click="openDebugDialog"
+            title="调试信息">
+            <SquareTerminal />
+          </el-icon>
         </div>
         <div ref="ueditor_wrapper" class="flex-1">
           <vue-ueditor-wrap v-model="currentArticleRef.content_noencode" editor-id="editor" @ready="ready"
@@ -201,7 +209,39 @@
       </div>
     </template>
   </el-dialog>
-
+  <el-dialog :close-on-click-modal="false" title="调试信息" v-model="dialogDebugVisibleRef" width="600px">
+    <div class="w-full h-[300px] bg-gray-900 text-green-500 flex flex-col space-y-4">
+      <el-row :gutter="40" class="p-1 flex-none">
+        <el-col :span="4">
+          <label>账号:</label>
+        </el-col>
+        <el-col :span="20">
+          {{ selectedAccount?.name }}
+        </el-col>
+      </el-row>
+      <el-row :gutter="40" class="p-1 flex-1 h-[200px]">
+        <el-col :span="4">
+          <label>cookies:</label>
+        </el-col>
+        <el-col :span="19" class="h-full overflow-y-auto">
+          {{ showSerializeCookie(selectedAccount?.session_id) }}
+        </el-col>
+      </el-row>
+      <el-row :gutter="40" class="p-1 flex-none">
+        <el-col :span="4">
+          <label>token:</label>
+        </el-col>
+        <el-col :span="20">
+          {{ selectedAccount?.token }}
+        </el-col>
+      </el-row>
+    </div>
+    <template #footer>
+      <div class="dialog-footer">
+        <el-button @click="dialogDebugVisibleRef = false">关闭</el-button>
+      </div>
+    </template>
+  </el-dialog>
 </template>
 <style>
 .grid-content {
@@ -224,18 +264,22 @@
 <script setup>
 import { ref, shallowRef, onMounted, onBeforeUnmount } from 'vue';
 import { listAccount } from '@/api/account'
-import { saveArticleDraft, listArticlesByAppMsg, listArticleGroups, swapArticles, deleteArticleDraft } from "@/api/article"
+import {
+  saveArticleDraft, listArticlesByAppMsg, listArticleGroups, swapArticles,
+  deleteArticleDraft, genArticleDraftPreviewUrl, previewArticleDraft
+} from "@/api/article"
 import { getArticleContent, getArticleContent2 } from '@/api/jzl'
 import { format_to_UEditor_html, restore_from_UEditor_html } from "@/utils/dom";
 import { ad_categorys, adMarkerContentInUEditor, format_ad_content_in_UEditor, restore_ad_content_from_UEditor, has_ad_in_wangEditor, has_ad_in_raw } from "@/utils/ad"
 import { ElMessage, ElMessageBox, ElLoading } from 'element-plus'
 import { ArrowUp, ArrowDown, Delete } from '@element-plus/icons-vue'
 import { removeAppMsgId, setAppMsgId, getAppMsgId, getSelectedAccountId, setSelectedAccountId } from '@/utils/editor'
-import { Link, RadioTower } from 'lucide-vue-next';
+import { Link, RadioTower, SquareTerminal, Eye } from 'lucide-vue-next';
 import axios from 'axios'
 
-console.log('envVars.backend_url=>', envVars.backend_url)
+// console.log('envVars.backend_url=>', envVars.backend_url)
 // editor 
+const isDebugRef = ref(envVars.is_debug)
 const ueditor_wrapper = ref(null)
 const editorRef = shallowRef()
 const editorConfigRef = ref({
@@ -346,6 +390,10 @@ const adCategoryRef = ref(ad_categorys)
 const adCategoryChoosedRef = ref([])
 const insertAdTypeRef = ref("1") // 0-不插入 1-手动 2-智能 
 
+
+// 调试信息
+const dialogDebugVisibleRef = ref(false)
+
 // 账号
 let selectedAccount = ref(null)
 let accountsRef = ref([])
@@ -444,6 +492,14 @@ const serializeCookie = (arr) => {
   });
   // console.log("items=>", items)
   return items.join(";")
+}
+
+const showSerializeCookie = (session_id) => {
+  if (!session_id) {
+    return ""
+  }
+  const cookies = serializeCookie(JSON.parse(session_id)["cookie"])
+  return cookies
 }
 
 // const setImageUploadConfig = () => {
@@ -1027,6 +1083,60 @@ const insertAd = () => {
   // console.log(curToolbarConfig.toolbarKeys); // 当前菜单排序和分组
   // console.log('menuconfig=>', editor.getMenuConfig('uploadImage'));
 };
+
+
+const handlePreview = async () => {
+  if (msg_idRef.value == 0) {
+    ElMessageBox.alert('请选择预览文章，或者将当前新建的文章暂存到草稿箱', '警告', {
+      confirmButtonText: '确定',
+      type: 'error'
+    }).catch(() => { })
+    return
+  }
+  if (!selectedAccount.value) {
+    ElMessageBox.alert('请选择预览的账号', '警告', {
+      confirmButtonText: '确定',
+      type: 'error'
+    }).catch(() => { })
+    return
+  }
+
+  const { token, name, session_id } = selectedAccount.value
+  if (!session_id) {
+    // ElMessage({
+    //   message: `当前账号(${name})未登录,请重新登录`,
+    //   type: 'error',
+    //   duration: 2 * 1000
+    // })
+    ElMessageBox.alert(`当前账号(${name})未登录,请重新登录`, '警告', {
+      confirmButtonText: '确定',
+      type: 'error'
+    }).catch(() => { })
+    return
+  }
+
+  await genArticleDraftPreviewUrl({
+    cookies: serializeCookie(JSON.parse(session_id)["cookie"]),
+    token: parseInt(token),
+    msg_id: parseInt(msg_idRef.value)
+  }).then(async (data) => {
+    // console.log('preview return data =>', data)
+    const temp_url = data?.data?.temp_url
+    if (temp_url) {
+      window.ipcRenderer.send('toMain', {
+        tag: 'previewMpArticle',
+        url: temp_url,
+      })
+    }
+  }).catch((e) => { }).finally(() => {
+  })
+
+}
+
+
+const openDebugDialog = () => {
+  dialogDebugVisibleRef.value = true
+}
 
 const clickAllCategory = (checkedAll) => {
   console.log("clickAllCategory=>", checkedAll)

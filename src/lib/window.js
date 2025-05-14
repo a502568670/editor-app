@@ -412,6 +412,42 @@ async function reactToIpcObjectData(data, tabbedWin, viewContents) {
       }
       break
     }
+    case 'previewMpArticle': {
+      verbose_log("===== listen previewMpArticle in main ====", data)
+      
+      let view = new BrowserWindow({
+        width: 378, height: 668,
+        icon: path.join(__dirname, "logo.png"),
+        frame: true,
+        title: "预览",
+        webPreferences: {
+          // nodeIntegration: true,
+          // nodeIntegrationInWorker: true,// 是否在Web工作器中启用了Node集成
+          minimumFontSize: 12,
+          nodeIntegrationInSubFrames: true,
+          //  nableRemoteModule: true,  // 打开remote模块
+          allowDisplayingInsecureContent: true,
+          allowRunningInsecureContent: true,
+          webSecurity: false,
+          sandbox: false,
+          // partition: partition,
+          contextIsolation: false,
+          plugins: true,
+          // preload: path.join(__dirname, preload)
+        }
+      })
+      // view.setBounds({ x: 0, y: 0, width: 300, height: 300 })
+      view.webContents.loadURL(data.url)
+      view.focus();
+      view.setAlwaysOnTop(true);
+      
+      // view.webContents.session.setProxy({
+      //     mode: "pac_script",
+      //     pacScript: ''
+      // });
+     
+      break
+    }
     default: {
       log.warn(
         "Unknown IPC channel event in the data message:",
