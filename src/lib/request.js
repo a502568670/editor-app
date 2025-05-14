@@ -1,0 +1,114 @@
+const { net } = require('electron');
+const global = require("./global")
+
+const verbose_log = global.default.utils.verbose_log;
+const verbose_error = global.default.utils.verbose_error;
+const get_backend_url = global.default.utils.get_backend_url;
+
+// HTTP POST FORM 请求封装函数
+export const postForm = function (url, postData, newheaders) {
+  // console.log("数据接收完成", url);
+  // console.log("要发送的数据", postData);
+  return new Promise(async (resolve, reject) => {
+    let headers = {
+      'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'
+    };
+    if (newheaders) {
+      headers = Object.assign(headers, newheaders);
+    }
+    // 使用 net.request 创建一个 POST 请求，配置包括协议、主机地址、端口、路径和请求头。
+    const [backend_protocol, backend_host, backend_port] = get_backend_url()
+    // const backend_url = process.env.BACKEND_URL
+    // verbose_log("post in wechat backend_url:", process.env.BACKEND_URL)
+    // let [backend_protocol, backend_host, backend_port] = backend_url.split(":")
+    // backend_protocol = backend_protocol + ":"
+    // backend_host = backend_host.substring(2)
+    // backend_port = parseInt(backend_port)
+    verbose_log("backend_protocol=>", backend_protocol)
+    verbose_log("backend_host=>", backend_host)
+    verbose_log("backend_port=>", backend_port)
+
+    const request = net.request({
+      method: 'post',
+      protocol: backend_protocol, // 使用 http 协议
+      hostname: backend_host, // 设为本地地址
+      port: backend_port, // 设为端口 8000
+      path: url, // 直接使用传入的 url
+      headers: headers
+    });
+    // 处理响应
+    request.on('response', (response) => {
+      let data = "";
+      response.on("data", (chunk) => {
+        data += chunk.toString();
+      });
+      response.on('end', () => {
+        verbose_log("数据接收完成");
+        if (response.statusCode == 200) {
+          verbose_log("数据接收完成", data);
+          resolve(data);
+        } else {
+          reject();
+        }
+      });
+    });
+    // 构造请求体： 遍历 postData 对象，将其键值对拼接成 key=value& 格式的字符串，并通过 request.write 发送。
+    let param = "";
+    for (let key in postData) {
+      param += (key + '=' + postData[key] + '&');
+    }
+    request.write(param);
+    request.end();
+  });
+}
+
+export const postJson = function (url, postData, newheaders) {
+  // console.log("数据接收完成", url);
+  // console.log("要发送的数据", postData);
+  return new Promise(async (resolve, reject) => {
+    let headers = {
+      'Content-Type': 'application/json'
+    };
+    if (newheaders) {
+      headers = Object.assign(headers, newheaders);
+    }
+    // 使用 net.request 创建一个 POST 请求，配置包括协议、主机地址、端口、路径和请求头。
+    const [backend_protocol, backend_host, backend_port] = get_backend_url()
+
+    verbose_log("==backend_protocol=>", backend_protocol)
+    verbose_log("==backend_host=>", backend_host)
+    verbose_log("==backend_port=>", backend_port)
+
+    const request = net.request({
+      method: 'post',
+      protocol: backend_protocol, // 使用 http 协议
+      hostname: backend_host, // 设为本地地址
+      port: backend_port, // 设为端口 8000
+      path: url, // 直接使用传入的 url
+      headers: headers
+    });
+    // 处理响应
+    let buffers = [];
+    response.on('data', (chunk) => {
+      console.log(`Buffer: ${chunk}`);
+      buffers.push(chunk);
+    })
+
+    response.on('end', () => {
+      let responseBodyBuffer = Buffer.concat(buffers);
+      let ret = JSON.parse(responseBodyBuffer.toString());
+      console.log(`BODY: ${responseBodyJSON}`);
+      verbose_log("JSON数据接收完成");
+      if (response.statusCode == 200) {
+        verbose_log("JSON数据接收完成", ret);
+        resolve(ret);
+      } else {
+        reject();
+      }
+    })
+
+    request.write(JSON.stringify(postData));
+    request.end();
+  });
+}
+
