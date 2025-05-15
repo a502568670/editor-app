@@ -53,7 +53,7 @@ module.exports = {
         publish: [
           {
             provider: 'generic',
-            url: 'http://localhost:9000'
+            url: 'http://47.96.22.8:8006/autoupdate'
           }
         ],
         appId: "com.electron.client",
