@@ -31,7 +31,14 @@ module.exports = {
           { from: './src/preload', to: '', toType: 'dir' }
         ]
       })
-    ]
+    ],
+    resolve:{
+      fallback: { 
+        "path": false,
+        "fs": false
+        // "path": require.resolve("path-browserify") 
+      }
+    }
   },
   // publicPath: './',
   chainWebpack: (config) => {
@@ -43,6 +50,12 @@ module.exports = {
   pluginOptions: {
     electronBuilder: {
       builderOptions: {
+        publish: [
+          {
+            provider: 'generic',
+            url: 'http://localhost:9000'
+          }
+        ],
         appId: "com.electron.client",
         artifactName: "${name}_${version}_${os}_${arch}.${ext}",
         generateUpdatesFilesForAllChannels: true,

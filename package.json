@@ -1,6 +1,6 @@
 {
   "name": "jzl_editor",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "description": "极致了编辑器",
   "author": "jzl_editor",
@@ -24,6 +24,7 @@
     "core-js": "^3.30.2",
     "dotenv": "^16.5.0",
     "electron-log": "^4.4.8",
+    "electron-updater": "^6.6.2",
     "element-plus": "^2.3.4",
     "js-cookie": "^3.0.5",
     "lucide-vue-next": "^0.509.0",

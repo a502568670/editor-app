@@ -35,6 +35,12 @@ const router = createRouter({
       hidden: true
     },
     {
+      path: '/update',
+      name: "update",
+      component: () => import('@/views/update'),
+      // hidden: true
+    },
+    {
       path: '/auth-redirect',
       component: () => import('@/views/login/authredirect'),
       hidden: true

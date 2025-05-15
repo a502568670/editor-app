@@ -54,6 +54,7 @@ export class TabbedWindow extends EventEmitter {
   /**
    * The constructor for defining a tabbed window.
    * @param {object} options the options for building a tabbed window.
+   * @param {string} [options.ver] the app ver.
    * @param {string} [options.blankPage = ''] the blank page to load on new tab.
    * @param {string} options.blankTitle the blank page's title.
    * @param {number} options.controlHeight the control interface's height.
@@ -76,6 +77,7 @@ export class TabbedWindow extends EventEmitter {
       controlReferences,
       height,
       width,
+      ver,
       winOptions = {},
     } = options;
 
@@ -110,10 +112,16 @@ export class TabbedWindow extends EventEmitter {
         ...controlReferences, // Put it here to overwrite existing values in the above properties.
       },
     });
-    console.log("controlPanel=>", controlPanel)
-    console.log("width=>", width)
-    console.log("height=>", height)
-    this.win.loadURL(controlPanel);
+    verbose_log("controlPanel=>", controlPanel)
+    verbose_log("width=>", width)
+    verbose_log("height=>", height)
+    this.win.loadURL(controlPanel).then(() => {
+      if (ver) {
+        const newTitle = `${this.win.title}-v${ver}`
+        verbose_log("setTitle to =>", newTitle )
+        this.win.title = newTitle
+      }
+    });
     this.setChannel();
   } // end constructor
 
@@ -294,7 +302,9 @@ export class TabbedWindow extends EventEmitter {
         this.emit("url-updated", { view: currentView, href });
       })
       // .on("page-title-updated", (e, title) => {
-      //   this.setTabConfig(id, { title });
+      //   // this.setTabConfig(id, { title });
+      //   console.log(title)
+      //   e.preventDefault()
       // })
       // .on("page-favicon-updated", (e, favicons) => {
       //   this.setTabConfig(id, { favicon: favicons[0] });
@@ -311,6 +321,7 @@ export class TabbedWindow extends EventEmitter {
     webContents[MARKS] = true;
 
     this.setContentBounds();
+
   } // end function loadURL
 
   /**
@@ -651,7 +662,7 @@ export class TabbedWindow extends EventEmitter {
         // 考虑关闭tab
         // sendCloseTab(this.currentView.id)
         // this.destroyView(this.currentView.id);
-        
+
       }
     } else if (event === "account_check_login") {
       verbose_log("in main print account_check_login:", args)

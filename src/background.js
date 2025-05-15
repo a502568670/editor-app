@@ -8,7 +8,7 @@
 'use strict'
 
 import { app, protocol, BrowserWindow, Menu } from 'electron'
-
+import updater from "./updater"
 import { createProtocol } from 'vue-cli-plugin-electron-builder/lib'
 import installExtension, { VUEJS3_DEVTOOLS } from 'electron-devtools-installer'
 const isDevelopment = process.env.NODE_ENV !== 'production'
@@ -22,6 +22,11 @@ app.commandLine.appendSwitch('ignore-certificate-errors')
 app.commandLine.appendSwitch('ignore-ssl-errors')
 app.commandLine.appendSwitch("disable-site-isolation-trials");
 
+Object.defineProperty(app, 'isPackaged', {
+  get() {
+    return true;
+  }
+});
 
 function createMenu() {
   // darwin表示macOS，针对macOS的设置  process.platform === 'darwin'
@@ -117,6 +122,7 @@ app.on('activate', () => {
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
 app.on('ready', async () => {
+  updater()
   if (isDevelopment && !process.env.IS_TEST) {
     // Install Vue Devtools
     try {

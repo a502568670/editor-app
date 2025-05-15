@@ -179,7 +179,9 @@ export async function createTabbedWin(stockList) {
 
 
   const winWidth = Math.round(width * 0.7);
+  const ver = app.getVersion()
   tabbedWin = new TabbedWindow({
+    ver,
     blankPage: global.common.blankPage,
     blankTitle: zhCN.newTabItem,
     controlHeight: global.common.TAB_BAR_HEIGHT,
