@@ -22,12 +22,17 @@ app.commandLine.appendSwitch('ignore-certificate-errors')
 app.commandLine.appendSwitch('ignore-ssl-errors')
 app.commandLine.appendSwitch("disable-site-isolation-trials");
 
+const is_dev_check_update = global.utils.is_dev_check_update;
+
 // dev check update
-Object.defineProperty(app, 'isPackaged', {
-  get() {
-    return true;
-  }
-});
+if (is_dev_check_update()) {
+  Object.defineProperty(app, 'isPackaged', {
+    get() {
+      return true;
+    }
+  });
+}
+
 
 function createMenu() {
   // darwin表示macOS，针对macOS的设置  process.platform === 'darwin'

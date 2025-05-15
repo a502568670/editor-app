@@ -23,7 +23,8 @@ global.common = {
   MIN_LOG_LEVEL: "info",
   APP_SCHEME: 'app',
   WAIT_FOR_BEFORE_UNLOAD: false,  // 关闭标签页面之前是否触发页面的beforeunload事件,目前只支持false,设置为true会造成有beforeunload事件的标签页面在关闭时不能正常销毁页面而导致内存不能释放
-  BACKEND_URL: process.env.BACKEND_URL || "http://47.96.22.8:8006"
+  BACKEND_URL: process.env.BACKEND_URL || "http://47.96.22.8:8006",
+  DEV_CHECK_UPDATE: process.env.DEV_CHECK_UPDATE || 'false'
 }
 
 const yesVals = ['y', 'yes', 'true', true, '1', 1, 'on']
@@ -56,12 +57,17 @@ const get_backend_url = () => {
   return [backend_protocol, backend_host, backend_port]
 }
 
+const is_dev_check_update = () => {
+  return yn(global.common.DEV_CHECK_UPDATE)
+}
+
 
 global.utils = {
   yn,
   verbose_log,
   verbose_error,
-  get_backend_url
+  get_backend_url,
+  is_dev_check_update
 }
 
 export default global
