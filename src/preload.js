@@ -20,7 +20,7 @@ contextBridge.exposeInMainWorld('envVars', {
 contextBridge.exposeInMainWorld('ipcRenderer', {
   receive: (channel, func) => {
     if (
-      ['fromMain','getWebBounds', 'tabs-update', 'remove-account-session', 'account_check_login'].includes(
+      ['fromMain','getWebBounds', 'tabs-update', 'remove-account-session', 'account_check_login', 'downloadProgress'].includes(
         channel
       )
     ) {

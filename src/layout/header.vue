@@ -64,6 +64,12 @@ const menuList = ref([
   icon:require('@/assets/image/hot.png'),
   icon_active:require('@/assets/image/hot_active.png')
 },
+{
+  name:'update',
+  url:'/update',
+  icon:require('@/assets/image/hot.png'),
+  icon_active:require('@/assets/image/hot_active.png')
+},
 // {
 //   name:'编辑器旧',
 //   url:'/editor',
