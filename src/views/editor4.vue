@@ -68,6 +68,9 @@
           <el-icon :size="20" class="cursor-pointer flex justify-center" @click="handlePreview" title="文章预览">
             <Eye />
           </el-icon>
+          <el-icon :size="20" class="cursor-pointer flex justify-center" @click="openMobilePreviewDialog" title="文章手机预览">
+            <ScanEye />
+          </el-icon>
           <el-icon v-if="isDebugRef" :size="20" class="cursor-pointer flex justify-center" @click="openDebugDialog"
             title="调试信息">
             <SquareTerminal />
@@ -209,6 +212,13 @@
       </div>
     </template>
   </el-dialog>
+  <el-dialog :close-on-click-modal="false" title="手机扫码预览" v-model="dialogMobilePreviewVisibleRef" width="330px">
+    <el-row :gutter="40" class="h-[300px]">
+      <el-col :span="24">
+        <img v-if="qrcodeMobilePreviewRef" class="w-full h-full" :src="qrcodeMobilePreviewRef" />
+      </el-col>
+    </el-row>
+  </el-dialog>
   <el-dialog :close-on-click-modal="false" title="调试信息" v-model="dialogDebugVisibleRef" width="600px">
     <div class="w-full h-[300px] bg-gray-900 text-green-500 flex flex-col space-y-4">
       <el-row :gutter="40" class="p-1 flex-none">
@@ -266,7 +276,7 @@ import { ref, shallowRef, onMounted, onBeforeUnmount } from 'vue';
 import { listAccount } from '@/api/account'
 import {
   saveArticleDraft, listArticlesByAppMsg, listArticleGroups, swapArticles,
-  deleteArticleDraft, genArticleDraftPreviewUrl, previewArticleDraft
+  deleteArticleDraft, genArticleDraftPreviewUrl, previewQRCode
 } from "@/api/article"
 import { getArticleContent, getArticleContent2 } from '@/api/jzl'
 import { format_to_UEditor_html, restore_from_UEditor_html } from "@/utils/dom";
@@ -274,7 +284,7 @@ import { ad_categorys, adMarkerContentInUEditor, format_ad_content_in_UEditor, r
 import { ElMessage, ElMessageBox, ElLoading } from 'element-plus'
 import { ArrowUp, ArrowDown, Delete } from '@element-plus/icons-vue'
 import { removeAppMsgId, setAppMsgId, getAppMsgId, getSelectedAccountId, setSelectedAccountId } from '@/utils/editor'
-import { Link, RadioTower, SquareTerminal, Eye } from 'lucide-vue-next';
+import { Link, RadioTower, SquareTerminal, Eye, ScanEye } from 'lucide-vue-next';
 import axios from 'axios'
 
 // console.log('envVars.backend_url=>', envVars.backend_url)
@@ -390,6 +400,9 @@ const adCategoryRef = ref(ad_categorys)
 const adCategoryChoosedRef = ref([])
 const insertAdTypeRef = ref("1") // 0-不插入 1-手动 2-智能 
 
+// 手机预览
+const dialogMobilePreviewVisibleRef = ref(false)
+const qrcodeMobilePreviewRef = ref("")
 
 // 调试信息
 const dialogDebugVisibleRef = ref(false)
@@ -1084,21 +1097,20 @@ const insertAd = () => {
   // console.log('menuconfig=>', editor.getMenuConfig('uploadImage'));
 };
 
-
-const handlePreview = async () => {
+const validatePreview = () => {
   if (msg_idRef.value == 0) {
     ElMessageBox.alert('请选择预览文章，或者将当前新建的文章暂存到草稿箱', '警告', {
       confirmButtonText: '确定',
       type: 'error'
     }).catch(() => { })
-    return
+    return {validated: false}
   }
   if (!selectedAccount.value) {
     ElMessageBox.alert('请选择预览的账号', '警告', {
       confirmButtonText: '确定',
       type: 'error'
     }).catch(() => { })
-    return
+    return {validated: false}
   }
 
   const { token, name, session_id } = selectedAccount.value
@@ -1112,8 +1124,46 @@ const handlePreview = async () => {
       confirmButtonText: '确定',
       type: 'error'
     }).catch(() => { })
+    return {validated: false}
+  }
+  return {validated: true, token, name, session_id}
+}
+
+const handlePreview = async () => {
+  // if (msg_idRef.value == 0) {
+  //   ElMessageBox.alert('请选择预览文章，或者将当前新建的文章暂存到草稿箱', '警告', {
+  //     confirmButtonText: '确定',
+  //     type: 'error'
+  //   }).catch(() => { })
+  //   return
+  // }
+  // if (!selectedAccount.value) {
+  //   ElMessageBox.alert('请选择预览的账号', '警告', {
+  //     confirmButtonText: '确定',
+  //     type: 'error'
+  //   }).catch(() => { })
+  //   return
+  // }
+
+  // const { token, name, session_id } = selectedAccount.value
+  // if (!session_id) {
+  //   // ElMessage({
+  //   //   message: `当前账号(${name})未登录,请重新登录`,
+  //   //   type: 'error',
+  //   //   duration: 2 * 1000
+  //   // })
+  //   ElMessageBox.alert(`当前账号(${name})未登录,请重新登录`, '警告', {
+  //     confirmButtonText: '确定',
+  //     type: 'error'
+  //   }).catch(() => { })
+  //   return
+  // }
+
+  const { validated, token, name, session_id } = validatePreview()
+  if (!validated) {
     return
   }
+
 
   await genArticleDraftPreviewUrl({
     cookies: serializeCookie(JSON.parse(session_id)["cookie"]),
@@ -1133,6 +1183,27 @@ const handlePreview = async () => {
 
 }
 
+const openMobilePreviewDialog = async () => {
+  const { validated, token, name, session_id } = validatePreview()
+  if (!validated) {
+    console.log("validated=>", validated)
+    return
+  }
+  dialogMobilePreviewVisibleRef.value = true
+  await genArticleDraftPreviewUrl({
+    cookies: serializeCookie(JSON.parse(session_id)["cookie"]),
+    token: parseInt(token),
+    msg_id: parseInt(msg_idRef.value)
+  }).then(async (data) => {
+    console.log('preview return data =>', data)
+    const temp_url = data?.data?.temp_url
+    if (temp_url) {
+      qrcodeMobilePreviewRef.value = `${envVars.backend_url}/mp_msg/preview_qr_code?url=${encodeURIComponent(temp_url)}`
+      console.log("qrcodeMobilePreviewRef.value=>", qrcodeMobilePreviewRef.value)
+    }
+  }).catch((e) => { }).finally(() => {
+  })
+}
 
 const openDebugDialog = () => {
   dialogDebugVisibleRef.value = true

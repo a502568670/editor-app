@@ -71,3 +71,9 @@ export function previewArticleDraft(url) {
   })
 }
 
+export function previewQRCode(url) {
+  return request({
+    url: `/mp_msg/preview_qr_code?url=${url}`,
+  })
+}
+
