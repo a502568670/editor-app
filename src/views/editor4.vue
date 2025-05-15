@@ -967,6 +967,7 @@ const deleteArticle = async (msg_id) => {
 
 const newArticleGroup = () => {
   msg_idRef.value = 0
+  mp_msgsRef.value = []
   selected_mp_msg_groupRef.value = null
   currentArticleRef.value = {
     title: "",
@@ -982,13 +983,14 @@ const newArticleGroup = () => {
 
 
 // event handler
-const emitChangeForAppMsgGroup = (val) => {
+const emitChangeForAppMsgGroup = async (val) => {
   console.log("emitChangeForAppMsgGroup val=>", val)
   if (val) {
     selected_mp_msg_groupRef.value = val
-    listArticles().then(() => {
+    await listArticles()
+    if (mp_msgsRef.value.length > 0 ){
       loadArticle(mp_msgsRef.value[0])
-    })
+    }
     setAppMsgId(val.appmsgid)
 
   }
