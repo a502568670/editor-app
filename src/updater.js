@@ -57,8 +57,8 @@ export default () => {
       height: 300,
       title: "极致了编辑器自动更新",
       frame: false,
-      transparent: false,
-      alwaysOnTop: true,
+      transparent: true,
+      // alwaysOnTop: true,
       maximizable: false,
       webPreferences: {
         nodeIntegration: true,
