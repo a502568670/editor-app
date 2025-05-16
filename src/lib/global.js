@@ -5,7 +5,7 @@
  * @LastEditors:
  * @LastEditTime: 2023-01-11 15:24:47
  */
-
+const log = require("electron-log")
 global.common = {
   DEV: 'development',
   startPage: "https://go.itab.link/",
@@ -33,6 +33,11 @@ const yn = (v) => {
   return yesVals.includes(v)
 }
 const verbose = yn(process.env.VERBOSE)
+
+const verbose_log2 = (...args) => {
+  // console.log("--enter verbose_log--", verbose, args)
+  verbose && log.info.call(log, ...args)
+}
 
 const verbose_log = (...args) => {
   // console.log("--enter verbose_log--", verbose, args)

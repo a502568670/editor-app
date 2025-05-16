@@ -1,5 +1,6 @@
 import { autoUpdater } from "electron-updater"
 const { dialog, BrowserWindow } = require('electron')
+import { createProtocol } from "vue-cli-plugin-electron-builder/lib";
 
 import global from "./lib/global.js";
 const verbose_log = global.utils.verbose_log;
@@ -70,15 +71,22 @@ export default () => {
 
     let baseUrl
     if (process.env.WEBPACK_DEV_SERVER_URL == null) {
-      createProtocol(global.common.APP_SCHEME);
+      try {
+        createProtocol(global.common.APP_SCHEME);
+      } catch (e) {
+        log.info("createProtocol err:", e)
+      } finally {
+        log.info("finally block")
+      }
+
       // baseUrl = `${global.common.APP_SCHEME}://./index.html/`; // Load "index.html" if the dev server URL does not exist.
       baseUrl = `${global.common.APP_SCHEME}://./index.html`; // Load "index.html" if the dev server URL does not exist.
     } else {
       baseUrl = process.env.WEBPACK_DEV_SERVER_URL; // Load the dev server URL if it exists.
     }
-    verbose_log("baseUrl:", baseUrl)
+    log.info("baseUrl:", baseUrl)
     const updateUrl = `${baseUrl}#/update`
-    verbose_log("updateUrl:", updateUrl)
+    // log.info("updateUrl:", updateUrl)
     // if (process.env.WEBPACK_DEV_SERVER_URL) {
     //     log.info("loadurl:" , process.env.WEBPACK_DEV_SERVER_URL)
     //     await win.loadURL(process.env.WEBPACK_DEV_SERVER_URL + '#/update')
@@ -88,7 +96,7 @@ export default () => {
     await win.loadURL(updateUrl)
 
     // 打开开发者工具
-    
+
     if (process.env.NODE_ENV === 'development') {
       win.webContents.openDevTools();
     }
