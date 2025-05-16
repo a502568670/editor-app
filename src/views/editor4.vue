@@ -54,7 +54,7 @@
         </div>
       </div>
     </el-col>
-    <el-col :span="12" class="h-full">
+    <el-col :span="12" class="h-full" v-loading="globalLoadingRef">
       <div class="h-full flex flex-col">
         <div class="grid-content flex items-center  space-x-2 p-2 bg-slate-100 text-blue-500">
           <el-icon :size="20" class="cursor-pointer flex justify-center" @click="openExtractMpArticleUrlDialog"
@@ -68,8 +68,13 @@
           <el-icon :size="20" class="cursor-pointer flex justify-center" @click="handlePreview" title="文章预览">
             <Eye />
           </el-icon>
-          <el-icon :size="20" class="cursor-pointer flex justify-center" @click="openMobilePreviewDialog" title="文章手机预览">
+          <el-icon :size="20" class="cursor-pointer flex justify-center" @click="openMobilePreviewDialog"
+            title="文章手机预览">
             <ScanEye />
+          </el-icon>
+          <el-icon v-if="isDebugRef" :size="20" class="cursor-pointer flex justify-center"
+            @click="handleLocalExtractMpArticleUrl" title="测试本地提取链接">
+            <Link2 />
           </el-icon>
           <el-icon v-if="isDebugRef" :size="20" class="cursor-pointer flex justify-center" @click="openDebugDialog"
             title="调试信息">
@@ -274,6 +279,7 @@
 <script setup>
 import { ref, shallowRef, onMounted, onBeforeUnmount } from 'vue';
 import { listAccount } from '@/api/account'
+import { getToken } from "@/utils/auth";
 import {
   saveArticleDraft, listArticlesByAppMsg, listArticleGroups, swapArticles,
   deleteArticleDraft, genArticleDraftPreviewUrl, previewQRCode
@@ -284,7 +290,7 @@ import { ad_categorys, adMarkerContentInUEditor, format_ad_content_in_UEditor, r
 import { ElMessage, ElMessageBox, ElLoading } from 'element-plus'
 import { ArrowUp, ArrowDown, Delete } from '@element-plus/icons-vue'
 import { removeAppMsgId, setAppMsgId, getAppMsgId, getSelectedAccountId, setSelectedAccountId } from '@/utils/editor'
-import { Link, RadioTower, SquareTerminal, Eye, ScanEye } from 'lucide-vue-next';
+import { Link, Link2, RadioTower, SquareTerminal, Eye, ScanEye } from 'lucide-vue-next';
 import axios from 'axios'
 
 // console.log('envVars.backend_url=>', envVars.backend_url)
@@ -413,8 +419,12 @@ let accountsRef = ref([])
 
 // 提取链接
 // const extractArticleUrlRef = ref("https://mp.weixin.qq.com/s/G2TYEsgZsTJ1VWj4R2F2hQ?from=kdocs_link")
-const extractArticleUrlRef = ref("")
+const extractArticleUrlRef = ref("https://mp.weixin.qq.com/s/riiYjv8HUqyUZz_-IQKe9g")
 const dialogExtractMpAritcleUrlRef = ref(false)
+const timeoutExtract = 3 * 1000; // ms
+
+// global loading
+const globalLoadingRef = ref(false)
 
 
 // 文章正文
@@ -988,7 +998,7 @@ const emitChangeForAppMsgGroup = async (val) => {
   if (val) {
     selected_mp_msg_groupRef.value = val
     await listArticles()
-    if (mp_msgsRef.value.length > 0 ){
+    if (mp_msgsRef.value.length > 0) {
       loadArticle(mp_msgsRef.value[0])
     }
     setAppMsgId(val.appmsgid)
@@ -1065,6 +1075,26 @@ const handleExtractMpArticleUrl = async () => {
   loader.close()
 }
 
+const handleLocalExtractMpArticleUrl = async () => {
+  if (!extractArticleUrlRef.value) {
+    ElMessageBox.alert('请输入有效的提取链接', '警告', {
+      confirmButtonText: '确定',
+      type: 'warning'
+    }).catch(() => { })
+    return
+  }
+  globalLoadingRef.value = true
+  window.ipcRenderer.send('toMain', {
+    tag: 'localExtractMpArticleUrl',
+    token: getToken(),
+    extractArticleUrl: extractArticleUrlRef.value,
+  })
+
+  setTimeout(() => {
+    globalLoadingRef.value = false
+  }, timeoutExtract)
+}
+
 const openAdDialog = () => {
   dialogAdVisibleRef.value = true
 }
@@ -1105,14 +1135,14 @@ const validatePreview = () => {
       confirmButtonText: '确定',
       type: 'error'
     }).catch(() => { })
-    return {validated: false}
+    return { validated: false }
   }
   if (!selectedAccount.value) {
     ElMessageBox.alert('请选择预览的账号', '警告', {
       confirmButtonText: '确定',
       type: 'error'
     }).catch(() => { })
-    return {validated: false}
+    return { validated: false }
   }
 
   const { token, name, session_id } = selectedAccount.value
@@ -1126,9 +1156,9 @@ const validatePreview = () => {
       confirmButtonText: '确定',
       type: 'error'
     }).catch(() => { })
-    return {validated: false}
+    return { validated: false }
   }
-  return {validated: true, token, name, session_id}
+  return { validated: true, token, name, session_id }
 }
 
 const handlePreview = async () => {
@@ -1219,5 +1249,39 @@ const clickAllCategory = (checkedAll) => {
     adCategoryChoosedRef.value = []
   }
 }
+
+// 用户切换标签页时，主进程会发送 fromMain 消息，通知当前选中的标签页 ID。
+window.ipcRenderer.receive('fromMain', (msg) => {
+  console.log("ipcRenderer receive fromMain:", msg)
+  if (typeof msg === 'object' && Object.prototype.hasOwnProperty.call(msg, 'tag')) {
+    const tag = msg.tag;
+    if (tag === "localExtractMpArticleUrlResult") {
+      console.log(`tag:${msg.tag}`, typeof msg.data)
+      const { title, nick_name, copyright_stat, cdn_url, item_show_type } = msg.data
+      let { content_noencode } = msg.data
+      // console.log("content_noencode=>", content_noencode)
+      if (item_show_type === 5) {
+        // 独立视频
+        const { video_id } = msg.data
+        content_noencode = `<iframe class="edui-video-iframe" data-vidtype="2" data-mpvid="${video_id}" data-cover="${cdn_url}" allowfullscreen="" frameborder="0" data-w="1080" data-ratio="0.5625" style="border-radius: 4px;" src="https://mp.weixin.qq.com/cgi-bin/readtemplate?t=tmpl/video_tmpl&vid=${video_id}" width="420" height="280" frameborder="0" allowfullscreen=""></iframe>` + content_noencode
+      }
+
+      currentArticleRef.value = {
+        ...currentArticleRef.value,
+        // content_noencode: content_noencode.replace(/[\u200B-\u200D\uFEFF]/gim, ''),
+        // content_noencode: "<p>" + format_to_wangEditor_html(content_noencode) + "<p>",
+        content_noencode: format_to_UEditor_html(content_noencode),
+        title,
+        author: nick_name,
+        copyright_type: copyright_stat,
+        cdn_url,
+      }
+    }
+
+    if (globalLoadingRef.value) {
+      globalLoadingRef.value = false
+    }
+  }
+})
 
 </script>

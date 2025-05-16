@@ -24,7 +24,9 @@ global.common = {
   APP_SCHEME: 'app',
   WAIT_FOR_BEFORE_UNLOAD: false,  // 关闭标签页面之前是否触发页面的beforeunload事件,目前只支持false,设置为true会造成有beforeunload事件的标签页面在关闭时不能正常销毁页面而导致内存不能释放
   BACKEND_URL: process.env.BACKEND_URL || "http://47.96.22.8:8006",
-  DEV_CHECK_UPDATE: process.env.DEV_CHECK_UPDATE || 'false'
+  JZL_URL: process.env.JZL_URL || "http://47.96.22.8:8091",
+  DEV_CHECK_UPDATE: process.env.DEV_CHECK_UPDATE || 'false',
+  DEFAULT_TIMEOUT: 10 * 1000,
 }
 
 const yesVals = ['y', 'yes', 'true', true, '1', 1, 'on']
@@ -49,7 +51,7 @@ const verbose_error = (...args) => {
   verbose && console.error.call(console, ...args)
 }
 
-const get_backend_url = () => {
+const get_backend_url_old = () => {
   const backend_url = global.common.BACKEND_URL
   verbose_log("post in wechat backend_url:", backend_url)
   let [backend_protocol, backend_host, backend_port] = backend_url.split(":")
@@ -62,6 +64,18 @@ const get_backend_url = () => {
   return [backend_protocol, backend_host, backend_port]
 }
 
+const get_backend_url = () => {
+  const backend_url = global.common.BACKEND_URL
+  verbose_log("backend_url:", backend_url)
+  return new URL(backend_url)
+}
+
+const get_jzl_url = () => {
+  const jzl_url = global.common.JZL_URL
+  verbose_log("jzl_url:", jzl_url)
+  return new URL(jzl_url)
+}
+
 const is_dev_check_update = () => {
   return yn(global.common.DEV_CHECK_UPDATE)
 }
@@ -71,7 +85,9 @@ global.utils = {
   yn,
   verbose_log,
   verbose_error,
+  get_backend_url_old,
   get_backend_url,
+  get_jzl_url,
   is_dev_check_update
 }
 

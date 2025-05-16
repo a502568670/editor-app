@@ -4,10 +4,13 @@ const global = require("./global")
 const verbose_log = global.default.utils.verbose_log;
 const verbose_error = global.default.utils.verbose_error;
 const get_backend_url = global.default.utils.get_backend_url;
+const get_jzl_url = global.default.utils.get_jzl_url;
+
+const defaultTimeout = global.default.common.DEFAULT_TIMEOUT
 
 // HTTP POST FORM 请求封装函数
-export const postForm = function (url, postData, newheaders) {
-  // console.log("数据接收完成", url);
+export const postFormToEditorApi = function (pathname, postData, newheaders) {
+  // console.log("数据接收完成", pathname);
   // console.log("要发送的数据", postData);
   return new Promise(async (resolve, reject) => {
     let headers = {
@@ -17,23 +20,20 @@ export const postForm = function (url, postData, newheaders) {
       headers = Object.assign(headers, newheaders);
     }
     // 使用 net.request 创建一个 POST 请求，配置包括协议、主机地址、端口、路径和请求头。
-    const [backend_protocol, backend_host, backend_port] = get_backend_url()
+    const { protocol, hostname, port } = get_backend_url()
     // const backend_url = process.env.BACKEND_URL
     // verbose_log("post in wechat backend_url:", process.env.BACKEND_URL)
     // let [backend_protocol, backend_host, backend_port] = backend_url.split(":")
     // backend_protocol = backend_protocol + ":"
     // backend_host = backend_host.substring(2)
     // backend_port = parseInt(backend_port)
-    verbose_log("backend_protocol=>", backend_protocol)
-    verbose_log("backend_host=>", backend_host)
-    verbose_log("backend_port=>", backend_port)
 
     const request = net.request({
       method: 'post',
-      protocol: backend_protocol, // 使用 http 协议
-      hostname: backend_host, // 设为本地地址
-      port: backend_port, // 设为端口 8000
-      path: url, // 直接使用传入的 url
+      protocol, // 使用 http 协议
+      hostname, // 设为本地地址
+      port, // 设为端口 8000
+      path: pathname, // 直接使用传入的 url
       headers: headers
     });
     // 处理响应
@@ -62,9 +62,21 @@ export const postForm = function (url, postData, newheaders) {
   });
 }
 
-export const postJson = function (url, postData, newheaders) {
-  // console.log("数据接收完成", url);
-  // console.log("要发送的数据", postData);
+export const postJsonToEditorApi = function (pathname, postData, newheaders, timeout) {
+  const { protocol, hostname, port } = get_backend_url()
+  return _postJson(protocol, hostname, port, pathname, postData, newheaders, timeout);
+}
+
+export const postJsonToJZLApi = function (pathname, postData, newheaders, timeout = defaultTimeout) {
+  const { protocol, hostname, port } = get_jzl_url()
+  return _postJson(protocol, hostname, port, pathname, postData, newheaders, timeout);
+}
+
+export const postJson = function (url, postData, newheaders, timeout) {
+  const { protocol, hostname, port, pathname } = new URL(url)
+  return _postJson(protocol, hostname, port, pathname, postData, newheaders, timeout)
+}
+const _postJson = function (protocol, hostname, port, pathname, postData, newheaders, timeout) {
   return new Promise(async (resolve, reject) => {
     let headers = {
       'Content-Type': 'application/json'
@@ -72,43 +84,53 @@ export const postJson = function (url, postData, newheaders) {
     if (newheaders) {
       headers = Object.assign(headers, newheaders);
     }
+    console.log("pathname=>", pathname)
     // 使用 net.request 创建一个 POST 请求，配置包括协议、主机地址、端口、路径和请求头。
-    const [backend_protocol, backend_host, backend_port] = get_backend_url()
-
-    verbose_log("==backend_protocol=>", backend_protocol)
-    verbose_log("==backend_host=>", backend_host)
-    verbose_log("==backend_port=>", backend_port)
-
     const request = net.request({
       method: 'post',
-      protocol: backend_protocol, // 使用 http 协议
-      hostname: backend_host, // 设为本地地址
-      port: backend_port, // 设为端口 8000
-      path: url, // 直接使用传入的 url
+      protocol, // 使用 http 协议
+      hostname, // 设为本地地址
+      port, // 设为端口 8000
+      path: pathname, // 直接使用传入的 url
       headers: headers
     });
-    // 处理响应
-    let buffers = [];
-    response.on('data', (chunk) => {
-      console.log(`Buffer: ${chunk}`);
-      buffers.push(chunk);
-    })
+    let isFinished = false;
+    const timeoutId = setTimeout(() => {
+      if (!isFinished) {
+        request.abort();
+        reject(new Error(`localExtractMpArticleUrlUseRequest::Timeout after ${timeout}ms`));
+      }
+    }, timeout);
 
-    response.on('end', () => {
-      let responseBodyBuffer = Buffer.concat(buffers);
-      let ret = JSON.parse(responseBodyBuffer.toString());
-      console.log(`BODY: ${responseBodyJSON}`);
-      verbose_log("JSON数据接收完成");
-      if (response.statusCode == 200) {
+    request.on('response', (response) => {
+      // 处理响应
+      let buffers = [];
+      response.on('data', (chunk) => {
+        console.log(`Buffer: ${chunk}`);
+        buffers.push(chunk);
+      })
+
+      response.on('end', () => {
+        let responseBodyBuffer = Buffer.concat(buffers);
+        let ret = JSON.parse(responseBodyBuffer.toString());
+        console.log(`BODY: ${ret}`);
+        verbose_log("JSON数据接收完成");
+
+        clearTimeout(timeoutId);
+        isFinished = true;
         verbose_log("JSON数据接收完成", ret);
         resolve(ret);
-      } else {
-        reject();
-      }
-    })
+      })
+
+      request.on('error', (error) => {
+        clearTimeout(timeoutId);
+        isFinished = true;
+        reject(error);
+      });
+
+    });
 
     request.write(JSON.stringify(postData));
     request.end();
   });
 }
-

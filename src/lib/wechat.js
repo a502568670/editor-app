@@ -4,7 +4,7 @@ const global = require("./global")
 
 const verbose_log = global.default.utils.verbose_log;
 const verbose_error = global.default.utils.verbose_error;
-const get_backend_url = global.default.utils.get_backend_url;
+const get_backend_url_old = global.default.utils.get_backend_url_old;
 
 // const { postToken } = require('./window');
 // const { removeAccountSession } = require("../api/account")
@@ -461,7 +461,7 @@ const post = function (url, postData, newheaders) {
       headers = Object.assign(headers, newheaders);
     }
     // 使用 net.request 创建一个 POST 请求，配置包括协议、主机地址、端口、路径和请求头。
-    const [backend_protocol, backend_host, backend_port] = get_backend_url()
+    const [backend_protocol, backend_host, backend_port] = get_backend_url_old()
     // const backend_url = process.env.BACKEND_URL
     // verbose_log("post in wechat backend_url:", process.env.BACKEND_URL)
     // let [backend_protocol, backend_host, backend_port] = backend_url.split(":")

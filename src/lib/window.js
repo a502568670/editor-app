@@ -7,6 +7,8 @@
  */
 import { TabbedWindow } from "./tabbed-window.js";
 import { nativeTheme, screen, dialog, Notification, app, ipcMain, webContents, net, BrowserWindow } from 'electron'
+import { localExtractMpArticleUrlUseRequest } from "./mp_account-tasks.js"
+import { postJsonToJZLApi } from "./request.js"
 const path = require('path')
 import { createProtocol } from "vue-cli-plugin-electron-builder/lib";
 import global from "./global.js";
@@ -16,7 +18,7 @@ const shell = require('electron').shell;
 import * as zhCN from '../locales/zh-CN.json'
 const verbose_log = global.utils.verbose_log;
 const verbose_error = global.utils.verbose_error;
-const get_backend_url = global.utils.get_backend_url;
+const get_backend_url_old = global.utils.get_backend_url_old;
 
 let tabbedWin;
 function showMsg(msg) {
@@ -53,7 +55,7 @@ const post = function (url, postData, newheaders) {
       headers = Object.assign(headers, newheaders);
     }
 
-    const [backend_protocol, backend_host, backend_port] = get_backend_url()
+    const [backend_protocol, backend_host, backend_port] = get_backend_url_old()
     // const backend_url = process.env.BACKEND_URL
     // verbose_log("post in wechat backend_url:", process.env.BACKEND_URL)
     // let [backend_protocol, backend_host, backend_port] = backend_url.split(":")
@@ -203,9 +205,9 @@ export async function createTabbedWin(stockList) {
 
   // 打开开发者工具
   if (process.env.NODE_ENV === 'development') {
-    tabbedWin.win.webContents.openDevTools();  
+    tabbedWin.win.webContents.openDevTools();
   }
-  
+
 
   // 监听tab控制事件
   initialiseCustomisedWinListener(tabbedWin)
@@ -408,7 +410,7 @@ async function reactToIpcObjectData(data, tabbedWin, viewContents) {
       companyMap.partition = partition;
       companyMap.webview = view;
       if (companyMap.bxgs) {
-        
+
         companyMap.bxgs.init(companyMap, postToken)
         verbose_log("===== companyMap.bxgs.init in add account ====")
       }
@@ -416,7 +418,7 @@ async function reactToIpcObjectData(data, tabbedWin, viewContents) {
     }
     case 'previewMpArticle': {
       verbose_log("===== listen previewMpArticle in main ====", data)
-      
+
       let view = new BrowserWindow({
         width: 378, height: 668,
         icon: path.join(__dirname, "logo.png"),
@@ -442,14 +444,29 @@ async function reactToIpcObjectData(data, tabbedWin, viewContents) {
       view.webContents.loadURL(data.url)
       view.focus();
       view.setAlwaysOnTop(true);
-      
+
       // view.webContents.session.setProxy({
       //     mode: "pac_script",
       //     pacScript: ''
       // });
-     
+
       break
     }
+    case 'localExtractMpArticleUrl': {
+      verbose_log("===== listen localExtractMpArticleUrl in main ====", data)
+      const { extractArticleUrl } = data
+      const html = await localExtractMpArticleUrlUseRequest(extractArticleUrl)
+        .catch((err) => {
+          verbose_error("reject localExtractMpArticleUrl for reason:", err)
+        });
+      verbose_log("html.length:", html.length)
+      // verbose_log("extract html:", html)
+      const result = await postJsonToJZLApi(`/prase_html_to_json?api_key=${encodeURIComponent("du&cgIYuosQcaSm6")}`, { html })
+      verbose_log("extract result:", result)
+      viewContents.send('fromMain', { tag: 'localExtractMpArticleUrlResult', data: result })
+      break;
+    }
+
     default: {
       log.warn(
         "Unknown IPC channel event in the data message:",
