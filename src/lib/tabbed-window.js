@@ -117,7 +117,7 @@ export class TabbedWindow extends EventEmitter {
     verbose_log("height=>", height)
     this.win.loadURL(controlPanel).then(() => {
       if (ver) {
-        const newTitle = `${this.win.title}-v${ver}a`
+        const newTitle = `${this.win.title}-v${ver}`
         verbose_log("setTitle to =>", newTitle )
         this.win.title = newTitle
       }
