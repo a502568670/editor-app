@@ -1,62 +1,71 @@
 <template>
-  <el-row :gutter="4" class="h-full bg-[#e9f9f1]">
-    <el-col :span="6" class="h-full overflow-scroll">
-      <div class="grid-content flex space-x-1 pl-1">
-        <el-select v-model="selected_mp_msg_groupRef" value-key="appmsgid" filterable placeholder="文章列表"
-          @change="emitChangeForAppMsgGroup">
-          <el-option v-for="(item) in mp_msg_groupsRef" :key="item.appmsgid" :label="item.name" :value="item" />
-        </el-select>
-        <el-button @click="newArticleGroup" class="max-w-[80px]" type="primary">新列表</el-button>
-      </div>
-      <div class="bg-white  shadow-xl">
-        <div v-if="mp_msgsRef">
-          <div @click="loadArticle(item)" v-for="(item, index) in mp_msgsRef" :key="item.msg_id"
-            class="flex items-center p-2 border-b w-full">
-            <img :src="item.cdn_url" style="width:0px;height:0px;" referrerpolicy="no-referrer" />
-            <div v-if="index === 0" :style="{ '--image-url': 'url(' + item.cdn_url + ')' }"
-              class='w-full flex h-40 justify-between items-end bg-no-repeat bg-center bg-cover bg-[image:var(--image-url)]'
-              :class="{ 'border-2 border-[#07C160]': (item.msg_id === msg_idRef) }">
-              <div class="flex text-white p-1">{{ item.title }}</div>
-              <div class="flex justify-between px-1 space-x-2 py-1 text-white bg-gray-600 opacity-50"
-                v-if="item.msg_id === msg_idRef">
-                <el-icon class="cursor-pointer" @click="swapDown(item.msg_id)">
-                  <component :is="ArrowDown"></component>
-                </el-icon>
-                <el-icon class="cursor-pointer" @click="deleteArticle(item.msg_id)">
-                  <component :is="Delete"></component>
-                </el-icon>
+  <div class="flex flex-col h-full bg-[#e9f9f1]">
+    <div class="h-10 flex space-x-2 items-center pl-2 border-b mb-1 shadow-md">
+      <label>账号：</label>
+      <el-select v-model="selectedAccount" class="grid-content-control" value-key="id" filterable placeholder="选择发布公众账号"
+        @change="emitChangeForAccount">
+        <el-option v-for="(item) in accountsRef" :key="item.id" :label="item.name" :value="item" />
+      </el-select>
+      <el-button @click="saveArticle" type="danger">暂存文章</el-button>
+    </div>
+    <el-row :gutter="0" class="flex-1 ">
+      <el-col :span="6" class="h-full overflow-scroll bg-white">
+        <div class="grid-content flex space-x-1 pl-1 mt-1">
+          <el-select v-model="selected_mp_msg_groupRef" value-key="appmsgid" filterable placeholder="文章列表"
+            @change="emitChangeForAppMsgGroup">
+            <el-option v-for="(item) in mp_msg_groupsRef" :key="item.appmsgid" :label="item.name" :value="item" />
+          </el-select>
+          <el-button @click="newArticleGroup" class="max-w-[80px]" type="primary">新列表</el-button>
+        </div>
+        <div class="bg-white  shadow-xl">
+          <div v-if="mp_msgsRef">
+            <div @click="loadArticle(item)" v-for="(item, index) in mp_msgsRef" :key="item.msg_id"
+              class="flex items-center p-2 border-b w-full">
+              <img :src="item.cdn_url" style="width:0px;height:0px;" referrerpolicy="no-referrer" />
+              <div v-if="index === 0" :style="{ '--image-url': 'url(' + item.cdn_url + ')' }"
+                class='w-full flex h-40 justify-between items-end bg-no-repeat bg-center bg-cover bg-[image:var(--image-url)]'
+                :class="{ 'border-2 border-[#07C160]': (item.msg_id === msg_idRef) }">
+                <div class="flex text-white p-1">{{ item.title }}</div>
+                <div class="flex justify-between px-1 space-x-2 py-1 text-white bg-gray-600 opacity-50"
+                  v-if="item.msg_id === msg_idRef">
+                  <el-icon class="cursor-pointer" @click="swapDown(item.msg_id)">
+                    <component :is="ArrowDown"></component>
+                  </el-icon>
+                  <el-icon class="cursor-pointer" @click="deleteArticle(item.msg_id)">
+                    <component :is="Delete"></component>
+                  </el-icon>
+                </div>
+              </div>
+              <div class="w-full flex h-20 items-center p-1"
+                :class="{ 'border-2 border-[#07C160]': (item.msg_id === msg_idRef) }" v-else>
+                <div class="flex flex-col flex-1 h-full">
+                  <div class="flex-1 h-2/3 w-full max-w-full max-h-2/3 overflow-y-hidden">{{ item.title }}</div>
+                  <!-- <div class=" text-sm flex-0" style="color: #51ce94">{{ item.author }}</div> -->
+                </div>
+                <img class="w-10 h-10 rounded-sm" :src="item.cdn_url" />
+                <div class="flex flex-col justify-around px-1 h-full" v-if="item.msg_id === msg_idRef">
+                  <el-icon class="cursor-pointer" @click="swapUp(item.msg_id)">
+                    <component :is="ArrowUpRef"></component>
+                  </el-icon>
+                  <el-icon class="cursor-pointer" @click="swapDown(item.msg_id)">
+                    <component :is="ArrowDownRef" v-if="index < mp_msgsRef.length - 1"></component>
+                  </el-icon>
+                  <el-icon class="cursor-pointer" @click="deleteArticle(item.msg_id)">
+                    <component :is="DeleteRef"></component>
+                  </el-icon>
+                </div>
               </div>
             </div>
-            <div class="w-full flex h-20 items-center p-1"
-              :class="{ 'border-2 border-[#07C160]': (item.msg_id === msg_idRef) }" v-else>
-              <div class="flex flex-col flex-1 h-full">
-                <div class="flex-1 h-2/3 w-full max-w-full max-h-2/3 overflow-y-hidden">{{ item.title }}</div>
-                <!-- <div class=" text-sm flex-0" style="color: #51ce94">{{ item.author }}</div> -->
-              </div>
-              <img class="w-10 h-10 rounded-sm" :src="item.cdn_url" />
-              <div class="flex flex-col justify-around px-1 h-full" v-if="item.msg_id === msg_idRef">
-                <el-icon class="cursor-pointer" @click="swapUp(item.msg_id)">
-                  <component :is="ArrowUpRef"></component>
-                </el-icon>
-                <el-icon class="cursor-pointer" @click="swapDown(item.msg_id)">
-                  <component :is="ArrowDownRef" v-if="index < mp_msgsRef.length - 1"></component>
-                </el-icon>
-                <el-icon class="cursor-pointer" @click="deleteArticle(item.msg_id)">
-                  <component :is="DeleteRef"></component>
-                </el-icon>
-              </div>
+            <div class="w-full flex h-20 items-center p-1 justify-center">
+              <!-- <div @click="newArticle()"  class="cursor-pointer">+新建文章</div> -->
+              <el-button @click="newArticle" type="primary">新建文章</el-button>
             </div>
-          </div>
-          <div class="w-full flex h-20 items-center p-1 justify-center">
-            <!-- <div @click="newArticle()"  class="cursor-pointer">+新建文章</div> -->
-            <el-button @click="newArticle" type="primary">新建文章</el-button>
           </div>
         </div>
-      </div>
-    </el-col>
-    <el-col :span="12" class="h-full" v-loading="globalLoadingRef">
-      <div class="h-full flex flex-col">
-        <div class="grid-content flex items-center  space-x-2 p-2 bg-slate-100 text-blue-500">
+      </el-col>
+      <el-col :span="1" class="h-full overflow-scroll bg-white">
+        <div
+          class="grid-content flex flex-col h-full justify-start items-center border  space-y-2 p-2 bg-slate-100 text-blue-500">
           <el-icon :size="20" class="cursor-pointer flex justify-center" @click="openExtractMpArticleUrlDialog"
             title="提取链接内容">
             <Link />
@@ -64,7 +73,8 @@
           <el-icon :size="20" class="cursor-pointer flex justify-center" @click="openAdDialog" title="设置广告">
             <RadioTower />
           </el-icon>
-          <div class="flex-1"></div>
+          <Minus class="text-gray-200" />
+          <!-- <div class="flex-1"></div> -->
           <el-icon :size="20" class="cursor-pointer flex justify-center" @click="handlePreview" title="文章预览">
             <Eye />
           </el-icon>
@@ -81,96 +91,93 @@
             <SquareTerminal />
           </el-icon>
         </div>
-        <div ref="ueditor_wrapper" class="flex-1">
-          <vue-ueditor-wrap v-model="currentArticleRef.content_noencode" editor-id="editor" @ready="ready"
-            :config="editorConfigRef" :editorDependencies="['ueditor.config.js', 'ueditor.all.js']" />
+      </el-col>
+      <el-col :span="12" class="h-full" v-loading="globalLoadingRef">
+        <div class="h-full flex flex-col">
+
+          <div ref="ueditor_wrapper" class="flex-1">
+            <vue-ueditor-wrap v-model="currentArticleRef.content_noencode" editor-id="editor" @ready="ready"
+              :config="editorConfigRef" :editorDependencies="['ueditor.config.js', 'ueditor.all.js']" />
+          </div>
         </div>
-      </div>
-    </el-col>
-    <el-col :span="6" class="h-full pr-1 pt-1">
-      <el-row :gutter="4" class="mb-1">
-        <el-col :span="24">
-          <el-input v-model="currentArticleRef.title" clearable class="grid-content-control" placeholder="请输入文章标题" />
-        </el-col>
-      </el-row>
-      <el-row :gutter="4" class="mb-1">
-        <el-col :span="24">
-          <el-input v-model="currentArticleRef.author" clearable class="grid-content-control" placeholder="请输入文章作者" />
-        </el-col>
-      </el-row>
-      <el-row :gutter="4" class="mb-1 w-full">
-        <el-col :span="24" class="h-20 py-2 w-full flex justify-center items-center">
-          <img class="cursor-pointer max-h-16 block" @click="triggerFileInput" v-if="selectedCdnImageRef"
-            :src="selectedCdnImageRef" alt="封面预览">
-          <img class="cursor-pointer max-h-16 block" @click="triggerFileInput" v-else-if="currentArticleRef.cdn_url"
-            :src="currentArticleRef.cdn_url" referrerpolicy="no-referrer" alt="封面图" />
-          <div v-else @click="triggerFileInput"
-            class="cursor-pointer border h-16 w-[180px] flex justify-center items-center bg-[#8c8c8c]">设置封面图</div>
-          <input class="invisible" ref="cdnFileInputRef" @change="handleImage" type="file" accept="image/*">
-        </el-col>
-      </el-row>
-      <!-- <el-row :gutter="4" class="mb-1 invisible">
+      </el-col>
+      <el-col :span="5" class="h-full pr-1 pt-1">
+        <el-row :gutter="4" class="mb-1">
+          <el-col :span="24">
+            <el-input v-model="currentArticleRef.title" clearable class="grid-content-control" placeholder="请输入文章标题" />
+          </el-col>
+        </el-row>
+        <el-row :gutter="4" class="mb-1">
+          <el-col :span="24">
+            <el-input v-model="currentArticleRef.author" clearable class="grid-content-control" placeholder="请输入文章作者" />
+          </el-col>
+        </el-row>
+        <el-row :gutter="4" class="mb-1 w-full">
+          <el-col :span="24" class="h-20 py-2 w-full flex justify-center items-center">
+            <img class="cursor-pointer max-h-16 block" @click="triggerFileInput" v-if="selectedCdnImageRef"
+              :src="selectedCdnImageRef" alt="封面预览">
+            <img class="cursor-pointer max-h-16 block" @click="triggerFileInput" v-else-if="currentArticleRef.cdn_url"
+              :src="currentArticleRef.cdn_url" referrerpolicy="no-referrer" alt="封面图" />
+            <div v-else @click="triggerFileInput"
+              class="cursor-pointer border h-16 w-[180px] flex justify-center items-center bg-[#8c8c8c]">设置封面图</div>
+            <input class="invisible" ref="cdnFileInputRef" @change="handleImage" type="file" accept="image/*">
+          </el-col>
+        </el-row>
+        <!-- <el-row :gutter="4" class="mb-1 invisible">
         <el-col :span="24">
           
         </el-col>
       </el-row> -->
-      <el-row :gutter="4" class="my-2">
-        <el-col :span="24">
-          <hr />
-        </el-col>
-      </el-row>
-      <el-row :gutter="4" class="mb-1">
-        <el-col :span="24">
-          <el-checkbox label="声明原创" v-model="copyrightRef" />
-        </el-col>
-      </el-row>
-      <el-row :gutter="4" class="h-8 mb-1">
-        <el-col :span="24">
-          <el-input v-model="currentArticleRef.sourceurl" clearable class="grid-content-control" placeholder="原文链接" />
-        </el-col>
-      </el-row>
-      <el-row :gutter="4" class="mb-1">
-        <el-col :span="24">
-          <el-checkbox label="打开留言" v-model="needOpenCommentRef" />
-          <el-radio-group :disabled="!needOpenCommentRef" v-model="commentTypeRef">
-            <!-- works when >=2.6.0, recommended ✔️ not work when <2.6.0 ❌ -->
-            <el-radio value="0">所有人可留言</el-radio>
-            <!-- works when <2.6.0, deprecated act as value when >=3.0.0 -->
-            <el-radio label="1">仅关注后可留言</el-radio>
-          </el-radio-group>
-        </el-col>
-      </el-row>
-      <el-row :gutter="4" class="mb-1">
-        <el-col :span="24">
-          <el-button @click="openAdDialog" type="primary">插入广告</el-button>
-        </el-col>
-      </el-row>
-      <el-row :gutter="4" class="my-2">
-        <el-col :span="24">
-          <hr />
-        </el-col>
-      </el-row>
-      <el-row :gutter="4" class="mb-1">
-        <el-col :span="24">
-          <el-select v-model="selectedAccount" class="grid-content-control" value-key="id" filterable
-            placeholder="选择发布公众账号" @change="emitChangeForAccount">
-            <el-option v-for="(item) in accountsRef" :key="item.id" :label="item.name" :value="item" />
-          </el-select>
-        </el-col>
-      </el-row>
-      <el-row :gutter="4" class="mb-1">
-        <el-col :span="24">
-          <el-button @click="saveArticle" type="danger">暂存文章</el-button>
-        </el-col>
-      </el-row>
-      <el-row :gutter="4" class="h-8 mb-1">
-        <el-col :span="24"></el-col>
-      </el-row>
-      <el-row :gutter="4" class="h-8 mb-1">
-        <el-col :span="24"></el-col>
-      </el-row>
-    </el-col>
-  </el-row>
+        <el-row :gutter="4" class="my-2">
+          <el-col :span="24">
+            <hr />
+          </el-col>
+        </el-row>
+        <el-row :gutter="4" class="mb-1">
+          <el-col :span="24">
+            <el-checkbox label="声明原创" v-model="copyrightRef" />
+          </el-col>
+        </el-row>
+        <el-row :gutter="4" class="h-8 mb-1">
+          <el-col :span="24">
+            <el-input v-model="currentArticleRef.sourceurl" clearable class="grid-content-control" placeholder="原文链接" />
+          </el-col>
+        </el-row>
+        <el-row :gutter="4" class="mb-1">
+          <el-col :span="24">
+            <el-checkbox label="打开留言" v-model="needOpenCommentRef" />
+            <el-radio-group :disabled="!needOpenCommentRef" v-model="commentTypeRef">
+              <!-- works when >=2.6.0, recommended ✔️ not work when <2.6.0 ❌ -->
+              <el-radio value="0">所有人可留言</el-radio>
+              <!-- works when <2.6.0, deprecated act as value when >=3.0.0 -->
+              <el-radio label="1">仅关注后可留言</el-radio>
+            </el-radio-group>
+          </el-col>
+        </el-row>
+        <el-row :gutter="4" class="mb-1">
+          <el-col :span="24">
+            <el-button @click="openAdDialog" type="primary">插入广告</el-button>
+          </el-col>
+        </el-row>
+        <el-row :gutter="4" class="my-2">
+          <el-col :span="24">
+            <hr />
+          </el-col>
+        </el-row>
+        <el-row :gutter="4" class="mb-1">
+          <el-col :span="24">
+            
+          </el-col>
+        </el-row>
+        <el-row :gutter="4" class="h-8 mb-1">
+          <el-col :span="24"></el-col>
+        </el-row>
+        <el-row :gutter="4" class="h-8 mb-1">
+          <el-col :span="24"></el-col>
+        </el-row>
+      </el-col>
+    </el-row>
+  </div>
   <el-dialog :close-on-click-modal="false" title="设置广告" v-model="dialogExtractMpAritcleUrlRef" width="600px">
     <el-row :gutter="40">
       <el-col :span="18">
@@ -290,7 +297,7 @@ import { ad_categorys, adMarkerContentInUEditor, format_ad_content_in_UEditor, r
 import { ElMessage, ElMessageBox, ElLoading } from 'element-plus'
 import { ArrowUp, ArrowDown, Delete } from '@element-plus/icons-vue'
 import { removeAppMsgId, setAppMsgId, getAppMsgId, getSelectedAccountId, setSelectedAccountId } from '@/utils/editor'
-import { Link, Link2, RadioTower, SquareTerminal, Eye, ScanEye } from 'lucide-vue-next';
+import { Link, Link2, RadioTower, SquareTerminal, Eye, ScanEye, Minus } from 'lucide-vue-next';
 import axios from 'axios'
 
 // console.log('envVars.backend_url=>', envVars.backend_url)
@@ -466,30 +473,30 @@ function ready(editorInstance) {
 onMounted(async () => {
   console.log("==onMounted==")
 
-  await loadArticleGroups()
-  listArticles()
-  listAccount().catch(() => { }).then(response => {
-    // accountsRef.value = [...response.data.data.list]
-    accountsRef.value = response.data.data.list
-    console.log("load accounts:", accountsRef.value)
-
-    const init_account_id = getSelectedAccountId()
-    console.log("init_account_id=>", init_account_id)
-    if (init_account_id) {
-      const find_account = accountsRef.value.find(v => v.id === parseInt(init_account_id))
-      console.log("find_account=>", find_account)
-      if (find_account) {
-        selectedAccount.value = find_account
-        // setImageUploadConfig()
-      }
-    } else {
-      if (accountsRef.value.length > 0) {
-        selectedAccount.value = accountsRef.value[0];
-        // setImageUploadConfig()
-        setSelectedAccountId(selectedAccount.value.id)
-      }
+  const accountsRet = await listAccount()
+  console.log('accountsRet=>', accountsRet)
+  // accountsRef.value = accountsRet.data.data.list
+  accountsRef.value = accountsRet.data.data.list
+  console.log("load accounts:", accountsRef.value)
+  const init_account_id = getSelectedAccountId()
+  console.log("init_account_id=>", init_account_id)
+  if (init_account_id) {
+    const find_account = accountsRef.value.find(v => v.id === parseInt(init_account_id))
+    console.log("find_account=>", find_account)
+    if (find_account) {
+      selectedAccount.value = find_account
+      // setImageUploadConfig()
     }
-  })
+  } else {
+    if (accountsRef.value.length > 0) {
+      selectedAccount.value = accountsRef.value[0];
+      // setImageUploadConfig()
+      setSelectedAccountId(selectedAccount.value.id)
+    }
+  }
+
+  await loadArticleGroups()
+  await listArticles()
 })
 
 // 组件销毁时，也及时销毁编辑器
@@ -630,42 +637,56 @@ const createBase64Image = (fileObject) => {
 
 // data methods
 const loadArticleGroups = async () => {
-  mp_msg_groupsRef.value = await listArticleGroups().catch((err) => { }).then(response => {
+  if (!selectedAccount.value) {
+    ElMessage({
+      message: `请选择公众账号`,
+      type: 'warning',
+      duration: 2 * 1000
+    })
+    return
+  }
+
+  mp_msg_groupsRef.value = await listArticleGroups(selectedAccount.value.wechat_id).catch((err) => { }).then(response => {
     return response.data;
   })
   console.log("mp_msg_groupsRef.value=>", mp_msg_groupsRef.value)
 
-  if (!selected_mp_msg_groupRef.value) {
-    const init_appmsgid = getAppMsgId()
-    console.log("init_appmsgid=>", init_appmsgid)
-    if (init_appmsgid) {
-      const find_group = mp_msg_groupsRef.value.find(v => v.appmsgid === parseInt(init_appmsgid))
-      console.log("find_group=>", find_group)
-      if (find_group) {
-        selected_mp_msg_groupRef.value = find_group
-        console.log("1 selected_mp_msg_groupRef.value=>", selected_mp_msg_groupRef.value)
-        setAppMsgId(selected_mp_msg_groupRef.value.appmsgid)
-        return
-      }
-    }
-    if (mp_msg_groupsRef.value.length > 0) {
-      selected_mp_msg_groupRef.value = mp_msg_groupsRef.value[0]
-      console.log("2 selected_mp_msg_groupRef.value=>", selected_mp_msg_groupRef.value)
+  // if (!selected_mp_msg_groupRef.value) {
+
+  // }
+  const init_appmsgid = getAppMsgId()
+  console.log("init_appmsgid=>", init_appmsgid)
+  if (init_appmsgid) {
+    const find_group = mp_msg_groupsRef.value.find(v => v.appmsgid === parseInt(init_appmsgid))
+    console.log("find_group=>", find_group)
+    if (find_group) {
+      selected_mp_msg_groupRef.value = find_group
+      console.log("1 selected_mp_msg_groupRef.value=>", selected_mp_msg_groupRef.value)
       setAppMsgId(selected_mp_msg_groupRef.value.appmsgid)
-    } else {
-      setAppMsgId("")
+      return
     }
+  }
+  if (mp_msg_groupsRef.value.length > 0) {
+    selected_mp_msg_groupRef.value = mp_msg_groupsRef.value[0]
+    console.log("2 selected_mp_msg_groupRef.value=>", selected_mp_msg_groupRef.value)
+    setAppMsgId(selected_mp_msg_groupRef.value.appmsgid)
+  } else {
+    setAppMsgId("")
+    selected_mp_msg_groupRef.value = null
   }
 }
 
 const listArticles = async () => {
   const appmsgid = _getAppMsgId()
   // appmsgidRef.value
+  console.log("appmsgid=>", appmsgid)
   if (appmsgid) {
     mp_msgsRef.value = await listArticlesByAppMsg(appmsgid).catch((err) => { }).then(response => {
       return response.data;
     })
     console.log("mp_msgsRef.value=>", mp_msgsRef.value)
+  } else {
+    mp_msgsRef.value = []
   }
 }
 
@@ -724,7 +745,7 @@ const swapUp = async (msg_id) => {
   console.log("prev index:", prev)
   await swapArticles(prev, msg_id).catch((err) => { })
   if (needRefreshGroup(prev)) {
-    await _listArticleGroups()
+    await loadArticleGroups()
   }
   await listArticles()
 }
@@ -965,7 +986,7 @@ const deleteArticle = async (msg_id) => {
       selected_mp_msg_groupRef.value = null
     }
     if (needRefreshGroup(msg_id) || mp_msgsRef.value.length === 0) {
-      await _listArticleGroups()
+      await loadArticleGroups()
       listArticles().then(() => {
         loadArticle(mp_msgsRef.value[0])
       })
@@ -1007,11 +1028,18 @@ const emitChangeForAppMsgGroup = async (val) => {
   }
 }
 
-const emitChangeForAccount = (val) => {
+const emitChangeForAccount = async (val) => {
   console.log("emitChange=>", val)
   selectedAccount.value = val;
   // setImageUploadConfig()
   setSelectedAccountId(selectedAccount.value.id)
+  await loadArticleGroups()
+  await listArticles()
+  if (mp_msgsRef.value.length > 0) {
+    loadArticle(mp_msgsRef.value[0])
+  }
+  setAppMsgId(val.appmsgid)
+  // await loadArticleGroups()
   // console.log("editorConfigRef=>", editorConfigRef.value)
   // console.log("selectedAccount=>", selectedAccount)
   // this.$emit('change', val)

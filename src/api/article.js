@@ -30,9 +30,9 @@ export function listArticlesByAppMsg(appmsgid) {
   })
 }
 
-export function listArticleGroups() {
+export function listArticleGroups(wechat_id) {
   return request({
-    url: `/mp_msg/groups`
+    url: `/mp_msg/${wechat_id}/groups`
   })
 }
 
