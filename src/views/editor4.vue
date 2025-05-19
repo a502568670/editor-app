@@ -72,10 +72,10 @@
             title="文章手机预览">
             <ScanEye />
           </el-icon>
-          <el-icon v-if="isDebugRef" :size="20" class="cursor-pointer flex justify-center"
+          <!-- <el-icon v-if="isDebugRef" :size="20" class="cursor-pointer flex justify-center"
             @click="handleLocalExtractMpArticleUrl" title="测试本地提取链接">
             <Link2 />
-          </el-icon>
+          </el-icon> -->
           <el-icon v-if="isDebugRef" :size="20" class="cursor-pointer flex justify-center" @click="openDebugDialog"
             title="调试信息">
             <SquareTerminal />
@@ -177,7 +177,7 @@
         <el-input v-model="extractArticleUrlRef" clearable placeholder="请输入文章提取地址" />
       </el-col>
       <el-col :span="6">
-        <el-button @click="handleExtractMpArticleUrl" type="primary">提取链接内容</el-button>
+        <el-button @click="handleLocalExtractMpArticleUrl" type="primary">提取链接内容</el-button>
       </el-col>
     </el-row>
   </el-dialog>
@@ -419,7 +419,8 @@ let accountsRef = ref([])
 
 // 提取链接
 // const extractArticleUrlRef = ref("https://mp.weixin.qq.com/s/G2TYEsgZsTJ1VWj4R2F2hQ?from=kdocs_link")
-const extractArticleUrlRef = ref("https://mp.weixin.qq.com/s/riiYjv8HUqyUZz_-IQKe9g")
+// const extractArticleUrlRef = ref("https://mp.weixin.qq.com/s/riiYjv8HUqyUZz_-IQKe9g")
+const extractArticleUrlRef = ref("")
 const dialogExtractMpAritcleUrlRef = ref(false)
 const timeoutExtract = 3 * 1000; // ms
 
@@ -1034,46 +1035,60 @@ const openExtractMpArticleUrlDialog = () => {
   dialogExtractMpAritcleUrlRef.value = true
 }
 
-const handleExtractMpArticleUrl = async () => {
-  const editor = editorRef.value; // 获取 editor ，必须等待它渲染完之后
-  if (editor == null) return;
+// const handleExtractMpArticleUrl = async () => {
+//   const editor = editorRef.value; // 获取 editor ，必须等待它渲染完之后
+//   if (editor == null) return;
 
-  if (!extractArticleUrlRef.value) {
-    ElMessageBox.alert('请输入有效的提取链接', '警告', {
-      confirmButtonText: '确定',
-      type: 'warning'
-    }).catch(() => { })
-    return
-  }
+//   if (!extractArticleUrlRef.value) {
+//     ElMessageBox.alert('请输入有效的提取链接', '警告', {
+//       confirmButtonText: '确定',
+//       type: 'warning'
+//     }).catch(() => { })
+//     return
+//   }
+//   await handleLocalExtractMpArticleUrl()
+// }
 
-  const loader = ElLoading.service({
-    target: '.main'
-  })
-  const v = await getArticleContent(extractArticleUrlRef.value)
-  console.log("v.data=>", v.data)
-  const { title, nick_name, copyright_stat, cdn_url, item_show_type } = v.data
-  let { content_noencode } = v.data
-  // console.log("content_noencode=>", content_noencode)
-  if (item_show_type === 5) {
-    // 独立视频
-    const { video_id } = v.data
-    content_noencode = `<iframe class="edui-video-iframe" data-vidtype="2" data-mpvid="${video_id}" data-cover="${cdn_url}" allowfullscreen="" frameborder="0" data-w="1080" data-ratio="0.5625" style="border-radius: 4px;" src="https://mp.weixin.qq.com/cgi-bin/readtemplate?t=tmpl/video_tmpl&vid=${video_id}" width="420" height="280" frameborder="0" allowfullscreen=""></iframe>` + content_noencode
-  }
+// const handleRemoteExtractMpArticleUrl = async () => {
+//   const editor = editorRef.value; // 获取 editor ，必须等待它渲染完之后
+//   if (editor == null) return;
 
-  currentArticleRef.value = {
-    ...currentArticleRef.value,
-    // content_noencode: content_noencode.replace(/[\u200B-\u200D\uFEFF]/gim, ''),
-    // content_noencode: "<p>" + format_to_wangEditor_html(content_noencode) + "<p>",
-    content_noencode: format_to_UEditor_html(content_noencode),
-    title,
-    author: nick_name,
-    copyright_type: copyright_stat,
-    cdn_url,
-  }
+//   if (!extractArticleUrlRef.value) {
+//     ElMessageBox.alert('请输入有效的提取链接', '警告', {
+//       confirmButtonText: '确定',
+//       type: 'warning'
+//     }).catch(() => { })
+//     return
+//   }
 
-  dialogExtractMpAritcleUrlRef.value = false
-  loader.close()
-}
+//   const loader = ElLoading.service({
+//     target: '.main'
+//   })
+//   const v = await getArticleContent(extractArticleUrlRef.value)
+//   console.log("v.data=>", v.data)
+//   const { title, nick_name, copyright_stat, cdn_url, item_show_type } = v.data
+//   let { content_noencode } = v.data
+//   // console.log("content_noencode=>", content_noencode)
+//   if (item_show_type === 5) {
+//     // 独立视频
+//     const { video_id } = v.data
+//     content_noencode = `<iframe class="edui-video-iframe" data-vidtype="2" data-mpvid="${video_id}" data-cover="${cdn_url}" allowfullscreen="" frameborder="0" data-w="1080" data-ratio="0.5625" style="border-radius: 4px;" src="https://mp.weixin.qq.com/cgi-bin/readtemplate?t=tmpl/video_tmpl&vid=${video_id}" width="420" height="280" frameborder="0" allowfullscreen=""></iframe>` + content_noencode
+//   }
+
+//   currentArticleRef.value = {
+//     ...currentArticleRef.value,
+//     // content_noencode: content_noencode.replace(/[\u200B-\u200D\uFEFF]/gim, ''),
+//     // content_noencode: "<p>" + format_to_wangEditor_html(content_noencode) + "<p>",
+//     content_noencode: format_to_UEditor_html(content_noencode),
+//     title,
+//     author: nick_name,
+//     copyright_type: copyright_stat,
+//     cdn_url,
+//   }
+
+//   dialogExtractMpAritcleUrlRef.value = false
+//   loader.close()
+// }
 
 const handleLocalExtractMpArticleUrl = async () => {
   if (!extractArticleUrlRef.value) {
@@ -1083,6 +1098,7 @@ const handleLocalExtractMpArticleUrl = async () => {
     }).catch(() => { })
     return
   }
+
   globalLoadingRef.value = true
   window.ipcRenderer.send('toMain', {
     tag: 'localExtractMpArticleUrl',
@@ -1092,6 +1108,7 @@ const handleLocalExtractMpArticleUrl = async () => {
 
   setTimeout(() => {
     globalLoadingRef.value = false
+    dialogExtractMpAritcleUrlRef.value = false
   }, timeoutExtract)
 }
 
@@ -1280,6 +1297,7 @@ window.ipcRenderer.receive('fromMain', (msg) => {
 
     if (globalLoadingRef.value) {
       globalLoadingRef.value = false
+      dialogExtractMpAritcleUrlRef.value = false
     }
   }
 })
