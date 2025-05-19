@@ -44,7 +44,7 @@
         <el-col :span="24" style="padding-top: 10px;">
           <!-- <el-button style="width: 100%;background-color: #51ce94;border: none" type="primary"
             @click="openAddAccountDialog">添加账号</el-button> -->
-            <el-button style="width: 100%;background-color: #51ce94;border: none" type="primary"
+          <el-button style="width: 100%;background-color: #51ce94;border: none" type="primary"
             @click="handleAddMPAccount(mp_platform)">登录微信公众号</el-button>
         </el-col>
       </el-row>
@@ -134,7 +134,7 @@ const selectedAccount = ref(null)
 const selectedAccountLoginStatus = ref({})
 
 const getList = () => {
-  listAccount(listQuery.value).then(response => {
+  return listAccount(listQuery.value).then(response => {
     accounts.value = response.data.data.list
     accountTotal.value = response.data.data.total
     accountTotalPage.value = parseInt(accountTotal.value / listQuery.value.num) + (accountTotal.value % listQuery.value.num > 0 ? 1 : 0)
@@ -155,7 +155,7 @@ const prvePage = () => {
 
 const handleFilter = () => {
   listQuery.value.page = 1
-  getList();
+  return getList();
 }
 handleFilter();
 
@@ -187,11 +187,11 @@ listPlatform({}).then(response => {
 const handleAddMPAccount = (item) => {
   console.log("handleAddMPAccount", item)
   window.ipcRenderer.send('toMain', {
-      tag: 'addAccount',
-      token: getToken(),
-      ...item,
-      session_id: null // 确保每次创建新的 webview 时 session_id 为 null
-    })
+    tag: 'addAccount',
+    token: getToken(),
+    ...item,
+    session_id: null // 确保每次创建新的 webview 时 session_id 为 null
+  })
 }
 
 
@@ -252,9 +252,10 @@ const changeTab = (tabId) => {
 
 // 1.添加新tab
 const addNewTab = (account) => {
-  let a = Object.assign({userToken: getToken()}, account)
+  console.log("currentTabId.value=>", currentTabId.value)
+  let a = Object.assign({ userToken: getToken() }, account)
   console.log("a=>", a)
-  if (selectedAccount.value && selectedAccount.value.id === a.id ) {
+  if (selectedAccount.value && selectedAccount.value.id === a.id) {
     console.log("已经选中>", a)
   } else {
     selectedAccount.value = account
@@ -304,10 +305,13 @@ onMounted(() => {
 
   window.ipcRenderer.receive('account_check_login', async (isLoggedIn) => {
     console.log("isLoggedIn => ", isLoggedIn)
-    selectedAccountLoginStatus.value = {...selectedAccountLoginStatus.value, [selectedAccount.value.id]: isLoggedIn }
-    console.log("selectedAccountLoginStatus.value  => ", selectedAccountLoginStatus.value )
+    selectedAccountLoginStatus.value = { ...selectedAccountLoginStatus.value, [selectedAccount.value.id]: isLoggedIn }
+    console.log("selectedAccountLoginStatus.value  => ", selectedAccountLoginStatus.value)
     if (selectedAccount.value.id && selectedAccountLoginStatus.value[selectedAccount.value.id] === false) {
       handleAddMPAccount(mp_platform.value)
+    }
+    if (!isLoggedIn) {
+      removeTab(currentTabId.value)
     }
   })
 
@@ -319,7 +323,7 @@ onMounted(() => {
       handleFilter();
     }
   })
-  
+
   window.ipcRenderer.receive('refresh-account-session', async (wechat_id, session_id) => {
     console.log("== refresh-account-session ==")
     console.log("param => ", wechat_id, session_id)
@@ -389,7 +393,17 @@ onMounted(() => {
         }
       }
     } else {
-      handleFilter();
+      handleFilter().then(() => {
+        console.log("handleFilter in fromMain")
+        if (data === "login-success") {
+          const selectAccountItem = accounts.value.find(v => v.id === selectedAccount.value.id)
+          if (selectAccountItem) {
+            console.log("selectAccountItem.token=>", selectAccountItem.token)
+            console.log("selectedAccount.value.token=>", selectedAccount.value.token)
+            addNewTab(selectAccountItem)
+          }
+        }
+      });
     }
   })
 

@@ -304,7 +304,7 @@ async function init(d, postTokenInWin) {
 
   viewData.webview.webContents.on('did-navigate', async function (event, url) {
     verbose_log("==did-navigate==")
-    verbose_log("event=>", event);
+    // verbose_log("event=>", event);
     verbose_log("url=>", url);
     // console.log("event=>", event)
     if (url === "https://mp.weixin.qq.com/") {
@@ -337,7 +337,7 @@ async function init(d, postTokenInWin) {
     verbose_log('调用checkLoginStatus检查登录状态');
     const isLoggedIn = await checkLoginStatus();
     verbose_log('登录状态:', isLoggedIn);
-    verbose_log("viewData.tabWin=>", viewData.tabWin)
+    // verbose_log("viewData.tabWin=>", viewData.tabWin)
     if (viewData.tabWin) {
       verbose_log("send to ipcRender: account_check_login =>", isLoggedIn)
       viewData.tabWin.raiseRenderAct('account_check_login', isLoggedIn)
@@ -406,7 +406,7 @@ module.exports.update = function (d) {
 
 module.exports.selectUser = function (d, setCookies) {
   viewData = d;
-  verbose_log('selectUser 方法接收到的数据:', viewData);
+  // verbose_log('selectUser 方法接收到的数据:', viewData);
   let user = viewData.user;
   if (user && user.session_id) {
     let session_id = user.session_id;

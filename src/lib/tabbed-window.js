@@ -332,7 +332,7 @@ export class TabbedWindow extends EventEmitter {
    * @fires TabbedWindow#new-tab
    */
   async newTab(url, appendTo, references) {
-
+    verbose_log('newTab url=>', url)
     if (typeof url === "object") {
       for (let key in this.tabConfigs) {
         if (this.tabConfigs[key] && this.tabConfigs[key].account_id == url.id) {
@@ -437,7 +437,7 @@ export class TabbedWindow extends EventEmitter {
             }
           }
         }
-        verbose_log('调用下面的方法来初始化和选择用户:', companyMap)
+        // verbose_log('调用下面的方法来初始化和选择用户:', companyMap)
         companyMap.bxgs.init(companyMap)
         companyMap.bxgs.selectUser(companyMap, setCookies)
       }
@@ -482,6 +482,7 @@ export class TabbedWindow extends EventEmitter {
     const channels = Object.entries({
       act: (e, actName) => webContentsAct(actName),
       "close-tab": async (e, id) => {
+        verbose_log('== channel listened close-tab===', id, this.currentViewId)
         if (id) {
           if (id === this.currentViewId) {
             const removeIndex = this.tabs.indexOf(id);
@@ -647,11 +648,11 @@ export class TabbedWindow extends EventEmitter {
   } // end function setCurrentView
 
   raiseRenderAct(event, ...args) {
-    verbose_log('this.win.webContents=>', this.win.webContents)
+    // verbose_log('this.win.webContents=>', this.win.webContents)
     this.win.webContents.send(event, ...args);
     if (event === "remove-account-session") {
 
-      verbose_log("currentView:", this.currentView)
+      // verbose_log("currentView:", this.currentView)
       if (this.currentView) {
         const session = this.currentView.webContents.session;
         session.clearStorageData({

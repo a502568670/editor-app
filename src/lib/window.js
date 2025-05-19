@@ -123,7 +123,7 @@ const postToken = async function (platform, cookie, localStorage, sessionStorage
     }, { 'X-Sjq-Token': '' });//{ 'X-Sjq-Token': userToken || '' });
     resultData = JSON.parse(resultData);
     if (resultData.code == 1) {
-      tabbedWin.win.webContents.send('fromMain', "");
+      tabbedWin.win.webContents.send('fromMain', "login-success");
       companyMap.webview.close();
       if (Notification.isSupported()) {
         verbose_log('notification is supported');
