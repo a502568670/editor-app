@@ -1,12 +1,13 @@
 <template>
   <div class="flex flex-col h-full bg-[#e9f9f1]">
     <div class="h-10 flex space-x-2 items-center pl-2 border-b mb-1 shadow-md">
-      <label>账号：</label>
+      <div>账号：</div>
       <el-select v-model="selectedAccount" class="grid-content-control" value-key="id" filterable placeholder="选择发布公众账号"
         @change="emitChangeForAccount">
         <el-option v-for="(item) in accountsRef" :key="item.id" :label="item.name" :value="item" />
       </el-select>
       <el-button @click="saveArticle" type="danger">暂存文章</el-button>
+      <el-button @click="openSendArticleDialog" type="danger">发送到其他账号</el-button>
     </div>
     <el-row :gutter="0" class="flex-1 ">
       <el-col :span="6" class="h-full overflow-scroll bg-white">
@@ -94,7 +95,6 @@
       </el-col>
       <el-col :span="12" class="h-full" v-loading="globalLoadingRef">
         <div class="h-full flex flex-col">
-
           <div ref="ueditor_wrapper" class="flex-1">
             <vue-ueditor-wrap v-model="currentArticleRef.content_noencode" editor-id="editor" @ready="ready"
               :config="editorConfigRef" :editorDependencies="['ueditor.config.js', 'ueditor.all.js']" />
@@ -166,7 +166,7 @@
         </el-row>
         <el-row :gutter="4" class="mb-1">
           <el-col :span="24">
-            
+
           </el-col>
         </el-row>
         <el-row :gutter="4" class="h-8 mb-1">
@@ -178,7 +178,7 @@
       </el-col>
     </el-row>
   </div>
-  <el-dialog :close-on-click-modal="false" title="设置广告" v-model="dialogExtractMpAritcleUrlRef" width="600px">
+  <el-dialog :close-on-click-modal="false" title="提取文章链接内容" v-model="dialogExtractMpAritcleUrlRef" width="600px">
     <el-row :gutter="40">
       <el-col :span="18">
         <el-input v-model="extractArticleUrlRef" clearable placeholder="请输入文章提取地址" />
@@ -231,6 +231,65 @@
       </el-col>
     </el-row>
   </el-dialog>
+  <el-dialog :close-on-click-modal="false" title="发送到其他账号" v-model="dialogSendArticleVisibleRef" width="600px">
+    <el-row :gutter="40">
+      <el-col :span="18">
+        <el-checkbox label="全部" @change="clickAllOtherAccounts"></el-checkbox>
+        <el-checkbox-group v-model="otherAccountsChoosedRef">
+          <el-checkbox v-for="(item) in otherAccountsRef" :key="item.id" :label="item.id">
+            {{ item.name }}
+          </el-checkbox>
+          <!-- <el-checkbox label="Option 2 & Value 2" /> -->
+        </el-checkbox-group>
+      </el-col>
+      <el-col :span="6">
+        <el-button @click="handleSendToOtherAccount" type="primary">立即发送</el-button>
+      </el-col>
+    </el-row>
+  </el-dialog>
+  <el-dialog :close-on-click-modal="false" title="操作进度" v-model="dialogPercentVisbleRef" width="360px">
+    <div class="flex flex-col w-full">
+      <div class="flex justify-center">
+        <el-progress type="dashboard" class="flex" :percentage="percentRef">
+          <template #default="{ percentage }">
+            <span class="percentage-value">{{ percentage }}%</span>
+            <span class="percentage-label">{{ progressDescRef }}</span>
+          </template>
+        </el-progress>
+      </div>
+      <div v-if="progressResultRef" class="flex flex-col w-full">
+        <div class="flex items-center text-green-400">
+          <el-icon class="cursor-pointer">
+            <component :is="CircleCheckFilled"></component>
+          </el-icon>成功
+        </div>
+        <div class="flex items-center h-16">
+          {{progressResultRef.success_accounts?.map(v => v.name).join(";")}}
+        </div>
+        <hr />
+        <div class="flex items-center text-red-400">
+          <el-icon class="cursor-pointer">
+            <component :is="CircleCloseFilled"></component>
+          </el-icon>失败
+        </div>
+        <div class="flex items-center space-x-2 h-16">
+          <div class="flex items-center" v-for="(item) in progressResultRef?.fail_accounts" :key="item.name">
+            {{ item.name }}
+            <el-tooltip :visible="failReasonVisibleRef">
+              <template #content>
+                <span>{{ item.reason }}</span>
+              </template>
+              <el-icon class="cursor-pointer" @mouseenter="failReasonVisibleRef = true"
+                @mouseleave="failReasonVisibleRef = false">
+                <component :is="InfoFilled"></component>
+              </el-icon>
+            </el-tooltip>
+          </div>
+          <!-- {{progressResultRef.fail_accounts?.map(v => v.name).join(";")}} -->
+        </div>
+      </div>
+    </div>
+  </el-dialog>
   <el-dialog :close-on-click-modal="false" title="调试信息" v-model="dialogDebugVisibleRef" width="600px">
     <div class="w-full h-[300px] bg-gray-900 text-green-500 flex flex-col space-y-4">
       <el-row :gutter="40" class="p-1 flex-none">
@@ -282,23 +341,51 @@
 .ueditor_wrapper {
   height: calc(100vh - 96px);
 }
+
+.el-dialog__body {
+  @apply flex justify-center;
+}
+</style>
+<style scoped>
+.percentage-value {
+  display: block;
+  margin-top: 10px;
+  font-size: 28px;
+}
+
+.percentage-label {
+  display: block;
+  margin-top: 10px;
+  font-size: 12px;
+}
+
+.demo-progress .el-progress--line {
+  margin-bottom: 15px;
+  max-width: 600px;
+}
+
+.demo-progress .el-progress--circle {
+  margin-right: 15px;
+}
 </style>
 <script setup>
 import { ref, shallowRef, onMounted, onBeforeUnmount } from 'vue';
 import { listAccount } from '@/api/account'
 import { getToken } from "@/utils/auth";
 import {
-  saveArticleDraft, listArticlesByAppMsg, listArticleGroups, swapArticles,
+  saveArticleDraft, send_to_other_accounts, send_to_other_accounts_events,
+  listArticlesByAppMsg, listArticleGroups, swapArticles,
   deleteArticleDraft, genArticleDraftPreviewUrl, previewQRCode
 } from "@/api/article"
 import { getArticleContent, getArticleContent2 } from '@/api/jzl'
 import { format_to_UEditor_html, restore_from_UEditor_html } from "@/utils/dom";
 import { ad_categorys, adMarkerContentInUEditor, format_ad_content_in_UEditor, restore_ad_content_from_UEditor, has_ad_in_wangEditor, has_ad_in_raw } from "@/utils/ad"
 import { ElMessage, ElMessageBox, ElLoading } from 'element-plus'
-import { ArrowUp, ArrowDown, Delete } from '@element-plus/icons-vue'
+import { ArrowUp, ArrowDown, Delete, CircleCheckFilled, CircleCloseFilled, InfoFilled } from '@element-plus/icons-vue'
 import { removeAppMsgId, setAppMsgId, getAppMsgId, getSelectedAccountId, setSelectedAccountId } from '@/utils/editor'
 import { Link, Link2, RadioTower, SquareTerminal, Eye, ScanEye, Minus } from 'lucide-vue-next';
 import axios from 'axios'
+import JSON5 from "json5"
 
 // console.log('envVars.backend_url=>', envVars.backend_url)
 // editor 
@@ -417,12 +504,25 @@ const insertAdTypeRef = ref("1") // 0-不插入 1-手动 2-智能
 const dialogMobilePreviewVisibleRef = ref(false)
 const qrcodeMobilePreviewRef = ref("")
 
+// 进度
+const dialogPercentVisbleRef = ref(false)
+const percentRef = ref(0)
+const progressDescRef = ref("")
+const progressResultRef = ref(null)
+const failReasonVisibleRef = ref(false)
+
 // 调试信息
 const dialogDebugVisibleRef = ref(false)
 
 // 账号
 let selectedAccount = ref(null)
 let accountsRef = ref([])
+const dialogSendArticleVisibleRef = ref(false)
+let otherAccountsRef = ref([])
+let otherAccountsChoosedRef = ref([])
+const timeoutSendToOneAccount = 30 * 1000; // ms
+
+
 
 // 提取链接
 // const extractArticleUrlRef = ref("https://mp.weixin.qq.com/s/G2TYEsgZsTJ1VWj4R2F2hQ?from=kdocs_link")
@@ -995,6 +1095,81 @@ const deleteArticle = async (msg_id) => {
     console.log('取消')
   })
 
+}
+
+const openSendArticleDialog = () => {
+  otherAccountsChoosedRef.value = []
+  otherAccountsRef.value = accountsRef.value.filter(v => v.id !== selectedAccount.value?.id)
+  dialogSendArticleVisibleRef.value = true
+}
+
+const handleSendToOtherAccount = async () => {
+  const appmsgid = _getAppMsgId()
+  console.log('choosed', otherAccountsChoosedRef);
+  if (otherAccountsChoosedRef.value.length === 0) {
+    ElMessageBox.alert('请至少选择一个需要发送的账号', '警告', {
+      confirmButtonText: '确定',
+      type: 'warning'
+    }).catch(() => { })
+    return
+  }
+  dialogSendArticleVisibleRef.value = false
+
+  const timeoutSendToOtherAccounts = timeoutSendToOneAccount * otherAccountsChoosedRef.value.length
+  globalLoadingRef.value = true
+  dialogPercentVisbleRef.value = true
+  percentRef.value = 0
+  progressDescRef.value = "开始处理"
+  progressResultRef.value = null
+
+  let timeoutId = setTimeout(() => {
+    globalLoadingRef.value = false
+    dialogPercentVisbleRef.value = false
+    timeoutId = -1
+    ElMessageBox.alert('请求超时，请稍后再试', '错误', {
+      confirmButtonText: '确定',
+      type: 'error'
+    }).catch(() => { })
+  }, timeoutSendToOtherAccounts)
+
+  // await send_to_other_accounts({
+  //   soruce_appmsgid: appmsgid,
+  //   target_wechat_ids: otherAccountsChoosedRef.value
+  // })
+  let stepRet
+  await send_to_other_accounts_events({
+    soruce_appmsgid: appmsgid,
+    target_wechat_ids: otherAccountsChoosedRef.value
+  }, (data) => {
+    // console.log("step raw=>", data)
+    try {
+      const v = data.replaceAll(/data: /gi, "")
+      stepRet = JSON5.parse(v)
+      // console.log("step data=>", o)
+      percentRef.value = stepRet.percent
+      progressDescRef.value = stepRet.desc
+    } catch {
+      percentRef.value = 0;
+      progressDescRef.value = ""
+    }
+  })
+  if (stepRet) {
+    console.log("stepRet=>", stepRet)
+    progressResultRef.value = stepRet.result
+  }
+  globalLoadingRef.value = false
+
+  if (timeoutId !== -1) {
+    clearTimeout(timeoutId)
+  }
+}
+
+const clickAllOtherAccounts = (checkedAll) => {
+  if (checkedAll) {
+    otherAccountsChoosedRef.value = otherAccountsRef.value.map(v => v.id)
+  } else {
+    otherAccountsChoosedRef.value = []
+  }
 }
 
 const newArticleGroup = () => {
