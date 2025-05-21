@@ -1212,6 +1212,8 @@ const emitChangeForAccount = async (val) => {
   await listArticles()
   if (mp_msgsRef.value.length > 0) {
     loadArticle(mp_msgsRef.value[0])
+  } else {
+    
   }
   setAppMsgId(val.appmsgid)
   // await loadArticleGroups()
