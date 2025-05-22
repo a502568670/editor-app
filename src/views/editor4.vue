@@ -404,8 +404,8 @@ import {
   saveArticleDraft, send_to_other_accounts, send_to_other_accounts_events,
   listArticlesByAppMsg, listArticleGroups, swapArticles,
   deleteArticleDraft, genArticleDraftPreviewUrl, previewQRCode,
-  getLastPreviewAccounts, sendPreview,
 } from "@/api/article"
+import { getMpUserInfo, getLastPreviewAccounts, sendPreview, } from "@/api/mp_wechat"
 import { getArticleContent, getArticleContent2 } from '@/api/jzl'
 import { format_to_UEditor_html, restore_from_UEditor_html } from "@/utils/dom";
 import { ad_categorys, adMarkerContentInUEditor, format_ad_content_in_UEditor, restore_ad_content_from_UEditor, has_ad_in_wangEditor, has_ad_in_raw } from "@/utils/ad"
@@ -1547,6 +1547,27 @@ const handleAddPreviewerConfirm = () => {
   previewerInputValue.value = ''
 }
 
+const handleMpWechatActionErr = (account_name, base_resp) => {
+  console.error('handleMpWechatActionErr:', base_resp);
+  if (base_resp.ret == 200003) {
+    ElMessageBox.alert(`当前账号(${account_name})session过期,请切换到*账号中心*重新登录`, '错误', {
+      confirmButtonText: '确定',
+      type: 'error'
+    }).then(() => {
+      console.log("then")
+    }).catch(() => {
+      console.log("catch")
+    })
+    // callback.error(`当前账号(${name})session过期,请重新登录`)
+  } else {
+    ElMessage({
+      message: `服务器错误:${base_resp.err_msg}`,
+      type: 'error',
+      duration: 2 * 1000
+    })
+  }
+}
+
 const openAppMsgMobilePreviewDialog = async () => {
   const { validated, token, name, session_id } = validateAppMsgPreview()
   if (!validated) {
@@ -1555,41 +1576,64 @@ const openAppMsgMobilePreviewDialog = async () => {
   }
   dialogAppMsgMobilePreviewVisibleRef.value = true
 
-  getLastPreviewAccounts({
+  getMpUserInfo({
     cookies: serializeCookie(JSON.parse(session_id)["cookie"]),
     token: parseInt(token),
-  }).then(async (data) => {
+  }).then((v) => {
+    const { data } = v
     // previewersRef.value = 
-    console.log('getLastPreviewAccounts data =>', data)
-
-  }).catch((e) => { }).finally(() => {
+    console.log('getMpUserInfo =>', data)
+    const { alias, base_resp } = data
+    if (base_resp.ret == "0") {
+      if (!previewersRef.value.includes(alias)) {
+        previewersRef.value.push(alias)
+      }
+    } else {
+      handleMpWechatActionErr(name, base_resp)
+    }
+  }).catch((e) => {
+    console.log("getMpUserInfo catch:", e)
+    // handleActionErr(name, e)
+  }).finally(() => {
   })
 }
 
-const sendPreviewToMobile = async () => {
-  const { token, session_id } = selectedAccount.value
+const sendPreviewToMobile = () => {
+  const { token, session_id, name } = selectedAccount.value
   const { appmsgid } = selected_mp_msg_groupRef.value
   const pre_view_users = previewersRef.value.join(",")
   console.log("appmsgid=>", appmsgid)
   console.log("pre_view_users=>", pre_view_users)
   dialogAppMsgMobilePreviewVisibleRef.value = false
   globalLoadingRef.value = true
-  const resp = await sendPreview({
+  sendPreview({
     cookies: serializeCookie(JSON.parse(session_id)["cookie"]),
     token: parseInt(token),
     appmsgid,
     pre_view_users,
-  }).catch(() => { }).finally(() => {
+  }).then((v) => {
+    const { data } = v
+    const { base_resp } = data
+    if (base_resp.ret == "0") {
+      ElMessageBox.alert(`已经将预览消息发送到手机，请确保您已关注公众号`, '信息', {
+        confirmButtonText: '确定',
+        type: 'info'
+      }).then(() => {
+        console.log("then")
+      }).catch(() => {
+        console.log("catch")
+      })
+    } else {
+      console.log('sendPreview=>', base_resp)
+      handleMpWechatActionErr(name, base_resp)
+    }
+  }).catch((e) => {
+    console.log("sendPreviewToMobile catch:", e)
+    // handleActionErr(name, e)
+  }).finally(() => {
     globalLoadingRef.value = false
-    
   })
-  if (resp.data.ret != "0") {
-    ElMessage({
-      message: `发送预览请求失败`,
-      type: 'error',
-      duration: 2 * 1000
-    })
-  }
+
 }
 
 // debug
