@@ -16,16 +16,24 @@ const getDefaultHeader = () => {
 
 export const localExtractMpArticleUrlUseRequest = function (url, timeout = defaultTimeout) {
   verbose_log(`localExtractMpArticleUrlUseRequest to fetch:${url}`)
-  const { protocol, hostname, port, pathname } = new URL(url)
-  verbose_log(`parsed protocol:${protocol} hostname:${hostname} port:${port} path:${pathname}`)
+  const { protocol, hostname, port, pathname, search, searchParams } = new URL(url)
+
+  verbose_log(`parsed protocol:${protocol} hostname:${hostname} port:${port} path:${pathname}, search:${search}`)
+  let path = pathname + search
+  if (searchParams.get("chksm")) {
+    searchParams.delete("chksm")
+    path = pathname + "?" + searchParams.toString()
+  }
+  verbose_log("path:", path)
   const headers = getDefaultHeader()
   return new Promise((resolve, reject) => {
     const request = net.request({
       protocol, // 使用 http 协议
       hostname, // 设为本地地址
       port, // 设为端口 8000
-      path: pathname, // 直接使用传入的 url
+      path: path, // 直接使用传入的 url
       headers: headers
+
     });
 
     let isFinished = false;

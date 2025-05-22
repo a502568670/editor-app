@@ -106,7 +106,7 @@ const _postJson = function (protocol, hostname, port, pathname, postData, newhea
       // 处理响应
       let buffers = [];
       response.on('data', (chunk) => {
-        console.log(`Buffer: ${chunk}`);
+        // console.log(`Buffer: ${chunk}`);
         buffers.push(chunk);
       })
 
@@ -114,11 +114,11 @@ const _postJson = function (protocol, hostname, port, pathname, postData, newhea
         let responseBodyBuffer = Buffer.concat(buffers);
         let ret = JSON.parse(responseBodyBuffer.toString());
         console.log(`BODY: ${ret}`);
-        verbose_log("JSON数据接收完成");
+        // verbose_log("JSON数据接收完成");
 
         clearTimeout(timeoutId);
         isFinished = true;
-        verbose_log("JSON数据接收完成", ret);
+        // verbose_log("JSON数据接收完成", ret);
         resolve(ret);
       })
 

@@ -10,10 +10,12 @@ import { nativeTheme, screen, dialog, Notification, app, ipcMain, webContents, n
 import { localExtractMpArticleUrlUseRequest } from "./mp_account-tasks.js"
 import { postJsonToJZLApi } from "./request.js"
 const path = require('path')
+const fs =require('fs')
 import { createProtocol } from "vue-cli-plugin-electron-builder/lib";
 import global from "./global.js";
 import log from "electron-log";
 import { platform } from "process";
+
 const shell = require('electron').shell;
 import * as zhCN from '../locales/zh-CN.json'
 const verbose_log = global.utils.verbose_log;
@@ -460,6 +462,7 @@ async function reactToIpcObjectData(data, tabbedWin, viewContents) {
           verbose_error("reject localExtractMpArticleUrl for reason:", err)
         });
       verbose_log("html.length:", html.length)
+      // fs.writeFileSync("a.html", html)
       // verbose_log("extract html:", html)
       const result = await postJsonToJZLApi(`/prase_html_to_json?api_key=${encodeURIComponent("du&cgIYuosQcaSm6")}`, { html })
       verbose_log("extract result:", result)

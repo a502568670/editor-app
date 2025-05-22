@@ -64,6 +64,15 @@
           </div>
         </div>
       </el-col>
+
+      <el-col :span="12" class="h-full" v-loading="globalLoadingRef">
+        <div class="h-full flex flex-col">
+          <div ref="ueditor_wrapper" class="flex-1">
+            <vue-ueditor-wrap v-model="currentArticleRef.content_noencode" editor-id="editor" @ready="ready"
+              :config="editorConfigRef" :editorDependencies="['ueditor.config.js', 'ueditor.all.js']" />
+          </div>
+        </div>
+      </el-col>
       <el-col :span="1" class="h-full overflow-scroll bg-white">
         <div
           class="grid-content flex flex-col h-full justify-start items-center border  space-y-2 p-2 bg-slate-100 text-blue-500">
@@ -96,14 +105,6 @@
             title="调试信息">
             <SquareTerminal />
           </el-icon>
-        </div>
-      </el-col>
-      <el-col :span="12" class="h-full" v-loading="globalLoadingRef">
-        <div class="h-full flex flex-col">
-          <div ref="ueditor_wrapper" class="flex-1">
-            <vue-ueditor-wrap v-model="currentArticleRef.content_noencode" editor-id="editor" @ready="ready"
-              :config="editorConfigRef" :editorDependencies="['ueditor.config.js', 'ueditor.all.js']" />
-          </div>
         </div>
       </el-col>
       <el-col :span="5" class="h-full pr-1 pt-1">
@@ -1619,6 +1620,7 @@ const sendPreviewToMobile = () => {
         confirmButtonText: '确定',
         type: 'info'
       }).then(() => {
+        //
         console.log("then")
       }).catch(() => {
         console.log("catch")
