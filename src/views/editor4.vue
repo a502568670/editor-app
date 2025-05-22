@@ -22,11 +22,11 @@
           <div v-if="mp_msgsRef">
             <div @click="loadArticle(item)" v-for="(item, index) in mp_msgsRef" :key="item.msg_id"
               class="flex items-center p-2 border-b w-full">
-              <img :src="item.cdn_url" style="width:0px;height:0px;" referrerpolicy="no-referrer" />
+              <img v-if="item.cdn_url" :src="item.cdn_url" style="width:0px;height:0px;" referrerpolicy="no-referrer" />
               <div v-if="index === 0" :style="{ '--image-url': 'url(' + item.cdn_url + ')' }"
-                class='w-full flex h-40 justify-between items-end bg-no-repeat bg-center bg-cover bg-[image:var(--image-url)]'
+                class='w-full flex h-40 justify-between items-end bg-no-repeat bg-center bg-cover bg-[#e6e6e6] bg-[image:var(--image-url)]'
                 :class="{ 'border-2 border-[#07C160]': (item.msg_id === msg_idRef) }">
-                <div class="flex text-white p-1">{{ item.title }}</div>
+                <div class="flex text-white p-1"><span v-if="item.msg_id === 0">*</span>{{ item.title }}</div>
                 <div class="flex justify-between px-1 space-x-2 py-1 text-white bg-gray-600 opacity-50"
                   v-if="item.msg_id === msg_idRef">
                   <el-icon class="cursor-pointer" @click="swapDown(item.msg_id)">
@@ -40,10 +40,10 @@
               <div class="w-full flex h-20 items-center p-1"
                 :class="{ 'border-2 border-[#07C160]': (item.msg_id === msg_idRef) }" v-else>
                 <div class="flex flex-col flex-1 h-full">
-                  <div class="flex-1 h-2/3 w-full max-w-full max-h-2/3 overflow-y-hidden">{{ item.title }}</div>
+                  <div class="flex-1 h-2/3 w-full max-w-full max-h-2/3 overflow-y-hidden"><span class="mx-1 text-red-500" v-if="item.msg_id === 0">*</span>{{ item.title }}</div>
                   <!-- <div class=" text-sm flex-0" style="color: #51ce94">{{ item.author }}</div> -->
                 </div>
-                <img class="w-10 h-10 rounded-sm" :src="item.cdn_url" />
+                <img v-if="item.cdn_url" class="w-10 h-10 rounded-sm" :src="item.cdn_url" />
                 <div class="flex flex-col justify-around px-1 h-full" v-if="item.msg_id === msg_idRef">
                   <el-icon class="cursor-pointer" @click="swapUp(item.msg_id)">
                     <component :is="ArrowUpRef"></component>
@@ -867,6 +867,9 @@ const loadArticleByMsgId = (msg_id) => {
 }
 
 const swapUp = async (msg_id) => {
+  if (checkHasNotSave(true)) {
+    return
+  }
   const idx = mp_msgsRef.value.findIndex(v => v.msg_id === msg_id)
   const prev = mp_msgsRef.value[idx - 1].msg_id
   console.log("prev index:", prev)
@@ -877,6 +880,9 @@ const swapUp = async (msg_id) => {
   await listArticles()
 }
 const swapDown = async (msg_id) => {
+  if (checkHasNotSave(true)) {
+    return
+  }
   const idx = mp_msgsRef.value.findIndex(v => v.msg_id === msg_id)
   const next = mp_msgsRef.value[idx + 1].msg_id
   console.log("next index:", next)
@@ -887,10 +893,26 @@ const swapDown = async (msg_id) => {
   await listArticles()
 }
 
+const checkHasNotSave = (showMessage) => {
+  const not_save = mp_msgsRef.value.find(v => v.msg_id === 0)
+  if (not_save && showMessage) {
+    ElMessageBox.alert(`将当前未保存的文章暂存后再操作`, '信息', {
+      confirmButtonText: '确定',
+      type: 'info'
+    }).then(() => {
+      console.log("then")
+    }).catch(() => {
+      console.log("catch")
+    })
+  }
+  return !!not_save
+}
+
 const newArticle = () => {
-  msg_idRef.value = 0
-  currentArticleRef.value = {
-    title: "",
+  checkHasNotSave(true)
+
+  const new_mp_msg = {
+    title: "新标题1",
     author: "",
     copyright_type: 0,
     cdn_url: "",
@@ -903,17 +925,29 @@ const newArticle = () => {
     can_insert_ad: 1,
     content_noencode: "",
   }
-  selectedCdnImageRef.value = null
-  cdnFileInputRef.value.value = ""
+  mp_msgsRef.value.push({
+    ...new_mp_msg,
+    msg_id: 0
+  })
 
-  copyrightRef.value = false
-  needOpenCommentRef.value = false
-  commentTypeRef.value = "0"
+  loadArticleByMsgId(0)
 
-  // 广告
-  adCategoryChoosedRef.value = []
-  insertAdTypeRef.value = "1"
-  ad_idRef.value = 0
+  // msg_idRef.value = 0
+  // currentArticleRef.value = new_mp_msg
+  // selectedCdnImageRef.value = null
+  // cdnFileInputRef.value.value = ""
+
+  // copyrightRef.value = false
+  // needOpenCommentRef.value = false
+  // commentTypeRef.value = "0"
+
+  // // 广告
+  // adCategoryChoosedRef.value = []
+  // insertAdTypeRef.value = "1"
+  // ad_idRef.value = 0
+
+
+
 
 }
 
@@ -1082,6 +1116,16 @@ const deleteArticle = async (msg_id) => {
       type: 'warning',
     }
   ).then(async () => {
+    if (checkHasNotSave(false)) {
+      console.log("checkHasNotSave=>", true)
+      const not_save_idx = mp_msgsRef.value.findIndex(v => v.msg_id === 0)
+      console.log("not_save_idx=>", not_save_idx)
+      const mp_msgs = mp_msgsRef.value
+      mp_msgs.splice(not_save_idx, 1)
+      mp_msgsRef.value = mp_msgs
+      return
+    }
+
     const { token, name, session_id, wechat_id } = selectedAccount.value
     const postData = {
       cookies: serializeCookie(JSON.parse(session_id)["cookie"]),
@@ -1225,7 +1269,7 @@ const emitChangeForAppMsgGroup = async (val) => {
     if (mp_msgsRef.value.length > 0) {
       loadArticle(mp_msgsRef.value[0])
     } else {
-      newArticle()
+      // newArticle()
     }
     setAppMsgId(val.appmsgid)
 
@@ -1242,7 +1286,7 @@ const emitChangeForAccount = async (val) => {
   if (mp_msgsRef.value.length > 0) {
     loadArticle(mp_msgsRef.value[0])
   } else {
-    newArticle()
+    // newArticle()
   }
   setAppMsgId(val.appmsgid)
   // await loadArticleGroups()
