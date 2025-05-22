@@ -107,3 +107,21 @@ export function previewQRCode(url) {
   })
 }
 
+
+// 获取最近一次的图文消息预览账号
+export function getLastPreviewAccounts(data) {
+  return request({
+    url: `/mp_msg/get_last_preview_accounts`,
+    method: 'post',
+    data
+  })
+}
+
+// 发送图文消息预览请求
+export function sendPreview(data) {
+  return request({
+    url: `/mp_msg/send_preview`,
+    method: 'post',
+    data
+  })
+}

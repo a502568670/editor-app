@@ -83,6 +83,11 @@
             title="文章手机预览">
             <ScanEye />
           </el-icon>
+          <el-icon :size="20" class="cursor-pointer flex justify-center" @click="openAppMsgMobilePreviewDialog"
+            title="消息手机预览">
+            <Smartphone />
+          </el-icon>
+
           <!-- <el-icon v-if="isDebugRef" :size="20" class="cursor-pointer flex justify-center"
             @click="handleLocalExtractMpArticleUrl" title="测试本地提取链接">
             <Link2 />
@@ -231,6 +236,29 @@
       </el-col>
     </el-row>
   </el-dialog>
+  <el-dialog :close-on-click-modal="false" title="发送预览" v-model="dialogAppMsgMobilePreviewVisibleRef" width="600px">
+    <el-row :gutter="40" class="w-full h-[300px]">
+      <el-col :span="24" class="w-full">
+        <div class="flex gap-2 flex-wrap justify-start w-full">
+          <el-tag v-for="previewer in previewersRef" :key="previewer" closable :disable-transitions="false"
+            @close="removePreviewer(previewer)">
+            {{ previewer }}
+          </el-tag>
+          <el-input v-if="previewerInputVisible" ref="previewerInputRef" v-model="previewerInputValue" class="w-20"
+            size="small" @keyup.enter="handleAddPreviewerConfirm" @blur="handleAddPreviewerConfirm" />
+          <el-button v-else class="button-new-tag" size="small" @click="showAddPreviewerInput">
+            + 微信号/QQ号/手机号
+          </el-button>
+        </div>
+      </el-col>
+    </el-row>
+    <template #footer>
+      <div class="dialog-footer">
+        <el-button @click="dialogAppMsgMobilePreviewVisibleRef = false">取消</el-button>
+        <el-button @click="sendPreviewToMobile" type="primary">确定</el-button>
+      </div>
+    </template>
+  </el-dialog>
   <el-dialog :close-on-click-modal="false" title="发送到其他账号" v-model="dialogSendArticleVisibleRef" width="600px">
     <el-row :gutter="40">
       <el-col :span="18">
@@ -369,13 +397,14 @@
 }
 </style>
 <script setup>
-import { ref, shallowRef, onMounted, onBeforeUnmount } from 'vue';
+import { ref, shallowRef, onMounted, onBeforeUnmount, nextTick } from 'vue';
 import { listAccount } from '@/api/account'
 import { getToken } from "@/utils/auth";
 import {
   saveArticleDraft, send_to_other_accounts, send_to_other_accounts_events,
   listArticlesByAppMsg, listArticleGroups, swapArticles,
-  deleteArticleDraft, genArticleDraftPreviewUrl, previewQRCode
+  deleteArticleDraft, genArticleDraftPreviewUrl, previewQRCode,
+  getLastPreviewAccounts, sendPreview,
 } from "@/api/article"
 import { getArticleContent, getArticleContent2 } from '@/api/jzl'
 import { format_to_UEditor_html, restore_from_UEditor_html } from "@/utils/dom";
@@ -383,7 +412,7 @@ import { ad_categorys, adMarkerContentInUEditor, format_ad_content_in_UEditor, r
 import { ElMessage, ElMessageBox, ElLoading } from 'element-plus'
 import { ArrowUp, ArrowDown, Delete, CircleCheckFilled, CircleCloseFilled, InfoFilled } from '@element-plus/icons-vue'
 import { removeAppMsgId, setAppMsgId, getAppMsgId, getSelectedAccountId, setSelectedAccountId } from '@/utils/editor'
-import { Link, Link2, RadioTower, SquareTerminal, Eye, ScanEye, Minus } from 'lucide-vue-next';
+import { Link, Link2, RadioTower, SquareTerminal, Eye, ScanEye, Minus, Smartphone } from 'lucide-vue-next';
 import axios from 'axios'
 import JSON5 from "json5"
 
@@ -500,9 +529,6 @@ const adCategoryRef = ref(ad_categorys)
 const adCategoryChoosedRef = ref([])
 const insertAdTypeRef = ref("1") // 0-不插入 1-手动 2-智能 
 
-// 手机预览
-const dialogMobilePreviewVisibleRef = ref(false)
-const qrcodeMobilePreviewRef = ref("")
 
 // 进度
 const dialogPercentVisbleRef = ref(false)
@@ -1197,6 +1223,8 @@ const emitChangeForAppMsgGroup = async (val) => {
     await listArticles()
     if (mp_msgsRef.value.length > 0) {
       loadArticle(mp_msgsRef.value[0])
+    } else {
+      newArticle()
     }
     setAppMsgId(val.appmsgid)
 
@@ -1213,7 +1241,7 @@ const emitChangeForAccount = async (val) => {
   if (mp_msgsRef.value.length > 0) {
     loadArticle(mp_msgsRef.value[0])
   } else {
-    
+    newArticle()
   }
   setAppMsgId(val.appmsgid)
   // await loadArticleGroups()
@@ -1459,6 +1487,112 @@ const openMobilePreviewDialog = async () => {
   })
 }
 
+const validateAppMsgPreview = () => {
+  if (!selected_mp_msg_groupRef.value) {
+    ElMessageBox.alert('请选择图文消息(文章列表)', '警告', {
+      confirmButtonText: '确定',
+      type: 'error'
+    }).catch(() => { })
+    return { validated: false }
+  }
+  if (!selectedAccount.value) {
+    ElMessageBox.alert('请选择预览的账号', '警告', {
+      confirmButtonText: '确定',
+      type: 'error'
+    }).catch(() => { })
+    return { validated: false }
+  }
+
+  const { token, name, session_id } = selectedAccount.value
+  if (!session_id) {
+    // ElMessage({
+    //   message: `当前账号(${name})未登录,请重新登录`,
+    //   type: 'error',
+    //   duration: 2 * 1000
+    // })
+    ElMessageBox.alert(`当前账号(${name})未登录,请重新登录`, '警告', {
+      confirmButtonText: '确定',
+      type: 'error'
+    }).catch(() => { })
+    return { validated: false }
+  }
+  return { validated: true, token, name, session_id }
+}
+
+
+// 手机预览
+const dialogMobilePreviewVisibleRef = ref(false)
+const dialogAppMsgMobilePreviewVisibleRef = ref(false)
+const qrcodeMobilePreviewRef = ref("")
+const previewerInputRef = ref(null)
+const previewerInputValue = ref('')
+const previewersRef = ref([])
+const previewerInputVisible = ref(false)
+
+
+const removePreviewer = (previewer) => {
+  previewersRef.value.splice(previewersRef.value.indexOf(previewer), 1)
+}
+const showAddPreviewerInput = () => {
+  previewerInputVisible.value = true
+  nextTick(() => {
+    previewerInputRef.value.input.focus()
+  })
+}
+const handleAddPreviewerConfirm = () => {
+  if (previewerInputValue.value) {
+    previewersRef.value.push(previewerInputValue.value)
+  }
+  previewerInputVisible.value = false
+  previewerInputValue.value = ''
+}
+
+const openAppMsgMobilePreviewDialog = async () => {
+  const { validated, token, name, session_id } = validateAppMsgPreview()
+  if (!validated) {
+    console.log("validated=>", validated)
+    return
+  }
+  dialogAppMsgMobilePreviewVisibleRef.value = true
+
+  getLastPreviewAccounts({
+    cookies: serializeCookie(JSON.parse(session_id)["cookie"]),
+    token: parseInt(token),
+  }).then(async (data) => {
+    // previewersRef.value = 
+    console.log('getLastPreviewAccounts data =>', data)
+
+  }).catch((e) => { }).finally(() => {
+  })
+}
+
+const sendPreviewToMobile = async () => {
+  const { token, session_id } = selectedAccount.value
+  const { appmsgid } = selected_mp_msg_groupRef.value
+  const pre_view_users = previewersRef.value.join(",")
+  console.log("appmsgid=>", appmsgid)
+  console.log("pre_view_users=>", pre_view_users)
+  dialogAppMsgMobilePreviewVisibleRef.value = false
+  globalLoadingRef.value = true
+  const resp = await sendPreview({
+    cookies: serializeCookie(JSON.parse(session_id)["cookie"]),
+    token: parseInt(token),
+    appmsgid,
+    pre_view_users,
+  }).catch(() => { }).finally(() => {
+    globalLoadingRef.value = false
+    
+  })
+  if (resp.data.ret != "0") {
+    ElMessage({
+      message: `发送预览请求失败`,
+      type: 'error',
+      duration: 2 * 1000
+    })
+  }
+}
+
+// debug
 const openDebugDialog = () => {
   dialogDebugVisibleRef.value = true
 }
