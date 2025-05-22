@@ -185,8 +185,8 @@
     </el-row>
   </div>
   <el-dialog :close-on-click-modal="false" title="提取文章链接内容" v-model="dialogExtractMpAritcleUrlRef" width="600px">
-    <el-row :gutter="40">
-      <el-col :span="18">
+    <el-row :gutter="40" class="w-full">
+      <el-col :span="18" class="w-full">
         <el-input v-model="extractArticleUrlRef" clearable placeholder="请输入文章提取地址" />
       </el-col>
       <el-col :span="6">
