@@ -40,7 +40,8 @@
               <div class="w-full flex h-20 items-center p-1"
                 :class="{ 'border-2 border-[#07C160]': (item.msg_id === msg_idRef) }" v-else>
                 <div class="flex flex-col flex-1 h-full">
-                  <div class="flex-1 h-2/3 w-full max-w-full max-h-2/3 overflow-y-hidden"><span class="mx-1 text-red-500" v-if="item.msg_id === 0">*</span>{{ item.title }}</div>
+                  <div class="flex-1 h-2/3 w-full max-w-full max-h-2/3 overflow-y-hidden"><span
+                      class="mx-1 text-red-500" v-if="item.msg_id === 0">*</span>{{ item.title }}</div>
                   <!-- <div class=" text-sm flex-0" style="color: #51ce94">{{ item.author }}</div> -->
                 </div>
                 <img v-if="item.cdn_url" class="w-10 h-10 rounded-sm" :src="item.cdn_url" />
@@ -107,7 +108,7 @@
           </el-icon>
         </div>
       </el-col>
-      <el-col :span="5" class="h-full pr-1 pt-1">
+      <el-col :span="5" class="h-full p-1">
         <el-row :gutter="4" class="mb-1">
           <el-col :span="24">
             <el-input v-model="currentArticleRef.title" clearable class="grid-content-control" placeholder="请输入文章标题" />
@@ -909,7 +910,16 @@ const checkHasNotSave = (showMessage) => {
 }
 
 const newArticle = () => {
-  checkHasNotSave(true)
+  if (checkHasNotSave(true)) {
+    return
+  }
+  if (mp_msgsRef.value.length >= 8) {
+    ElMessageBox.alert('超出单消息最大文章数8篇', '错误', {
+      confirmButtonText: '确定',
+      type: 'error'
+    }).catch(() => { })
+    return;
+  }
 
   const new_mp_msg = {
     title: "新标题1",
