@@ -21,6 +21,7 @@ import * as zhCN from '../locales/zh-CN.json'
 const verbose_log = global.utils.verbose_log;
 const verbose_error = global.utils.verbose_error;
 const get_backend_url_old = global.utils.get_backend_url_old;
+var {batchWechatData} = require('../api/stat.js');
 
 let tabbedWin;
 function showMsg(msg) {
@@ -467,6 +468,11 @@ async function reactToIpcObjectData(data, tabbedWin, viewContents) {
       const result = await postJsonToJZLApi(`/prase_html_to_json?api_key=${encodeURIComponent("du&cgIYuosQcaSm6")}`, { html })
       verbose_log("extract result:", result)
       viewContents.send('fromMain', { tag: 'localExtractMpArticleUrlResult', data: result })
+      break;
+    }
+    case 'stat:getPvData': {
+      var res = await batchWechatData(data.data);
+      viewContents.send('fromMain', {tag: 'stat-ret:getPvData', data: res});
       break;
     }
 
