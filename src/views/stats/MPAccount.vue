@@ -1,6 +1,6 @@
 <template>
     <el-table v-loading="loading" :data="tableData" class="mp_account_table w-full " row-key="id">
-      <el-table-column fixed prop="name" label="公众号名称" />
+      <el-table-column fixed prop="name" label="公众号名称" width="100" />
       <el-table-column prop="login" label="登录状态">
         <!-- <template #default="v">
           <span>{{ v.row.login ? '登录成功' : '登录失败' }}</span>
@@ -8,7 +8,7 @@
       </el-table-column>
 
       <el-table-column prop="total_fans_num" label="粉丝数" />
-      <el-table-column prop="illegal_recent" label="7日内违规信息" />
+      <el-table-column prop="illegal_recent" label="7日内违规信息" width="120" />
       <el-table-column prop="income_yesterday" label="昨日收入" :formatter="moneyFormatter" />
       <el-table-column prop="income_yesterday_before2" label="前天收入" :formatter="moneyFormatter" />
       <el-table-column prop="income_yesterday_before3" label="往前3天" :formatter="moneyFormatter" />
@@ -17,15 +17,15 @@
       <el-table-column prop="income_yesterday_before6" label="往前6天" :formatter="moneyFormatter" />
       <el-table-column prop="income_yesterday_before7" label="往前7天" :formatter="moneyFormatter" />
       <el-table-column prop="income_last_week" label="上周收入" :formatter="moneyFormatter" />
-      <el-table-column prop="income_30_days" label="30天收入" :formatter="moneyFormatter" />
+      <el-table-column prop="income_30_days" label="30天收入" width="90" :formatter="moneyFormatter" />
       <el-table-column prop="income_cur_month" label="本月收入" :formatter="moneyFormatter" />
       <el-table-column prop="income_all" label="累计收入" :formatter="moneyFormatter" />
-      <el-table-column prop="bank" label="收款账户信息" />
+      <el-table-column prop="bank" label="收款账户信息" width="110" />
       <el-table-column prop="pv" label="昨日阅读" />
       <el-table-column prop="share" label="昨日分享" />
       <el-table-column prop="subscribe" label="昨日增粉" />
-      <el-table-column prop="quota_today" label="今日发文情况" />
-      <el-table-column prop="quota_tomorrow" label="明天定时情况" />
+      <el-table-column prop="quota_today" label="今日发文情况" width="110" />
+      <el-table-column prop="quota_tomorrow" label="明天定时情况" width="110" />
       <el-table-column prop="female_fans_rate" label="女粉比" :formatter="percentFormatter" />
       <el-table-column prop="male_fans_rate" label="男粉比" :formatter="percentFormatter" />
     </el-table>
