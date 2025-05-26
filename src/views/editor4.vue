@@ -55,7 +55,12 @@
                   :class="{ 'border-2 border-[#07C160]': (item.msg_id === msg_idRef) }" v-else>
                   <div class="flex flex-col flex-1 h-full">
                     <div class="flex-1 h-2/3 w-full max-w-full max-h-2/3 overflow-y-hidden"><span
-                        class="mx-1 text-red-500" v-if="item.msg_id === 0">*</span>{{ item.title }}</div>
+                        class="mx-1 text-red-500" v-if="item.msg_id === 0">*</span>
+                      <el-icon v-if="item.item_show_type === 5" :size="20" class="cursor-pointer flex justify-center items-end" title="视频文章">
+                        <Video  />
+                      </el-icon>
+                      {{ item.title }}
+                    </div>
                     <!-- <div class=" text-sm flex-0" style="color: #51ce94">{{ item.author }}</div> -->
                   </div>
                   <img v-if="item.cdn_url" class="w-10 h-10 rounded-sm" :src="item.cdn_url" />
@@ -492,7 +497,7 @@ import { claim_source_types } from "@/utils/constants"
 import { ElMessage, ElMessageBox, ElLoading } from 'element-plus'
 import { ArrowUp, ArrowDown, Delete, CircleCheckFilled, CircleCloseFilled, InfoFilled } from '@element-plus/icons-vue'
 import { removeAppMsgId, setAppMsgId, getAppMsgId, getSelectedAccountId, setSelectedAccountId } from '@/utils/editor'
-import { Link, Link2, RadioTower, DollarSign, SquareTerminal, Eye, ScanEye, Minus, Smartphone } from 'lucide-vue-next';
+import { Link, Link2, RadioTower, DollarSign, SquareTerminal, Eye, ScanEye, Minus, Smartphone, Video } from 'lucide-vue-next';
 import axios from 'axios'
 import JSON5 from "json5"
 
@@ -1890,23 +1895,24 @@ window.ipcRenderer.receive('fromMain', (msg) => {
     const tag = msg.tag;
     if (tag === "localExtractMpArticleUrlResult") {
       console.log(`tag:${msg.tag}`, typeof msg.data)
-      const { title, nick_name, copyright_stat, cdn_url, item_show_type, video_page_infos } = msg.data
+      const { title, nick_name, copyright_stat, cdn_url, item_show_type, video_page_info } = msg.data
       let { content_noencode, content_text } = msg.data
       console.log("msg.data=>", msg.data)
       let guide_words = "", vid = ""
       console.log("item_show_type=>", item_show_type)
       // const { video_page_infos } = msg.data
-      if (video_page_infos && video_page_infos.length > 0) {
+
+      if (video_page_info) {
         // 独立视频
         console.log("video_page_infos=>",)
         guide_words = content_text
-        vid = video_page_infos[0].video_id
+        vid = video_page_info.video_id
         content_noencode = getVideoFrameHtml(vid, cdn_url) //`<iframe class="edui-video-iframe" data-vidtype="2" data-mpvid="${video_id}" data-cover="${cdn_url}" allowfullscreen="" frameborder="0" data-w="1080" data-ratio="0.5625" style="border-radius: 4px;" src="https://mp.weixin.qq.com/cgi-bin/readtemplate?t=tmpl/video_tmpl&vid=${video_id}" width="420" height="280" frameborder="0" allowfullscreen=""></iframe>`
       }
       if (currentArticleRef.value.item_show_type === 0) {
         content_noencode = content_noencode + "<p>" + content_text + "<p>"
       }
-      
+
       currentArticleRef.value = {
         ...currentArticleRef.value,
         // content_noencode: content_noencode.replace(/[\u200B-\u200D\uFEFF]/gim, ''),
