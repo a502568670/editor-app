@@ -1,4 +1,5 @@
 <template>
+  <div>
     <el-table v-loading="loading" :data="tableData" class="mp_account_table w-full " row-key="id">
       <el-table-column fixed prop="name" label="公众号名称" width="100" />
       <el-table-column prop="login" label="登录状态">
@@ -29,15 +30,24 @@
       <el-table-column prop="female_fans_rate" label="女粉比" :formatter="percentFormatter" />
       <el-table-column prop="male_fans_rate" label="男粉比" :formatter="percentFormatter" />
     </el-table>
+    <el-row class="flex-1 bg-[#fff]" style="margin-bottom: 10px;padding:10px">
+      <pagination class="flex-1 page" :total="accounts.length" @pagination="getListBy" :page="listQuery.page" :limit="listQuery.limit"/>
+      <el-button type="primary" @click="exportData" :loading="!exported">导出数据</el-button>
+    </el-row>
+  </div>
 </template>
 <style scoped>
 .mp_account_table {
-  max-height: calc(100vh - theme('spacing.32'));
+  /* max-height: calc(100vh - theme('spacing.32') - 42px); */
   overflow: scroll;
+}
+.page {
+  padding: 0;
 }
 </style>
 <script setup>
 import {ref} from 'vue';
+import Pagination from '@/components/Pagination'
 import {listAccount} from '@/api/account';
 import {cachedStat,setCachedStat} from '@/api/stat-client';
 var tableData = ref([]);
@@ -54,8 +64,10 @@ window.ipcRenderer.receive('fromMain', (msg) => {
       var pvData = [];      
       var cacheData = [];
       var REG_ILLEGAL = /侵权|投诉|违规|处理|责令|屏蔽|限制|删除|流量主违规/;
-      msg.data.forEach((res, i) => {
-        var {id,name} = newAccounts[i];
+      var {list,exports}=msg.data;
+      var idAccounts = exports?accounts:newAccounts;
+      list.forEach((res, i) => {
+        var {id,name} = idAccounts[i];
         pvData[i] = {
           id,name,login:'登录失败',
           pv:'-',share:'-',subscribe:'-',
@@ -186,12 +198,27 @@ window.ipcRenderer.receive('fromMain', (msg) => {
         }
       });
       loading.value=false;
-      tableData.value = [...tableData.value,...pvData];  
+      if(exports){
+        // 指明导出数据
+        var csv = ['公众号名称,登录状态,粉丝数,7日内违规信息,昨日收入,前天收入,往前3天,往前4天,往前5天,往前6天,往前7天,上周收入,30天收入,本月收入,累计收入,收款账户信息,昨日阅读,昨日分享,昨日增粉,今日发文情况,明天定时情况,女粉比,男粉比'];
+        pvData.forEach(v=>{
+          csv.push(`${v.name},${v.login},${v.total_fans_num},${v.illegal_recent},`
+            +`${moneyFormatter(0,0,v.income_yesterday)},${moneyFormatter(0,0,v.income_yesterday_before2)},${moneyFormatter(0,0,v.income_yesterday_before3)},${moneyFormatter(0,0,v.income_yesterday_before4)},`
+            +`${moneyFormatter(0,0,v.income_yesterday_before5)},${moneyFormatter(0,0,v.income_yesterday_before6)},${moneyFormatter(0,0,v.income_yesterday_before7)},`
+            +`${moneyFormatter(0,0,v.income_last_week)},${moneyFormatter(0,0,v.income_30_days)},${moneyFormatter(0,0,v.income_cur_month)},${moneyFormatter(0,0,v.income_all)},${v.bank},`
+            +`${v.pv},${v.share},${v.subscribe},${v.quota_today},${v.quota_tomorrow},${percentFormatter(0,0,v.female_fans_rate)},${percentFormatter(0,0,v.male_fans_rate)}`);
+        });
+        window.ipcRenderer.send('toMain', {tag: 'stat:exportPvData', data: csv.join('\n')});
+
+        exported.value=true
+      }else{
+        tableData.value = [...tableData.value,...pvData];  
+      }
       if(cacheData.length){
         setCachedStat({items:cacheData});
       }
-      // console.log(accounts, msg.data,pvData);
-      // console.log(msg.data.find(v=>v.status==='fulfilled')?.value.map(v=>JSON.parse(v.value)));
+      // console.log(accounts, list,pvData);
+      // console.log(list.find(v=>v.status==='fulfilled')?.value.map(v=>JSON.parse(v.value)));
       
       break;
     }
@@ -199,24 +226,37 @@ window.ipcRenderer.receive('fromMain', (msg) => {
       break;
   }
 });
-var accounts,newAccounts;
+var accounts=[],newAccounts=[];
 async function main() {
-  var data = await listAccount();
-  accounts = data.data.data.list
-  data = await cachedStat({account_ids:accounts.map(v=>v.id)});  
-  data.data.items.forEach(v=>{
-    var account = accounts.find(vv=>vv.id===v.account_id);
+  var res = await listAccount();
+  accounts = res.data.data.list;
+  await getListBy(listQuery.value);
+}
+main();
+var listQuery=ref({page:1,limit:15});
+async function getListBy(query) {
+  loading.value=true;
+  listQuery.value=query;
+  var {page=1,limit=10}=listQuery.value;
+  var partAccounts = accounts.slice((page-1)*limit,page*limit);
+  var res = await cachedStat({account_ids:partAccounts.map(v=>v.id)});  
+  res.data.items.forEach(v=>{
+    var account = partAccounts.find(vv=>vv.id===v.account_id);
     v.id=v.account_id;
     v.name=account.name;
     v.login='登录成功'
   });
-  tableData.value=data.data.items;
-  newAccounts = accounts.filter(v=>!data.data.items.find(vv=>v.id===vv.account_id));
+  tableData.value=res.data.items;
+  newAccounts = partAccounts.filter(v=>!res.data.items.find(vv=>v.id===vv.account_id));
   if(newAccounts.length){
-    window.ipcRenderer.send('toMain', {tag: 'stat:getPvData', data: newAccounts});
+    window.ipcRenderer.send('toMain', {tag: 'stat:getPvData', data: {list:newAccounts}});
   }else{
     loading.value=false;
   }  
 }
-main();
+var exported=ref(true);
+function exportData() {
+  exported.value=false;
+  window.ipcRenderer.send('toMain', {tag: 'stat:getPvData', data: {list:accounts,exports:1}});
+}
 </script>

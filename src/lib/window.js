@@ -15,6 +15,7 @@ import { createProtocol } from "vue-cli-plugin-electron-builder/lib";
 import global from "./global.js";
 import log from "electron-log";
 import { platform } from "process";
+import iconv from 'iconv-lite';
 
 const shell = require('electron').shell;
 import * as zhCN from '../locales/zh-CN.json'
@@ -471,8 +472,24 @@ async function reactToIpcObjectData(data, tabbedWin, viewContents) {
       break;
     }
     case 'stat:getPvData': {
-      var res = await batchWechatData(data.data);
-      viewContents.send('fromMain', {tag: 'stat-ret:getPvData', data: res});
+      var {list,exports}=data.data;
+      list = await batchWechatData(list);
+      viewContents.send('fromMain', {tag: 'stat-ret:getPvData', data: {list,exports}});
+      break;
+    }
+    case 'stat:exportPvData':{
+      var res = await dialog.showSaveDialog(tabbedWin.win,{
+        defaultPath:path.join(app.getPath('downloads'),'stat.csv'),
+      })
+      var csv = data.data;
+      if(platform === 'win32'){
+        csv = iconv.encode(csv,'gbk');
+      }
+      if(res.filePath){
+        fs.writeFile(res.filePath, csv, (err)=>{
+          if(err) console.error(err)
+        });
+      }
       break;
     }
 

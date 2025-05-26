@@ -1,9 +1,9 @@
 <template>
-  <div class="bg-[#e9f9f1] w-full h-full flex flex-col">
+  <div class="bg-[#e9f9f1] w-full min-h-full flex flex-col">
     <el-container class="flex-1 flex flex-col">
-      <el-tabs v-model="activeName" class="stat-tabs w-full h-full flex-1  px-4" @tab-click="handleClick">
+      <el-tabs v-model="activeName" class="stat-tabs w-full min-h-full flex-1  px-4" @tab-click="handleClick">
         <el-tab-pane label="微信公众号" name="mp_account" class="flex h-full">
-          <MPAccount class="aaa w-full h-full flex-1"></MPAccount>
+          <MPAccount class="aaa w-full flex-1"></MPAccount>
         </el-tab-pane>
       </el-tabs>
     </el-container>

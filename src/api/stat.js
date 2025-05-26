@@ -55,7 +55,7 @@ async function getWechatPvData(info) {
     var opts = {headers:{cookie,referer:'https://mp.weixin.qq.com/'}};
     var d = new Date();
     var date = `${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}`
-    console.log(api.income(info.token),api.incomeMon(info.token));
+    // console.log(api.income(info.token),api.incomeMon(info.token));
     
     var data = await Promise.allSettled([
         netFetch(api.yesterdaySumm(info.token), opts),
