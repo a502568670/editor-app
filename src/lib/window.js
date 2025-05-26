@@ -22,7 +22,7 @@ import * as zhCN from '../locales/zh-CN.json'
 const verbose_log = global.utils.verbose_log;
 const verbose_error = global.utils.verbose_error;
 const get_backend_url_old = global.utils.get_backend_url_old;
-var {batchWechatData} = require('../api/stat.js');
+var {batchWechatData} = require('./mp_stat-tasks.js');
 
 let tabbedWin;
 function showMsg(msg) {

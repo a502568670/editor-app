@@ -74,3 +74,4 @@ async function getWechatPvData(info) {
 
 exports.batchWechatData = batchWechatData;
 exports.toReqOpts = toReqOpts;
+exports.netFetch = netFetch;

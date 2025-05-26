@@ -31,7 +31,7 @@
       <el-table-column prop="male_fans_rate" label="男粉比" :formatter="percentFormatter" />
     </el-table>
     <el-row class="flex-1 bg-[#fff]" style="margin-bottom: 10px;padding:10px">
-      <pagination class="flex-1 page" :total="accounts.length" @pagination="getListBy" :page="listQuery.page" :limit="listQuery.limit"/>
+      <pagination class="flex-1 page" :total="total" @pagination="getListBy" :page="listQuery.page" :limit="listQuery.limit"/>
       <el-button type="primary" @click="exportData" :loading="!exported">导出数据</el-button>
     </el-row>
   </div>
@@ -226,10 +226,11 @@ window.ipcRenderer.receive('fromMain', (msg) => {
       break;
   }
 });
-var accounts=[],newAccounts=[];
+var accounts=[],newAccounts=[],total=ref(0);
 async function main() {
   var res = await listAccount();
   accounts = res.data.data.list;
+  total.value=accounts.length;
   await getListBy(listQuery.value);
 }
 main();
