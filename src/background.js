@@ -21,6 +21,7 @@ app.commandLine.appendSwitch('disable-web-security');
 app.commandLine.appendSwitch('ignore-certificate-errors')
 app.commandLine.appendSwitch('ignore-ssl-errors')
 app.commandLine.appendSwitch("disable-site-isolation-trials");
+app.commandLine.appendSwitch("disable-http2");
 
 const is_dev_check_update = global.utils.is_dev_check_update;
 
