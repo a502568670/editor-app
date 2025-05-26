@@ -6,6 +6,17 @@
         @change="emitChangeForAccount">
         <el-option v-for="(item) in accountsRef" :key="item.id" :label="item.name" :value="item" />
       </el-select>
+      <el-dropdown>
+        <el-button type="primary">
+          新消息<el-icon class="el-icon--right"><arrow-down /></el-icon>
+        </el-button>
+        <template #dropdown>
+          <el-dropdown-menu>
+            <el-dropdown-item @click="() => newArticleGroup(0)">图文消息</el-dropdown-item>
+            <el-dropdown-item @click="() => newArticleGroup(5)">视频消息</el-dropdown-item>
+          </el-dropdown-menu>
+        </template>
+      </el-dropdown>
       <el-button @click="saveArticle" type="danger">暂存文章</el-button>
       <el-button @click="openSendArticleDialog" type="danger">发送到其他账号</el-button>
     </div>
@@ -16,51 +27,66 @@
             @change="emitChangeForAppMsgGroup">
             <el-option v-for="(item) in mp_msg_groupsRef" :key="item.appmsgid" :label="item.name" :value="item" />
           </el-select>
-          <el-button @click="newArticleGroup" class="max-w-[80px]" type="primary">新列表</el-button>
+
+          <!-- <el-button @click="newArticleGroup" class="max-w-[80px]" type="primary">新列表</el-button> -->
         </div>
         <div class="bg-white  shadow-xl">
           <div v-if="mp_msgsRef">
-            <div @click="loadArticle(item)" v-for="(item, index) in mp_msgsRef" :key="item.msg_id"
-              class="flex items-center p-2 border-b w-full">
-              <img v-if="item.cdn_url" :src="item.cdn_url" style="width:0px;height:0px;" referrerpolicy="no-referrer" />
-              <div v-if="index === 0" :style="{ '--image-url': 'url(' + item.cdn_url + ')' }"
-                class='w-full flex h-40 justify-between items-end bg-no-repeat bg-center bg-cover bg-[#e6e6e6] bg-[image:var(--image-url)]'
-                :class="{ 'border-2 border-[#07C160]': (item.msg_id === msg_idRef) }">
-                <div class="flex text-white p-1"><span v-if="item.msg_id === 0">*</span>{{ item.title }}</div>
-                <div class="flex justify-between px-1 space-x-2 py-1 text-white bg-gray-600 opacity-50"
-                  v-if="item.msg_id === msg_idRef">
-                  <el-icon class="cursor-pointer" @click="swapDown(item.msg_id)">
-                    <component :is="ArrowDown"></component>
-                  </el-icon>
-                  <el-icon class="cursor-pointer" @click="deleteArticle(item.msg_id)">
-                    <component :is="Delete"></component>
-                  </el-icon>
+            <div ref="elListMsgsRef" class="overflow-auto">
+              <div @click="loadArticle(item)" v-for="(item, index) in mp_msgsRef" :key="item.msg_id"
+                class="flex items-center p-2 border-b w-full">
+                <img v-if="item.cdn_url" :src="item.cdn_url" style="width:0px;height:0px;"
+                  referrerpolicy="no-referrer" />
+                <div v-if="index === 0" :style="{ '--image-url': 'url(' + item.cdn_url + ')' }"
+                  class='w-full flex h-40 justify-between items-end bg-no-repeat bg-center bg-cover bg-[#e6e6e6] bg-[image:var(--image-url)]'
+                  :class="{ 'border-2 border-[#07C160]': (item.msg_id === msg_idRef) }">
+                  <div class="flex text-white p-1"><span v-if="item.msg_id === 0">*</span>{{ item.title }}</div>
+                  <div class="flex justify-between px-1 space-x-2 py-1 text-white bg-gray-600 opacity-50"
+                    v-if="item.msg_id === msg_idRef">
+                    <el-icon class="cursor-pointer" @click="swapDown(item.msg_id)">
+                      <component :is="ArrowDown"></component>
+                    </el-icon>
+                    <el-icon class="cursor-pointer" @click="deleteArticle(item.msg_id)">
+                      <component :is="Delete"></component>
+                    </el-icon>
+                  </div>
                 </div>
-              </div>
-              <div class="w-full flex h-20 items-center p-1"
-                :class="{ 'border-2 border-[#07C160]': (item.msg_id === msg_idRef) }" v-else>
-                <div class="flex flex-col flex-1 h-full">
-                  <div class="flex-1 h-2/3 w-full max-w-full max-h-2/3 overflow-y-hidden"><span
-                      class="mx-1 text-red-500" v-if="item.msg_id === 0">*</span>{{ item.title }}</div>
-                  <!-- <div class=" text-sm flex-0" style="color: #51ce94">{{ item.author }}</div> -->
-                </div>
-                <img v-if="item.cdn_url" class="w-10 h-10 rounded-sm" :src="item.cdn_url" />
-                <div class="flex flex-col justify-around px-1 h-full" v-if="item.msg_id === msg_idRef">
-                  <el-icon class="cursor-pointer" @click="swapUp(item.msg_id)">
-                    <component :is="ArrowUpRef"></component>
-                  </el-icon>
-                  <el-icon class="cursor-pointer" @click="swapDown(item.msg_id)">
-                    <component :is="ArrowDownRef" v-if="index < mp_msgsRef.length - 1"></component>
-                  </el-icon>
-                  <el-icon class="cursor-pointer" @click="deleteArticle(item.msg_id)">
-                    <component :is="DeleteRef"></component>
-                  </el-icon>
+                <div class="w-full flex h-20 items-center p-1"
+                  :class="{ 'border-2 border-[#07C160]': (item.msg_id === msg_idRef) }" v-else>
+                  <div class="flex flex-col flex-1 h-full">
+                    <div class="flex-1 h-2/3 w-full max-w-full max-h-2/3 overflow-y-hidden"><span
+                        class="mx-1 text-red-500" v-if="item.msg_id === 0">*</span>{{ item.title }}</div>
+                    <!-- <div class=" text-sm flex-0" style="color: #51ce94">{{ item.author }}</div> -->
+                  </div>
+                  <img v-if="item.cdn_url" class="w-10 h-10 rounded-sm" :src="item.cdn_url" />
+                  <div class="flex flex-col justify-around px-1 h-full" v-if="item.msg_id === msg_idRef">
+                    <el-icon class="cursor-pointer" @click="swapUp(item.msg_id)">
+                      <component :is="ArrowUpRef"></component>
+                    </el-icon>
+                    <el-icon class="cursor-pointer" @click="swapDown(item.msg_id)">
+                      <component :is="ArrowDownRef" v-if="index < mp_msgsRef.length - 1"></component>
+                    </el-icon>
+                    <el-icon class="cursor-pointer" @click="deleteArticle(item.msg_id)">
+                      <component :is="DeleteRef"></component>
+                    </el-icon>
+                  </div>
                 </div>
               </div>
             </div>
             <div class="w-full flex h-20 items-center p-1 justify-center">
               <!-- <div @click="newArticle()"  class="cursor-pointer">+新建文章</div> -->
-              <el-button @click="newArticle" type="primary">新建文章</el-button>
+              <!-- <el-button @click="newArticle" type="primary">新建文章</el-button> -->
+              <el-dropdown>
+                <el-button type="primary">
+                  新建文章<el-icon class="el-icon--right"><arrow-down /></el-icon>
+                </el-button>
+                <template #dropdown>
+                  <el-dropdown-menu>
+                    <el-dropdown-item @click="() => newArticle(0)">图文</el-dropdown-item>
+                    <el-dropdown-item @click="() => newArticle(5)">视频</el-dropdown-item>
+                  </el-dropdown-menu>
+                </template>
+              </el-dropdown>
             </div>
           </div>
         </div>
@@ -69,8 +95,33 @@
       <el-col :span="12" class="h-full" v-loading="globalLoadingRef">
         <div class="h-full flex flex-col">
           <div ref="ueditor_wrapper" class="flex-1">
-            <vue-ueditor-wrap v-model="currentArticleRef.content_noencode" editor-id="editor" @ready="ready"
-              :config="editorConfigRef" :editorDependencies="['ueditor.config.js', 'ueditor.all.js']" />
+            <vue-ueditor-wrap v-if="currentArticleRef.item_show_type === 0" v-model="currentArticleRef.content_noencode"
+              editor-id="editor" @ready="ready" :config="editorConfigRef"
+              :editorDependencies="['ueditor.config.js', 'ueditor.all.js']" />
+            <div v-if="currentArticleRef.item_show_type === 5" class="w-full p-2">
+              <el-row :gutter="4" class="mb-1 w-full">
+                <el-col :span="24">
+                  <el-input v-model="currentArticleRef.title" clearable class="w-full" placeholder="请输入文章标题" />
+                </el-col>
+              </el-row>
+              <el-row :gutter="4" class="mb-1 w-full">
+                <el-col :span="24" class="flex w-full">
+                  <!-- <el-input v-model="currentArticleRef.author" clearable class="w-full" placeholder="请输入视频介绍,可以不填" /> -->
+                  <el-mention v-model="currentArticleRef.guide_words" type="textarea" class="w-full"
+                    placeholder="请输入视频介绍,可以不填" />
+                </el-col>
+              </el-row>
+              <el-row :gutter="4" class="mb-1 w-full">
+                <el-col :span="24" class="flex justify-center items-center">
+                  <div v-if="!currentArticleRef.vid" class="flex-1 flex justify-center h-[60px]">
+                    <el-button @click="openVideoMaterialDialog" class="max-w-[80px]  m-auto"
+                      type="primary">视频素材</el-button>
+                  </div>
+                  <div v-else v-html="currentArticleRef.content_noencode">
+                  </div>
+                </el-col>
+              </el-row>
+            </div>
           </div>
         </div>
       </el-col>
@@ -82,7 +133,7 @@
             <Link />
           </el-icon>
           <el-icon :size="20" class="cursor-pointer flex justify-center" @click="openAdDialog" title="设置广告">
-            <RadioTower />
+            <DollarSign />
           </el-icon>
           <Minus class="text-gray-200" />
           <!-- <div class="flex-1"></div> -->
@@ -142,6 +193,14 @@
         </el-row>
         <el-row :gutter="4" class="mb-1">
           <el-col :span="24">
+            <!-- 创作来源 -->
+            <el-select v-model="selected_claim_source_typeRef" value-key="id" filterable placeholder="创作来源">
+              <el-option v-for="(item) in claim_source_typesRef" :key="item.id" :label="item.name" :value="item" />
+            </el-select>
+          </el-col>
+        </el-row>
+        <el-row :gutter="4" class="mb-1">
+          <el-col :span="24">
             <el-checkbox label="声明原创" v-model="copyrightRef" />
           </el-col>
         </el-row>
@@ -161,11 +220,7 @@
             </el-radio-group>
           </el-col>
         </el-row>
-        <el-row :gutter="4" class="mb-1">
-          <el-col :span="24">
-            <el-button @click="openAdDialog" type="primary">插入广告</el-button>
-          </el-col>
-        </el-row>
+
         <el-row :gutter="4" class="my-2">
           <el-col :span="24">
             <hr />
@@ -194,6 +249,27 @@
         <el-button @click="handleLocalExtractMpArticleUrl" type="primary">提取链接内容</el-button>
       </el-col>
     </el-row>
+  </el-dialog>
+  <el-dialog :close-on-click-modal="false" title="视频素材" v-model="dialogVideoMaterialRef" width="600px">
+    <el-row :gutter="40" class="w-full h-[400px]" v-loading="videoLoadingRef">
+      <el-col :span="24" class="w-full h-full overflow-auto">
+        <div class="w-full flex flex-wrap justify-start gap-4 ">
+          <div v-for="(item, index) in videosRef" :key="index" class="w-[250px]"
+            :class="{ 'border border-green-400': item.vid == selected_videoRef?.vid }">
+            <el-card class="w-full" @click="handleChooseVideo(item)">
+              <template #header>{{ item.title }}</template>
+              <img :src="item.cdn_url" height="48" />
+            </el-card>
+          </div>
+        </div>
+      </el-col>
+    </el-row>
+    <template #footer>
+      <div class="dialog-footer">
+        <el-button @click="dialogVideoMaterialRef = false">取消</el-button>
+        <el-button @click="handleImportVideo" type="primary">确定</el-button>
+      </div>
+    </template>
   </el-dialog>
   <el-dialog :close-on-click-modal="false" title="设置广告" v-model="dialogAdVisibleRef" width="600px">
     <el-form ref="dataForm" :rules="rules" :model="dataForm" status-icon label-position="top" label-width="100px">
@@ -407,14 +483,16 @@ import {
   listArticlesByAppMsg, listArticleGroups, swapArticles,
   deleteArticleDraft, genArticleDraftPreviewUrl, previewQRCode,
 } from "@/api/article"
-import { getMpUserInfo, getLastPreviewAccounts, sendPreview, } from "@/api/mp_wechat"
+import { getMpUserInfo, getLastPreviewAccounts, sendPreview, listVideos, } from "@/api/mp_wechat"
 import { getArticleContent, getArticleContent2 } from '@/api/jzl'
 import { format_to_UEditor_html, restore_from_UEditor_html } from "@/utils/dom";
 import { ad_categorys, adMarkerContentInUEditor, format_ad_content_in_UEditor, restore_ad_content_from_UEditor, has_ad_in_wangEditor, has_ad_in_raw } from "@/utils/ad"
+import { getVideoFrameHtml } from "@/utils/video"
+import { claim_source_types } from "@/utils/constants"
 import { ElMessage, ElMessageBox, ElLoading } from 'element-plus'
 import { ArrowUp, ArrowDown, Delete, CircleCheckFilled, CircleCloseFilled, InfoFilled } from '@element-plus/icons-vue'
 import { removeAppMsgId, setAppMsgId, getAppMsgId, getSelectedAccountId, setSelectedAccountId } from '@/utils/editor'
-import { Link, Link2, RadioTower, SquareTerminal, Eye, ScanEye, Minus, Smartphone } from 'lucide-vue-next';
+import { Link, Link2, RadioTower, DollarSign, SquareTerminal, Eye, ScanEye, Minus, Smartphone } from 'lucide-vue-next';
 import axios from 'axios'
 import JSON5 from "json5"
 
@@ -512,6 +590,7 @@ const msg_idRef = ref(0)
 const mp_msgsRef = ref([])
 const mp_msg_groupsRef = ref([])
 const selected_mp_msg_groupRef = ref(null)
+const elListMsgsRef = ref(null)
 // 封面
 const cdnRef = ref(null)
 const selectedCdnImageRef = ref(null)
@@ -523,6 +602,10 @@ const copyrightRef = ref(false)
 // 留言
 const needOpenCommentRef = ref(false)
 const commentTypeRef = ref("0") // 0-全部 1-只有粉丝 
+
+// 创作来源
+const claim_source_typesRef = ref(claim_source_types)
+const selected_claim_source_typeRef = ref(claim_source_types[0])
 
 // 广告
 const ad_idRef = ref(0)
@@ -559,12 +642,19 @@ const extractArticleUrlRef = ref("")
 const dialogExtractMpAritcleUrlRef = ref(false)
 const timeoutExtract = 3 * 1000; // ms
 
+// 视频素材
+const dialogVideoMaterialRef = ref(false)
+const videosRef = ref([])
+const selected_videoRef = ref(null)
+const videoLoadingRef = ref(false)
+
 // global loading
 const globalLoadingRef = ref(false)
 
 
 // 文章正文
 const currentArticleRef = ref({
+  item_show_type: 0, // 0:图文 5:纯视频 7:纯音乐 8:纯图片 10:纯文字 11:转载文章
   title: "",
   author: "",
   copyright_type: 0,
@@ -576,6 +666,9 @@ const currentArticleRef = ref({
   sourceurl: "",
   insert_ad_mode: 2,
   can_insert_ad: 1,
+  claim_source_type: 0,
+  guide_words: "", // item_show_type=5
+  vid: "",
   // content_noencode: "<section>hello</section>",
   content_noencode: "",
 })
@@ -594,6 +687,9 @@ function ready(editorInstance) {
   // console.log("toolbarHeight:", toolbarHeight)
   // console.log("conatinerHeight:", conatinerHeight)
   editorInstance.setHeight(wrapprHeight - toolbarHeight - 30)
+  // listHeightRef.value = `${wrapprHeight-120}px`
+  elListMsgsRef.value.style.height = `${wrapprHeight - 120}px`
+
 }
 
 
@@ -851,6 +947,12 @@ const loadArticle = (mp_msg) => {
     insertAdTypeRef.value = "" + currentArticleRef.value.insert_ad_mode
   }
 
+  // 创作来源
+  const find_claim_source_type = claim_source_types.find(v => v.id === currentArticleRef.value.claim_source_type)
+  if (find_claim_source_type) {
+    selected_claim_source_typeRef.value = find_claim_source_type
+  }
+
   // const toolbar = DomEditor.getToolbar(editorRef.value);
   // console.log("toolbar keys:", toolbar.getConfig().toolbarKeys)
   // console.log("menu keys:", editorRef.value.getAllMenuKeys())
@@ -909,7 +1011,7 @@ const checkHasNotSave = (showMessage) => {
   return !!not_save
 }
 
-const newArticle = () => {
+const newArticle = async (item_show_type = 0) => {
   if (checkHasNotSave(true)) {
     return
   }
@@ -922,6 +1024,7 @@ const newArticle = () => {
   }
 
   const new_mp_msg = {
+    item_show_type,
     title: "新标题1",
     author: "",
     copyright_type: 0,
@@ -941,6 +1044,17 @@ const newArticle = () => {
   })
 
   loadArticleByMsgId(0)
+  
+  // console.log('elListMsgsRef.value.scrollHeight=>', elListMsgsRef.value.scrollHeight)
+  // elListMsgsRef.value.scrollTop = elListMsgsRef.value.scrollHeight
+  await nextTick()
+  elListMsgsRef.value.lastElementChild?.scrollIntoView({ behavior: 'smooth' })
+  // nextTick(() => {
+  //   elListMsgsRef.value.scrollTop = elListMsgsRef.value.scrollHeight
+  //   // elListMsgsRef.value.scrollIntoView({ behavior: 'smooth', block: 'end' })
+  // })
+
+  
 
   // msg_idRef.value = 0
   // currentArticleRef.value = new_mp_msg
@@ -1008,6 +1122,9 @@ const saveArticle = async () => {
     currentArticleRef.value.only_fans_can_comment = 0
     currentArticleRef.value.only_fans_days_can_comment = 0
   }
+
+  // 创作来源
+  currentArticleRef.value.claim_source_type = selected_claim_source_typeRef.value.id
 
 
   console.log("adCategoryChoosedRef=>", adCategoryChoosedRef.value)
@@ -1253,11 +1370,13 @@ const clickAllOtherAccounts = (checkedAll) => {
   }
 }
 
-const newArticleGroup = () => {
+
+const newArticleGroup = (item_show_type = 0) => {
   msg_idRef.value = 0
   mp_msgsRef.value = []
   selected_mp_msg_groupRef.value = null
   currentArticleRef.value = {
+    item_show_type,
     title: "",
     author: "",
     copyright_type: 0,
@@ -1271,6 +1390,7 @@ const newArticleGroup = () => {
 
 
 // event handler
+
 const emitChangeForAppMsgGroup = async (val) => {
   console.log("emitChangeForAppMsgGroup val=>", val)
   if (val) {
@@ -1398,6 +1518,63 @@ const handleLocalExtractMpArticleUrl = async () => {
     globalLoadingRef.value = false
     dialogExtractMpAritcleUrlRef.value = false
   }, timeoutExtract)
+}
+
+const openVideoMaterialDialog = async () => {
+  dialogVideoMaterialRef.value = true
+  videoLoadingRef.value = true
+  selected_videoRef.value = null
+  videosRef.value = []
+
+  const { token, session_id, name } = selectedAccount.value
+
+  const ret = await listVideos({
+    cookies: serializeCookie(JSON.parse(session_id)["cookie"]),
+    token: parseInt(token),
+    begin: 0,
+    count: 100,
+  }).catch((e) => {
+    console.log("listVideos catch:", e)
+    // handleActionErr(name, e)
+  }).finally(() => {
+    videoLoadingRef.value = false
+  })
+  console.log("videos=>", ret)
+  // videosRef.value = [...ret.data, ...ret.data, ...ret.data, ...ret.data, ...ret.data]
+  videosRef.value = ret.data
+}
+
+const handleChooseVideo = (val) => {
+  selected_videoRef.value = val
+  console.log("handleChooseVideo=>", selected_videoRef.value)
+}
+
+const handleImportVideo = () => {
+  if (!selected_videoRef.value) {
+    ElMessageBox.alert('请选择需要导入的视频', '信息', {
+      confirmButtonText: '确定',
+      type: 'info'
+    }).catch(() => { })
+    return
+  }
+  const { vid, title, cdn_url, guide_words } = selected_videoRef.value
+  const content_noencode = getVideoFrameHtml(vid, cdn_url) //`<iframe class="edui-video-iframe" data-vidtype="2" data-mpvid="${vid}" data-cover="${cdn_url}" allowfullscreen="" frameborder="0" data-w="1080" data-ratio="0.5625" style="border-radius: 4px;" src="https://mp.weixin.qq.com/cgi-bin/readtemplate?t=tmpl/video_tmpl&vid=${vid}" width="100%"  frameborder="0" allowfullscreen=""></iframe>`
+  // guide_words
+  currentArticleRef.value = {
+    ...currentArticleRef.value,
+    // content_noencode: content_noencode.replace(/[\u200B-\u200D\uFEFF]/gim, ''),
+    // content_noencode: "<p>" + format_to_wangEditor_html(content_noencode) + "<p>",
+    content_noencode,
+    title,
+    cdn_url,
+    vid,
+    guide_words,
+  }
+  const idx = mp_msgsRef.value.findIndex(v => v.msg_id === currentArticleRef.value.msg_id)
+  if (idx !== -1) {
+    mp_msgsRef.value[idx] = currentArticleRef.value
+  }
+  dialogVideoMaterialRef.value = false
 }
 
 const openAdDialog = () => {
@@ -1715,11 +1892,14 @@ window.ipcRenderer.receive('fromMain', (msg) => {
       console.log(`tag:${msg.tag}`, typeof msg.data)
       const { title, nick_name, copyright_stat, cdn_url, item_show_type } = msg.data
       let { content_noencode } = msg.data
-      // console.log("content_noencode=>", content_noencode)
+      console.log("msg.data=>", msg.data)
+      let guide_words = "", vid = ""
       if (item_show_type === 5) {
         // 独立视频
         const { video_id } = msg.data
-        content_noencode = `<iframe class="edui-video-iframe" data-vidtype="2" data-mpvid="${video_id}" data-cover="${cdn_url}" allowfullscreen="" frameborder="0" data-w="1080" data-ratio="0.5625" style="border-radius: 4px;" src="https://mp.weixin.qq.com/cgi-bin/readtemplate?t=tmpl/video_tmpl&vid=${video_id}" width="420" height="280" frameborder="0" allowfullscreen=""></iframe>` + content_noencode
+        guide_words = content_noencode
+        vid = video_id
+        content_noencode = getVideoFrameHtml(vid, cdn_url) //`<iframe class="edui-video-iframe" data-vidtype="2" data-mpvid="${video_id}" data-cover="${cdn_url}" allowfullscreen="" frameborder="0" data-w="1080" data-ratio="0.5625" style="border-radius: 4px;" src="https://mp.weixin.qq.com/cgi-bin/readtemplate?t=tmpl/video_tmpl&vid=${video_id}" width="420" height="280" frameborder="0" allowfullscreen=""></iframe>`
       }
 
       currentArticleRef.value = {
@@ -1731,6 +1911,12 @@ window.ipcRenderer.receive('fromMain', (msg) => {
         author: nick_name,
         copyright_type: copyright_stat,
         cdn_url,
+        guide_words,
+        vid,
+      }
+      const idx = mp_msgsRef.value.findIndex(v => v.msg_id === currentArticleRef.value.msg_id)
+      if (idx !== -1) {
+        mp_msgsRef.value[idx] = currentArticleRef.value
       }
     }
 

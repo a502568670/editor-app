@@ -26,3 +26,12 @@ export function sendPreview(data) {
     data
   })
 }
+
+// 获取素材库视频
+export function listVideos(data) {
+  return request({
+    url: `/mp_wechat/video/list`,
+    method: 'post',
+    data
+  })
+}
