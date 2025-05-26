@@ -1044,7 +1044,7 @@ const newArticle = async (item_show_type = 0) => {
   })
 
   loadArticleByMsgId(0)
-  
+
   // console.log('elListMsgsRef.value.scrollHeight=>', elListMsgsRef.value.scrollHeight)
   // elListMsgsRef.value.scrollTop = elListMsgsRef.value.scrollHeight
   await nextTick()
@@ -1054,7 +1054,7 @@ const newArticle = async (item_show_type = 0) => {
   //   // elListMsgsRef.value.scrollIntoView({ behavior: 'smooth', block: 'end' })
   // })
 
-  
+
 
   // msg_idRef.value = 0
   // currentArticleRef.value = new_mp_msg
@@ -1890,18 +1890,23 @@ window.ipcRenderer.receive('fromMain', (msg) => {
     const tag = msg.tag;
     if (tag === "localExtractMpArticleUrlResult") {
       console.log(`tag:${msg.tag}`, typeof msg.data)
-      const { title, nick_name, copyright_stat, cdn_url, item_show_type } = msg.data
-      let { content_noencode } = msg.data
+      const { title, nick_name, copyright_stat, cdn_url, item_show_type, video_page_infos } = msg.data
+      let { content_noencode, content_text } = msg.data
       console.log("msg.data=>", msg.data)
       let guide_words = "", vid = ""
-      if (item_show_type === 5) {
+      console.log("item_show_type=>", item_show_type)
+      // const { video_page_infos } = msg.data
+      if (video_page_infos && video_page_infos.length > 0) {
         // 独立视频
-        const { video_id } = msg.data
-        guide_words = content_noencode
-        vid = video_id
+        console.log("video_page_infos=>",)
+        guide_words = content_text
+        vid = video_page_infos[0].video_id
         content_noencode = getVideoFrameHtml(vid, cdn_url) //`<iframe class="edui-video-iframe" data-vidtype="2" data-mpvid="${video_id}" data-cover="${cdn_url}" allowfullscreen="" frameborder="0" data-w="1080" data-ratio="0.5625" style="border-radius: 4px;" src="https://mp.weixin.qq.com/cgi-bin/readtemplate?t=tmpl/video_tmpl&vid=${video_id}" width="420" height="280" frameborder="0" allowfullscreen=""></iframe>`
       }
-
+      if (currentArticleRef.value.item_show_type === 0) {
+        content_noencode = content_noencode + "<p>" + content_text + "<p>"
+      }
+      
       currentArticleRef.value = {
         ...currentArticleRef.value,
         // content_noencode: content_noencode.replace(/[\u200B-\u200D\uFEFF]/gim, ''),

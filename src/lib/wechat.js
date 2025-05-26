@@ -338,7 +338,7 @@ async function init(d, postTokenInWin) {
     const isLoggedIn = await checkLoginStatus();
     verbose_log('登录状态:', isLoggedIn);
     // verbose_log("viewData.tabWin=>", viewData.tabWin)
-    if (viewData.tabWin) {
+    if ('https://mp.weixin.qq.com/' != currentURL && viewData.tabWin) {
       verbose_log("send to ipcRender: account_check_login =>", isLoggedIn)
       viewData.tabWin.raiseRenderAct('account_check_login', isLoggedIn)
     }
