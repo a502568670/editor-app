@@ -1,8 +1,9 @@
+
 import request from '@/utils/requestJson'
 
-export function uploadImage(data) {
+export function saveAppMsg(data) {
   return request({
-    url: '/upload-image',
+    url: '/appmsg/save',
     method: 'post',
     data
   })

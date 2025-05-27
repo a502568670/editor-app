@@ -85,6 +85,14 @@ export function deleteArticleDraft(data) {
   })
 }
 
+export function removeMpMsg(data) {
+  return request({
+    url: `/mp_msg/remove`,
+    method: 'post',
+    data
+  })
+}
+
 export function genArticleDraftPreviewUrl(data) {
   return request({
     url: `/mp_msg/gen_preview_url`,
