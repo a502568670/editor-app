@@ -7,7 +7,7 @@
  */
 'use strict'
 
-import { app, protocol, BrowserWindow, Menu } from 'electron'
+import { app, protocol, BrowserWindow, Menu,session, dialog } from 'electron'
 import updater from "./updater"
 import { createProtocol } from 'vue-cli-plugin-electron-builder/lib'
 import installExtension, { VUEJS3_DEVTOOLS } from 'electron-devtools-installer'
@@ -139,6 +139,20 @@ app.on('ready', async () => {
     }
   }
   tabbedWin = await createTabbedWin()
+  var confirmed=false;
+  tabbedWin.win.on('close',async (evt)=>{
+    if(process.platform==='win32'&&!globalThis.__UPDATING__&&!confirmed){
+      evt.preventDefault();
+      var res = await dialog.showMessageBox(tabbedWin.win,{
+        type:'info',message:'确认退出极致了编辑器吗？',
+        buttons:['取消','确认退出'],noLink:true,
+      })
+      if(res.response===1){
+        confirmed=true;
+        app.quit(0);
+      }
+    }
+  })
 })
 
 app.on("second-instance", () => {
