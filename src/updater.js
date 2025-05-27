@@ -55,7 +55,7 @@ export default () => {
     win = new BrowserWindow({
       width: 300,
       height: 300,
-      title: "极致了编辑器自动更新",
+      title: "稿轻松自动更新",
       frame: false,
       transparent: true,
       // alwaysOnTop: true,

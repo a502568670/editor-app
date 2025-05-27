@@ -43,7 +43,7 @@ module.exports = {
   // publicPath: './',
   chainWebpack: (config) => {
     config.plugin('html').tap((args) => {
-      args[0].title = '极致了编辑器'
+      args[0].title = '稿轻松'
       return args
     })
   },
@@ -64,7 +64,7 @@ module.exports = {
           createStartMenuShortcut: true,
           allowToChangeInstallationDirectory: true,
           createDesktopShortcut: "always",
-          shortcutName: "极致了编辑器",
+          shortcutName: "稿轻松",
           installerLanguages: "zh_CN",
           language: "2052",
           oneClick: false,

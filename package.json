@@ -2,7 +2,7 @@
   "name": "jzl_editor",
   "version": "0.2.0",
   "private": true,
-  "description": "极致了编辑器",
+  "description": "稿轻松",
   "author": "jzl_editor",
   "scripts": {
     "serve": "vue-cli-service serve",

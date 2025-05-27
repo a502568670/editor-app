@@ -144,7 +144,7 @@ app.on('ready', async () => {
     if(process.platform==='win32'&&!globalThis.__UPDATING__&&!confirmed){
       evt.preventDefault();
       var res = await dialog.showMessageBox(tabbedWin.win,{
-        type:'info',message:'确认退出极致了编辑器吗？',
+        type:'info',message:'确认退出稿轻松吗？',
         buttons:['取消','确认退出'],noLink:true,
       })
       if(res.response===1){
