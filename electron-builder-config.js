@@ -2,10 +2,10 @@ const dotenv = require("dotenv");
 dotenv.config();
 
 const config = {
-  appId: "com.dajiala.jzl.editor",
-  productName: "jzl_editor",
-  artifactName: "jzl_editor.${ext}",
-  buildVersion: `0.1.0`,
+  appId: "com.dajiala.gaoqingsong",
+  productName: "gaoqingsong",
+  artifactName: "gaoqingsong.${ext}",
+  buildVersion: `0.2.0`,
   copyright: `Copyright ${process.env.AUTHOR}`,
   extraMetadata: {
       author: {

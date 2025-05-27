@@ -1,5 +1,4 @@
 import request from '@/utils/requestJson'
-import { getToken } from "@/utils/auth";
 // {
 //   wechat_id: 123
 //   msg_id: 0 | 123
@@ -32,28 +31,6 @@ export function send_to_other_accounts(data) {
   })
 }
 
-export async function send_to_other_accounts_events(data, cb) {
-  const url = window.envVars.backend_url + '/mp_msg/send_to_other_accounts/events'
-  const token = getToken()
-  // 'application/json'
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`,
-    },
-    body: JSON.stringify(data)
-  })
-  const reader = response.body.pipeThrough(new TextDecoderStream()).getReader()
-  while (true) {
-    const { value, done } = await reader.read();
-    if (done) {
-      break;
-    }
-    cb(value)
-  }
-}
-
 export function listArticlesByAppMsg(appmsgid) {
   return request({
     url: `/mp_msg/${appmsgid}/list`
@@ -80,6 +57,14 @@ export function swapArticles(msg_id1, msg_id2) {
 export function deleteArticleDraft(data) {
   return request({
     url: `/mp_msg/delete`,
+    method: 'post',
+    data
+  })
+}
+
+export function removeMpMsg(data) {
+  return request({
+    url: `/mp_msg/remove`,
     method: 'post',
     data
   })

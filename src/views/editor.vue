@@ -228,7 +228,7 @@ span[data-slate-zero-width="n"] {
 <script>
 import '@wangeditor/editor/dist/css/style.css' // 引入 css
 import { listAccount } from '@/api/account'
-import { saveArticleDraft, listArticlesByAppMsg, listArticleGroups, swapArticles, deleteArticleDraft } from "@/api/article"
+import { saveArticleDraft, listArticlesByAppMsg, listArticleGroups, swapArticles, deleteArticleDraft } from "@/api/mp_msg"
 import { getArticleContent, getArticleContent2 } from '@/api/jzl'
 import { format_to_wangEditor_html, restore_from_wangEditor_html } from "@/utils/dom";
 import { ad_categorys, format_ad_content, restore_ad_content, has_ad_in_wangEditor, has_ad_in_raw } from "@/utils/ad"

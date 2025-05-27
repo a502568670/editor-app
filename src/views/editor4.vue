@@ -8,7 +8,7 @@
       </el-select>
       <el-dropdown>
         <el-button type="primary">
-          新消息<el-icon class="el-icon--right"><arrow-down /></el-icon>
+          新消息列表<el-icon class="el-icon--right"><arrow-down /></el-icon>
         </el-button>
         <template #dropdown>
           <el-dropdown-menu>
@@ -17,10 +17,12 @@
           </el-dropdown-menu>
         </template>
       </el-dropdown>
-      <el-button @click="saveArticle" type="danger">暂存文章</el-button>
-      <el-button @click="openSendArticleDialog" type="danger">发送到其他账号</el-button>
+      <!-- <el-button @click="saveArticle" type="danger">暂存文章</el-button> -->
+      <el-button @click="handleSaveAppMsg" type="success">暂存</el-button>
+      <el-button @click="handleSyncToWechatDraftBox" type="danger">同步到微信草稿箱</el-button>
+      <el-button @click="openSendArticleDialog" type="danger">同步到其他账号</el-button>
     </div>
-    <el-row :gutter="0" class="flex-1 ">
+    <el-row :gutter="0" class="flex-1">
       <el-col :span="6" class="h-full overflow-scroll bg-white">
         <div class="grid-content flex space-x-1 pl-1 mt-1">
           <el-select v-model="selected_mp_msg_groupRef" value-key="appmsgid" filterable placeholder="文章列表"
@@ -32,8 +34,8 @@
         </div>
         <div class="bg-white  shadow-xl">
           <div v-if="mp_msgsRef">
-            <div ref="elListMsgsRef" class="overflow-auto">
-              <div @click="loadArticle(item)" v-for="(item, index) in mp_msgsRef" :key="item.msg_id"
+            <div ref="elListMsgsRef" class="overflow-auto" style="height:calc(100vh - 230px)">
+              <div @click="loadArticle(item, true)" v-for="(item, index) in mp_msgsRef" :key="item.msg_id"
                 class="flex items-center p-2 border-b w-full">
                 <img v-if="item.cdn_url" :src="item.cdn_url" style="width:0px;height:0px;"
                   referrerpolicy="no-referrer" />
@@ -46,7 +48,7 @@
                     <el-icon class="cursor-pointer" @click="swapDown(item.msg_id)">
                       <component :is="ArrowDown"></component>
                     </el-icon>
-                    <el-icon class="cursor-pointer" @click="deleteArticle(item.msg_id)">
+                    <el-icon class="cursor-pointer" @click="removeArticle(item.msg_id)">
                       <component :is="Delete"></component>
                     </el-icon>
                   </div>
@@ -56,8 +58,9 @@
                   <div class="flex flex-col flex-1 h-full">
                     <div class="flex-1 h-2/3 w-full max-w-full max-h-2/3 overflow-y-hidden"><span
                         class="mx-1 text-red-500" v-if="item.msg_id === 0">*</span>
-                      <el-icon v-if="item.item_show_type === 5" :size="20" class="cursor-pointer flex justify-center items-end" title="视频文章">
-                        <Video  />
+                      <el-icon v-if="item.item_show_type === 5" :size="20"
+                        class="cursor-pointer flex justify-center items-end" title="视频文章">
+                        <Video />
                       </el-icon>
                       {{ item.title }}
                     </div>
@@ -71,7 +74,7 @@
                     <el-icon class="cursor-pointer" @click="swapDown(item.msg_id)">
                       <component :is="ArrowDownRef" v-if="index < mp_msgsRef.length - 1"></component>
                     </el-icon>
-                    <el-icon class="cursor-pointer" @click="deleteArticle(item.msg_id)">
+                    <el-icon class="cursor-pointer" @click="removeArticle(item.msg_id)">
                       <component :is="DeleteRef"></component>
                     </el-icon>
                   </div>
@@ -83,12 +86,12 @@
               <!-- <el-button @click="newArticle" type="primary">新建文章</el-button> -->
               <el-dropdown>
                 <el-button type="primary">
-                  新建文章<el-icon class="el-icon--right"><arrow-down /></el-icon>
+                  新建消息<el-icon class="el-icon--right"><arrow-down /></el-icon>
                 </el-button>
                 <template #dropdown>
                   <el-dropdown-menu>
-                    <el-dropdown-item @click="() => newArticle(0)">图文</el-dropdown-item>
-                    <el-dropdown-item @click="() => newArticle(5)">视频</el-dropdown-item>
+                    <el-dropdown-item @click="() => newArticle(true, 0)">图文</el-dropdown-item>
+                    <el-dropdown-item @click="() => newArticle(true, 5)">视频</el-dropdown-item>
                   </el-dropdown-menu>
                 </template>
               </el-dropdown>
@@ -96,17 +99,17 @@
           </div>
         </div>
       </el-col>
-
       <el-col :span="12" class="h-full" v-loading="globalLoadingRef">
         <div class="h-full flex flex-col">
-          <div ref="ueditor_wrapper" class="flex-1">
-            <vue-ueditor-wrap v-if="currentArticleRef.item_show_type === 0" v-model="currentArticleRef.content_noencode"
-              editor-id="editor" @ready="ready" :config="editorConfigRef"
+          <div ref="ueditor_wrapper" style="height:calc(100vh - 140px)">
+            <vue-ueditor-wrap v-if="msg_idRef !== 0 && currentArticleRef.item_show_type === 0"
+              v-model="currentArticleRef.content_noencode" editor-id="editor" @ready="ready" :config="editorConfigRef"
               :editorDependencies="['ueditor.config.js', 'ueditor.all.js']" />
-            <div v-if="currentArticleRef.item_show_type === 5" class="w-full p-2">
+            <div v-if="msg_idRef !== 0 && currentArticleRef.item_show_type === 5" class="w-full p-2">
               <el-row :gutter="4" class="mb-1 w-full">
                 <el-col :span="24">
-                  <el-input v-model="currentArticleRef.title" clearable class="w-full" placeholder="请输入文章标题" />
+                  <el-input v-model="currentArticleRef.title" clearable class="w-full" placeholder="请输入文章标题"
+                    @input="syncToList('title')" />
                 </el-col>
               </el-row>
               <el-row :gutter="4" class="mb-1 w-full">
@@ -165,9 +168,10 @@
         </div>
       </el-col>
       <el-col :span="5" class="h-full p-1">
-        <el-row :gutter="4" class="mb-1">
+        <el-row :gutter="4" class="mb-1" v-if="currentArticleRef.item_show_type !== 5">
           <el-col :span="24">
-            <el-input v-model="currentArticleRef.title" clearable class="grid-content-control" placeholder="请输入文章标题" />
+            <el-input v-model="currentArticleRef.title" clearable class="grid-content-control" placeholder="请输入文章标题"
+              @input="syncToList('title')" />
           </el-col>
         </el-row>
         <el-row :gutter="4" class="mb-1">
@@ -484,13 +488,15 @@ import { ref, shallowRef, onMounted, onBeforeUnmount, nextTick } from 'vue';
 import { listAccount } from '@/api/account'
 import { getToken } from "@/utils/auth";
 import {
-  saveArticleDraft, send_to_other_accounts, send_to_other_accounts_events,
+  saveArticleDraft,
   listArticlesByAppMsg, listArticleGroups, swapArticles,
-  deleteArticleDraft, genArticleDraftPreviewUrl, previewQRCode,
-} from "@/api/article"
+  deleteArticleDraft, removeMpMsg, genArticleDraftPreviewUrl, previewQRCode,
+} from "@/api/mp_msg"
+import { saveAppMsg, send_to_other_accounts_events } from "@/api/appmsg"
 import { getMpUserInfo, getLastPreviewAccounts, sendPreview, listVideos, } from "@/api/mp_wechat"
 import { getArticleContent, getArticleContent2 } from '@/api/jzl'
 import { format_to_UEditor_html, restore_from_UEditor_html } from "@/utils/dom";
+import { uploadImage } from "@/api/img"
 import { ad_categorys, adMarkerContentInUEditor, format_ad_content_in_UEditor, restore_ad_content_from_UEditor, has_ad_in_wangEditor, has_ad_in_raw } from "@/utils/ad"
 import { getVideoFrameHtml } from "@/utils/video"
 import { claim_source_types } from "@/utils/constants"
@@ -684,16 +690,17 @@ const currentArticleRef = ref({
 function ready(editorInstance) {
   console.log(`编辑器实例${editorInstance.key}: `, editorInstance);
   editorRef.value = editorInstance;
+
   const wrapprHeight = ueditor_wrapper.value.clientHeight
-  // console.log("wrapprHeight=>", wrapprHeight)
+  console.log("wrapprHeight=>", wrapprHeight)
   // document.querySelector('#edui1_iframeholder').style.height = 'calc(100% - 100px)';
   const toolbarHeight = document.querySelector(".edui-editor-toolbarbox .edui-default").clientHeight
   // const conatinerHeight = document.querySelector("#edui1").clientHeight
   // console.log("toolbarHeight:", toolbarHeight)
   // console.log("conatinerHeight:", conatinerHeight)
-  editorInstance.setHeight(wrapprHeight - toolbarHeight - 30)
+  editorInstance.setHeight(wrapprHeight - toolbarHeight + 1)
   // listHeightRef.value = `${wrapprHeight-120}px`
-  elListMsgsRef.value.style.height = `${wrapprHeight - 120}px`
+  // elListMsgsRef.value.style.height = `${wrapprHeight - 120}px`
 
 }
 
@@ -832,10 +839,11 @@ const needRefreshGroup = (msg_id) => {
   }
   return true
 }
-const createBase64Image = (fileObject) => {
+const createBase64Image = async (fileObject) => {
   const reader = new FileReader();
+  const filename = fileObject.name;
 
-  reader.onload = (e) => {
+  reader.onload = async (e) => {
     const cover = e.target.result;
     console.log("e", e)
     console.log("e.target", e.target)
@@ -847,8 +855,9 @@ const createBase64Image = (fileObject) => {
 
       // console.log("cdn_content_type:", cdn_content_type);
       // console.log("cdn_base64_image:", cdn_base64_image);
-      cdnRef.value = { cdn_content_type, cdn_base64_image }
-
+      cdnRef.value = { cdn_content_type, cdn_base64_image, cdn_filename: filename }
+      // 切换时上传图片获取cdn_url
+      await uploadCover()
     } else {
       ElMessage({
         message: '无效的图片',
@@ -863,6 +872,24 @@ const createBase64Image = (fileObject) => {
   reader.readAsDataURL(fileObject);
 }
 
+const uploadCover = async () => {
+  const { session_id, token } = selectedAccount.value
+  console.log("uploadCover=>", cdnRef.value)
+  if (cdnRef.value) {
+    const imgData = {
+      cookies: serializeCookie(JSON.parse(session_id)["cookie"]),
+      token: parseInt(token),
+      base64_image: cdnRef.value.cdn_base64_image,
+      filename: cdnRef.value.cdn_filename,
+      content_type: cdnRef.value.cdn_content_type
+    }
+    const { data } = await uploadImage(imgData)
+    const { cdn_url } = data
+    currentArticleRef.value.cdn_url = cdn_url
+
+    syncToList("cdn_url")
+  }
+}
 
 // data methods
 const loadArticleGroups = async () => {
@@ -919,7 +946,18 @@ const listArticles = async () => {
   }
 }
 
-const loadArticle = (mp_msg) => {
+const loadArticle = (mp_msg, before_save) => {
+  if (before_save) {
+    if (msg_idRef.value === mp_msg.msg_id) {
+      return
+    }
+    const preIdx = mp_msgsRef.value.findIndex(v => v.msg_id === msg_idRef.value)
+    if (preIdx !== -1) {
+      console.log("preIdx=>", preIdx, mp_msgsRef.value[preIdx])
+      mp_msgsRef.value[preIdx] = { ...mp_msgsRef.value[preIdx], ...currentArticleRef.value }
+    }
+  }
+
   msg_idRef.value = mp_msg.msg_id
   const { formated, category_id_list, ad_id } = format_ad_content_in_UEditor(mp_msg.content_noencode)
   console.log("category_id_list=>", category_id_list)
@@ -1016,10 +1054,23 @@ const checkHasNotSave = (showMessage) => {
   return !!not_save
 }
 
-const newArticle = async (item_show_type = 0) => {
-  if (checkHasNotSave(true)) {
-    return
+const checkHasNotSaveToDB = (msg_id) => {
+  return msg_id < 0
+}
+
+const newArticle = async (before_save = true, item_show_type = 0) => {
+  // if (checkHasNotSave(true)) {
+  //   return
+  // }
+
+  if (before_save) {
+    const preIdx = mp_msgsRef.value.findIndex(v => v.msg_id === msg_idRef.value)
+    if (preIdx !== -1) {
+      console.log("preIdx=>", preIdx, mp_msgsRef.value[preIdx])
+      mp_msgsRef.value[preIdx] = { ...mp_msgsRef.value[preIdx], ...currentArticleRef.value }
+    }
   }
+
   if (mp_msgsRef.value.length >= 8) {
     ElMessageBox.alert('超出单消息最大文章数8篇', '错误', {
       confirmButtonText: '确定',
@@ -1043,12 +1094,13 @@ const newArticle = async (item_show_type = 0) => {
     can_insert_ad: 1,
     content_noencode: "",
   }
+  const new_msg_id = 0 - (+new Date())
   mp_msgsRef.value.push({
     ...new_mp_msg,
-    msg_id: 0
+    msg_id: new_msg_id
   })
 
-  loadArticleByMsgId(0)
+  loadArticleByMsgId(new_msg_id)
 
   // console.log('elListMsgsRef.value.scrollHeight=>', elListMsgsRef.value.scrollHeight)
   // elListMsgsRef.value.scrollTop = elListMsgsRef.value.scrollHeight
@@ -1238,6 +1290,190 @@ const saveArticle = async () => {
   // })
 }
 
+const saveCurrentToList = (msg_id) => {
+  // 声明原创
+  currentArticleRef.value.copyright_type = copyrightRef.value ? 1 : 0
+
+  // 留言
+  if (needOpenCommentRef.value) {
+    currentArticleRef.value.need_open_comment = 1
+    if (commentTypeRef.value === "0") {
+      currentArticleRef.value.only_fans_can_comment = 0
+      currentArticleRef.value.only_fans_days_can_comment = 0
+    } else if (commentTypeRef.value === "1") {
+      currentArticleRef.value.only_fans_can_comment = 1
+      currentArticleRef.value.only_fans_days_can_comment = 0
+    }
+  } else {
+    currentArticleRef.value.need_open_comment = 0
+    currentArticleRef.value.only_fans_can_comment = 0
+    currentArticleRef.value.only_fans_days_can_comment = 0
+  }
+
+  // 创作来源
+  currentArticleRef.value.claim_source_type = selected_claim_source_typeRef.value.id
+
+
+  console.log("adCategoryChoosedRef=>", adCategoryChoosedRef.value)
+
+
+  const to_save_content_noencode = currentArticleRef.value.content_noencode;
+  // console.log("to_save_content_noencode:", to_save_content_noencode)
+
+  const category_id_list = adCategoryChoosedRef.value.join("|")
+  console.log("category_id_list:", category_id_list)
+
+  const vhtml = restore_ad_content_from_UEditor(to_save_content_noencode, category_id_list, ad_idRef.value)
+  console.log("ad vhtml=>", vhtml)
+  currentArticleRef.value.content_noencode = vhtml
+
+  const idx = mp_msgsRef.value.findIndex(v => v.msg_id === msg_id)
+  if (idx !== -1) {
+    mp_msgsRef.value[idx] = currentArticleRef.value
+  }
+
+  return idx
+
+}
+
+const _saveAppMsg = async (push_to_remote) => {
+  if (!validateAccount()) {
+    return
+  }
+
+  const { token, name, session_id, wechat_id } = selectedAccount.value
+  if (!session_id) {
+    ElMessageBox.alert(`当前账号(${name})session过期,请切换到*账号中心*重新登录`, '错误', {
+      confirmButtonText: '确定',
+      type: 'error'
+    }).then(() => {
+      console.log("then")
+    }).catch(() => {
+      console.log("catch")
+    })
+    return
+  }
+
+  const msg_id = msg_idRef.value
+  let selected_idx = saveCurrentToList(msg_id)
+  console.log("save all mp_msgsRef.value=>", mp_msgsRef.value)
+  // const appmsgid =  appmsgidRef.value 
+  let appmsgid = _getAppMsgId()
+
+  const postData = {
+    cookies: serializeCookie(JSON.parse(session_id)["cookie"]),
+    token: parseInt(token),
+    appmsgid,
+    material_list: mp_msgsRef.value,
+    wechat_id,
+    push_to_remote,
+  }
+
+  console.log("save appmsg postData=>", postData)
+  const loader = ElLoading.service({
+    target: '.main'
+  })
+  await saveAppMsg(postData).then(async (res) => {
+    ElMessage({
+      message: `消息${push_to_remote === 0 ? "暂存" : "同步"}成功`,
+      type: 'success',
+      duration: 2 * 1000
+    })
+    console.log("saveArticleDraft res=>", res)
+    const isCreateNewAppMsg = appmsgid <= 0 && res.data.data.appmsgid > 0
+    appmsgid = res.data.data.appmsgid
+    if (isCreateNewAppMsg) {
+      // 新列表 需要设置新的appmsgid到localstorage
+      setAppMsgId(appmsgid)
+      await loadArticleGroups()
+    }
+    mp_msgsRef.value = res.data.data.mp_msgs
+    // await listArticles()
+    // const msg_ids = res.data.data.msg_ids
+    if (selected_idx === -1) {
+      selected_idx = 0
+    }
+    loadArticle(mp_msgsRef.value[selected_idx])
+  }).catch((e) => {
+    handleActionErr(name, e)
+    console.log("=========")
+  }).finally(() => {
+    loader.close()
+  })
+}
+
+const handleSaveAppMsg = async () => {
+  await _saveAppMsg(0)
+}
+
+const handleSyncToWechatDraftBox = async () => {
+  await _saveAppMsg(1)
+}
+
+const removeArticle = async (msg_id) => {
+  ElMessageBox.confirm(
+    '此操作将删除该文章, 是否继续?',
+    '提示',
+    {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning',
+    }
+  ).then(async () => {
+    console.log("removeArticle msg_id:", msg_id)
+    if (checkHasNotSaveToDB(msg_id)) {
+      console.log("checkHasNotSave=>", true)
+      const not_save_idx = mp_msgsRef.value.findIndex(v => v.msg_id === msg_id)
+      console.log("not_save_idx=>", not_save_idx)
+      const mp_msgs = mp_msgsRef.value
+      mp_msgs.splice(not_save_idx, 1)
+      mp_msgsRef.value = mp_msgs
+      // 没选中就是
+      msg_idRef.value = 0
+      return
+    }
+
+    const { token, name, session_id, wechat_id } = selectedAccount.value
+    const postData = {
+      cookies: serializeCookie(JSON.parse(session_id)["cookie"]),
+      token: parseInt(token),
+      wechat_id,
+      msg_id,
+    }
+    console.log("remove postData=>", postData)
+    const loader = ElLoading.service({
+      target: '.main'
+    })
+
+    await removeMpMsg(postData).catch((e) => {
+      handleActionErr(name, e)
+    }).finally(() => {
+      loader.close()
+    })
+    ElMessage({
+      message: `文章删除成功`,
+      type: 'success',
+      duration: 2 * 1000
+    })
+
+    await listArticles()
+    console.log("mp_msgsRef.value=>", mp_msgsRef.value)
+    if (mp_msgsRef.value.length === 0) {
+      //该系列下没有文章，删除localStorage中保存的数据
+      removeAppMsgId()
+      selected_mp_msg_groupRef.value = null
+    }
+    if (needRefreshGroup(msg_id) || mp_msgsRef.value.length === 0) {
+      await loadArticleGroups()
+      listArticles().then(() => {
+        loadArticle(mp_msgsRef.value[0])
+      })
+    }
+  }).catch(() => {
+    console.log('取消removeArticle')
+  })
+}
+
 const deleteArticle = async (msg_id) => {
   ElMessageBox.confirm(
     '此操作将删除该文章, 是否继续?',
@@ -1377,20 +1613,21 @@ const clickAllOtherAccounts = (checkedAll) => {
 
 
 const newArticleGroup = (item_show_type = 0) => {
-  msg_idRef.value = 0
+  // msg_idRef.value = 0
   mp_msgsRef.value = []
-  selected_mp_msg_groupRef.value = null
-  currentArticleRef.value = {
-    item_show_type,
-    title: "",
-    author: "",
-    copyright_type: 0,
-    cdn_url: "",
-    desc: "",
-    content_noencode: "",
-  }
-  selectedCdnImageRef.value = null
   cdnFileInputRef.value.value = ""
+
+  const new_appmsgid = 0 - (+new Date())
+  setAppMsgId(new_appmsgid)
+  newArticle(false, item_show_type)
+  const newAppMsg = {
+    appmsgid: new_appmsgid,
+    name: currentArticleRef.value.title
+  }
+  selected_mp_msg_groupRef.value = newAppMsg
+  mp_msg_groupsRef.value.push(newAppMsg)
+
+  console.log("selected_mp_msg_groupRef=>")
 }
 
 
@@ -1434,10 +1671,10 @@ const triggerFileInput = () => {
   cdnFileInputRef.value.click()
 }
 
-const handleImage = (e) => {
+const handleImage = async (e) => {
   const selectedImage = e.target.files[0]; // get first file
   if (selectedImage) {
-    createBase64Image(selectedImage);
+    await createBase64Image(selectedImage);
   } else {
     selectedCdnImageRef.value = null
     cdnFileInputRef.value.value = ""
@@ -1617,7 +1854,7 @@ const insertAd = () => {
 };
 
 const validatePreview = () => {
-  if (msg_idRef.value == 0) {
+  if (msg_idRef.value <= 0) {
     ElMessageBox.alert('请选择预览文章，或者将当前新建的文章暂存到草稿箱', '警告', {
       confirmButtonText: '确定',
       type: 'error'
@@ -1885,6 +2122,14 @@ const clickAllCategory = (checkedAll) => {
     adCategoryChoosedRef.value = adCategoryRef.value.map(v => v.id)
   } else {
     adCategoryChoosedRef.value = []
+  }
+}
+
+
+const syncToList = (key) => {
+  const idx = mp_msgsRef.value.findIndex(v => v.msg_id === currentArticleRef.value.msg_id)
+  if (idx !== -1) {
+    mp_msgsRef.value[idx][key] = currentArticleRef.value[key]
   }
 }
 
