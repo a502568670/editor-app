@@ -1,5 +1,6 @@
 var {net} = require('electron');
 
+var padZero = n => `${n<10?'0':''}${n}`
 var api = {
     yesterdaySumm: t => `https://mp.weixin.qq.com/cgi-bin/home?t=home/index&token=${t}&lang=zh_CN&f=json`,
     illegalRecord: t => `https://mp.weixin.qq.com/cgi-bin/illegalrecord?count=10&token=${t}&lang=zh_CN&f=json`,
@@ -10,16 +11,16 @@ var api = {
     promoBank:t=>`https://mp.weixin.qq.com/promotion/publisher/bankinfo_mgr?action=get_info&token=${t}&appid=&spid`,
     income:t=>{
         var d = new Date(Date.now()-24*60*60*1000);
-        var de = `${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}`;
+        var de = `${d.getFullYear()}-${padZero(d.getMonth()+1)}-${padZero(d.getDate())}`;
         d = new Date(Date.now()-30*24*60*60*1000);
-        var ds = `${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}`;
+        var ds = `${d.getFullYear()}-${padZero(d.getMonth()+1)}-${padZero(d.getDate())}`;
         return `https://mp.weixin.qq.com/promotion/publisher/publisher_stat?action=income&page=1&page_size=100&cont_type=0&start_date=${ds}&end_date=${de}&token=${t}&appid=&spid=`;
     },
     incomeMon:t=>{
         var d = new Date(Date.now()-24*60*60*1000);
-        var de = `${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}`;
+        var de = `${d.getFullYear()}-${padZero(d.getMonth()+1)}-${padZero(d.getDate())}`;
         d.setDate(1);
-        var ds = `${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}`;
+        var ds = `${d.getFullYear()}-${padZero(d.getMonth()+1)}-${padZero(d.getDate())}`;
         return `https://mp.weixin.qq.com/promotion/publisher/publisher_stat?action=income&page=1&page_size=100&cont_type=0&start_date=${ds}&end_date=${de}&token=${t}&appid=&spid=&_=${Date.now()/1000|0}`;
     },
     info:t=>`https://mp.weixin.qq.com/cgi-bin/settingpage?t=setting/index&action=index&token=${t}&lang=zh_CN&f=json&f=json`,
@@ -53,9 +54,9 @@ function netFetch(url, opts = {}) {
 async function getWechatPvData(info) {
     var cookie = JSON.parse(info.session_id).cookie.map(v => `${v.name}=${v.value}`).join(';')
     var opts = {headers:{cookie,referer:'https://mp.weixin.qq.com/'}};
-    var d = new Date();
-    var date = `${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}`
-    // console.log(api.income(info.token),api.incomeMon(info.token));
+    var d = new Date(Date.now()-24*60*60*1000);
+    var date = `${d.getFullYear()}-${padZero(d.getMonth()+1)}-${padZero(d.getDate())}`
+    // console.log(api.fansRate(info.token,date));
     
     var data = await Promise.allSettled([
         netFetch(api.yesterdaySumm(info.token), opts),

@@ -103,7 +103,7 @@
 </template>
 
 <script setup>
-import { nextTick, onMounted, onUnmounted, ref } from 'vue'
+import { nextTick, onMounted, onUnmounted, ref,onDeactivated  } from 'vue'
 import { ElNotification } from 'element-plus'
 import { getToken } from "@/utils/auth";
 import {
@@ -424,7 +424,7 @@ onMounted(() => {
   // 获取browserview内部
 
 })
-onUnmounted(() => {
+onDeactivated(() => {
   console.log('组件卸载');
   window.ipcRenderer.send('close-tab')
   tabs.value = []

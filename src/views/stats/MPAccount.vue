@@ -9,7 +9,7 @@
       </el-table-column>
 
       <el-table-column prop="total_fans_num" label="粉丝数" />
-      <el-table-column prop="illegal_recent" label="7日内违规信息" width="120" />
+      <el-table-column prop="illegal_recent" label="7日内违规信息" width="220" class-name="cellspan" />
       <el-table-column prop="income_yesterday" label="昨日收入" :formatter="moneyFormatter" />
       <el-table-column prop="income_yesterday_before2" label="前天收入" :formatter="moneyFormatter" />
       <el-table-column prop="income_yesterday_before3" label="往前3天" :formatter="moneyFormatter" />
@@ -21,7 +21,7 @@
       <el-table-column prop="income_30_days" label="30天收入" width="90" :formatter="moneyFormatter" />
       <el-table-column prop="income_cur_month" label="本月收入" :formatter="moneyFormatter" />
       <el-table-column prop="income_all" label="累计收入" :formatter="moneyFormatter" />
-      <el-table-column prop="bank" label="收款账户信息" width="110" />
+      <el-table-column prop="bank" label="收款账户信息" width="200" />
       <el-table-column prop="pv" label="昨日阅读" />
       <el-table-column prop="share" label="昨日分享" />
       <el-table-column prop="subscribe" label="昨日增粉" />
@@ -31,15 +31,18 @@
       <el-table-column prop="male_fans_rate" label="男粉比" :formatter="percentFormatter" />
     </el-table>
     <el-row class="flex-1 bg-[#fff]" style="margin-bottom: 10px;padding:10px">
-      <pagination class="flex-1 page" :total="total" @pagination="getListBy" :page="listQuery.page" :limit="listQuery.limit"/>
+      <pagination class="flex-1 page" :total="total" @pagination="getListBy" :page="listQuery.page" :limit="listQuery.limit" :pageSizes="[10,25,50,100,200]" />
       <el-button type="primary" @click="exportData" :loading="!exported">导出数据</el-button>
     </el-row>
   </div>
 </template>
-<style scoped>
+<style>
 .mp_account_table {
   /* max-height: calc(100vh - theme('spacing.32') - 42px); */
   overflow: scroll;
+}
+.mp_account_table .cellspan>div {
+  white-space: pre-wrap;
 }
 .page {
   padding: 0;
@@ -63,7 +66,7 @@ window.ipcRenderer.receive('fromMain', (msg) => {
     case 'stat-ret:getPvData': {
       var pvData = [];      
       var cacheData = [];
-      var REG_ILLEGAL = /侵权|投诉|违规|处理|责令|屏蔽|限制|删除|流量主违规/;
+      var REG_ILLEGAL = /流量主违规|侵权|投诉|违规|处理|责令|屏蔽|限制|删除/;
       var {list,exports}=msg.data;
       var idAccounts = exports?accounts:newAccounts;
       list.forEach((res, i) => {
@@ -90,10 +93,18 @@ window.ipcRenderer.receive('fromMain', (msg) => {
           try {
             var {yesterday_summary:{pv,share,subscribe}} = JSON.parse(res.value[0].value);
             var {illegal_record_count} = JSON.parse(res.value[1].value);
-            var {Title,UpdateTime,Content} = JSON.parse(res.value[2].value).List[0];
             var illegal_recent = '无违规';
-            if (REG_ILLEGAL.test(Title)) {
-              illegal_recent = `违规信息：${Title}\n详情：${Content}\n违规时间${new Date(UpdateTime*1000).toLocaleString()}`;
+            var {List} = JSON.parse(res.value[2].value);
+            var illegalArr = [];
+            // console.log(JSON.parse(res.value[0].value),List[0]);
+            List.forEach(v=>{
+              var matches = v.Title?.match(REG_ILLEGAL)
+              if(matches&&(Date.now()-v.UpdateTime*1000<7*24*60*60*1000)){
+                illegalArr.push(`${new Date(v.UpdateTime*1000).toLocaleString().slice(0,-3)} ${matches[0]}`);
+              }
+            });
+            if(illegalArr.length){
+              illegal_recent=illegalArr.join('\n');
             }
             var {user_portrait} = JSON.parse(res.value[3].value);
             // var fansRate = '-';
@@ -173,6 +184,11 @@ window.ipcRenderer.receive('fromMain', (msg) => {
                 else if(now-d<7*24*60*60*1000)income_yesterday_before7+=v.income;
               });
             }
+            income_yesterday_before3+=income_yesterday_before2;
+            income_yesterday_before4+=income_yesterday_before3;
+            income_yesterday_before5+=income_yesterday_before4;
+            income_yesterday_before6+=income_yesterday_before5;
+            income_yesterday_before7+=income_yesterday_before6;
             if(currIncome?.length){
               currIncome.forEach(v=>income_cur_month+=v.income);
             }
@@ -234,13 +250,14 @@ async function main() {
   await getListBy(listQuery.value);
 }
 main();
-var listQuery=ref({page:1,limit:15});
+var listQuery=ref({page:1,limit:10});
 async function getListBy(query) {
   loading.value=true;
   listQuery.value=query;
   var {page=1,limit=10}=listQuery.value;
   var partAccounts = accounts.slice((page-1)*limit,page*limit);
   var res = await cachedStat({account_ids:partAccounts.map(v=>v.id)});  
+  // var res={data:{items:[]}}
   res.data.items.forEach(v=>{
     var account = partAccounts.find(vv=>vv.id===v.account_id);
     v.id=v.account_id;

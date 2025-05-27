@@ -112,6 +112,7 @@ export default () => {
       title: '下载完成',
       message: '最新版本已下载完成, 退出程序进行安装'
     }).then(() => {
+      globalThis.__UPDATING__=1
       autoUpdater.quitAndInstall()
     })
   })
