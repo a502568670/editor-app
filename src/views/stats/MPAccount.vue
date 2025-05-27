@@ -9,7 +9,7 @@
       </el-table-column>
 
       <el-table-column prop="total_fans_num" label="粉丝数" />
-      <el-table-column prop="illegal_recent" label="7日内违规信息" width="220" />
+      <el-table-column prop="illegal_recent" label="7日内违规信息" width="220" class-name="cellspan" />
       <el-table-column prop="income_yesterday" label="昨日收入" :formatter="moneyFormatter" />
       <el-table-column prop="income_yesterday_before2" label="前天收入" :formatter="moneyFormatter" />
       <el-table-column prop="income_yesterday_before3" label="往前3天" :formatter="moneyFormatter" />
