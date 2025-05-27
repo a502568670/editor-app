@@ -22,6 +22,9 @@
       <el-table-column prop="income_cur_month" label="本月收入" :formatter="moneyFormatter" />
       <el-table-column prop="income_all" label="累计收入" :formatter="moneyFormatter" />
       <el-table-column prop="bank" label="收款账户信息" width="200" />
+      <el-table-column prop="read_num" label="今日发文阅读" width="110" />
+      <el-table-column prop="read_num_1" label="昨日发文阅读" width="110" />
+      <el-table-column prop="read_num_2" label="前日发文阅读" width="110" />
       <el-table-column prop="pv" label="昨日阅读" />
       <el-table-column prop="share" label="昨日分享" />
       <el-table-column prop="subscribe" label="昨日增粉" />
@@ -49,7 +52,7 @@
 }
 </style>
 <script setup>
-import {ref} from 'vue';
+import {ref,onMounted} from 'vue';
 import Pagination from '@/components/Pagination'
 import {listAccount} from '@/api/account';
 import {cachedStat,setCachedStat} from '@/api/stat-client';
@@ -70,7 +73,7 @@ window.ipcRenderer.receive('fromMain', (msg) => {
       var {list,exports}=msg.data;
       var idAccounts = exports?accounts:newAccounts;
       list.forEach((res, i) => {
-        var {id,name} = idAccounts[i];
+        var {id,name} = idAccounts[i]||{};
         pvData[i] = {
           id,name,login:'登录失败',
           pv:'-',share:'-',subscribe:'-',
@@ -88,10 +91,20 @@ window.ipcRenderer.receive('fromMain', (msg) => {
           illegal_recent: '-',
           quota_today: '-',quota_tomorrow:'-',
           male_fans_rate:'-',female_fans_rate:'-',
+          read_num:'-',read_num_1:'-',read_num_2:'-',
         };
         if (res.status === 'fulfilled') {
           try {
-            var {yesterday_summary:{pv,share,subscribe}} = JSON.parse(res.value[0].value);
+            var {yesterday_summary:{pv,share,subscribe},publish_page} = JSON.parse(res.value[0].value);
+            var {publish_list}=JSON.parse(publish_page);
+            publish_list=publish_list.map(v=>JSON.parse(v.publish_info)).filter(v=>v.type===9&&v.publish_type===101)
+            var addReadNum=(i=0)=>publish_list
+              .filter(v=>new Date(v.sent_info.time*1000).toISOString().substr(0,10)===new Date(Date.now()+i*24*60*60*1000).toISOString().substr(0,10))
+              .map(v=>v.appmsg_info.reduce((a,b)=>a.read_num+b.read_num,{read_num:0}))
+              .reduce((a,b)=>a+b,0);
+            var read_num=addReadNum(0); // 今日发文阅读
+            var read_num_1=addReadNum(-1); // 昨日发文阅读
+            var read_num_2=addReadNum(-2); // 前日发文阅读
             var {illegal_record_count} = JSON.parse(res.value[1].value);
             var illegal_recent = '无违规';
             var {List} = JSON.parse(res.value[2].value);
@@ -205,6 +218,7 @@ window.ipcRenderer.receive('fromMain', (msg) => {
               income_yesterday_before2,income_yesterday_before3,income_yesterday_before4,
               income_yesterday_before5,income_yesterday_before6,income_yesterday_before7,
               total_fans_num,
+              read_num,read_num_1,read_num_2,
             };
             var useCachePv = ({id,name,login,...res})=>({account_id:id,...res});
             cacheData.push(useCachePv(pvData[i]));
@@ -216,12 +230,13 @@ window.ipcRenderer.receive('fromMain', (msg) => {
       loading.value=false;
       if(exports){
         // 指明导出数据
-        var csv = ['公众号名称,登录状态,粉丝数,7日内违规信息,昨日收入,前天收入,往前3天,往前4天,往前5天,往前6天,往前7天,上周收入,30天收入,本月收入,累计收入,收款账户信息,昨日阅读,昨日分享,昨日增粉,今日发文情况,明天定时情况,女粉比,男粉比'];
+        var csv = ['公众号名称,登录状态,粉丝数,7日内违规信息,昨日收入,前天收入,往前3天,往前4天,往前5天,往前6天,往前7天,上周收入,30天收入,本月收入,累计收入,收款账户信息,今日发文阅读,昨日发文阅读,前日发文阅读,昨日阅读,昨日分享,昨日增粉,今日发文情况,明天定时情况,女粉比,男粉比'];
         pvData.forEach(v=>{
           csv.push(`${v.name},${v.login},${v.total_fans_num},${v.illegal_recent},`
             +`${moneyFormatter(0,0,v.income_yesterday)},${moneyFormatter(0,0,v.income_yesterday_before2)},${moneyFormatter(0,0,v.income_yesterday_before3)},${moneyFormatter(0,0,v.income_yesterday_before4)},`
             +`${moneyFormatter(0,0,v.income_yesterday_before5)},${moneyFormatter(0,0,v.income_yesterday_before6)},${moneyFormatter(0,0,v.income_yesterday_before7)},`
             +`${moneyFormatter(0,0,v.income_last_week)},${moneyFormatter(0,0,v.income_30_days)},${moneyFormatter(0,0,v.income_cur_month)},${moneyFormatter(0,0,v.income_all)},${v.bank},`
+            +`${v.read_num},${v.read_num_1},${v.read_num_2},`
             +`${v.pv},${v.share},${v.subscribe},${v.quota_today},${v.quota_tomorrow},${percentFormatter(0,0,v.female_fans_rate)},${percentFormatter(0,0,v.male_fans_rate)}`);
         });
         window.ipcRenderer.send('toMain', {tag: 'stat:exportPvData', data: csv.join('\n')});
@@ -243,13 +258,12 @@ window.ipcRenderer.receive('fromMain', (msg) => {
   }
 });
 var accounts=[],newAccounts=[],total=ref(0);
-async function main() {
+onMounted(async ()=>{
   var res = await listAccount();
   accounts = res.data.data.list;
   total.value=accounts.length;
   await getListBy(listQuery.value);
-}
-main();
+})
 var listQuery=ref({page:1,limit:10});
 async function getListBy(query) {
   loading.value=true;
