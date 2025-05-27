@@ -1,9 +1,9 @@
 {
-  "name": "jzl_editor",
+  "name": "gaoqingsong",
   "version": "0.2.0",
   "private": true,
   "description": "稿轻松",
-  "author": "jzl_editor",
+  "author": "gaoqingsong",
   "scripts": {
     "serve": "vue-cli-service serve",
     "build": "vue-cli-service build",
