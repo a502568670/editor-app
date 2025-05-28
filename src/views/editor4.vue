@@ -415,39 +415,95 @@
       </div>
     </div>
   </el-dialog>
-  <el-dialog :close-on-click-modal="false" title="发表" v-model="dialogPublishArticleVisibleRef" width="600px">
-    <div class="w-full flex flex-col space-y-2" v-loading="publishLoadingRef">
-      <div class="w-full flex flex-col p-4 bg-[#F7F7F7] rounded">
-        <div class="w-full flex">
-          <div class="basis-1/2 flex justify-start items-center text-lg">群发通知</div>
-          <div class="basis-1/2 flex justify-end items-center">
-            <el-switch v-model="bulkSendingNotificationFlag" class="ml-2"
-              :disabled="bulkSendingNotificationRemain == 0 ? true : false" style="--el-switch-on-color: #13ce66;" />
-          </div>
-        </div>
-        <div class="text-[#cccccc]">今天还有{{ bulkSendingNotificationRemain }}次通知次数</div>
+  <el-dialog :close-on-click-modal="false" title="发表" v-model="dialogPublishArticleVisibleRef" width="800px">
+    <div class="w-full flex flex-col">
+      <div v-if="publishStepsRef.length > 2" class="w-full flex justify-center items-center">
+        <el-steps class="w-full" :active="publishStepRef" finish-status="success">
+          <el-step v-for="item in publishStepsRef" :key="item" :title="item" />
+        </el-steps>
       </div>
-      <div class="w-full flex flex-col p-4 bg-[#F7F7F7] rounded">
-        <div class="w-full flex">
-          <div class="basis-1/2 flex justify-start items-center text-lg">定时发表</div>
-          <div class="basis-1/2 flex justify-end items-center">
-            <el-switch v-model="publishTimingFlagRef" class="ml-2" style="--el-switch-on-color: #13ce66;" />
+      <div v-if="publishStepRef == 0" class="w-full flex flex-col space-y-2" v-loading="publishLoadingRef">
+        <div class="w-full flex flex-col p-4 bg-[#F7F7F7] rounded">
+          <div class="w-full flex">
+            <div class="basis-1/2 flex justify-start items-center text-lg">群发通知</div>
+            <div class="basis-1/2 flex justify-end items-center">
+              <el-switch v-model="bulkSendingNotificationFlag" class="ml-2"
+                :disabled="bulkSendingNotificationRemain == 0 ? true : false" style="--el-switch-on-color: #13ce66;" />
+            </div>
+          </div>
+          <div class="text-[#cccccc]">今天还有{{ bulkSendingNotificationRemain }}次通知次数</div>
+        </div>
+        <div class="w-full flex flex-col p-4 bg-[#F7F7F7] rounded">
+          <div class="w-full flex">
+            <div class="basis-1/2 flex justify-start items-center text-lg">定时发表</div>
+            <div class="basis-1/2 flex justify-end items-center">
+              <el-switch v-model="publishTimingFlagRef" class="ml-2" style="--el-switch-on-color: #13ce66;" />
+            </div>
+          </div>
+          <div v-if="publishTimingFlagRef" class="w-full flex space-x-2">
+            <el-select v-model="selectedPublishTimingDateRef" class="grid-content-control" value-key="id" filterable
+              placeholder="选择定时发布日期" @change="emitChangeForPublishTimingDate" style="width:100px">
+              <el-option v-for="(item) in publishTimingDatesRef" :key="item.id" :label="item.name" :value="item" />
+            </el-select>
+            <el-time-picker v-model="publishTimeRef" format="HH:mm" :disabled-hours="disableHours"
+              :disabled-minutes="disableMinutes" class="rounded-xl border-none" style="width:100px" />
           </div>
         </div>
-        <div v-if="publishTimingFlagRef" class="w-full flex space-x-2">
-          <el-select v-model="selectedPublishTimingDateRef" class="grid-content-control" value-key="id" filterable
-            placeholder="选择定时发布日期" @change="emitChangeForPublishTimingDate" style="width:100px">
-            <el-option v-for="(item) in publishTimingDatesRef" :key="item.id" :label="item.name" :value="item" />
-          </el-select>
-          <el-time-picker v-model="publishTimeRef" format="HH:mm" :disabled-hours="disableHours"
-            :disabled-minutes="disableMinutes" class="rounded-xl border-none" style="width:100px" />
+      </div>
+      <div v-if="publishStepsRef.length > 0 && publishStepRef == 1" class="flex flex-col space-y-2 pt-4">
+        <div class="flex font-bold">
+          共 {{ publishCopyright1ListRef.length }} 篇内容未通过原创校验逻辑，将按照下列方式进行发表，如有异议可申诉
         </div>
+        <table class="w-full border shadow-lg">
+          <thead class="text-lg bg-gray-200 text-gray-400">
+            <tr>
+              <th class="text-left p-4" style="width:80%">未通过原因</th>
+              <th class="text-left p-4" style="width:20%">发表方式</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="border-b h-[80px]" v-for="item in publishCopyright1ListRef" :key="item.source_idx">
+              <td class="p-4">你的内容《{{ item.article_title }}》与原创内容《{{ item.source_title }}》相似度过高，将已分享方式发表</td>
+              <td class="p-4">分享</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div v-if="publishStepsRef.length > 0 && publishStepRef == 2">
+        <div class="flex font-bold">
+          共 {{ publishCopyright1ListRef.length }} 篇内容未通过原创校验逻辑，将按照下列方式进行发表，如有异议可申诉
+        </div>
+        <table class="w-full border shadow-lg">
+          <thead class="text-lg bg-gray-200 text-gray-400">
+            <tr>
+              <th class="text-left p-4" style="width:34%">待发表内容</th>
+              <th class="text-left p-4" style="width:33%">发表方式</th>
+              <th class="text-left p-4" style="width:33%">编辑寄语</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="border-b h-[80px]" v-for="(item, idx) in publishCopyright1ListRef" :key="idx">
+              <td class="p-4">你的内容《{{ item.article_title }}》与原创内容《{{ item.source_title }}》相似度过高，将已分享方式发表</td>
+              <td class="p-4">分享</td>
+              <td class="p-4">
+                <div class="flex flex-col">
+                  <textarea class="border bg-gray-300" rows="3" v-model="publishGuideWordsRef[idx]" maxlength="140" />
+                  <span >{{publishGuideWordsRef[idx]?.length ?? 0}}/140</span>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     </div>
     <template #footer>
       <div class="dialog-footer">
         <el-button @click="dialogPublishArticleVisibleRef = false">取消</el-button>
-        <el-button @click="handlePublishToWechat" type="primary" :disabled="globalLoadingRef || publishLoadingRef">发表</el-button>
+        <el-button
+          v-if="(publishStepsRef.length === 0 && !instantPublishRef) || (publishStepsRef.length > 2 && publishStepRef < 2 )"
+          @click="handlePublishNext">继续发表</el-button>
+        <el-button v-if="instantPublishRef" @click="handlePublishToWechat" type="primary"
+          :disabled="globalLoadingRef || publishLoadingRef">发表</el-button>
       </div>
     </template>
   </el-dialog>
@@ -539,7 +595,7 @@ import {
   deleteArticleDraft, removeMpMsg, genArticleDraftPreviewUrl, previewQRCode,
 } from "@/api/mp_msg"
 import { saveAppMsg, send_to_other_accounts_events } from "@/api/appmsg"
-import { getMpUserInfo, getLastPreviewAccounts, sendPreview, listVideos, getMasssendInfo, } from "@/api/mp_wechat"
+import { getMpUserInfo, getLastPreviewAccounts, sendPreview, listVideos, getMasssendInfo, stat_appmsg_copyright_stat_events } from "@/api/mp_wechat"
 import { getArticleContent, getArticleContent2 } from '@/api/jzl'
 import { format_to_UEditor_html, restore_from_UEditor_html } from "@/utils/dom";
 import { uploadImage } from "@/api/img"
@@ -713,6 +769,8 @@ const globalLoadingRef = ref(false)
 // 发布
 const timeoutPublish = 10 * 1000; // ms
 const dialogPublishArticleVisibleRef = ref(false)
+const publishStepRef = ref(0)
+const publishStepsRef = ref([])
 const publishTimeRef = ref(null)
 const bulkSendingNotificationFlag = ref(false)
 const bulkSendingNotificationRemain = ref(0)
@@ -721,6 +779,9 @@ const selectedPublishTimingDateRef = ref(null)
 const publishTimingFlagRef = ref(false)
 const publishLoadingRef = ref(false)
 const publishQuotaItemListRef = ref([])
+const publishCopyright1ListRef = ref([])
+const publishGuideWordsRef = ref([])
+const instantPublishRef = ref(false)
 
 
 
@@ -1501,6 +1562,11 @@ const openPublishToWechatDialog = async () => {
 
   const { token, session_id, name } = selectedAccount.value
   publishLoadingRef.value = true
+  publishStepsRef.value = []
+  publishCopyright1ListRef.value = []
+  publishGuideWordsRef.value = []
+  publishStepRef.value = 0
+  instantPublishRef.value = false
   const ret = await getMasssendInfo({
     cookies: serializeCookie(JSON.parse(session_id)["cookie"]),
     token: parseInt(token),
@@ -1516,9 +1582,11 @@ const openPublishToWechatDialog = async () => {
   }
   publishQuotaItemListRef.value = item_kQuotaTypeMassSendNormal.quota_item_list
 
+  // 检测发文限额
   checkQuota(today)
-  // const list_kQuotaTypeMassSendProductActivity = ret.data.find(v => v.quota_type ==='kQuotaTypeMassSendProductActivity')
-  // console.log("masssendinfo=>", ret)
+
+  //检测原创
+
 }
 
 const disableHours = (role, comparingDate) => {
@@ -1546,6 +1614,55 @@ const disableMinutes = (role, comparingDate) => {
   const idx = MINUTES.findIndex(v => v === minute)
   console.log("idx=>", idx)
   return MINUTES.slice(0, idx)
+}
+
+const handlePublishNext = async () => {
+  const appmsgid = _getAppMsgId()
+
+  if (publishStepRef.value === 0) {
+    const { token, session_id, name } = selectedAccount.value
+    publishLoadingRef.value = true
+    let stepRet
+    await stat_appmsg_copyright_stat_events({
+      cookies: serializeCookie(JSON.parse(session_id)["cookie"]),
+      token: parseInt(token),
+      appmsgid,
+    }, (data) => {
+      console.log("step raw=>", data)
+      try {
+        const v = data.replaceAll(/data: /gi, "")
+        stepRet = JSON5.parse(v)
+      } catch {
+        console.error("检测失败")
+        publishStepRef.value = 0
+      }
+    })
+    publishLoadingRef.value = false
+    // console.log("step data=>", o)
+    if (stepRet.copyright === 1) {
+      // <el-step title="设置发表参数" />
+      //   <el-step title="确认发表方式" />
+      //   <el-step title="填写编辑推荐语" />
+      //   <el-step title="最终发表" />
+      const copyright1_list = JSON.parse(stepRet.list_json_str)
+      console.log("copyright1_list=>", copyright1_list)
+      publishCopyright1ListRef.value = copyright1_list.list
+      publishStepsRef.value = ["设置发表参数", "确认发表方式", "填写编辑推荐语"]
+      publishStepRef.value = 1
+    } else if (stepRet.copyright === 0) {
+      // 不是原创 不经历 确认发表方式和填写编辑推荐语
+      instantPublishRef.value = true
+    } else {
+      ElMessageBox.alert('检测原创', '错误', {
+        confirmButtonText: '确定',
+        type: 'error'
+      }).catch(() => { })
+    }
+  } else if (publishStepRef.value === 1) {
+    publishStepRef.value = 2
+    instantPublishRef.value = true
+  }
+
 }
 
 const handlePublishToWechat = async () => {

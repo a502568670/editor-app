@@ -1,4 +1,5 @@
 import request from '@/utils/requestJson'
+import { getToken } from "@/utils/auth";
 
 // 获取公众号用户
 export function getMpUserInfo(data) {
@@ -43,4 +44,29 @@ export function getMasssendInfo(data) {
     method: 'post',
     data
   })
+}
+
+// 微信文章发表检查原创碰撞
+export async function stat_appmsg_copyright_stat_events(data, cb) {
+  const url = window.envVars.backend_url + '/mp_wechat/appmsg_copyright/events'
+  const token = getToken()
+  // 'application/json'
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    },
+    body: JSON.stringify(data)
+  })
+  const reader = response.body.pipeThrough(new TextDecoderStream()).getReader()
+  while (true) {
+    const { value, done } = await reader.read();
+    console.log("stat_appmsg_copyright_stat_events value:", value)
+    console.log("stat_appmsg_copyright_stat_events done:", done)
+    if (done) {
+      break;
+    }
+    cb(value)
+  }
 }
