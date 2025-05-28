@@ -134,3 +134,26 @@ const _postJson = function (protocol, hostname, port, pathname, postData, newhea
     request.end();
   });
 }
+
+
+export function toReqOpts(url, opts = {}) {
+  var {protocol,hostname,port,pathname,search} = new URL(url);
+  port = port || protocol === 'https:' ? 443 : 80;
+  return {protocol,hostname,port,path:pathname+search,...opts};
+}
+
+export function netFetch(url, opts = {}) {
+  return new Promise((resolve, reject) => {
+      var req = net.request(toReqOpts(url, opts));
+      req.on('response', (res) => {
+          var chunk = [];
+          res.on('data', c => chunk.push(c));
+          res.on('end', () => {
+              resolve(Buffer.concat(chunk).toString());
+          });
+      });
+      req.on('error', reject);
+      if (opts.body) req.write(opts.body);
+      req.end();
+  });
+}
