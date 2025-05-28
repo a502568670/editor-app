@@ -14,3 +14,7 @@ export const claim_source_types = [{
   "name": "个人观点仅供参考",
   "id": 4
 }]
+
+
+export const HOUSRS = [...Array(24).keys()];
+export const MINUTES = [...Array(60).keys()];

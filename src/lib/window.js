@@ -10,7 +10,7 @@ import { nativeTheme, screen, dialog, Notification, app, ipcMain, webContents, n
 import { localExtractMpArticleUrlUseRequest } from "./mp_account-tasks.js"
 import { postJsonToJZLApi } from "./request.js"
 const path = require('path')
-const fs =require('fs')
+const fs = require('fs')
 import { createProtocol } from "vue-cli-plugin-electron-builder/lib";
 import global from "./global.js";
 import log from "electron-log";
@@ -22,7 +22,7 @@ import * as zhCN from '../locales/zh-CN.json'
 const verbose_log = global.utils.verbose_log;
 const verbose_error = global.utils.verbose_error;
 const get_backend_url_old = global.utils.get_backend_url_old;
-var {batchWechatData} = require('./mp_stat-tasks.js');
+var { batchWechatData } = require('./mp_stat-tasks.js');
 
 let tabbedWin;
 function showMsg(msg) {
@@ -471,23 +471,29 @@ async function reactToIpcObjectData(data, tabbedWin, viewContents) {
       viewContents.send('fromMain', { tag: 'localExtractMpArticleUrlResult', data: result })
       break;
     }
-    case 'stat:getPvData': {
-      var {list,exports}=data.data;
-      list = await batchWechatData(list);
-      viewContents.send('fromMain', {tag: 'stat-ret:getPvData', data: {list,exports}});
+    case 'appmsg:publishToWechat': {
+      verbose_log("===== listen publishToWechat in main ====", data)
+
+      viewContents.send('fromMain', { tag: 'appmsg-ret:publishToWechat', data: {} })
       break;
     }
-    case 'stat:exportPvData':{
-      var res = await dialog.showSaveDialog(tabbedWin.win,{
-        defaultPath:path.join(app.getPath('downloads'),'stat.csv'),
+    case 'stat:getPvData': {
+      var { list, exports } = data.data;
+      list = await batchWechatData(list);
+      viewContents.send('fromMain', { tag: 'stat-ret:getPvData', data: { list, exports } });
+      break;
+    }
+    case 'stat:exportPvData': {
+      var res = await dialog.showSaveDialog(tabbedWin.win, {
+        defaultPath: path.join(app.getPath('downloads'), 'stat.csv'),
       })
       var csv = data.data;
-      if(platform === 'win32'){
-        csv = iconv.encode(csv,'gbk');
+      if (platform === 'win32') {
+        csv = iconv.encode(csv, 'gbk');
       }
-      if(res.filePath){
-        fs.writeFile(res.filePath, csv, (err)=>{
-          if(err) console.error(err)
+      if (res.filePath) {
+        fs.writeFile(res.filePath, csv, (err) => {
+          if (err) console.error(err)
         });
       }
       break;

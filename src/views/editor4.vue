@@ -19,8 +19,18 @@
       </el-dropdown>
       <!-- <el-button @click="saveArticle" type="danger">暂存文章</el-button> -->
       <el-button @click="handleSaveAppMsg" type="success">暂存</el-button>
-      <el-button @click="handleSyncToWechatDraftBox" type="danger">同步到微信草稿箱</el-button>
-      <el-button @click="openSendArticleDialog" type="danger">同步到其他账号</el-button>
+      <el-dropdown split-button type="danger">
+        其他
+        <template #dropdown>
+          <el-dropdown-menu>
+            <el-dropdown-item @click="handleSyncToWechatDraftBox">同步到微信草稿箱</el-dropdown-item>
+            <el-dropdown-item @click="openPublishToWechatDialog">发布到微信</el-dropdown-item>
+            <el-dropdown-item divided @click="openSendArticleDialog">同步到其他账号</el-dropdown-item>
+          </el-dropdown-menu>
+        </template>
+      </el-dropdown>
+      <!-- <el-button @click="handleSyncToWechatDraftBox" type="danger">同步到微信草稿箱</el-button>
+      <el-button @click="openSendArticleDialog" type="danger">同步到其他账号</el-button> -->
     </div>
     <el-row :gutter="0" class="flex-1">
       <el-col :span="6" class="h-full overflow-scroll bg-white">
@@ -405,6 +415,24 @@
       </div>
     </div>
   </el-dialog>
+  <el-dialog :close-on-click-modal="false" title="发表" v-model="dialogPublishArticleVisibleRef" width="600px">
+    <el-row :gutter="40">
+      <el-col :span="24">
+        <div class="w-full flex flex-col">
+          <div class="w-full">群发通知</div>
+          <div class="w-full">
+            <el-time-picker v-model="publishTimeRef" format="HH:mm" :disabled-hours="disableHours" />
+          </div>
+        </div>
+      </el-col>
+    </el-row>
+    <template #footer>
+      <div class="dialog-footer">
+        <el-button @click="dialogPublishArticleVisibleRef = false">取消</el-button>
+        <el-button @click="handleImportVideo" type="primary">发表</el-button>
+      </div>
+    </template>
+  </el-dialog>
   <el-dialog :close-on-click-modal="false" title="调试信息" v-model="dialogDebugVisibleRef" width="600px">
     <div class="w-full h-[300px] bg-gray-900 text-green-500 flex flex-col space-y-4">
       <el-row :gutter="40" class="p-1 flex-none">
@@ -497,9 +525,10 @@ import { getMpUserInfo, getLastPreviewAccounts, sendPreview, listVideos, } from 
 import { getArticleContent, getArticleContent2 } from '@/api/jzl'
 import { format_to_UEditor_html, restore_from_UEditor_html } from "@/utils/dom";
 import { uploadImage } from "@/api/img"
+import { toDeepRaw } from "@/utils/convert"
 import { ad_categorys, adMarkerContentInUEditor, format_ad_content_in_UEditor, restore_ad_content_from_UEditor, has_ad_in_wangEditor, has_ad_in_raw } from "@/utils/ad"
 import { getVideoFrameHtml } from "@/utils/video"
-import { claim_source_types } from "@/utils/constants"
+import { claim_source_types, HOUSRS, MINUTES } from "@/utils/constants"
 import { ElMessage, ElMessageBox, ElLoading } from 'element-plus'
 import { ArrowUp, ArrowDown, Delete, CircleCheckFilled, CircleCloseFilled, InfoFilled } from '@element-plus/icons-vue'
 import { removeAppMsgId, setAppMsgId, getAppMsgId, getSelectedAccountId, setSelectedAccountId } from '@/utils/editor'
@@ -661,6 +690,11 @@ const videoLoadingRef = ref(false)
 
 // global loading
 const globalLoadingRef = ref(false)
+
+// 发布
+const timeoutPublish = 10 * 1000; // ms
+const dialogPublishArticleVisibleRef = ref(false)
+const publishTimeRef = ref(null)
 
 
 // 文章正文
@@ -1409,6 +1443,40 @@ const handleSaveAppMsg = async () => {
 const handleSyncToWechatDraftBox = async () => {
   await _saveAppMsg(1)
 }
+
+const openPublishToWechatDialog = async () => {
+  // await _saveAppMsg(1)
+  dialogPublishArticleVisibleRef.value = true
+  publishTimeRef.value = +new Date() + 5 * 60 * 1000;
+}
+
+const disableHours = (role, comparingDate) => {
+  console.log("role=>", role)
+  console.log("comparingDate=>", comparingDate)
+  const date = new Date(+new Date() + 5 * 60 * 1000)
+  const hour = date.getHours()
+  // const minute = date.getMinutes()
+
+  const idx = HOUSRS.findIndex(v => v === hour)
+  console.log("idx=>", idx)
+  return HOUSRS.slice(0, idx)
+}
+
+const handlePublishToWechat = async () => {
+  globalLoadingRef.value = true
+  window.ipcRenderer.send('toMain', {
+    tag: 'appmsg:publishToWechat',
+    token: getToken(),
+    mp_msgs: toDeepRaw(mp_msgsRef.value),
+  })
+
+  setTimeout(() => {
+    globalLoadingRef.value = false
+    dialogExtractMpAritcleUrlRef.value = false
+  }, timeoutPublish)
+}
+
+
 
 const removeArticle = async (msg_id) => {
   ElMessageBox.confirm(
@@ -2174,6 +2242,8 @@ window.ipcRenderer.receive('fromMain', (msg) => {
       if (idx !== -1) {
         mp_msgsRef.value[idx] = currentArticleRef.value
       }
+    } else if (tag === "appmsg-ret:publishToWechat") {
+      console.log("publishToWechatResult msg.data=>", msg.data)
     }
 
     if (globalLoadingRef.value) {
