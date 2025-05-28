@@ -416,20 +416,38 @@
     </div>
   </el-dialog>
   <el-dialog :close-on-click-modal="false" title="发表" v-model="dialogPublishArticleVisibleRef" width="600px">
-    <el-row :gutter="40">
-      <el-col :span="24">
-        <div class="w-full flex flex-col">
-          <div class="w-full">群发通知</div>
-          <div class="w-full">
-            <el-time-picker v-model="publishTimeRef" format="HH:mm" :disabled-hours="disableHours" />
+    <div class="w-full flex flex-col space-y-2" v-loading="publishLoadingRef">
+      <div class="w-full flex flex-col p-4 bg-[#F7F7F7] rounded">
+        <div class="w-full flex">
+          <div class="basis-1/2 flex justify-start items-center text-lg">群发通知</div>
+          <div class="basis-1/2 flex justify-end items-center">
+            <el-switch v-model="bulkSendingNotificationFlag" class="ml-2"
+              :disabled="bulkSendingNotificationRemain == 0 ? true : false" style="--el-switch-on-color: #13ce66;" />
           </div>
         </div>
-      </el-col>
-    </el-row>
+        <div class="text-[#cccccc]">今天还有{{ bulkSendingNotificationRemain }}次通知次数</div>
+      </div>
+      <div class="w-full flex flex-col p-4 bg-[#F7F7F7] rounded">
+        <div class="w-full flex">
+          <div class="basis-1/2 flex justify-start items-center text-lg">定时发表</div>
+          <div class="basis-1/2 flex justify-end items-center">
+            <el-switch v-model="publishTimingFlagRef" class="ml-2" style="--el-switch-on-color: #13ce66;" />
+          </div>
+        </div>
+        <div v-if="publishTimingFlagRef" class="w-full flex space-x-2">
+          <el-select v-model="selectedPublishTimingDateRef" class="grid-content-control" value-key="id" filterable
+            placeholder="选择定时发布日期" @change="emitChangeForPublishTimingDate" style="width:100px">
+            <el-option v-for="(item) in publishTimingDatesRef" :key="item.id" :label="item.name" :value="item" />
+          </el-select>
+          <el-time-picker v-model="publishTimeRef" format="HH:mm" :disabled-hours="disableHours"
+            :disabled-minutes="disableMinutes" class="rounded-xl border-none" style="width:100px" />
+        </div>
+      </div>
+    </div>
     <template #footer>
       <div class="dialog-footer">
         <el-button @click="dialogPublishArticleVisibleRef = false">取消</el-button>
-        <el-button @click="handleImportVideo" type="primary">发表</el-button>
+        <el-button @click="handlePublishToWechat" type="primary" :disabled="globalLoadingRef || publishLoadingRef">发表</el-button>
       </div>
     </template>
   </el-dialog>
@@ -521,11 +539,12 @@ import {
   deleteArticleDraft, removeMpMsg, genArticleDraftPreviewUrl, previewQRCode,
 } from "@/api/mp_msg"
 import { saveAppMsg, send_to_other_accounts_events } from "@/api/appmsg"
-import { getMpUserInfo, getLastPreviewAccounts, sendPreview, listVideos, } from "@/api/mp_wechat"
+import { getMpUserInfo, getLastPreviewAccounts, sendPreview, listVideos, getMasssendInfo, } from "@/api/mp_wechat"
 import { getArticleContent, getArticleContent2 } from '@/api/jzl'
 import { format_to_UEditor_html, restore_from_UEditor_html } from "@/utils/dom";
 import { uploadImage } from "@/api/img"
 import { toDeepRaw } from "@/utils/convert"
+import { createDateByDays, parseDate, formatDate } from "@/utils/date"
 import { ad_categorys, adMarkerContentInUEditor, format_ad_content_in_UEditor, restore_ad_content_from_UEditor, has_ad_in_wangEditor, has_ad_in_raw } from "@/utils/ad"
 import { getVideoFrameHtml } from "@/utils/video"
 import { claim_source_types, HOUSRS, MINUTES } from "@/utils/constants"
@@ -695,6 +714,14 @@ const globalLoadingRef = ref(false)
 const timeoutPublish = 10 * 1000; // ms
 const dialogPublishArticleVisibleRef = ref(false)
 const publishTimeRef = ref(null)
+const bulkSendingNotificationFlag = ref(false)
+const bulkSendingNotificationRemain = ref(0)
+const publishTimingDatesRef = ref([])
+const selectedPublishTimingDateRef = ref(null)
+const publishTimingFlagRef = ref(false)
+const publishLoadingRef = ref(false)
+const publishQuotaItemListRef = ref([])
+
 
 
 // 文章正文
@@ -1444,15 +1471,61 @@ const handleSyncToWechatDraftBox = async () => {
   await _saveAppMsg(1)
 }
 
+const checkQuota = (date) => {
+  const quota_item = publishQuotaItemListRef.value.find(v => v.str_date === formatDate(date, 'yyyyMMdd'))
+  console.log("quota_item:", quota_item)
+  if (!quota_item) {
+    return
+  }
+  bulkSendingNotificationFlag.value = quota_item.quota > 0
+  bulkSendingNotificationRemain.value = quota_item.quota
+}
+
 const openPublishToWechatDialog = async () => {
-  // await _saveAppMsg(1)
+  // 发布调试完毕需要先将appmsg同步到草稿箱
+  // await _saveAppMsg(1) 
   dialogPublishArticleVisibleRef.value = true
+  const today = new Date()
+  publishTimingDatesRef.value = Array.from({ length: 7 }, (_, i) => {
+    if (i === 0) {
+      return { name: "今天", id: today.toISOString().split('T')[0] }
+    } else if (i === 1) {
+      return { name: "明天", id: createDateByDays(today, 1).toISOString().split('T')[0] }
+    } else {
+      let theDate = createDateByDays(today, i)
+      return { name: `${theDate.getMonth() + 1}月${theDate.getDate()}日`, id: theDate.toISOString().split('T')[0] }
+    }
+  });
+  selectedPublishTimingDateRef.value = publishTimingDatesRef.value[0]
   publishTimeRef.value = +new Date() + 5 * 60 * 1000;
+
+  const { token, session_id, name } = selectedAccount.value
+  publishLoadingRef.value = true
+  const ret = await getMasssendInfo({
+    cookies: serializeCookie(JSON.parse(session_id)["cookie"]),
+    token: parseInt(token),
+  }).catch((e) => {
+    console.log("getMasssendInfo catch:", e)
+    // handleActionErr(name, e)
+  }).finally(() => {
+    publishLoadingRef.value = false
+  })
+  const item_kQuotaTypeMassSendNormal = ret.data.find(v => v.quota_type === 'kQuotaTypeMassSendNormal')
+  if (!item_kQuotaTypeMassSendNormal) {
+    return
+  }
+  publishQuotaItemListRef.value = item_kQuotaTypeMassSendNormal.quota_item_list
+
+  checkQuota(today)
+  // const list_kQuotaTypeMassSendProductActivity = ret.data.find(v => v.quota_type ==='kQuotaTypeMassSendProductActivity')
+  // console.log("masssendinfo=>", ret)
 }
 
 const disableHours = (role, comparingDate) => {
-  console.log("role=>", role)
-  console.log("comparingDate=>", comparingDate)
+  const todayStr = new Date().toISOString().split('T')[0]
+  if (selectedPublishTimingDateRef.value.id !== todayStr) {
+    return []
+  }
   const date = new Date(+new Date() + 5 * 60 * 1000)
   const hour = date.getHours()
   // const minute = date.getMinutes()
@@ -1461,14 +1534,30 @@ const disableHours = (role, comparingDate) => {
   console.log("idx=>", idx)
   return HOUSRS.slice(0, idx)
 }
+const disableMinutes = (role, comparingDate) => {
+  const todayStr = new Date().toISOString().split('T')[0]
+  if (selectedPublishTimingDateRef.value.id !== todayStr) {
+    return []
+  }
+  const date = new Date(+new Date() + 5 * 60 * 1000)
+  const minute = date.getMinutes()
+  // const minute = date.getMinutes()
+
+  const idx = MINUTES.findIndex(v => v === minute)
+  console.log("idx=>", idx)
+  return MINUTES.slice(0, idx)
+}
 
 const handlePublishToWechat = async () => {
   globalLoadingRef.value = true
-  window.ipcRenderer.send('toMain', {
-    tag: 'appmsg:publishToWechat',
-    token: getToken(),
-    mp_msgs: toDeepRaw(mp_msgsRef.value),
-  })
+
+  setTimeout(() => {
+    window.ipcRenderer.send('toMain', {
+      tag: 'appmsg:publishToWechat',
+      token: getToken(),
+      mp_msgs: toDeepRaw(mp_msgsRef.value),
+    })
+  }, 2000)
 
   setTimeout(() => {
     globalLoadingRef.value = false
@@ -1700,6 +1789,31 @@ const newArticleGroup = (item_show_type = 0) => {
 
 
 // event handler
+const emitChangeForPublishTimingDate = async (val) => {
+
+  console.log("emitChangeForPublishTimingDate val=>", val)
+
+  selectedPublishTimingDateRef.value = val
+  const todayStr = new Date().toISOString().split('T')[0]
+  if (todayStr === val.id) {
+    // check 5 minutes
+    publishTimeRef.value = +new Date() + 5 * 60 * 1000;
+  } else {
+    publishTimeRef.value = +new Date(val.id + "T00:00");
+  }
+  // let currentDate = new Date(val.id)
+  checkQuota(new Date(val.id))
+  // publishTimingDatesRef.value = Array.from({ length: 7 }, (_, i) => {
+  //   if (i === 0) {
+  //     return { name: "今天", id: today.toISOString().split('T')[0] }
+  //   } else if (i === 1) {
+  //     return { name: "明天", id: createDateByDays(today, 1).toISOString().split('T')[0] }
+  //   } else {
+  //     let theDate = createDateByDays(today, i)
+  //     return { name: `${theDate.getMonth() + 1}月${theDate.getDate()}日`, id: theDate.toISOString().split('T')[0] }
+  //   }
+  // });
+}
 
 const emitChangeForAppMsgGroup = async (val) => {
   console.log("emitChangeForAppMsgGroup val=>", val)

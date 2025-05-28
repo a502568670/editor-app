@@ -35,3 +35,12 @@ export function listVideos(data) {
     data
   })
 }
+
+// 获取发表信息
+export function getMasssendInfo(data) {
+  return request({
+    url: `/mp_wechat/masssend_info`,
+    method: 'post',
+    data
+  })
+}
