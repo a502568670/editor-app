@@ -20,16 +20,18 @@
       <!-- <el-button @click="saveArticle" type="danger">暂存文章</el-button> -->
       <el-button @click="handleSaveAppMsg" type="success">暂存</el-button>
       <el-button @click="handleSyncToWechatDraftBox" type="success">保存到公众号草稿箱</el-button>
-      <el-dropdown split-button type="danger">
+      <el-button @click="openSendArticleDialog" type="success">同步到其他账号</el-button>
+      <el-button @click="confirmOpenPublishToWechatDialog" type="danger">发表</el-button>
+      <!-- <el-dropdown split-button type="danger">
         其他
         <template #dropdown>
           <el-dropdown-menu>
-            <!-- <el-dropdown-item @click="handleSyncToWechatDraftBox">同步到微信草稿箱</el-dropdown-item> -->
+            <el-dropdown-item @click="handleSyncToWechatDraftBox">同步到微信草稿箱</el-dropdown-item>
             <el-dropdown-item @click="confirmOpenPublishToWechatDialog">发布到微信</el-dropdown-item>
             <el-dropdown-item divided @click="openSendArticleDialog">同步到其他账号</el-dropdown-item>
           </el-dropdown-menu>
         </template>
-      </el-dropdown>
+      </el-dropdown> -->
       <!-- <el-button @click="handleSyncToWechatDraftBox" type="danger">同步到微信草稿箱</el-button>
       <el-button @click="openSendArticleDialog" type="danger">同步到其他账号</el-button> -->
     </div>
