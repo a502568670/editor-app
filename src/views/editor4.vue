@@ -2533,16 +2533,17 @@ window.ipcRenderer.receive('fromMain', (msg) => {
       console.log("item_show_type=>", item_show_type)
       // const { video_page_infos } = msg.data
 
-      if (video_page_info) {
+      if (currentArticleRef.value.item_show_type === 5 && video_page_info) {
         // 独立视频
         console.log("video_page_infos=>",)
         guide_words = content_text
         vid = video_page_info.video_id
         content_noencode = getVideoFrameHtml(vid, cdn_url) //`<iframe class="edui-video-iframe" data-vidtype="2" data-mpvid="${video_id}" data-cover="${cdn_url}" allowfullscreen="" frameborder="0" data-w="1080" data-ratio="0.5625" style="border-radius: 4px;" src="https://mp.weixin.qq.com/cgi-bin/readtemplate?t=tmpl/video_tmpl&vid=${video_id}" width="420" height="280" frameborder="0" allowfullscreen=""></iframe>`
       }
-      if (currentArticleRef.value.item_show_type === 5) {
-        content_noencode = content_noencode + "<p>" + content_text + "<p>"
-      }
+      console.log("content_noencode=>", content_noencode)
+      // if (currentArticleRef.value.item_show_type === 0) {
+      //   content_noencode = content_noencode + "<p>" + content_text + "<p>"
+      // }
 
       currentArticleRef.value = {
         ...currentArticleRef.value,
