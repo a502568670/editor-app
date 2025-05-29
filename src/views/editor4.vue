@@ -95,7 +95,7 @@
             <div class="w-full flex h-20 items-center p-1 justify-center">
               <!-- <div @click="newArticle()"  class="cursor-pointer">+新建文章</div> -->
               <!-- <el-button @click="newArticle" type="primary">新建文章</el-button> -->
-              <el-dropdown>
+              <el-dropdown v-if="mp_msgsRef.length">
                 <el-button type="primary">
                   新建消息<el-icon class="el-icon--right"><arrow-down /></el-icon>
                 </el-button>
