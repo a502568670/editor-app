@@ -124,7 +124,7 @@ window.ipcRenderer.receive('fromMain', (msg) => {
             var male_fans_rate = 0, female_fans_rate=0;
             if (user_portrait.list.length) {
               var {genders,ages} = user_portrait.list[0];
-              var total = 0,m,fm;
+              var total = 0,m=0,fm=0;
               genders?.forEach(v=>{
                 total+=v.user_count;
                 if(v.attr_value == 1) m=v.user_count;
