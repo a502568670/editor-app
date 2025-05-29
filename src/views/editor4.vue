@@ -1723,6 +1723,7 @@ const handlePublishToWechat = async () => {
   const send_time = publishTimingFlagRef.value ? (+new Date(join_date_str)) / 1000 : 0
   // const is_release_publish_page = bulkSendingNotificationFlag.value ? 0 : 1
   const isFreePublish = !bulkSendingNotificationFlag.value
+  const hasNotify = bulkSendingNotificationFlag.value
   const reprint_info = publishCopyright1ListRef.value.length > 0 ? {
     item_list: publishCopyright1ListRef.value.map((_, i) => ({
       idx: i + 1,
@@ -1731,6 +1732,8 @@ const handlePublishToWechat = async () => {
     }))
   } : null
   const list = publishCopyright1ListJsonStrRef.value
+
+  console.log("hasNotify=>", hasNotify)
   console.log("isFreePublish=>", isFreePublish)
   // console.log('is_release_publish_page=>', is_release_publish_page)
   console.log('send_time=>', send_time)
@@ -1749,6 +1752,7 @@ const handlePublishToWechat = async () => {
       token: parseInt(token),
       send_time,
       isFreePublish,
+      hasNotify,
       // is_release_publish_page,
       list,
       reprint_info,
