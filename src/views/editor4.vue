@@ -488,7 +488,7 @@
               <td class="p-4">
                 <div class="flex flex-col">
                   <textarea class="border bg-gray-300" rows="3" v-model="publishGuideWordsRef[idx]" maxlength="140" />
-                  <span >{{publishGuideWordsRef[idx]?.length ?? 0}}/140</span>
+                  <span>{{ publishGuideWordsRef[idx]?.length ?? 0 }}/140</span>
                 </div>
               </td>
             </tr>
@@ -500,7 +500,7 @@
       <div class="dialog-footer">
         <el-button @click="dialogPublishArticleVisibleRef = false">取消</el-button>
         <el-button
-          v-if="(publishStepsRef.length === 0 && !instantPublishRef) || (publishStepsRef.length > 2 && publishStepRef < 2 )"
+          v-if="!instantPublishRef"
           @click="handlePublishNext">继续发表</el-button>
         <el-button v-if="instantPublishRef" @click="handlePublishToWechat" type="primary"
           :disabled="globalLoadingRef || publishLoadingRef">发表</el-button>
@@ -779,6 +779,7 @@ const selectedPublishTimingDateRef = ref(null)
 const publishTimingFlagRef = ref(false)
 const publishLoadingRef = ref(false)
 const publishQuotaItemListRef = ref([])
+const publishCopyright1ListJsonStrRef = ref("")
 const publishCopyright1ListRef = ref([])
 const publishGuideWordsRef = ref([])
 const instantPublishRef = ref(false)
@@ -1559,11 +1560,11 @@ const openPublishToWechatDialog = async () => {
   });
   selectedPublishTimingDateRef.value = publishTimingDatesRef.value[0]
   publishTimeRef.value = +new Date() + 5 * 60 * 1000;
-
   const { token, session_id, name } = selectedAccount.value
   publishLoadingRef.value = true
   publishStepsRef.value = []
   publishCopyright1ListRef.value = []
+  publishCopyright1ListJsonStrRef.value = ""
   publishGuideWordsRef.value = []
   publishStepRef.value = 0
   instantPublishRef.value = false
@@ -1644,6 +1645,7 @@ const handlePublishNext = async () => {
       //   <el-step title="确认发表方式" />
       //   <el-step title="填写编辑推荐语" />
       //   <el-step title="最终发表" />
+      publishCopyright1ListJsonStrRef.value = stepRet.list_json_str
       const copyright1_list = JSON.parse(stepRet.list_json_str)
       console.log("copyright1_list=>", copyright1_list)
       publishCopyright1ListRef.value = copyright1_list.list
@@ -1651,7 +1653,10 @@ const handlePublishNext = async () => {
       publishStepRef.value = 1
     } else if (stepRet.copyright === 0) {
       // 不是原创 不经历 确认发表方式和填写编辑推荐语
+      // instantPublishRef.value = true
+      // 不是原创改成直接提交
       instantPublishRef.value = true
+      await handlePublishToWechat()
     } else {
       ElMessageBox.alert('检测原创', '错误', {
         confirmButtonText: '确定',
@@ -1666,18 +1671,49 @@ const handlePublishNext = async () => {
 }
 
 const handlePublishToWechat = async () => {
-  globalLoadingRef.value = true
+  publishLoadingRef.value = true
+  const appmsgid = _getAppMsgId()
+  const appmsg_item_count = mp_msgsRef.value.length
+  // console.log("publishTimeRef.value", publishTimeRef.value, typeof publishTimeRef.value)
+  const publishTime = new Date(publishTimeRef.value)
+  const join_date_str = `${selectedPublishTimingDateRef.value.id} ${publishTime.getHours()}:${publishTime.getMinutes()}`
+  console.log('join_date_str=>', join_date_str)
+  const send_time = publishTimingFlagRef.value ? (+new Date(join_date_str)) / 1000 : 0
+  const is_release_publish_page = bulkSendingNotificationFlag.value ? 0 : 1
+  const reprint_info = publishCopyright1ListRef.value.length > 0 ? {
+    item_list: publishCopyright1ListRef.value.map((_, i) => ({
+      idx: i + 1,
+      reprint_type: 'EN_REPRINT_TYPE_SHARE',
+      guide_words: publishGuideWordsRef.value[i] ?? "",
+    }))
+  } : null
+  const list = publishCopyright1ListJsonStrRef.value
+  console.log('is_release_publish_page=>', is_release_publish_page)
+  console.log('send_time=>', send_time)
+  console.log("reprint_info=>", reprint_info)
+  console.log("list=>", list)
+  console.log('appmsgid=>', appmsgid)
+  console.log("appmsg_item_count=>", appmsg_item_count)
+  const { token, session_id, wechat_id } = selectedAccount.value
+  window.ipcRenderer.send('toMain', {
+    tag: 'appmsg:publishToWechat',
+    token: getToken(),
+    wechat_id,
+    publishData: {
+      // mp_msgs: toDeepRaw(mp_msgsRef.value),
+      cookies: serializeCookie(JSON.parse(session_id)["cookie"]),
+      token: parseInt(token),
+      send_time,
+      is_release_publish_page,
+      list,
+      reprint_info,
+      appmsgid,
+      appmsg_item_count
+    }
+  })
 
   setTimeout(() => {
-    window.ipcRenderer.send('toMain', {
-      tag: 'appmsg:publishToWechat',
-      token: getToken(),
-      mp_msgs: toDeepRaw(mp_msgsRef.value),
-    })
-  }, 2000)
-
-  setTimeout(() => {
-    globalLoadingRef.value = false
+    publishLoadingRef.value = false
     dialogExtractMpAritcleUrlRef.value = false
   }, timeoutPublish)
 }
@@ -2473,13 +2509,33 @@ window.ipcRenderer.receive('fromMain', (msg) => {
       if (idx !== -1) {
         mp_msgsRef.value[idx] = currentArticleRef.value
       }
+      dialogExtractMpAritcleUrlRef.value = false
     } else if (tag === "appmsg-ret:publishToWechat") {
       console.log("publishToWechatResult msg.data=>", msg.data)
+      const { success, msg: retmsg } = msg.data
+      if (success) {
+        dialogPublishArticleVisibleRef.value = false
+        ElMessage({
+          message: `发布成功`,
+          type: 'success',
+          duration: 2 * 1000
+        })
+      } else {
+        ElMessageBox.alert(`发布到微信出现错误:${retmsg}`, '错误', {
+          confirmButtonText: '确定',
+          type: 'error'
+        }).catch(() => {
+          console.log("publish receive catch")
+        })
+      }
+      if (publishLoadingRef.value) {
+        publishLoadingRef.value = false
+      }
     }
 
     if (globalLoadingRef.value) {
       globalLoadingRef.value = false
-      dialogExtractMpAritcleUrlRef.value = false
+
     }
   }
 })

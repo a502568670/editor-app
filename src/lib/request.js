@@ -46,6 +46,7 @@ export const postFormToEditorApi = function (pathname, postData, newheaders) {
         verbose_log("数据接收完成");
         if (response.statusCode == 200) {
           verbose_log("数据接收完成", data);
+
           resolve(data);
         } else {
           reject();
@@ -62,7 +63,7 @@ export const postFormToEditorApi = function (pathname, postData, newheaders) {
   });
 }
 
-export const postJsonToEditorApi = function (pathname, postData, newheaders, timeout) {
+export const postJsonToEditorApi = function (pathname, postData, newheaders, timeout = defaultTimeout) {
   const { protocol, hostname, port } = get_backend_url()
   return _postJson(protocol, hostname, port, pathname, postData, newheaders, timeout);
 }
@@ -73,7 +74,7 @@ export const postJsonToJZLApi = function (pathname, postData, newheaders, timeou
 }
 
 export const postJson = function (url, postData, newheaders, timeout) {
-  const { protocol, hostname, port, pathname } = new URL(url)
+  const { protocol, hostname, port, pathname, } = new URL(url)
   return _postJson(protocol, hostname, port, pathname, postData, newheaders, timeout)
 }
 const _postJson = function (protocol, hostname, port, pathname, postData, newheaders, timeout) {
@@ -98,7 +99,7 @@ const _postJson = function (protocol, hostname, port, pathname, postData, newhea
     const timeoutId = setTimeout(() => {
       if (!isFinished) {
         request.abort();
-        reject(new Error(`localExtractMpArticleUrlUseRequest::Timeout after ${timeout}ms`));
+        reject(new Error(`_postJson::Timeout after ${timeout}ms`));
       }
     }, timeout);
 
@@ -113,8 +114,8 @@ const _postJson = function (protocol, hostname, port, pathname, postData, newhea
       response.on('end', () => {
         let responseBodyBuffer = Buffer.concat(buffers);
         let ret = JSON.parse(responseBodyBuffer.toString());
-        console.log(`BODY: ${ret}`);
-        // verbose_log("JSON数据接收完成");
+        // console.log(`BODY: ${ret}`);
+        verbose_log("JSON数据接收完成", responseBodyBuffer.toString());
 
         clearTimeout(timeoutId);
         isFinished = true;
@@ -129,7 +130,7 @@ const _postJson = function (protocol, hostname, port, pathname, postData, newhea
       });
 
     });
-
+    console.log("postData:", postData)
     request.write(JSON.stringify(postData));
     request.end();
   });

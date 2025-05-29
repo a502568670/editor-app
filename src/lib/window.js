@@ -8,7 +8,8 @@
 import { TabbedWindow } from "./tabbed-window.js";
 import { nativeTheme, screen, dialog, Notification, app, ipcMain, webContents, net, BrowserWindow } from 'electron'
 import { localExtractMpArticleUrlUseRequest } from "./mp_account-tasks.js"
-import { postJsonToJZLApi } from "./request.js"
+import { publishAppmsg } from "./mp_appmsg-tasks.js"
+import { postJsonToJZLApi, postJsonToEditorApi } from "./request.js"
 const path = require('path')
 const fs = require('fs')
 import { createProtocol } from "vue-cli-plugin-electron-builder/lib";
@@ -23,6 +24,7 @@ const verbose_log = global.utils.verbose_log;
 const verbose_error = global.utils.verbose_error;
 const get_backend_url_old = global.utils.get_backend_url_old;
 var { batchWechatData } = require('./mp_stat-tasks.js');
+
 
 let tabbedWin;
 function showMsg(msg) {
@@ -473,8 +475,18 @@ async function reactToIpcObjectData(data, tabbedWin, viewContents) {
     }
     case 'appmsg:publishToWechat': {
       verbose_log("===== listen publishToWechat in main ====", data)
-
-      viewContents.send('fromMain', { tag: 'appmsg-ret:publishToWechat', data: {} })
+      const { token, wechat_id, publishData } = data
+      const ret = await publishAppmsg(publishData)
+      if (ret.success) {
+        verbose_log("===== 发布微信成功 ====", data)
+        const { appmsgid } = publishData
+        const result = await postJsonToEditorApi(`/appmsg/mark_publish`, { appmsgid, wechat_id }, {
+          'Authorization': `Bearer ${token}`,
+        })
+        verbose_log("mark_publish:", result)
+      }
+      
+      viewContents.send('fromMain', { tag: 'appmsg-ret:publishToWechat', data: ret })
       break;
     }
     case 'stat:getPvData': {

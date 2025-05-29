@@ -61,14 +61,14 @@ const menuList = ref([
 {
   name:'编辑器',
   url:'/editor4',
-  icon:require('@/assets/image/hot.png'),
-  icon_active:require('@/assets/image/hot_active.png')
+  icon:require('@/assets/image/editor.png'),
+  icon_active:require('@/assets/image/editor_active.png')
 },
 {
   name:'统计',
   url:'/stats',
-  icon:require('@/assets/image/hot.png'),
-  icon_active:require('@/assets/image/hot_active.png')
+  icon:require('@/assets/image/stat.png'),
+  icon_active:require('@/assets/image/stat_active.png')
 },
 // {
 //   name:'编辑器旧',
