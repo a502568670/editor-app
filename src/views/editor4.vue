@@ -24,7 +24,7 @@
         <template #dropdown>
           <el-dropdown-menu>
             <el-dropdown-item @click="handleSyncToWechatDraftBox">同步到微信草稿箱</el-dropdown-item>
-            <el-dropdown-item @click="openPublishToWechatDialog">发布到微信</el-dropdown-item>
+            <el-dropdown-item @click="confirmOpenPublishToWechatDialog">发布到微信</el-dropdown-item>
             <el-dropdown-item divided @click="openSendArticleDialog">同步到其他账号</el-dropdown-item>
           </el-dropdown-menu>
         </template>
@@ -37,7 +37,8 @@
         <div class="grid-content flex space-x-1 pl-1 mt-1">
           <el-select v-model="selected_mp_msg_groupRef" value-key="appmsgid" filterable placeholder="文章列表"
             @change="emitChangeForAppMsgGroup">
-            <el-option v-for="(item) in mp_msg_groupsRef" :key="item.appmsgid" :label="item.name" :value="item" />
+            <el-option v-for="(item) in mp_msg_groupsRef" :key="item.appmsgid"
+              :label="item.name + (item.publish_flag ? '(已发布)' : '')" :value="item" />
           </el-select>
 
           <!-- <el-button @click="newArticleGroup" class="max-w-[80px]" type="primary">新列表</el-button> -->
@@ -499,9 +500,7 @@
     <template #footer>
       <div class="dialog-footer">
         <el-button @click="dialogPublishArticleVisibleRef = false">取消</el-button>
-        <el-button
-          v-if="!instantPublishRef"
-          @click="handlePublishNext">继续发表</el-button>
+        <el-button v-if="!instantPublishRef" @click="handlePublishNext">继续发表</el-button>
         <el-button v-if="instantPublishRef" @click="handlePublishToWechat" type="primary"
           :disabled="globalLoadingRef || publishLoadingRef">发表</el-button>
       </div>
@@ -1529,8 +1528,27 @@ const handleSaveAppMsg = async () => {
   await _saveAppMsg(0)
 }
 
+
 const handleSyncToWechatDraftBox = async () => {
-  await _saveAppMsg(1)
+  const publish_flag = selected_mp_msg_groupRef.value.publish_flag;
+  console.log("publish_flag=>", publish_flag)
+  if (publish_flag === 1) {
+    ElMessageBox.confirm(
+      '当前消息列表已发布，除非在公众号后台撤销，否则操作会引发错误, 是否继续?',
+      '提示',
+      {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning',
+      }
+    ).then(async () => {
+      await _saveAppMsg(1)
+    }).catch(() => {
+      console.log('取消openPublishToWechatDialog')
+    })
+  } else {
+    await _saveAppMsg(1)
+  }
 }
 
 const checkQuota = (date) => {
@@ -1543,9 +1561,32 @@ const checkQuota = (date) => {
   bulkSendingNotificationRemain.value = quota_item.quota
 }
 
+const confirmOpenPublishToWechatDialog = async () => {
+  const publish_flag = selected_mp_msg_groupRef.value.publish_flag;
+  console.log("publish_flag=>", publish_flag)
+  if (publish_flag === 1) {
+    ElMessageBox.confirm(
+      '当前消息列表已发布，除非在公众号后台撤销，否则操作会引发错误, 是否继续?',
+      '提示',
+      {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning',
+      }
+    ).then(async () => {
+      await openPublishToWechatDialog()
+    }).catch(() => {
+      console.log('取消openPublishToWechatDialog')
+    })
+  } else {
+    await openPublishToWechatDialog()
+  }
+}
+
 const openPublishToWechatDialog = async () => {
+
   // 发布调试完毕需要先将appmsg同步到草稿箱
-  // await _saveAppMsg(1) 
+  await _saveAppMsg(1)
   dialogPublishArticleVisibleRef.value = true
   const today = new Date()
   publishTimingDatesRef.value = Array.from({ length: 7 }, (_, i) => {
