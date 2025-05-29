@@ -1720,7 +1720,8 @@ const handlePublishToWechat = async () => {
   const join_date_str = `${selectedPublishTimingDateRef.value.id} ${publishTime.getHours()}:${publishTime.getMinutes()}`
   console.log('join_date_str=>', join_date_str)
   const send_time = publishTimingFlagRef.value ? (+new Date(join_date_str)) / 1000 : 0
-  const is_release_publish_page = bulkSendingNotificationFlag.value ? 0 : 1
+  // const is_release_publish_page = bulkSendingNotificationFlag.value ? 0 : 1
+  const isFreePublish = !bulkSendingNotificationFlag.value
   const reprint_info = publishCopyright1ListRef.value.length > 0 ? {
     item_list: publishCopyright1ListRef.value.map((_, i) => ({
       idx: i + 1,
@@ -1729,7 +1730,8 @@ const handlePublishToWechat = async () => {
     }))
   } : null
   const list = publishCopyright1ListJsonStrRef.value
-  console.log('is_release_publish_page=>', is_release_publish_page)
+  console.log("isFreePublish=>", isFreePublish)
+  // console.log('is_release_publish_page=>', is_release_publish_page)
   console.log('send_time=>', send_time)
   console.log("reprint_info=>", reprint_info)
   console.log("list=>", list)
@@ -1745,7 +1747,8 @@ const handlePublishToWechat = async () => {
       cookies: serializeCookie(JSON.parse(session_id)["cookie"]),
       token: parseInt(token),
       send_time,
-      is_release_publish_page,
+      isFreePublish,
+      // is_release_publish_page,
       list,
       reprint_info,
       appmsgid,
