@@ -44,17 +44,17 @@ function showMsg(msg) {
 let companyMap = {
 
 }
-let userToken = '';
+// let userToken = '';
 
 // HTTP POST 请求封装函数
 const post = function (url, postData, newheaders) {
   // verbose_log("数据接收完成", url);
-  verbose_log("要发送的数据", postData);
-  verbose_log("userToken", userToken);
+  // verbose_log("要发送的数据", postData);
+  // verbose_log("userToken", userToken);
   return new Promise(async (resolve, reject) => {
     let headers = {
       'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8',
-      'Authorization': `Bearer ${userToken}`
+      // 'Authorization': `Bearer ${userToken}`
       // 'Content-Type': 'application/x-www-form-urlencoded'
     };
     if (newheaders) {
@@ -108,9 +108,12 @@ const post = function (url, postData, newheaders) {
     request.end();
   });
 }
-const postToken = async function (platform, cookie, localStorage, sessionStorage, originalUsername, name, avatar, token) {
+
+// const postToken = async function (platform, cookie, localStorage, sessionStorage, originalUsername, name, avatar, token) {
+const postToken = async function (payload,) {
+  const { platform, cookies, localStorage, sessionStorage, originalUsername, name, avatar, token, userToken } = payload
   let url = '/platform/addAccount'; // 保留这个部分
-  let data = { cookie: cookie, localStorage: localStorage || {}, sessionStorage: sessionStorage || {} };
+  let data = { cookie: cookies, localStorage: localStorage || {}, sessionStorage: sessionStorage || {} };
   if (!platform || !platform.id) {
     return null;
   }
@@ -126,11 +129,19 @@ const postToken = async function (platform, cookie, localStorage, sessionStorage
       originalUsername: originalUsername,
       avatar: avatar,
       name: encodeURIComponent(name)
-    }, { 'X-Sjq-Token': '' });//{ 'X-Sjq-Token': userToken || '' });
+    }, { 'Authorization': `Bearer ${userToken}`, 'X-Sjq-Token': '' });//{ 'X-Sjq-Token': userToken || '' });
     resultData = JSON.parse(resultData);
+    verbose_log("resultData=>", resultData)
+
     if (resultData.code == 1) {
-      tabbedWin.win.webContents.send('fromMain', "login-success");
-      companyMap.webview.close();
+      verbose_log("tabbedWin.win.isDestroyed=>", tabbedWin.win.isDestroyed())
+      if (!tabbedWin.win.isDestroyed()) {
+        tabbedWin.win.webContents.send('fromMain', "login-success");
+        // companyMap.webview.close();
+        companyMap.webview.destroy();
+        companyMap.login_success = true
+      }
+
       if (Notification.isSupported()) {
         verbose_log('notification is supported');
         new Notification({
@@ -353,7 +364,7 @@ async function reactToIpcObjectData(data, tabbedWin, viewContents) {
     case 'addAccount': {
       verbose_log("===== listen addAccount in main ====", data)
       let viewKey = data.id;
-      userToken = data.token
+      // userToken = data.token
       let partition = "persist:" + viewKey + new Date().getTime();
       let preload = './preload.js';
       switch (parseInt(data.id)) {
@@ -406,6 +417,32 @@ async function reactToIpcObjectData(data, tabbedWin, viewContents) {
       })
       view.focus();
       view.setAlwaysOnTop(true);
+      companyMap.login_success = false
+      view.on('close', function (e) {
+        const viewUrl = e.sender.webContents.getURL()
+        verbose_log("viewUrl:", viewUrl)
+        if (viewUrl === 'https://mp.weixin.qq.com/') {
+          return
+        } else {
+          if (companyMap.login_success) {
+            return
+          }
+        }
+
+        e.preventDefault();
+        // 弹出确认对话框
+        const choice = dialog.showMessageBoxSync(view, {
+          type: 'question',
+          buttons: ['是', '否'],
+          title: '确认对话框',
+          message: '当前登录窗口会自动关闭，人工关闭会导致功能退出?',
+        });
+
+        // 如果用户选择"Yes"，销毁窗口
+        if (choice === 0) {
+          view.destroy();
+        }
+      });
 
       // view.webContents.session.setProxy({
       //     mode: "pac_script",
@@ -415,6 +452,7 @@ async function reactToIpcObjectData(data, tabbedWin, viewContents) {
       companyMap.id = data.id
       companyMap.partition = partition;
       companyMap.webview = view;
+      companyMap.userToken = data.token
       if (companyMap.bxgs) {
 
         companyMap.bxgs.init(companyMap, postToken)
@@ -485,7 +523,7 @@ async function reactToIpcObjectData(data, tabbedWin, viewContents) {
         })
         verbose_log("mark_publish:", result)
       }
-      
+
       viewContents.send('fromMain', { tag: 'appmsg-ret:publishToWechat', data: ret })
       break;
     }

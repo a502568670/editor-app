@@ -396,7 +396,7 @@ onMounted(() => {
       handleFilter().then(() => {
         console.log("handleFilter in fromMain")
         if (data === "login-success") {
-          const selectAccountItem = accounts.value.find(v => v.id === selectedAccount.value.id)
+          const selectAccountItem = accounts.value.find(v => v.id === selectedAccount.value?.id)
           if (selectAccountItem) {
             console.log("selectAccountItem.token=>", selectAccountItem.token)
             console.log("selectedAccount.value.token=>", selectedAccount.value.token)
