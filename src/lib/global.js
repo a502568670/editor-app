@@ -10,6 +10,7 @@ global.common = {
   DEV: 'development',
   startPage: "https://go.itab.link/",
   blankPage: 'https://www.baidu.com/',
+  MP_WECHAT_BASE_URL: "https://mp.weixin.qq.com",
   APP_HOME_URL: process.env.WEBPACK_DEV_SERVER_URL + "/index.html",
   TAB_BAR_VIEW: "tabBar",
   DARK_WIN_COLOUR: "#000",

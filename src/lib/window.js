@@ -8,7 +8,7 @@
 import { TabbedWindow } from "./tabbed-window.js";
 import { nativeTheme, screen, dialog, Notification, app, ipcMain, webContents, net, BrowserWindow } from 'electron'
 import { localExtractMpArticleUrlUseRequest } from "./mp_account-tasks.js"
-import { publishAppmsg } from "./mp_appmsg-tasks.js"
+import { publishAppmsg, listAppmsgsInDraftBox } from "./mp_appmsg-tasks.js"
 import { postJsonToJZLApi, postJsonToEditorApi } from "./request.js"
 const path = require('path')
 const fs = require('fs')
@@ -510,6 +510,20 @@ async function reactToIpcObjectData(data, tabbedWin, viewContents) {
       verbose_log("extract result:", result)
       viewContents.send('fromMain', { tag: 'localExtractMpArticleUrlResult', data: result })
       break;
+    }
+    case 'appmsg:listAppmsgsInDraftBox': {
+      verbose_log("===== listen listAppmsgsInDraftBox in main ====", data)
+      const { token, listData } = data
+      // token => userToken
+      console.log("listData=>", listData)
+      const ret = await listAppmsgsInDraftBox(listData)
+      if (!ret.success) {
+        verbose_log("===== 获取草稿箱素材失败 ====")
+      }
+      verbose_log("===== 获取草稿箱素材成功 ====")
+      verbose_log("===== ret.items ====", ret.items.length)
+      viewContents.send('fromMain', { tag: 'appmsg-ret:listAppmsgsInDraftBox', data: { items: ret.items } })
+      break
     }
     case 'appmsg:publishToWechat': {
       verbose_log("===== listen publishToWechat in main ====", data)

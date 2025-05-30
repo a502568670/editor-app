@@ -102,6 +102,11 @@ const router = createRouter({
           component: () => import('./views/hot')
         },
         {
+          path: '/material_lib',
+          name: 'material_lib',
+          component: () => import('./views/material_lib')
+        },
+        {
           path: '/editor',
           name: 'editor',
           component: () => import('./views/editor')
@@ -142,7 +147,8 @@ router.beforeEach((to, from, next) => {
     /* has token*/
     if (to.path === '/login') {
       // next({ path: '/home' })
-      next({ path: '/editor4' })
+      // next({ path: '/editor4' })
+      next({ path: '/material_lib' })
     } else {
       store.dispatch('GetUserInfo').then(res => { // 拉取user_info
         // console.log("GetUserInfo=>", res)
