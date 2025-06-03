@@ -127,6 +127,11 @@ const router = createRouter({
           component: () => import('@/views/stats/index.vue')
         },
         {
+          path: '/posts',
+          name: 'posts',
+          component: () => import('@/views/posts/index.vue')
+        },
+        {
           path: '/tabbar',
           name: 'tabBar',
           component: () => import('./views/tabBar')

@@ -102,9 +102,9 @@ window.ipcRenderer.receive('fromMain', (msg) => {
               .filter(v=>new Date(v.sent_info.time*1000).toISOString().substr(0,10)===new Date(Date.now()+i*24*60*60*1000).toISOString().substr(0,10))
               .map(v=>v.appmsg_info.reduce((a,b)=>a.read_num+b.read_num,{read_num:0}))
               .reduce((a,b)=>a+b,0);
-            var read_num=addReadNum(0); // 今日发文阅读
-            var read_num_1=addReadNum(-1); // 昨日发文阅读
-            var read_num_2=addReadNum(-2); // 前日发文阅读
+            var read_num=addReadNum(0)||0; // 今日发文阅读
+            var read_num_1=addReadNum(-1)||0; // 昨日发文阅读
+            var read_num_2=addReadNum(-2)||0; // 前日发文阅读
             var {illegal_record_count} = JSON.parse(res.value[1].value);
             var illegal_recent = '无违规';
             var {List} = JSON.parse(res.value[2].value);
