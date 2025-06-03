@@ -2563,6 +2563,7 @@ window.ipcRenderer.receive('fromMain', (msg) => {
       if (idx !== -1) {
         mp_msgsRef.value[idx] = currentArticleRef.value
       }
+      extractArticleUrlRef.value = ""
       dialogExtractMpAritcleUrlRef.value = false
     } else if (tag === "appmsg-ret:publishToWechat") {
       console.log("publishToWechatResult msg.data=>", msg.data)
