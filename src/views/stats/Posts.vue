@@ -17,7 +17,7 @@
                     <el-radio :value="0" size="small">非原创</el-radio>
                     <el-radio :value="-1" size="small">全部</el-radio>
                 </el-radio-group>
-                <!-- <el-input style="width: 200px;float:right" v-model="keyword" :suffix-icon="Search" placeholder="输入关键字搜索文章标题" clearable></el-input> -->
+                <el-input style="width: 200px;float:right" v-model="key_words" :suffix-icon="Search" placeholder="输入关键字搜索文章标题" clearable></el-input>
             </div>
             <el-table v-loading="loading" :data="tableData" class="posts w-full overflow-scroll">
                 <el-table-column prop="title" label="文章" width="450">
@@ -49,6 +49,9 @@
                 </el-table-column>
                 <el-table-column prop="hot" label="爆值" :formatter="hotFormatter" min-width="100">
                     <template #header>
+                        <el-tooltip content="爆文值（10倍及以上）=爆文阅读量/前7天头条阅读量平均值">
+                            <el-icon style="position: relative;top: 2px;right: 2px;"><QuestionFilled /></el-icon>
+                        </el-tooltip>
                         <span class="thead" :class="params.mode===1&&'active'" @click="params.mode=1">爆值</span>
                     </template>
                     <template #default="v">
@@ -89,14 +92,15 @@
     vertical-align: middle;
     position: relative;
     top: 2px;
-    margin-left: 2px;
-}.posts .thead.active::after {
-    border-top-color: blue;
+    margin-left: 4px;
+}
+.posts .thead.active::after {
+    border-top-color: var(--el-color-primary);
 }
 </style>
 <script setup>
 import {ref,onMounted,watch, onActivated, nextTick} from 'vue'
-import {StarFilled,Search} from '@element-plus/icons-vue'
+import {StarFilled,Search,QuestionFilled} from '@element-plus/icons-vue'
 import dayjs from 'dayjs';
 import debounce from 'lodash/debounce'
 import { getDetailPosts } from '@/api/posts';
@@ -145,11 +149,11 @@ var pubTypes=[
 ];
 var initParams={
     mode:1,is_original:-1,pub_type:0,category:categories[0][0],
-    page:1,limit:50,
+    page:1,limit:50,key_words:'',
     end_time:undefined,
 }
 var params=ref(initParams);
-var keyword=ref('');
+var key_words=ref('');
 var shortcuts=[
     {text:dayjs().subtract(1,'day').format('MM-DD'),value:dayjs().subtract(1,'day')},
     {text:dayjs().subtract(2,'day').format('MM-DD'),value:dayjs().subtract(2,'day')},
@@ -167,12 +171,13 @@ watch(params,async () => {
     await getListBy()
     
 },{deep:true})
-watch(keyword,debounce(()=>{
-    console.log(keyword.value);
+watch(key_words,debounce(()=>{
+    // console.log(key_words.value);
+    params.value.key_words=key_words.value;
 },250))
 async function getListBy() {
     loading.value=true
-    var res = await getDetailPosts(params.value);
+    var res = await getDetailPosts({...params.value});
     total.value=res.total
     tableData.value=res.mp_articles_list;
     loading.value=false;

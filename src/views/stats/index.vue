@@ -29,8 +29,11 @@
  .stats {
   border-top: 1px solid var(--el-border-color);
  }
- .el-menu--vertical {
+ .stats .el-menu--vertical {
   --el-menu-item-height: 36px;
+}
+.stats .el-menu-item.is-active{
+  background-color: var(--el-menu-hover-bg-color);
 }
 </style>
 <script setup>
