@@ -131,11 +131,11 @@ const router = createRouter({
           name: 'stats',
           component: () => import('@/views/stats/index.vue')
         },
-        {
-          path: '/posts',
-          name: 'posts',
-          component: () => import('@/views/posts/index.vue')
-        },
+        // {
+        //   path: '/posts',
+        //   name: 'posts',
+        //   component: () => import('@/views/posts/index.vue')
+        // },
         {
           path: '/tabbar',
           name: 'tabBar',

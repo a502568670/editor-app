@@ -3,7 +3,7 @@
         <el-col :span="3" class="h-full overflow-y-scroll">
             <el-menu :default-active="categories[0][0]+''">
                 <el-menu-item-group title="类别">
-                    <el-menu-item v-for="v in categories" :index="v[0]+''" @click="params.category=v[0]">{{ v[1] }}</el-menu-item>
+                    <el-menu-item v-for="v in categories" :index="v[0]+''" :key="v[0]+''" @click="params.category=v[0]">{{ v[1] }}</el-menu-item>
                 </el-menu-item-group>
             </el-menu>
         </el-col>
@@ -25,7 +25,7 @@
                         <span class="mr-1">文章</span>
                         <el-divider direction="vertical"></el-divider>
                         <el-radio-group v-model="params.pub_type">
-                            <el-radio style="margin-right: 4px;" v-for="v in pubTypes" :value="v[0]" size="small">{{ v[1] }}</el-radio>
+                            <el-radio style="margin-right: 4px;" v-for="v in pubTypes" :key="v[0]+''" :value="v[0]" size="small">{{ v[1] }}</el-radio>
                         </el-radio-group>
                     </template>
                     <template #default="v">
