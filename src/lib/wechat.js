@@ -56,10 +56,11 @@ async function init(d, postTokenInWin) {
 
   // 登录状态检测函数
   async function checkLoginStatus(event) {
+    verbose_log('=====checkLoginStatus=====');
     verbose_log('checkLoginStatus 开始检查登录状态');
 
     // 如果 viewData.user 已存在，直接返回已登录
-    verbose_log("in checkLoginStatus viewData.user=>", viewData.user);
+    // verbose_log("in checkLoginStatus viewData.user=>", viewData.user);
     const original_id = (viewData.user || {}).original_id
     const cookies = await getCookies('mp.weixin.qq.com', viewData.webview.webContents);
     const requiredCookies = ['slave_user', 'slave_sid', 'data_ticket', 'data_bizuin'];
@@ -215,9 +216,10 @@ async function init(d, postTokenInWin) {
 
   // 定义处理Logined事件的函数
   async function handleLoginedEvent(data, viewData) {
+    verbose_log("---handleLoginedEvent---")
     try {
       // const cookies = viewData.user.cookies;
-      // console.log('handleLoginedEvent viewData:', viewData);
+      // console.log('handleLoginedEvent viewData.user:', viewData.user);
 
       const payload = {
         // platform_id: 4,
@@ -230,13 +232,14 @@ async function init(d, postTokenInWin) {
         originalUsername: viewData.user.originalUsername,// gh_id
         name: viewData.user.userName, // nick_name
         avatar: viewData.user.avatar,
-        userToken: viewData.user.userToken
+        userToken: viewData.user.userToken || viewData.userToken
       };
       // console.log('发送的数据:', payload.originalUsername);
       // console.log('发送的数据-nickName:', payload.name);
+      // console.log('handleLoginedEvent 发送的数据:', payload);
       if (postTokenInWin) {
         verbose_log("---postTokenInWin---")
-        postTokenInWin(viewData, payload.cookies, payload.localStorage, payload.sessionStorage, payload.originalUsername, payload.name, payload.avatar, payload.token)
+        postTokenInWin(payload)
       } else {
         verbose_log("postToken is exisst:")
         // const platform = { id: 4 }
@@ -310,14 +313,14 @@ async function init(d, postTokenInWin) {
     if (url === "https://mp.weixin.qq.com/") {
       // 退出登陆
       verbose_log('退出登陆 viewData.user:', viewData.user);
-      if(viewData.user) {
+      if (viewData.user) {
         const accounlt_session_id = viewData.user.account_session_id
         verbose_log("accounlt_session_id:", accounlt_session_id)
         if (accounlt_session_id) {
           viewData.tabWin.raiseRenderAct('remove-account-session', accounlt_session_id)
           verbose_log("send remove-account-session event to ipcRenderer")
         }
-      } 
+      }
     }
 
     verbose_log("=================")
@@ -351,15 +354,17 @@ async function init(d, postTokenInWin) {
 
   // 触发登录事件的函数
   function triggerLoginedEvent(viewData) {
+    verbose_log('==triggerLoginedEvent==');
+    verbose_log('viewData.webview.isDestroyed()=>', viewData.webview.isDestroyed());
+    verbose_log('viewData.webview.webContents.isDestroyed()=>', viewData.webview.webContents.isDestroyed());
+    if (viewData.webview.isDestroyed() || viewData.webview.webContents.isDestroyed()) {
+      verbose_error('无法触发logined事件: webContents已销毁');
+      return;
+    }
     if (!viewData || !viewData.webview || !viewData.webview.webContents) {
       verbose_error('无法触发logined事件: viewData结构不完整');
       return;
     }
-    if (viewData.webview.webContents.isDestroyed()) {
-      verbose_error('无法触发logined事件: webContents已销毁');
-      return;
-    }
-
     try {
 
       if (isLoginedEventTriggered) {
@@ -395,6 +400,10 @@ async function init(d, postTokenInWin) {
   }
 
   // 初始化时加载微信公众号登录页面
+  if (viewData.webview.webContents.isDestroyed()) {
+    verbose_error('无法加载公众号首页: webContents已销毁');
+    return 
+  }
   viewData.webview.webContents.loadURL('https://mp.weixin.qq.com/');
 }
 

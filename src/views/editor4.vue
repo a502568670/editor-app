@@ -48,7 +48,7 @@
         </div>
         <div class="bg-white  shadow-xl">
           <div v-if="mp_msgsRef">
-            <div ref="elListMsgsRef" class="overflow-auto" style="height:calc(100vh - 230px)">
+            <div ref="elListMsgsRef" class="overflow-auto" style="height:calc(100vh - 158px)">
               <div @click="loadArticle(item, true)" v-for="(item, index) in mp_msgsRef" :key="item.msg_id"
                 class="flex items-center p-2 border-b w-full">
                 <img v-if="item.cdn_url" :src="item.cdn_url" style="width:0px;height:0px;"
@@ -94,21 +94,23 @@
                   </div>
                 </div>
               </div>
+              <div class="w-full flex h-20 items-center p-1 justify-center">
+                <el-dropdown v-if="mp_msgsRef.length">
+                  <el-button type="primary">
+                    新建消息<el-icon class="el-icon--right"><arrow-down /></el-icon>
+                  </el-button>
+                  <template #dropdown>
+                    <el-dropdown-menu>
+                      <el-dropdown-item @click="() => newArticle(true, 0)">图文</el-dropdown-item>
+                      <el-dropdown-item @click="() => newArticle(true, 5)">视频</el-dropdown-item>
+                    </el-dropdown-menu>
+                  </template>
+                </el-dropdown>
+              </div>
             </div>
-            <div class="w-full flex h-20 items-center p-1 justify-center">
+            <div class="w-full flex h-1 items-center p-1 justify-center">
               <!-- <div @click="newArticle()"  class="cursor-pointer">+新建文章</div> -->
               <!-- <el-button @click="newArticle" type="primary">新建文章</el-button> -->
-              <el-dropdown v-if="mp_msgsRef.length">
-                <el-button type="primary">
-                  新建消息<el-icon class="el-icon--right"><arrow-down /></el-icon>
-                </el-button>
-                <template #dropdown>
-                  <el-dropdown-menu>
-                    <el-dropdown-item @click="() => newArticle(true, 0)">图文</el-dropdown-item>
-                    <el-dropdown-item @click="() => newArticle(true, 5)">视频</el-dropdown-item>
-                  </el-dropdown-menu>
-                </template>
-              </el-dropdown>
             </div>
           </div>
         </div>
@@ -2561,6 +2563,7 @@ window.ipcRenderer.receive('fromMain', (msg) => {
       if (idx !== -1) {
         mp_msgsRef.value[idx] = currentArticleRef.value
       }
+      extractArticleUrlRef.value = ""
       dialogExtractMpAritcleUrlRef.value = false
     } else if (tag === "appmsg-ret:publishToWechat") {
       console.log("publishToWechatResult msg.data=>", msg.data)
