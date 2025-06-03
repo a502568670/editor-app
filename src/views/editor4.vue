@@ -590,8 +590,9 @@
 }
 </style>
 <script setup>
-import { ref, shallowRef, onMounted, onBeforeUnmount, nextTick } from 'vue';
-import { listAccount } from '@/api/account'
+import { ref, toRefs, shallowRef, onMounted, onBeforeUnmount, nextTick, onActivated } from 'vue';
+// import { listAccount } from '@/api/account'
+import store from '@/store'
 import { getToken } from "@/utils/auth";
 import {
   saveArticleDraft,
@@ -615,6 +616,7 @@ import { Link, Link2, RadioTower, DollarSign, SquareTerminal, Eye, ScanEye, Minu
 import axios from 'axios'
 import JSON5 from "json5"
 
+const { all_accounts } = toRefs(store.getters)
 // console.log('envVars.backend_url=>', envVars.backend_url)
 // editor 
 const isDebugRef = ref(envVars.is_debug)
@@ -836,10 +838,41 @@ function ready(editorInstance) {
 onMounted(async () => {
   console.log("==onMounted==")
 
-  const accountsRet = await listAccount()
-  console.log('accountsRet=>', accountsRet)
+  // const accountsRet = await listAccount()
+  // console.log('accountsRet=>', accountsRet)
   // accountsRef.value = accountsRet.data.data.list
-  accountsRef.value = accountsRet.data.data.list
+  // const filteredAccounts = toDeepRaw(all_accounts.value.list)
+  // accountsRef.value = toDeepRaw(all_accounts.value.list)
+
+  // console.log("load accounts:", accountsRef.value)
+  // const init_account_id = getSelectedAccountId()
+  // console.log("init_account_id=>", init_account_id)
+  // if (init_account_id) {
+  //   const find_account = accountsRef.value.find(v => v.id === parseInt(init_account_id))
+  //   console.log("find_account=>", find_account)
+  //   if (find_account) {
+  //     selectedAccount.value = find_account
+  //     // setImageUploadConfig()
+  //   }
+  // } else {
+  //   if (accountsRef.value.length > 0) {
+  //     selectedAccount.value = accountsRef.value[0];
+  //     // setImageUploadConfig()
+  //     setSelectedAccountId(selectedAccount.value.id)
+  //   }
+  // }
+
+  // await loadArticleGroups()
+  // await listArticles()
+})
+
+onActivated(async () => {
+  console.log("==onActivated editor4==")
+
+  accountsRef.value = toDeepRaw(all_accounts.value.list)
+
+  accountsRef.value = toDeepRaw(all_accounts.value.list)
+
   console.log("load accounts:", accountsRef.value)
   const init_account_id = getSelectedAccountId()
   console.log("init_account_id=>", init_account_id)
@@ -860,6 +893,7 @@ onMounted(async () => {
 
   await loadArticleGroups()
   await listArticles()
+
 })
 
 // 组件销毁时，也及时销毁编辑器
