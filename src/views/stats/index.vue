@@ -17,8 +17,8 @@
       </el-menu>
     </el-col>
     <el-col :span="21" class="h-full overflow-y-scroll">
-      <MPAccount v-show="activeName==='mp_account'" class="aaa w-full flex-1 p-2"></MPAccount>
-      <Posts v-show="activeName==='posts'"/>
+      <MPAccount v-if="activeName==='mp_account'" class="aaa w-full flex-1 p-2"></MPAccount>
+      <Posts v-else-if="activeName==='posts'"/>
     </el-col>
   </el-row>
 </template>

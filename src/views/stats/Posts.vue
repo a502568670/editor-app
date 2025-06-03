@@ -95,7 +95,7 @@
 }
 </style>
 <script setup>
-import {ref,onMounted,watch} from 'vue'
+import {ref,onMounted,watch, onActivated, nextTick} from 'vue'
 import {StarFilled,Search} from '@element-plus/icons-vue'
 import dayjs from 'dayjs';
 import debounce from 'lodash/debounce'
@@ -143,11 +143,12 @@ var pubTypes=[
     [10,'纯文字'],
     [11,'转载文章'],
 ];
-var params=ref({
+var initParams={
     mode:1,is_original:-1,pub_type:0,category:categories[0][0],
     page:1,limit:50,
     end_time:undefined,
-});
+}
+var params=ref(initParams);
 var keyword=ref('');
 var shortcuts=[
     {text:dayjs().subtract(1,'day').format('MM-DD'),value:dayjs().subtract(1,'day')},
@@ -160,7 +161,7 @@ var tableData=ref([]);
 var loading=ref(true);
 onMounted(async () => {
     await getListBy()
-    
+
 })
 watch(params,async () => {
     await getListBy()
@@ -184,5 +185,8 @@ function openUrl(url){
 }
 function hotFormatter(row,col,v,i){
     return `${Math.round(v*100)}%`;
+}
+function resetFilters(){
+    params.value=initParams
 }
 </script>
