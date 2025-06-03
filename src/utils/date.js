@@ -18,14 +18,36 @@ export function formatDate(date, fmt) {
   let d = new Date(date),
     month = '' + (d.getMonth() + 1),
     day = '' + d.getDate(),
-    year = d.getFullYear();
+    year = d.getFullYear(),
+    hour = '' + d.getHours(),
+    minute = '' + d.getMinutes(),
+    second = '' + d.getSeconds()
+    ;
+
 
   if (month.length < 2)
     month = '0' + month;
   if (day.length < 2)
     day = '0' + day;
+  if (hour.length < 2)
+    hour = '0' + hour;
+  if (minute.length < 2)
+    minute = '0' + minute;
+  if (second.length < 2)
+    second = '0' + second;
   if (fmt === "yyyyMMdd") {
     return [year, month, day].join('');
+  } else if (fmt) {
+    return fmt.replace(/yyyy|MM|dd|HH|mm/g, match => {
+      switch (match) {
+        case 'yyyy': return year;
+        case 'MM': return month;
+        case 'dd': return day;
+        case 'HH': return hour;
+        case 'mm': return minute;
+        default: return match;
+      }
+    });
   }
   return [year, month, day].join('-');
 }

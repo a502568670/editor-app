@@ -8,7 +8,7 @@
   </div>
 </template>
 <script setup>
-import { ref, reactive, onMounted } from 'vue';
+import { ref, reactive, onMounted, watchEffect } from 'vue';
 
 const props = defineProps({
   list: {
@@ -28,11 +28,10 @@ const waterList = ref([]);
 // 列高度数组
 const heightList = reactive([]);
 
-// 屏幕宽度需要在 mounted 之后拿到
-onMounted(() => {
-  // 计算列数
+const list_items = (innerList) => {
   const column = Math.floor(document.body.clientWidth / width);
-  const innerList = [...props.list]
+
+  console.log('innerList=>', innerList)
   // 核心内容就是维护每个图片的 left、top
   for (let i = 0; i < innerList.length; i++) {
     // 先铺上第一行（i < column 则表示是第一行）
@@ -73,7 +72,22 @@ onMounted(() => {
   }
   console.log('waterList', waterList.value);
   console.log('heightList', heightList);
+}
+
+// 屏幕宽度需要在 mounted 之后拿到
+onMounted(() => {
+  // 计算列数
+  const innerList = [...props.list]
+  list_items(innerList)
 });
+
+
+watchEffect(() => {
+  // `foo` 由编译器转换为 `props.foo`
+  console.log(props.list)
+  const innerList = [...props.list]
+  list_items(innerList)
+})
 </script>
 <style scoped>
 .list {

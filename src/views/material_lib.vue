@@ -22,8 +22,74 @@
         </div>
         <div></div>
       </div>
-      <div class="flex-1">
-        <water-fall :list="list" class="water-fall" />
+      <div class="flex-1 overflow-auto pt-5">
+        <VueFlexWaterfall align-content="center" col="3" col-spacing="20" :breakByContainer="true">
+          <div v-for="item in list" :key="item.appmsgid"
+            class="w-[280px] bg-white border flex flex-col mb-5 rounded shadow"
+            :style="{ minHeight: item.height + 'px' }">
+            <div style="height:50px" class="flex items-center p-4 text-sm text-gray-400">
+              <el-icon :size="16" class="flex justify-center">
+                <Clock />
+              </el-icon>
+              <span class="ml-2">
+                修改时间: {{
+                  formatDate(item.update_time * 1000, 'yyyy-MM-dd HH:mm') }}
+              </span>
+            </div>
+            <div v-for="(subitem, index) in item.multi_item" :key="subitem.msg_index_id"
+              class="flex items-center px-4 py-2 w-full">
+              <img v-if="subitem.cdn_url" :src="subitem.cdn_url" style="width:0px;height:0px;"
+                referrerpolicy="no-referrer" />
+              <div v-if="index === 0" :style="{ '--image-url': 'url(' + subitem.cdn_url + ')' }"
+                class='w-full flex h-32 justify-between items-end bg-no-repeat bg-center bg-cover bg-[#e6e6e6] bg-[image:var(--image-url)]'>
+                <div class="w-full h-[30px] flex text-white p-1 bg-gray-800 opacity-70 pl-2">{{ subitem.title }}</div>
+              </div>
+              <div class="w-full flex h-[75px] items-center"
+                :class="{ 'border-b': index > 0 && index !== item.multi_item.length - 1 }" v-else>
+                <div class="flex flex-col flex-1 h-full">
+                  <div class="flex-1 h-2/3 w-full max-w-full max-h-2/3 overflow-y-hidden">
+                    <!-- <el-icon v-if="subitem.item_show_type === 5" :size="20"
+                      class="cursor-pointer flex justify-center items-end" title="视频文章">
+                      <Video />
+                    </el-icon> -->
+                    {{ subitem.title }}
+                  </div>
+                  <!-- <div class=" text-sm flex-0" style="color: #51ce94">{{ item.author }}</div> -->
+                </div>
+                <img v-if="subitem.cdn_url" class="w-16 h-16 rounded-sm" :src="subitem.cdn_url" />
+              </div>
+            </div>
+            <div class=" bg-gray-200 h-10 flex justify-around items-center text-gray-500">
+              <el-tooltip class="box-item" effect="dark" content="编辑" placement="bottom">
+                <el-icon :size="24" class="cursor-pointer flex justify-center">
+                  <PencilLine />
+                </el-icon>
+              </el-tooltip>
+              <el-dropdown placement="bottom">
+                <el-icon :size="24" class="cursor-pointer flex justify-center focus:outline-none hover:outline-none" >
+                  <SendHorizonal/>
+                </el-icon>
+                <template #dropdown>
+                  <el-dropdown-menu>
+                    <el-dropdown-item>群发</el-dropdown-item>
+                    <el-dropdown-item>定时群发</el-dropdown-item>
+                  </el-dropdown-menu>
+                </template>
+              </el-dropdown>
+              <el-tooltip class="box-item" effect="dark" content="发送到其他账号" placement="bottom">
+                <el-icon :size="24" class="cursor-pointer flex justify-center">
+                  <Forward />
+                </el-icon>
+              </el-tooltip>
+              <el-tooltip class="box-item" effect="dark" content="删除" placement="bottom">
+                <el-icon :size="24" class="cursor-pointer flex justify-center" title="删除">
+                  <Trash2 />
+                </el-icon>
+              </el-tooltip>
+            </div>
+          </div>
+          <!-- <div class="w-[280px] border h-[300px]">ccc</div> -->
+        </VueFlexWaterfall>
       </div>
     </div>
   </div>
@@ -40,132 +106,27 @@
 }
 </style>
 <script setup>
-import { ref, toRefs, computed, reactive, onMounted, onActivated } from 'vue';
+import { ref, toRefs, computed, reactive, onMounted, onActivated, onDeactivated } from 'vue';
 import { ElMessage, ElMessageBox, ElLoading } from 'element-plus'
 import { RefreshRight, Search } from '@element-plus/icons-vue'
 import AccountNav from "@/components/AccountNav"
-import WaterFall from "@/components/WaterFall"
+import { VueFlexWaterfall } from 'vue-flex-waterfall';
+import WaterFall from "@/components/WaterFallItem"
 import { getToken } from "@/utils/auth";
 import { serializeCookie } from "@/utils/cookie"
+import { formatDate } from "@/utils/date"
+import { Clock, PencilLine, SendHorizonal, Forward, Trash2 } from 'lucide-vue-next';
 import store from '@/store'
-// import { listAccount } from '@/api/account'
 
-// const { getters } = useStore();
+// 订阅
+const channelCleans = {}
+const channelName = 'fromMain'
 
 const { all_accounts } = toRefs(store.getters)
 
 const accountsRef = ref([])
 
-const list = ref([
-  {
-    height: 300,
-    background: 'red',
-    image: '/images/works-publicity/tradition.png',
-    text: '平面作品+李宇轩',
-  },
-  {
-    height: 400,
-    background: 'pink',
-    text: '美术作品+沈佳宜',
-    image: '/images/works-publicity/tradition.png',
-  },
-  {
-    height: 500,
-    background: 'blue',
-    image: '/images/works-publicity/tradition.png',
-    text: '平面作品+李宇轩',
-  },
-  {
-    height: 200,
-    background: 'green',
-    image: '/images/works-publicity/tradition.png',
-    text: '平面作品+李宇轩',
-  },
-  {
-    height: 300,
-    background: 'gray',
-    image: '/images/works-publicity/tradition.png',
-    text: '平面作品+李宇轩',
-  },
-  {
-    height: 400,
-    background: '#CC00FF',
-    image: '/images/works-publicity/tradition.png',
-    text: '平面作品+李宇轩',
-  },
-  {
-    height: 200,
-    background: 'pink',
-    image: '/images/works-publicity/tradition.png',
-    text: '平面作品+李宇轩',
-  },
-  {
-    height: 100,
-    background: '#996666',
-    image: '/images/works-publicity/tradition.png',
-    text: '平面作品+李宇轩',
-  },
-  {
-    height: 300,
-    background: 'gray',
-    image: '/images/works-publicity/tradition.png',
-    text: '平面作品+李宇轩',
-  },
-  {
-    height: 400,
-    background: '#CC00FF',
-    image: '/images/works-publicity/tradition.png',
-    text: '平面作品+李宇轩',
-  },
-  {
-    height: 200,
-    background: 'gray',
-    image: '/images/works-publicity/tradition.png',
-    text: '平面作品+李宇轩',
-  },
-  {
-    height: 100,
-    background: '#996666',
-    image: '/images/works-publicity/tradition.png',
-    text: '平面作品+李宇轩',
-  },
-  {
-    height: 300,
-    background: 'gray',
-    image: '/images/works-publicity/tradition.png',
-    text: '平面作品+李宇轩',
-  },
-  {
-    height: 400,
-    background: '#CC00FF',
-    image: '/images/works-publicity/tradition.png',
-    text: '平面作品+李宇轩',
-  },
-  {
-    height: 200,
-    background: 'gray',
-    image: '/images/works-publicity/tradition.png',
-    text: '平面作品+李宇轩',
-  },
-  {
-    height: 100,
-    background: '#996666',
-    image: '/images/works-publicity/tradition.png',
-    text: '平面作品+李宇轩',
-  },
-  {
-    height: 300,
-    background: 'gray',
-    image: '/images/works-publicity/tradition.png',
-    text: '平面作品+李宇轩',
-  },
-  {
-    height: 400,
-    background: '#CC00FF',
-    image: '/images/works-publicity/tradition.png',
-    text: '平面作品+李宇轩',
-  }
-]);
+const list = ref([]);
 const queryRef = ref("")
 const beginRef = ref(0)
 
@@ -209,9 +170,9 @@ const handleAppMsgFilter = async () => {
 
 const _listAppmsgsInDraftBox = async () => {
   const { token, name, id, session_id } = selectedAccountRef.value
-  console.log("token=>", token)
-  console.log("id=>", id)
-  console.log("session_id=>", session_id)
+  // console.log("token=>", token)
+  // console.log("id=>", id)
+  // console.log("session_id=>", session_id)
   if (!token || !session_id) {
     ElMessageBox.alert(`当前账号session过期,请切换到*账号中心*重新登录`, '错误', {
       confirmButtonText: '确定',
@@ -241,32 +202,58 @@ onMounted(async () => {
   // handleAccountFilter({ query: "" })
 })
 onActivated(async () => {
-  console.log("---onActivated----")
+  console.log("---onActivated material_lib----")
+
+  channelCleans[channelName] = window.ipcRenderer.receive(channelName, (msg) => {
+    console.log("material_lib ipcRenderer receive fromMain:", msg)
+    if (typeof msg === 'object' && Object.prototype.hasOwnProperty.call(msg, 'tag')) {
+      const tag = msg.tag;
+      if (tag === "appmsg-ret:listAppmsgsInDraftBox") {
+        const { success, items, err_msg } = msg.data
+        if (!success) {
+          let message = err_msg === "invalid session" ? `当前账号session过期,请切换到*账号中心*重新登录` : err_msg
+          ElMessageBox.alert(message, '错误', {
+            confirmButtonText: '确定',
+            type: 'error'
+          }).then(() => {
+            console.log("then")
+          }).catch(() => {
+            console.log("catch")
+          })
+          return
+        }
+
+
+        const transformed_items = items.map(it => ({
+          ...it,
+          height: (50 + (it.multi_item.length === 1 ? 115 : (115 + (it.multi_item.length - 1) * 75)) + 40),
+        }))
+        console.log("get items =>", items)
+        console.log("get transformed_items =>", transformed_items)
+        list.value = transformed_items
+
+        //       {
+        //   height: 300,
+        //   background: 'red',
+        //   image: '/images/works-publicity/tradition.png',
+        //   text: '平面作品+李宇轩',
+        // },
+      }
+    }
+  })
+
   handleAccountFilter({ query: "" })
 })
 
-window.ipcRenderer.receive('fromMain', (msg) => {
-  console.log("material_lib ipcRenderer receive fromMain:", msg)
-  if (typeof msg === 'object' && Object.prototype.hasOwnProperty.call(msg, 'tag')) {
-    const tag = msg.tag;
-    if (tag === "appmsg-ret:listAppmsgsInDraftBox") {
-      const { success, items, err_msg } = msg.data
-      if (!success) {
-        let message = err_msg === "invalid session" ? `当前账号session过期,请切换到*账号中心*重新登录` : err_msg
-        ElMessageBox.alert(message, '错误', {
-          confirmButtonText: '确定',
-          type: 'error'
-        }).then(() => {
-          console.log("then")
-        }).catch(() => {
-          console.log("catch")
-        })
-        return
-      }
-
-      console.log("get items =>", items)
-    }
+onDeactivated(async () => {
+  console.log("---onDeactivated material_lib----")
+  if (channelCleans[channelName]) {
+    console.log(`cleanup channel ${channelName} for editor4`)
+    channelCleans[channelName]()
   }
+
 })
+
+
 
 </script>

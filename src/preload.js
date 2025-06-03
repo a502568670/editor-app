@@ -20,11 +20,16 @@ contextBridge.exposeInMainWorld('envVars', {
 contextBridge.exposeInMainWorld('ipcRenderer', {
   receive: (channel, func) => {
     if (
-      ['fromMain','getWebBounds', 'tabs-update', 'remove-account-session', 'account_check_login', 'downloadProgress'].includes(
+      ['fromMain', 'getWebBounds', 'tabs-update', 'remove-account-session', 'account_check_login', 'downloadProgress'].includes(
         channel
       )
     ) {
-      ipcRenderer.on(channel, (event, ...args) => func(...args)); // Deliberately strip the event as it includes the sender.
+      const channelFunc = (event, ...args) => func(...args)
+      const cleanup = () => {
+        ipcRenderer.off(channel, channelFunc);
+      }
+      ipcRenderer.on(channel, channelFunc); // Deliberately strip the event as it includes the sender.
+      return cleanup
     } // end if
   },
   send: (channel, data) => {
