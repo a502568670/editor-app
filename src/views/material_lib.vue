@@ -22,7 +22,7 @@
         </div>
         <div></div>
       </div>
-      <div class="flex-1 overflow-auto pt-5">
+      <div v-scroll="onScroll" class="flex-1 overflow-auto pt-5">
         <VueFlexWaterfall align-content="center" col="3" col-spacing="20" :breakByContainer="true">
           <div v-for="item in list" :key="item.appmsgid"
             class="w-[280px] bg-white border flex flex-col mb-5 rounded shadow"
@@ -66,8 +66,8 @@
                 </el-icon>
               </el-tooltip>
               <el-dropdown placement="bottom">
-                <el-icon :size="24" class="cursor-pointer flex justify-center focus:outline-none hover:outline-none" >
-                  <SendHorizonal/>
+                <el-icon :size="24" class="cursor-pointer flex justify-center focus:outline-none hover:outline-none">
+                  <SendHorizonal />
                 </el-icon>
                 <template #dropdown>
                   <el-dropdown-menu>
@@ -107,6 +107,8 @@
 </style>
 <script setup>
 import { ref, toRefs, computed, reactive, onMounted, onActivated, onDeactivated } from 'vue';
+import { useScroll } from '@vueuse/core'
+import { vScroll } from '@vueuse/components'
 import { ElMessage, ElMessageBox, ElLoading } from 'element-plus'
 import { RefreshRight, Search } from '@element-plus/icons-vue'
 import AccountNav from "@/components/AccountNav"
@@ -132,6 +134,17 @@ const beginRef = ref(0)
 
 const selectedAccountRef = ref(null)
 
+// 
+// const waterfallContainerRef = useTemplateRef('waterfall-container')
+// const { x, y, isScrolling, arrivedState, directions } = useScroll(waterfallContainerRef)
+
+const onScroll = (state) => {
+  console.log(state) // {x, y, isScrolling, arrivedState, directions}
+  if (state.arrivedState.bottom) {
+    console.log('到底了!')
+    return true
+  }
+}
 
 const handleAccountFilter = (v) => {
   const filteredAccounts = all_accounts.value.list.filter(a => a.name.includes(v.query))
