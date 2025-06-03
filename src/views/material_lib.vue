@@ -40,15 +40,19 @@
 }
 </style>
 <script setup>
-import { ref, reactive, onMounted } from 'vue';
+import { ref, toRefs, computed, reactive, onMounted, onActivated } from 'vue';
 import { ElMessage, ElMessageBox, ElLoading } from 'element-plus'
 import { RefreshRight, Search } from '@element-plus/icons-vue'
 import AccountNav from "@/components/AccountNav"
 import WaterFall from "@/components/WaterFall"
 import { getToken } from "@/utils/auth";
 import { serializeCookie } from "@/utils/cookie"
-import { listAccount } from '@/api/account'
+import store from '@/store'
+// import { listAccount } from '@/api/account'
 
+// const { getters } = useStore();
+
+const { all_accounts } = toRefs(store.getters)
 
 const accountsRef = ref([])
 
@@ -165,12 +169,14 @@ const list = ref([
 const queryRef = ref("")
 const beginRef = ref(0)
 
-const accountPage = 1
-const accountNum = 100
 const selectedAccountRef = ref(null)
 
-const handleAccountFilter = async (v) => {
-  accountsRef.value = await _listAccount({ page: accountPage, num: accountNum, keyword: v })
+
+const handleAccountFilter = (v) => {
+  const filteredAccounts = all_accounts.value.list.filter(a => a.name.includes(v.query))
+  // console.log("filteredAccounts=>", filteredAccounts)
+  // accountsRef.value = await _listAccount({ page: accountPage, num: accountNum, keyword: v })
+  accountsRef.value = filteredAccounts
 }
 
 const handleAccountSelect = async (account) => {
@@ -206,6 +212,17 @@ const _listAppmsgsInDraftBox = async () => {
   console.log("token=>", token)
   console.log("id=>", id)
   console.log("session_id=>", session_id)
+  if (!token || !session_id) {
+    ElMessageBox.alert(`当前账号session过期,请切换到*账号中心*重新登录`, '错误', {
+      confirmButtonText: '确定',
+      type: 'error'
+    }).then(() => {
+      console.log("then")
+    }).catch(() => {
+      console.log("catch")
+    })
+    return
+  }
   window.ipcRenderer.send('toMain', {
     tag: 'appmsg:listAppmsgsInDraftBox',
     token: getToken(),
@@ -220,13 +237,12 @@ const _listAppmsgsInDraftBox = async () => {
   })
 }
 
-const _listAccount = async ({ page, num, keyword }) => {
-  const res = await listAccount({ page, num, keyword })
-  return res.data.data.list
-}
-
 onMounted(async () => {
-  await handleAccountFilter("")
+  // handleAccountFilter({ query: "" })
+})
+onActivated(async () => {
+  console.log("---onActivated----")
+  handleAccountFilter({ query: "" })
 })
 
 window.ipcRenderer.receive('fromMain', (msg) => {
@@ -234,7 +250,21 @@ window.ipcRenderer.receive('fromMain', (msg) => {
   if (typeof msg === 'object' && Object.prototype.hasOwnProperty.call(msg, 'tag')) {
     const tag = msg.tag;
     if (tag === "appmsg-ret:listAppmsgsInDraftBox") {
-      console.log("")
+      const { success, items, err_msg } = msg.data
+      if (!success) {
+        let message = err_msg === "invalid session" ? `当前账号session过期,请切换到*账号中心*重新登录` : err_msg
+        ElMessageBox.alert(message, '错误', {
+          confirmButtonText: '确定',
+          type: 'error'
+        }).then(() => {
+          console.log("then")
+        }).catch(() => {
+          console.log("catch")
+        })
+        return
+      }
+
+      console.log("get items =>", items)
     }
   }
 })

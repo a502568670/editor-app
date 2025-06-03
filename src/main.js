@@ -5,22 +5,22 @@
  * @LastEditors:
  * @LastEditTime: 2023-05-22 17:02:20
  */
-import {createApp} from 'vue'
+import { createApp } from 'vue'
 import App from './App.vue'
 import store from './store'
-import {createRouter, createWebHashHistory} from 'vue-router'
+import { createRouter, createWebHashHistory } from 'vue-router'
 import ElementPlus from 'element-plus'
 import 'element-plus/dist/index.css'
 import locale from 'element-plus/dist/locale/zh-cn.mjs'
 import './assets/styles/global.css'
 import Layout from '@/layout/index.vue'
 import Home from '@/layout/home.vue'
-import {getToken} from "./utils/auth";
+import { getToken } from "./utils/auth";
 import CKEditor from '@mayasabha/ckeditor4-vue3';
 import VueUeditorWrap from 'vue-ueditor-wrap';
 
-let app=createApp(App)
-app.use( CKEditor);
+let app = createApp(App)
+app.use(CKEditor);
 app.use(VueUeditorWrap);
 
 
@@ -52,7 +52,7 @@ const router = createRouter({
         {
           path: '/home2',
           name: '首页',
-          component:Home,
+          component: Home,
           children: [
             {
               path: "/home",
@@ -148,7 +148,11 @@ router.beforeEach((to, from, next) => {
     if (to.path === '/login') {
       // next({ path: '/home' })
       // next({ path: '/editor4' })
-      next({ path: '/material_lib' })
+      store.dispatch('ListAccounts').then(() => {
+        next({ path: '/editor4' })
+        // next({ path: '/material_lib' })
+      })
+      
     } else {
       store.dispatch('GetUserInfo').then(res => { // 拉取user_info
         // console.log("GetUserInfo=>", res)

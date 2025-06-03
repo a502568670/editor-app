@@ -64,7 +64,7 @@
               <template #label>
                 <span class="custom-tabs-label">
                   <span v-if="item.title.length > 9" :title="item.title" class="tab-title">{{ item.title.slice(0, 9)
-                  }}</span>
+                    }}</span>
                   <span v-else class="tab-title">{{ item.title }}</span>
                 </span>
               </template>
@@ -103,17 +103,21 @@
 </template>
 
 <script setup>
-import { nextTick, onMounted, onUnmounted, ref,onDeactivated  } from 'vue'
+import { nextTick, onMounted, onActivated, onUnmounted, ref, toRefs, onDeactivated } from 'vue'
 import { ElNotification } from 'element-plus'
 import { getToken } from "@/utils/auth";
+import store from '@/store'
 import {
   listAccount, createAccount, updateAccount, deleteAccount,
   removeAccountSession, refreshAccountSession
 } from '@/api/account'
 import { listPlatform } from '@/api/platform'
+import { toDeepRaw } from "@/utils/convert"
 import selectPlatform from "../components/selectPlatform";
 import selectUser from "../components/selectUser";
 // import selectGroup from "../components/selectGroup";
+const { all_accounts } = toRefs(store.getters)
+
 const tabs = ref([])
 const currentTabId = ref(0)
 const currentTab = ref({})
@@ -130,16 +134,27 @@ const listQuery = ref({
 const accountTotal = ref(0)
 const accountTotalPage = ref(0)
 const accounts = ref([])
-const selectedAccount = ref(null)
-const selectedAccountLoginStatus = ref({})
+// const selectedAccount = ref(null)
+// const selectedAccountLoginStatus = ref({})
 
 const getList = () => {
-  return listAccount(listQuery.value).then(response => {
-    accounts.value = response.data.data.list
-    accountTotal.value = response.data.data.total
-    accountTotalPage.value = parseInt(accountTotal.value / listQuery.value.num) + (accountTotal.value % listQuery.value.num > 0 ? 1 : 0)
-  }).catch(() => {
-  })
+  const query = listQuery.value.keyword
+  console.log("query=>", query)
+  console.log("all_accounts.value=>", all_accounts.value)
+  const filteredAccounts = toDeepRaw(all_accounts.value.list.filter(a => a.name.includes(query)))
+
+  accounts.value = filteredAccounts
+  accountTotal.value = all_accounts.value.total
+  accountTotalPage.value = parseInt(accountTotal.value / listQuery.value.num) + (accountTotal.value % listQuery.value.num > 0 ? 1 : 0)
+
+  console.log("filteredAccounts=>", filteredAccounts)
+
+  // return listAccount(listQuery.value).then(response => {
+  //   accounts.value = response.data.data.list
+  //   accountTotal.value = response.data.data.total
+  //   accountTotalPage.value = parseInt(accountTotal.value / listQuery.value.num) + (accountTotal.value % listQuery.value.num > 0 ? 1 : 0)
+  // }).catch(() => {
+  // })
 }
 
 const nextPage = () => {
@@ -157,8 +172,6 @@ const handleFilter = () => {
   listQuery.value.page = 1
   return getList();
 }
-handleFilter();
-
 
 
 
@@ -255,11 +268,11 @@ const addNewTab = (account) => {
   console.log("currentTabId.value=>", currentTabId.value)
   let a = Object.assign({ userToken: getToken() }, account)
   console.log("a=>", a)
-  if (selectedAccount.value && selectedAccount.value.id === a.id) {
-    console.log("已经选中>", a)
-  } else {
-    selectedAccount.value = account
-  }
+  // if (selectedAccount.value && selectedAccount.value.id === a.id) {
+  //   console.log("已经选中>", a)
+  // } else {
+  //   selectedAccount.value = account
+  // }
   window.ipcRenderer.send('new-tab', a)
 }
 
@@ -304,14 +317,16 @@ const throttleFunc = throttle(() => {
 onMounted(() => {
 
   window.ipcRenderer.receive('account_check_login', async (isLoggedIn) => {
-    console.log("isLoggedIn => ", isLoggedIn)
-    selectedAccountLoginStatus.value = { ...selectedAccountLoginStatus.value, [selectedAccount.value.id]: isLoggedIn }
-    console.log("selectedAccountLoginStatus.value  => ", selectedAccountLoginStatus.value)
-    if (selectedAccount.value.id && selectedAccountLoginStatus.value[selectedAccount.value.id] === false) {
-      handleAddMPAccount(mp_platform.value)
-    }
+    console.log("account_check_login isLoggedIn => ", isLoggedIn)
+    // selectedAccountLoginStatus.value = { ...selectedAccountLoginStatus.value, [selectedAccount.value.id]: isLoggedIn }
+    // console.log("selectedAccountLoginStatus.value  => ", selectedAccountLoginStatus.value)
+    // if (selectedAccount.value.id && selectedAccountLoginStatus.value[selectedAccount.value.id] === false) {
+    //   handleAddMPAccount(mp_platform.value)
+    // }
     if (!isLoggedIn) {
       removeTab(currentTabId.value)
+    } else {
+
     }
   })
 
@@ -320,7 +335,10 @@ onMounted(() => {
     if (account_session_id) {
       console.log("== remove-account-session ==")
       await removeAccountSession({ account_session_id })
-      handleFilter();
+      store.dispatch('ListAccounts').then(() => {
+        handleFilter();
+      })
+      // handleFilter();
     }
   })
 
@@ -384,7 +402,7 @@ onMounted(() => {
 
   // 用户切换标签页时，主进程会发送 fromMain 消息，通知当前选中的标签页 ID。
   window.ipcRenderer.receive('fromMain', (data) => {
-    console.log("ipcRenderer receive fromMain:", data)
+    console.log("tabBar receive fromMain:", data)
     if (typeof data === 'object' && Object.prototype.hasOwnProperty.call(data, 'currentTabId')) {
       currentTabId.value = parseInt(data.currentTabId)
       for (let a of tabs.value) {
@@ -393,17 +411,22 @@ onMounted(() => {
         }
       }
     } else {
-      handleFilter().then(() => {
-        console.log("handleFilter in fromMain")
-        if (data === "login-success") {
-          const selectAccountItem = accounts.value.find(v => v.id === selectedAccount.value?.id)
-          if (selectAccountItem) {
-            console.log("selectAccountItem.token=>", selectAccountItem.token)
-            console.log("selectedAccount.value.token=>", selectedAccount.value.token)
-            addNewTab(selectAccountItem)
-          }
-        }
-      });
+      if (typeof msg === 'object' && Object.prototype.hasOwnProperty.call(msg, 'tag')) {
+        const tag = msg.tag;
+        console.log("handleFilter in fromMain", tag)
+      }
+      if (data === "login-success") {
+        console.log("==login-success==")
+        store.dispatch('ListAccounts').then(() => {
+          handleFilter();
+          // const selectAccountItem = accounts.value.find(v => v.id === selectedAccount.value?.id)
+          // if (selectAccountItem) {
+          //   console.log("selectAccountItem.token=>", selectAccountItem.token)
+          //   console.log("selectedAccount.value.token=>", selectedAccount.value.token)
+          //   addNewTab(selectAccountItem)
+          // }
+        })
+      }
     }
   })
 
@@ -424,6 +447,11 @@ onMounted(() => {
   // 获取browserview内部
 
 })
+
+onActivated(() => {
+  handleFilter();
+})
+
 onDeactivated(() => {
   console.log('组件卸载');
   window.ipcRenderer.send('close-tab')

@@ -1,4 +1,4 @@
-const { ipcMain, dialog, net } = require('electron');
+const { ipcMain, dialog, net, BrowserWindow, BrowserView } = require('electron');
 const path = require('path');
 const global = require("./global")
 
@@ -244,7 +244,7 @@ async function init(d, postTokenInWin) {
         verbose_log("postToken is exisst:")
         // const platform = { id: 4 }
         // (platform, cookies, {}, sessionStorage, payload.originalUsername, payload.name, payload.avatar, payload.token)
-        postToken && postToken(payload);
+        postToken && postToken(payload, viewData.tabWin);
 
       }
       // postToken && postToken(viewData, cookies, {}, sessionStorage, payload.originalUsername, payload.name, payload.avatar);
@@ -355,9 +355,18 @@ async function init(d, postTokenInWin) {
   // 触发登录事件的函数
   function triggerLoginedEvent(viewData) {
     verbose_log('==triggerLoginedEvent==');
-    verbose_log('viewData.webview.isDestroyed()=>', viewData.webview.isDestroyed());
+    verbose_log('viewData.webview=>', viewData.webview);
+    verbose_log('viewData.webview.webContents=>', viewData.webview.webContents);
+
+    verbose_log('viewData.webview is instanceof BrowserWindow=>', viewData.webview instanceof BrowserWindow);
+    verbose_log('viewData.webview is instanceof BrowserView=>', viewData.webview instanceof BrowserView);
+    verbose_log('viewData.webview.isDestroyed()=>', viewData.webview.webContents.isDestroyed());
     verbose_log('viewData.webview.webContents.isDestroyed()=>', viewData.webview.webContents.isDestroyed());
-    if (viewData.webview.isDestroyed() || viewData.webview.webContents.isDestroyed()) {
+    const isLoginInPopup = viewData.webview instanceof BrowserWindow
+    if (isLoginInPopup) {
+
+    }
+    if (viewData.webview.webContents.isDestroyed() || viewData.webview.webContents.isDestroyed()) {
       verbose_error('无法触发logined事件: webContents已销毁');
       return;
     }
@@ -402,7 +411,7 @@ async function init(d, postTokenInWin) {
   // 初始化时加载微信公众号登录页面
   if (viewData.webview.webContents.isDestroyed()) {
     verbose_error('无法加载公众号首页: webContents已销毁');
-    return 
+    return
   }
   viewData.webview.webContents.loadURL('https://mp.weixin.qq.com/');
 }
@@ -516,7 +525,7 @@ const post = function (url, postData, newheaders) {
 }
 
 // (platform, cookies, {}, sessionStorage, payload.originalUsername, payload.name, payload.avatar, payload.token)
-const postToken = async function (payload) {
+const postToken = async function (payload, tabWin) {
   const { platform, cookies, localStorage, sessionStorage, originalUsername, name, avatar, token, userToken } = payload
   // verbose_log("platform=>", platform)
   // verbose_log("cookies=>", cookies)
@@ -539,6 +548,7 @@ const postToken = async function (payload) {
     }, { 'Authorization': `Bearer ${userToken}`, 'X-Sjq-Token': '' });//{ 'X-Sjq-Token': userToken || '' });
     resultData = JSON.parse(resultData);
     if (resultData.code == 1) {
+      tabWin.win.webContents.send('fromMain', "login-success");
       // tabbedWin.win.webContents.send('fromMain', "");
       // companyMap.webview.close();
       // if (Notification.isSupported()) {

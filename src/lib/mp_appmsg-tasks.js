@@ -120,7 +120,7 @@ const listAppmsgsInDraftBox = async ({ cookies, token, query, begin, count = 10 
   if (base_resp.ret !== 0) {
     return {
       success: false,
-      msg: base_resp.err_msg
+      err_msg: base_resp.err_msg
     }
   }
 

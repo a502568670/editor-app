@@ -518,11 +518,11 @@ async function reactToIpcObjectData(data, tabbedWin, viewContents) {
       console.log("listData=>", listData)
       const ret = await listAppmsgsInDraftBox(listData)
       if (!ret.success) {
-        verbose_log("===== 获取草稿箱素材失败 ====")
+        verbose_log("===== 获取草稿箱素材失败 ====", ret.err_msg)
+      } else {
+        verbose_log("===== 获取草稿箱素材成功 ====", ret.items.length)
       }
-      verbose_log("===== 获取草稿箱素材成功 ====")
-      verbose_log("===== ret.items ====", ret.items.length)
-      viewContents.send('fromMain', { tag: 'appmsg-ret:listAppmsgsInDraftBox', data: { items: ret.items } })
+      viewContents.send('fromMain', { tag: 'appmsg-ret:listAppmsgsInDraftBox', data: ret })
       break
     }
     case 'appmsg:publishToWechat': {
