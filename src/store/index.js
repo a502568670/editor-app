@@ -1,5 +1,6 @@
 import { createStore } from 'vuex';
 import { loginByUsername, loginByUsernameSimple, logout, getUserInfo } from '@/api/login'
+import { listAccount } from "@/api/account"
 import { removeToken, setToken, getToken } from '@/utils/auth'
 import { newGetconfig } from '@/api/config'
 export default createStore({
@@ -7,7 +8,11 @@ export default createStore({
     return {
       config: {},
       user: {},
-      token:''
+      token: '',
+      accounts: {
+        list: [],
+        total: 0,
+      }
     };
   },
   mutations: {
@@ -18,15 +23,19 @@ export default createStore({
       setToken(token)
       state.token = token
     },
-    setUser(state,u) {
-      state.user=u;
+    setUser(state, u) {
+      state.user = u;
+    },
+    SET_ACCOUNTS: (state, accounts) => {
+      
+      state.accounts = accounts
     }
   },
   actions: {
     // 获取配置
     GetConfig({ commit, state }) {
       return new Promise((resolve, reject) => {
-        if(state.config&&Object.keys(state.config).length>0){
+        if (state.config && Object.keys(state.config).length > 0) {
           resolve(state.config)
           return
         }
@@ -52,7 +61,7 @@ export default createStore({
         })
       })
     },
-     // 用户名登录
+    // 用户名登录
     LoginByUsernameSimple({ commit, state }, userInfo) {
       const username = (userInfo.username || '').trim()
       return new Promise((resolve, reject) => {
@@ -66,6 +75,13 @@ export default createStore({
           reject(error)
         })
       })
+    },
+
+    // 分页获取账号数据(目前按照100条先不分页)
+    async ListAccounts({ commit, state }, {page = 1, num = 100} = {page: 1, num: 100}) {
+      const response = await listAccount({ page, num })
+      console.info("SET_ACCOUNTS", response.data.data)
+      commit('SET_ACCOUNTS', response.data.data)
     },
 
     // 获取用户信息
@@ -91,6 +107,6 @@ export default createStore({
     }
   },
   getters: {
-
-  }
+    all_accounts: (state) => state.accounts,
+  },
 });

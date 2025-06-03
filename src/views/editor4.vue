@@ -2523,7 +2523,7 @@ const syncToList = (key) => {
 
 // 用户切换标签页时，主进程会发送 fromMain 消息，通知当前选中的标签页 ID。
 window.ipcRenderer.receive('fromMain', (msg) => {
-  console.log("ipcRenderer receive fromMain:", msg)
+  console.log("editor ipcRenderer receive fromMain:", msg)
   if (typeof msg === 'object' && Object.prototype.hasOwnProperty.call(msg, 'tag')) {
     const tag = msg.tag;
     if (tag === "localExtractMpArticleUrlResult") {

@@ -226,8 +226,12 @@ export default {
               localStorage.setItem("password",this.loginForm.password)
             }
             this.loading = false
+
+            store.dispatch('ListAccounts').then(()=>{
+              router.push({ path: '/editor4', replace: true });
+            })
             // router.push({ path: '/home' })
-            router.push({ path: '/editor4', replace: true });
+            
           }).catch(response => {
             console.info(response)
             if(response.data?.msg) {

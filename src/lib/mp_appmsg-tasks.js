@@ -6,6 +6,7 @@ const { netFetch } = require('./request')
 const verbose_log = global.default.utils.verbose_log;
 const verbose_error = global.default.utils.verbose_error;
 const defaultTimeout = global.default.common.DEFAULT_TIMEOUT
+const baseUrl = global.default.common.MP_WECHAT_BASE_URL
 
 function getid(e) {
   for (var t = "", i = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789", n = 0; e > n; n++)t += i.charAt(Math.floor(Math.random() * i.length));
@@ -21,9 +22,14 @@ const getDefaultHeader = () => {
 }
 
 const api = {
-  operation_seq: token => `https://mp.weixin.qq.com/misc/safeassistant?1=1&token=${token}&lang=zh_CN`,
-  timing_publish: (token, hasNotify) => `https://mp.weixin.qq.com/cgi-bin/masssend?t=ajax-response&token=${token}&lang=zh_CN` + (hasNotify ? "&is_release_publish_page=0" : "&is_release_publish_page=1"),
-  instant_push: (token, hasNotify) => `https://mp.weixin.qq.com/cgi-bin/masssend?t=ajax-response&token=${token}&lang=zh_CN` + (hasNotify ? '&is_release_publish_page=0' : '&is_release_publish_page=1'),
+  // 发布
+  operation_seq: tk => `${baseUrl}/misc/safeassistant?1=1&token=${tk}&lang=zh_CN`,
+  timing_publish: (tk, hasNotify) => `${baseUrl}/cgi-bin/masssend?t=ajax-response&token=${tk}&lang=zh_CN` + (hasNotify ? "&is_release_publish_page=0" : "&is_release_publish_page=1"),
+  instant_push: (tk, hasNotify) => `${baseUrl}/cgi-bin/masssend?t=ajax-response&token=${tk}&lang=zh_CN` + (hasNotify ? '&is_release_publish_page=0' : '&is_release_publish_page=1'),
+
+  //数据
+  list_in_draftbox: (tk, query, begin, count) => `${baseUrl}/cgi-bin/appmsg?begin=${begin}&count=${count}&type=77&action=list_card&token=${tk}&lang=zh_CN&f=json&query=${query}`
+
 };
 // &is_release_publish_page=1
 
@@ -100,4 +106,29 @@ const publishAppmsg = async ({ cookies, token, send_time, hasNotify, isFreePubli
   }
 }
 
+const listAppmsgsInDraftBox = async ({ cookies, token, query, begin, count = 10 }) => {
+  const opts = {
+    headers: { ...getDefaultHeader(), cookie: cookies }
+  };
+  let url = api.list_in_draftbox(token, query, begin, count)
+  verbose_log('api url:', url)
+  verbose_log('api opts:', opts)
+  let res = (await netFetch(url, { ...opts }))
+  console.log("list_in_draftbox res:", typeof res, res)
+  res = JSON.parse(res)
+  let base_resp = res.base_resp
+  if (base_resp.ret !== 0) {
+    return {
+      success: false,
+      err_msg: base_resp.err_msg
+    }
+  }
+
+  return {
+    success: true,
+    items: res.app_msg_info.item
+  }
+}
+
 exports.publishAppmsg = publishAppmsg;
+exports.listAppmsgsInDraftBox = listAppmsgsInDraftBox;
