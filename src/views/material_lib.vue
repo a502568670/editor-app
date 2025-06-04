@@ -1,11 +1,10 @@
 <template>
   <div class="w-full flex h-full bg-[#e9f9f1]">
     <div class="w-[200px] border-r shadow-md">
-      <account-nav class="bg-red" :list="accountsRef" @account-filter="handleAccountFilter"
-        @account-select="handleAccountSelect" />
+      <account-nav :default-selected-index="selectedIndexRef" @account-select="handleAccountSelect" />
     </div>
     <div class="flex-1 flex flex-col h-full">
-      <div class="h-12 flex space-x-2 items-center pl-2 border-b mb-1 shadow-md">
+      <div v-if="selectedAccountRef !== null" class="h-12 flex space-x-2 items-center pl-2 border-b mb-1 shadow-md">
         <div>草稿箱</div>
         <el-button @click="handleAppMsgRefresh" type="primary">
           <el-icon>
@@ -67,7 +66,7 @@
             </div>
             <div class=" bg-gray-200 h-10 flex justify-around items-center text-gray-500">
               <el-tooltip class="box-item" effect="dark" content="编辑" placement="bottom">
-                <el-icon :size="24" class="cursor-pointer flex justify-center">
+                <el-icon :size="24" class="cursor-pointer flex justify-center" @click="handleAppmsgEdit(item)">
                   <PencilLine />
                 </el-icon>
               </el-tooltip>
@@ -113,7 +112,6 @@
 </style>
 <script setup>
 import { ref, toRefs, useTemplateRef, computed, nextTick, onMounted, onActivated, onDeactivated } from 'vue';
-import { useScroll } from '@vueuse/core'
 import { vScroll } from '@vueuse/components'
 import { ElMessage, ElMessageBox, ElLoading } from 'element-plus'
 import { RefreshRight, Search } from '@element-plus/icons-vue'
@@ -125,21 +123,22 @@ import { serializeCookie } from "@/utils/cookie"
 import { formatDate } from "@/utils/date"
 import { debounceFn } from "@/utils/index"
 import { Clock, PencilLine, SendHorizonal, Forward, Trash2 } from 'lucide-vue-next';
-import store from '@/store'
+import { useRouter } from 'vue-router'
 
 // 订阅
 const channelCleans = {}
 const channelName = 'fromMain'
 
-const { all_accounts } = toRefs(store.getters)
+// const { all_accounts } = toRefs(store.getters)
+const router = useRouter();
 
 const elRef = useTemplateRef('el')
-const accountsRef = ref([])
 
 const list = ref([]);
 const queryRef = ref("")
 
 const selectedAccountRef = ref(null)
+const selectedIndexRef = ref(0)
 const dataLoadingRef = ref(false)
 
 
@@ -162,16 +161,10 @@ const onScroll = debounceFn((state) => {
   }
 }, 200, false)
 
-
-const handleAccountFilter = (v) => {
-  const filteredAccounts = all_accounts.value.list.filter(a => a.name.includes(v.query))
-  // console.log("filteredAccounts=>", filteredAccounts)
-  // accountsRef.value = await _listAccount({ page: accountPage, num: accountNum, keyword: v })
-  accountsRef.value = filteredAccounts
-}
-
-const handleAccountSelect = async (account) => {
+const handleAccountSelect = async ({ account, index }) => {
+  console.log("---->", account, index)
   selectedAccountRef.value = account
+  selectedIndexRef.value = index
   listMode.value = 0
   await _listAppmsgsInDraftBox()
 }
@@ -198,6 +191,11 @@ const handleAppMsgFilter = async () => {
   }
   listMode.value = 0
   await _listAppmsgsInDraftBox()
+}
+
+const handleAppmsgEdit = async (appmsg) => {
+  console.log("handleAppmsgEdit=>", appmsg)
+  router.push({ path: '/editor3', query: { account_id: selectedAccountRef.value.id, appmsgid: appmsg.app_id, title: appmsg.title } })
 }
 
 // listMode 0-refresh 1-append
@@ -232,9 +230,9 @@ const _listAppmsgsInDraftBox = async (begin = 0, count = _listCount) => {
   })
 }
 
-onMounted(async () => {
-  // handleAccountFilter({ query: "" })
-})
+// onMounted(async () => {
+//   // handleAccountFilter({ query: "" })
+// })
 onActivated(async () => {
   console.log("---onActivated material_lib----")
 
@@ -262,8 +260,8 @@ onActivated(async () => {
           ...it,
           height: (50 + (it.multi_item.length === 1 ? 115 : (115 + (it.multi_item.length - 1) * 75)) + 40),
         }))
-        console.log("get items =>", items)
-        console.log("get transformed_items =>", transformed_items)
+        // console.log("get items =>", items)
+        // console.log("get transformed_items =>", transformed_items)
         if (listMode.value === 0) {
           list.value = transformed_items
         } else {
@@ -272,13 +270,11 @@ onActivated(async () => {
         // elRef.value.updateOrder()
         dataLoadingRef.value = false
         nextTick(() => {
-          elRef.value.updateOrder()
+          elRef.value && elRef.value.updateOrder()
         })
       }
     }
   })
-
-  handleAccountFilter({ query: "" })
 })
 
 onDeactivated(async () => {

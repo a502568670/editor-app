@@ -71,6 +71,12 @@ const menuList = ref([
   icon_active:require('@/assets/image/editor_active.png')
 },
 {
+  name:'编辑器2',
+  url:'/editor3',
+  icon:require('@/assets/image/editor.png'),
+  icon_active:require('@/assets/image/editor_active.png')
+},
+{
   name:'统计',
   url:'/stats',
   icon:require('@/assets/image/stat.png'),
