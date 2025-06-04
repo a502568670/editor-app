@@ -9,7 +9,7 @@
       </div>
     </div>
     <ul class="w-full flex flex-col bg-white" style="height:calc(100vh - 158px)">
-      <li @click="handleSelect(item)" v-for="item in list" :key="item.id"
+      <li @click="handleSelect(item)" v-for="item in list" :key="item.id" :class="{'bg-gray-100': selected_account_id === item.id}"
         class="flex p-1 h-[75px] items-center border-b hover:bg-gray-100 cursor-pointer">
         <img class="w-10 h-10 rounded-full" :src="item.avatar" />
         <div class="flex-1 self-start pl-2 flex flex-col">
@@ -35,6 +35,7 @@
 import { ref, onMounted, defineEmits, toRaw } from 'vue';
 import { Search } from '@element-plus/icons-vue'
 import { debounceFn } from "@/utils/index"
+const selected_account_id = ref(0)
 const queryRef = ref("")
 const props = defineProps({
   class: {
@@ -55,6 +56,8 @@ const handleInput = debounceFn((v) => {
 }, 200, false)
 
 const handleSelect = (account) => {
+  console.log("selected account.id=>", account.id)
+  selected_account_id.value = account.id
   emitAccountFilter("accountSelect", toRaw(account))
 }
 

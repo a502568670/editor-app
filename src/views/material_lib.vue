@@ -13,6 +13,12 @@
           </el-icon>
           <span class="ml-1">刷新</span>
         </el-button>
+        <!-- <el-button @click="() => { elRef.updateOrder() }" type="primary">
+          <el-icon>
+            <RefreshRight />
+          </el-icon>
+          <span class="ml-1">重排</span>
+        </el-button> -->
         <div class="flex-1"></div>
         <div class="bg-white px-2 py-0.5 flex items-center border rounded-sm"><el-input class="bg-white"
             v-model="queryRef" style="width: 100%;" placeholder="请输入账号关键词" />
@@ -22,8 +28,8 @@
         </div>
         <div></div>
       </div>
-      <div v-scroll="onScroll" class="flex-1 overflow-auto pt-5">
-        <VueFlexWaterfall align-content="center" col="3" col-spacing="20" :breakByContainer="true">
+      <div v-scroll="onScroll" class="flex-1 overflow-auto pt-5" v-loading="dataLoadingRef">
+        <VueFlexWaterfall ref="el" align-content="center" col="3" col-spacing="20" :breakByContainer="true">
           <div v-for="item in list" :key="item.appmsgid"
             class="w-[280px] bg-white border flex flex-col mb-5 rounded shadow"
             :style="{ minHeight: item.height + 'px' }">
@@ -106,7 +112,7 @@
 }
 </style>
 <script setup>
-import { ref, toRefs, computed, reactive, onMounted, onActivated, onDeactivated } from 'vue';
+import { ref, toRefs, useTemplateRef, computed, nextTick, onMounted, onActivated, onDeactivated } from 'vue';
 import { useScroll } from '@vueuse/core'
 import { vScroll } from '@vueuse/components'
 import { ElMessage, ElMessageBox, ElLoading } from 'element-plus'
@@ -117,6 +123,7 @@ import WaterFall from "@/components/WaterFallItem"
 import { getToken } from "@/utils/auth";
 import { serializeCookie } from "@/utils/cookie"
 import { formatDate } from "@/utils/date"
+import { debounceFn } from "@/utils/index"
 import { Clock, PencilLine, SendHorizonal, Forward, Trash2 } from 'lucide-vue-next';
 import store from '@/store'
 
@@ -126,25 +133,35 @@ const channelName = 'fromMain'
 
 const { all_accounts } = toRefs(store.getters)
 
+const elRef = useTemplateRef('el')
 const accountsRef = ref([])
 
 const list = ref([]);
 const queryRef = ref("")
-const beginRef = ref(0)
 
 const selectedAccountRef = ref(null)
+const dataLoadingRef = ref(false)
 
-// 
+
+const listMode = ref(0) // 0-refresh 1-append
+const _listCount = 10
 // const waterfallContainerRef = useTemplateRef('waterfall-container')
 // const { x, y, isScrolling, arrivedState, directions } = useScroll(waterfallContainerRef)
 
-const onScroll = (state) => {
+const onScroll = debounceFn((state) => {
   console.log(state) // {x, y, isScrolling, arrivedState, directions}
   if (state.arrivedState.bottom) {
     console.log('到底了!')
-    return true
+    const begin = list.value.length;
+    if (begin < _listCount) {
+      console.log("未满一页")
+      return
+    }
+    listMode.value = 1
+    _listAppmsgsInDraftBox(begin)
   }
-}
+}, 200, false)
+
 
 const handleAccountFilter = (v) => {
   const filteredAccounts = all_accounts.value.list.filter(a => a.name.includes(v.query))
@@ -155,6 +172,7 @@ const handleAccountFilter = (v) => {
 
 const handleAccountSelect = async (account) => {
   selectedAccountRef.value = account
+  listMode.value = 0
   await _listAppmsgsInDraftBox()
 }
 
@@ -162,6 +180,7 @@ const handleAppMsgRefresh = async () => {
   if (!selectedAccountRef.value) {
     return
   }
+  listMode.value = 0
   await _listAppmsgsInDraftBox()
 }
 
@@ -177,11 +196,12 @@ const handleAppMsgFilter = async () => {
     })
     return
   }
+  listMode.value = 0
   await _listAppmsgsInDraftBox()
 }
 
-
-const _listAppmsgsInDraftBox = async () => {
+// listMode 0-refresh 1-append
+const _listAppmsgsInDraftBox = async (begin = 0, count = _listCount) => {
   const { token, name, id, session_id } = selectedAccountRef.value
   // console.log("token=>", token)
   // console.log("id=>", id)
@@ -197,6 +217,7 @@ const _listAppmsgsInDraftBox = async () => {
     })
     return
   }
+  dataLoadingRef.value = true
   window.ipcRenderer.send('toMain', {
     tag: 'appmsg:listAppmsgsInDraftBox',
     token: getToken(),
@@ -205,8 +226,8 @@ const _listAppmsgsInDraftBox = async () => {
       cookies: serializeCookie(JSON.parse(session_id)["cookie"]),
       token: parseInt(token),
       query: queryRef.value,
-      begin: beginRef.value,
-      count: 10
+      begin,
+      count
     }
   })
 }
@@ -233,9 +254,9 @@ onActivated(async () => {
           }).catch(() => {
             console.log("catch")
           })
+          dataLoadingRef.value = false
           return
         }
-
 
         const transformed_items = items.map(it => ({
           ...it,
@@ -243,14 +264,16 @@ onActivated(async () => {
         }))
         console.log("get items =>", items)
         console.log("get transformed_items =>", transformed_items)
-        list.value = transformed_items
-
-        //       {
-        //   height: 300,
-        //   background: 'red',
-        //   image: '/images/works-publicity/tradition.png',
-        //   text: '平面作品+李宇轩',
-        // },
+        if (listMode.value === 0) {
+          list.value = transformed_items
+        } else {
+          list.value.push(...transformed_items)
+        }
+        // elRef.value.updateOrder()
+        dataLoadingRef.value = false
+        nextTick(() => {
+          elRef.value.updateOrder()
+        })
       }
     }
   })
