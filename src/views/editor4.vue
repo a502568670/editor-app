@@ -871,8 +871,6 @@ onActivated(async () => {
 
   accountsRef.value = toDeepRaw(all_accounts.value.list)
 
-  accountsRef.value = toDeepRaw(all_accounts.value.list)
-
   console.log("load accounts:", accountsRef.value)
   const init_account_id = getSelectedAccountId()
   console.log("init_account_id=>", init_account_id)

@@ -32,7 +32,7 @@
         </div>
       </div>
       <el-row :gutter="10">
-        <el-col :span="8" style="text-align: center">
+        <!-- <el-col :span="8" style="text-align: center">
           <el-button :disabled="listQuery.page <= 1" @click="prvePage">上一页</el-button>
         </el-col>
         <el-col :span="8" style="text-align: center;vertical-align: middle;">
@@ -40,10 +40,8 @@
         </el-col>
         <el-col :span="8" style="text-align: center">
           <el-button :disabled="accountTotalPage <= listQuery.page" @click="nextPage">下一页</el-button>
-        </el-col>
+        </el-col> -->
         <el-col :span="24" style="padding-top: 10px;">
-          <!-- <el-button style="width: 100%;background-color: #51ce94;border: none" type="primary"
-            @click="openAddAccountDialog">添加账号</el-button> -->
           <el-button style="width: 100%;background-color: #51ce94;border: none" type="primary"
             @click="handleAddMPAccount(mp_platform)">登录微信公众号</el-button>
         </el-col>
