@@ -63,10 +63,9 @@ const { all_accounts } = toRefs(store.getters)
 
 const selectedAccountRef = ref(null)
 const selectedIndexRef = ref(0)
-const appmsgRef = ref(null)
-const modeRef = ref('create') // create edit
+
 let tabIndex = 0
-const editableTabsValue = ref('2')
+const editableTabsValue = ref('')
 const editableTabs = ref([
   // {
   //   title: 'Tab 1',
@@ -94,16 +93,15 @@ onActivated(async () => {
   if (appmsgid && title && account_id) {
     const tab = editableTabs.value.find(v => v.title === title && v.name === `${appmsgid}`)
     if (!tab) {
-      const newAppMsg = {
+      const appMsg = {
         appmsgid: parseInt(appmsgid),
         title: title,
         multi_item: []
       }
-      appmsgRef.value = newAppMsg
       const account = all_accounts.value.list.find(a => a.id === parseInt(account_id))
       console.log("account=>", account)
       if (account) {
-        addTab(account, newAppMsg, 'edit')
+        addTab(account, appMsg, 'edit')
       } else {
         console.log("not found account in account store=>")
       }
@@ -141,7 +139,6 @@ const handleCreateAppMsg = () => {
     title: new_mp_msg.title,
     multi_item: [new_mp_msg]
   }
-  appmsgRef.value = newAppMsg
   const account = toDeepRaw(selectedAccountRef.value)
   addTab(account, newAppMsg, 'create')
 }
