@@ -196,7 +196,7 @@
           </el-col>
         </el-row>
         <el-row :gutter="4" class="mb-1 w-full">
-          <el-col :span="24" class="h-20 py-2 w-full flex justify-center items-center">
+          <el-col :span="24" class="h-20 py-2 w-full flex justify-center items-center" style="display: none;">
             <img class="cursor-pointer max-h-16 block" @click="triggerFileInput" v-if="selectedCdnImageRef"
               :src="selectedCdnImageRef" alt="封面预览">
             <img class="cursor-pointer max-h-16 block" @click="triggerFileInput" v-else-if="currentArticleRef.cdn_url"
@@ -205,6 +205,7 @@
               class="cursor-pointer border h-16 w-[180px] flex justify-center items-center bg-[#8c8c8c]">设置封面图</div>
             <input class="invisible" ref="cdnFileInputRef" @change="handleImage" type="file" accept="image/*">
           </el-col>
+          <ImgCrop :imgSrc="currentArticleRef.cdn_url" placeholder="设置封面图" @change="handleImageUpload"></ImgCrop>
         </el-row>
         <!-- <el-row :gutter="4" class="mb-1 invisible">
         <el-col :span="24">
@@ -615,6 +616,7 @@ import { removeAppMsgId, setAppMsgId, getAppMsgId, getSelectedAccountId, setSele
 import { Link, Link2, RadioTower, DollarSign, SquareTerminal, Eye, ScanEye, Minus, Smartphone, Video } from 'lucide-vue-next';
 import axios from 'axios'
 import JSON5 from "json5"
+import ImgCrop from '@/components/ImgCrop.vue';
 
 const { all_accounts } = toRefs(store.getters)
 // console.log('envVars.backend_url=>', envVars.backend_url)
@@ -1029,6 +1031,10 @@ const createBase64Image = async (fileObject) => {
     selectedCdnImageRef.value = reader.result
   };
   reader.readAsDataURL(fileObject);
+}
+function handleImageUpload(info){
+  cdnRef.value={cdn_content_type:info.type,cdn_base64_image:info.data,cdn_filename:info.name}
+  uploadCover()
 }
 
 const uploadCover = async () => {
