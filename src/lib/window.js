@@ -8,7 +8,7 @@
 import { TabbedWindow } from "./tabbed-window.js";
 import { nativeTheme, screen, dialog, Notification, app, ipcMain, webContents, net, BrowserWindow } from 'electron'
 import { localExtractMpArticleUrlUseRequest } from "./mp_account-tasks.js"
-import { publishAppmsg, listAppmsgsInDraftBox } from "./mp_appmsg-tasks.js"
+import { publishAppmsg, listAppmsgsInDraftBox, getAppmsgInDraftBox } from "./mp_appmsg-tasks.js"
 import { postJsonToJZLApi, postJsonToEditorApi } from "./request.js"
 const path = require('path')
 const fs = require('fs')
@@ -523,6 +523,10 @@ async function reactToIpcObjectData(data, tabbedWin, viewContents) {
         verbose_log("===== 获取草稿箱素材成功 ====", ret.items.length)
       }
       viewContents.send('fromMain', { tag: 'appmsg-ret:listAppmsgsInDraftBox', data: ret })
+      break
+    }
+    case 'appmsg:getAppmsgInDraftBox':{
+
       break
     }
     case 'appmsg:publishToWechat': {

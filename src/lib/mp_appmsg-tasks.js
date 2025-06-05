@@ -28,8 +28,8 @@ const api = {
   instant_push: (tk, hasNotify) => `${baseUrl}/cgi-bin/masssend?t=ajax-response&token=${tk}&lang=zh_CN` + (hasNotify ? '&is_release_publish_page=0' : '&is_release_publish_page=1'),
 
   //数据
-  list_in_draftbox: (tk, query, begin, count) => `${baseUrl}/cgi-bin/appmsg?begin=${begin}&count=${count}&type=77&action=list_card&token=${tk}&lang=zh_CN&f=json&query=${query}`
-
+  list_in_draftbox: (tk, query, begin, count) => `${baseUrl}/cgi-bin/appmsg?begin=${begin}&count=${count}&type=77&action=list_card&token=${tk}&lang=zh_CN&f=json&query=${query}`,
+  get_in_draftbox: (tk, appmsgid) => `${baseUrl}/cgi-bin/appmsg?t=media/appmsg_edit&action=edit&type=77&appmsgid=${appmsgid}&isMul=1&replaceScene=0&isSend=0&isFreePublish=0&token=${tk}&lang=zh_CN&timestamp=${+new Date()}&f=json`
 };
 // &is_release_publish_page=1
 
@@ -42,7 +42,7 @@ const publishAppmsg = async ({ cookies, token, send_time, hasNotify, isFreePubli
   };
   let formdata = `token=${token}&lang=zh_CN&f=json&ajax=1&random=${Math.random()}&action=get_ticket`
   let res = (await netFetch(api.operation_seq(token), { ...opts, body: formdata }))
-  console.log("operation_seq res:", typeof res, res)
+  verbose_log("operation_seq res:", typeof res, res)
   res = JSON.parse(res)
   let base_resp = res.base_resp
   if (base_resp.ret !== 0) {
@@ -52,9 +52,9 @@ const publishAppmsg = async ({ cookies, token, send_time, hasNotify, isFreePubli
     }
   }
   const operation_seq = res["operation_seq"]
-  console.log("operation_seq=>", operation_seq)
+  verbose_log("operation_seq=>", operation_seq)
   const req_id = getid(32)
-  console.log("req_id=>", req_id)
+  verbose_log("req_id=>", req_id)
   const req_time = +new Date()
 
   let reprint_confirm = 0
@@ -114,7 +114,7 @@ const listAppmsgsInDraftBox = async ({ cookies, token, query, begin, count = 10 
   verbose_log('api url:', url)
   verbose_log('api opts:', opts)
   let res = (await netFetch(url, { ...opts }))
-  console.log("list_in_draftbox res:", typeof res, res)
+  verbose_log("list_in_draftbox res:", typeof res, res)
   res = JSON.parse(res)
   let base_resp = res.base_resp
   if (base_resp.ret !== 0) {
@@ -130,5 +130,35 @@ const listAppmsgsInDraftBox = async ({ cookies, token, query, begin, count = 10 
   }
 }
 
+const getAppmsgInDraftBox = async ({ cookies, token, appmsgid }) => {
+  const opts = {
+    headers: { ...getDefaultHeader(), cookie: cookies }
+  };
+  let url = api.get_in_draftbox(token, appmsgid)
+  verbose_log('api url:', url)
+  verbose_log('api opts:', opts)
+  let res = (await netFetch(url, { ...opts }))
+  verbose_log("get_in_draftbox res:", typeof res, res)
+  res = JSON.parse(res)
+  let base_resp = res.base_resp
+  if (base_resp.ret !== 0) {
+    return {
+      success: false,
+      err_msg: base_resp.err_msg
+    }
+  }
+
+  const appmsg_info = JSON.parse(res.app_msg_info)
+  verbose_log("------------appmsg_info begin---------------")
+  verbose_log(appmsg_info)
+  verbose_log("------------appmsg_info end---------------")
+
+  return {
+    success: true,
+    appmsg_info
+  }
+}
+
 exports.publishAppmsg = publishAppmsg;
 exports.listAppmsgsInDraftBox = listAppmsgsInDraftBox;
+exports.getAppmsgInDraftBox = getAppmsgInDraftBox;
