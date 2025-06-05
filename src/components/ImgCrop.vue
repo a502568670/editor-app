@@ -6,6 +6,14 @@
             <span class="mt-1">{{ $attrs.placeholder }}</span>
         </template>
         <input class="opacity-0 size-[100%] absolute cursor-pointer" ref="input" @change="onFileChange" type="file" accept="image/*">
+        <div v-if="imgSrc" class="actions">
+            <el-tooltip content="裁剪">
+                <el-icon :size="24" class="mr-6" @click="onImageCrop"><Crop></Crop></el-icon>
+            </el-tooltip>
+            <el-tooltip content="修改">
+                <el-icon :size="24" @click="refInput.click()"><UploadFilled></UploadFilled></el-icon>
+            </el-tooltip>
+        </div>
         <el-dialog v-model="open" title="裁剪图片">
             <div class="w-full h-[50vh]">
                 <VueCropper ref="cropper" :img="cropperSrc" v-bind="opt"></VueCropper>
@@ -21,7 +29,7 @@
 import {ref,watch,onMounted,useTemplateRef,toRef} from 'vue'
 import { VueCropper } from 'vue-cropper';
 import 'vue-cropper/dist/index.css'
-import {UploadFilled} from '@element-plus/icons-vue'
+import {UploadFilled,Crop} from '@element-plus/icons-vue'
 import store from '@/store';
 import {ElMessage} from 'element-plus'
 
@@ -55,7 +63,12 @@ function onFileChange(e){
     }else previewSrc.value=imgSrc
     e.target.value=''
 }
+function onImageCrop(){
+    open.value=true
+    cropperSrc.value=imgSrc
+}
 var refCropper=useTemplateRef('cropper');
+var refInput=useTemplateRef('input')
 function onConfirm(){
     open.value=false;
     refCropper.value.getCropData((data)=>{
@@ -83,5 +96,22 @@ watch(() => imgSrc,()=>{
     height: 80px;
     border: 1px dashed var(--el-border-color);
     cursor: pointer;
+
+    &:hover .actions{
+        visibility: visible;
+        background-color: rgba(0,0,0,0.5);
+    }
+    .actions{
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #fff;
+        background-color: rgba(0,0,0,0);
+        visibility: hidden;
+        transition: .3s;
+    }
 }
 </style>
