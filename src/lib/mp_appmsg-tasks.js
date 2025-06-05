@@ -149,9 +149,9 @@ const getAppmsgInDraftBox = async ({ cookies, token, appmsgid }) => {
   }
 
   const appmsg_info = JSON.parse(res.app_msg_info)
-  verbose_log("------------appmsg_info begin---------------")
-  verbose_log(appmsg_info)
-  verbose_log("------------appmsg_info end---------------")
+  // verbose_log("------------appmsg_info begin---------------")
+  // verbose_log(appmsg_info)
+  // verbose_log("------------appmsg_info end---------------")
 
   return {
     success: true,

@@ -31,9 +31,9 @@
             <div ref="elListMsgsRef" class="overflow-auto" style="height:calc(100vh - 208px)">
               <div @click="loadArticle(item, true)" v-for="(item, index) in mp_msgsRef" :key="item.msg_id"
                 class="flex items-center p-2 border-b w-full">
-                <img v-if="item.cdn_url" :src="item.cdn_url" style="width:0px;height:0px;"
+                <img v-if="item.cdn_url" :src="fmtImageUrl(item.cdn_url)" style="width:0px;height:0px;"
                   referrerpolicy="no-referrer" />
-                <div v-if="index === 0" :style="{ '--image-url': 'url(' + item.cdn_url + ')' }"
+                <div v-if="index === 0" :style="{ '--image-url': 'url(' + fmtImageUrl(item.cdn_url) + ')' }"
                   class='w-full flex h-40 justify-between items-end bg-no-repeat bg-center bg-cover bg-[#e6e6e6] bg-[image:var(--image-url)]'
                   :class="{ 'border-2 border-[#07C160]': (item.msg_id === msg_idRef) }">
                   <div class="flex text-white p-1"><span v-if="item.msg_id === 0">*</span>{{ item.title }}</div>
@@ -60,7 +60,7 @@
                     </div>
                     <!-- <div class=" text-sm flex-0" style="color: #51ce94">{{ item.author }}</div> -->
                   </div>
-                  <img v-if="item.cdn_url" class="w-10 h-10 rounded-sm" :src="item.cdn_url" />
+                  <img v-if="item.cdn_url" class="w-10 h-10 rounded-sm" :src="fmtImageUrl(item.cdn_url)" />
                   <div class="flex flex-col justify-around px-1 h-full" v-if="item.msg_id === msg_idRef">
                     <el-icon class="cursor-pointer" @click="swapUp(item.msg_id)">
                       <component :is="ArrowUpRef"></component>
@@ -99,8 +99,8 @@
         <div class="h-full flex flex-col">
           <div ref="ueditor_wrapper" style="height:calc(100vh - 140px)">
             <vue-ueditor-wrap v-if="msg_idRef !== 0 && currentArticleRef.item_show_type === 0"
-              v-model="currentArticleRef.content_noencode" :editor-id="editorIdRef" @ready="ready" :config="editorConfigRef"
-              :editorDependencies="['ueditor.config.js', 'ueditor.all.js']" />
+              v-model="currentArticleRef.content_noencode" :editor-id="editorIdRef" @ready="ready"
+              :config="editorConfigRef" :editorDependencies="['ueditor.config.js', 'ueditor.all.js']" />
             <div v-if="msg_idRef !== 0 && currentArticleRef.item_show_type === 5" class="w-full p-2">
               <el-row :gutter="4" class="mb-1 w-full">
                 <el-col :span="24">
@@ -585,6 +585,7 @@ import { getArticleContent, getArticleContent2 } from '@/api/jzl'
 import { format_to_UEditor_html, restore_from_UEditor_html } from "@/utils/dom";
 import { uploadImage } from "@/api/img"
 import { toDeepRaw } from "@/utils/convert"
+import { fmtImageUrl } from "@/utils/format"
 import { createDateByDays, parseDate, formatDate } from "@/utils/date"
 import { ad_categorys, adMarkerContentInUEditor, format_ad_content_in_UEditor, restore_ad_content_from_UEditor, has_ad_in_wangEditor, has_ad_in_raw } from "@/utils/ad"
 import { getVideoFrameHtml } from "@/utils/video"
@@ -1586,7 +1587,7 @@ const removeArticle = async (msg_id) => {
       //该系列下没有文章，删除localStorage中保存的数据
       currentAppmsgRef.value = null
     }
-   
+
   }).catch(() => {
     console.log('取消removeArticle')
   })
@@ -2123,23 +2124,7 @@ const syncToList = (key) => {
   }
 }
 
-// 组件生命周期
-onMounted(async () => {
-  console.log("==onMounted==", props.appmsg)
-  accountsRef.value = toDeepRaw(all_accounts.value.list)
-  selectedAccount.value = props.account
-  currentAppmsgRef.value = props.appmsg
-  editorIdRef.value = `editor-${props.appmsg.appmsgid}` 
-  mp_msgsRef.value = props.appmsg.multi_item
-  if (props.mode === 'create') {
-    loadArticleByMsgId(mp_msgsRef.value[0].msg_id)
-  } else if (props.mode === 'edit') {
-    await listArticles()
-    if (mp_msgsRef.value.length > 0) {
-      loadArticle(mp_msgsRef.value[0])
-    } 
-  }
-
+const registerChannels = () => {
   channelCleans[channelName] = window.ipcRenderer.receive(channelName, (msg) => {
     console.log("editorTab ipcRenderer receive fromMain:", msg)
     if (typeof msg === 'object' && Object.prototype.hasOwnProperty.call(msg, 'tag')) {
@@ -2212,6 +2197,29 @@ onMounted(async () => {
       }
     }
   })
+}
+
+// 组件生命周期
+onMounted(async () => {
+  console.log("==onMounted==", props.appmsg)
+  registerChannels()
+
+  accountsRef.value = toDeepRaw(all_accounts.value.list)
+  selectedAccount.value = props.account
+  currentAppmsgRef.value = props.appmsg
+  editorIdRef.value = `editor-${props.appmsg.appmsgid}`
+  mp_msgsRef.value = props.appmsg.multi_item
+  if (props.mode === 'create') {
+    loadArticleByMsgId(mp_msgsRef.value[0].msg_id)
+  } else if (props.mode === 'edit') {
+    
+    await listArticles()
+    if (mp_msgsRef.value.length > 0) {
+      loadArticle(mp_msgsRef.value[0])
+    }
+  }
+
+
 })
 
 onUnmounted(async () => {

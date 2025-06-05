@@ -29,23 +29,23 @@
       </div>
       <div v-scroll="onScroll" class="flex-1 overflow-auto pt-5" v-loading="dataLoadingRef">
         <VueFlexWaterfall ref="el" align-content="center" col="3" col-spacing="20" :breakByContainer="true">
-          <div v-for="item in list" :key="item.appmsgid"
-            class="w-[280px] bg-white border flex flex-col mb-5 rounded shadow"
+          <div v-for="item in list" :key="item.app_id"
+            class="w-[280px] bg-white border flex flex-col mb-5 rounded shadow relative"
             :style="{ minHeight: item.height + 'px' }">
             <div style="height:50px" class="flex items-center p-4 text-sm text-gray-400">
               <el-icon :size="16" class="flex justify-center">
                 <Clock />
               </el-icon>
               <span class="ml-2">
-                修改时间: {{
+                最新修改: {{
                   formatDate(item.update_time * 1000, 'yyyy-MM-dd HH:mm') }}
               </span>
             </div>
             <div v-for="(subitem, index) in item.multi_item" :key="subitem.msg_index_id"
               class="flex items-center px-4 py-2 w-full">
-              <img v-if="subitem.cdn_url" :src="subitem.cdn_url" style="width:0px;height:0px;"
+              <img v-if="subitem.cdn_url" :src="fmtImageUrl(subitem.cdn_url)" style="width:0px;height:0px;"
                 referrerpolicy="no-referrer" />
-              <div v-if="index === 0" :style="{ '--image-url': 'url(' + subitem.cdn_url + ')' }"
+              <div v-if="index === 0" :style="{ '--image-url': 'url(' + fmtImageUrl(subitem.cdn_url) + ')' }"
                 class='w-full flex h-32 justify-between items-end bg-no-repeat bg-center bg-cover bg-[#e6e6e6] bg-[image:var(--image-url)]'>
                 <div class="w-full h-[30px] flex text-white p-1 bg-gray-800 opacity-70 pl-2">{{ subitem.title }}</div>
               </div>
@@ -92,8 +92,14 @@
                 </el-icon>
               </el-tooltip>
             </div>
+            <div v-if="checkIsLocal(item.app_id)" class="absolute right-1 top-1 text-xs text-blue-400">
+              <el-tooltip class="box-item" effect="dark" content="本地" placement="top">
+                <el-icon :size="16" class="flex justify-center">
+                  <MonitorDown />
+                </el-icon>
+              </el-tooltip>
+            </div>
           </div>
-          <!-- <div class="w-[280px] border h-[300px]">ccc</div> -->
         </VueFlexWaterfall>
       </div>
     </div>
@@ -114,15 +120,17 @@
 import { ref, toRefs, useTemplateRef, computed, nextTick, onMounted, onActivated, onDeactivated } from 'vue';
 import { vScroll } from '@vueuse/components'
 import { ElMessage, ElMessageBox, ElLoading } from 'element-plus'
-import { RefreshRight, Search } from '@element-plus/icons-vue'
+import { RefreshRight, Search, Select } from '@element-plus/icons-vue'
 import AccountNav from "@/components/AccountNav"
 import { VueFlexWaterfall } from 'vue-flex-waterfall';
-import WaterFall from "@/components/WaterFallItem"
+import { listAppMsgs, saveAppMsg, send_to_other_accounts_events } from "@/api/appmsg"
 import { getToken } from "@/utils/auth";
 import { serializeCookie } from "@/utils/cookie"
+import { fmtImageUrl } from "@/utils/format"
 import { formatDate } from "@/utils/date"
+import { getVideoFrameHtml } from "@/utils/video"
 import { debounceFn } from "@/utils/index"
-import { Clock, PencilLine, SendHorizonal, Forward, Trash2 } from 'lucide-vue-next';
+import { Clock, PencilLine, SendHorizonal, Forward, Trash2, MonitorDown } from 'lucide-vue-next';
 import { useRouter } from 'vue-router'
 
 // 订阅
@@ -135,6 +143,7 @@ const router = useRouter();
 const elRef = useTemplateRef('el')
 
 const list = ref([]);
+const localAppmsgsRef = ref([])
 const queryRef = ref("")
 
 const selectedAccountRef = ref(null)
@@ -166,6 +175,7 @@ const handleAccountSelect = async ({ account, index }) => {
   selectedAccountRef.value = account
   selectedIndexRef.value = index
   listMode.value = 0
+  await listAppMsgIds(account.id)
   await _listAppmsgsInDraftBox()
 }
 
@@ -194,13 +204,22 @@ const handleAppMsgFilter = async () => {
 }
 
 const handleAppmsgEdit = async (appmsg) => {
-  console.log("handleAppmsgEdit=>", appmsg)
-  router.push({ path: '/editor3', query: { account_id: selectedAccountRef.value.id, appmsgid: appmsg.app_id, title: appmsg.title } })
+  console.log("handleAppmsgEdit=>", appmsg, checkIsLocal(appmsg.app_id))
+  if (checkIsLocal(appmsg.app_id)) {
+    router.push({ path: '/editor3', query: { account_id: selectedAccountRef.value.id, appmsgid: appmsg.app_id, title: appmsg.title } })
+  } else {
+    console.warn("appmsg not exist local, sync..")
+    _getAppmsgInDraftBox(appmsg.app_id)
+  }
 }
 
-// listMode 0-refresh 1-append
-const _listAppmsgsInDraftBox = async (begin = 0, count = _listCount) => {
-  const { token, name, id, session_id } = selectedAccountRef.value
+const checkIsLocal = (remote_appmsgid) => {
+  const idx = localAppmsgsRef.value.findIndex(v => v.appmsgid == remote_appmsgid)
+  return idx !== -1
+}
+
+const validateAccount = () => {
+  const { token, session_id } = selectedAccountRef.value
   // console.log("token=>", token)
   // console.log("id=>", id)
   // console.log("session_id=>", session_id)
@@ -213,8 +232,22 @@ const _listAppmsgsInDraftBox = async (begin = 0, count = _listCount) => {
     }).catch(() => {
       console.log("catch")
     })
+    return false
+  }
+  return true
+}
+
+const listAppMsgIds = async (account_id) => {
+  const res = await listAppMsgs({ wechat_id: account_id, only_show_group_key: 0 })
+  localAppmsgsRef.value = res.data;
+}
+
+// listMode 0-refresh 1-append
+const _listAppmsgsInDraftBox = async (begin = 0, count = _listCount) => {
+  if (!validateAccount()) {
     return
   }
+  const { token, id, session_id } = selectedAccountRef.value
   dataLoadingRef.value = true
   window.ipcRenderer.send('toMain', {
     tag: 'appmsg:listAppmsgsInDraftBox',
@@ -230,12 +263,84 @@ const _listAppmsgsInDraftBox = async (begin = 0, count = _listCount) => {
   })
 }
 
+const _getAppmsgInDraftBox = async (appmsgid) => {
+  if (!validateAccount()) {
+    return
+  }
+  const { token, id, session_id } = selectedAccountRef.value
+  dataLoadingRef.value = true
+  window.ipcRenderer.send('toMain', {
+    tag: 'appmsg:getAppmsgInDraftBox',
+    token: getToken(),
+    wechat_id: id,
+    getData: {
+      cookies: serializeCookie(JSON.parse(session_id)["cookie"]),
+      token: parseInt(token),
+      appmsgid,
+    }
+  })
+}
+
+const syncRemoteToLocal = async (appmsg_info) => {
+  const { token, id, session_id } = selectedAccountRef.value
+
+  console.log("syncRemoteToLocal appmsg_info to local:", appmsg_info.item[0])
+  const appmsgid = appmsg_info.item[0].app_id
+  const material_list = appmsg_info.item[0].multi_item.map(mi => {
+    const material_item = {
+      msg_id: 0,
+      item_show_type: mi.share_page_type,
+      cdn_url: mi.cdn_url,
+      title: mi.title,
+      author: mi.author,
+      copyright_type: mi.copyright_type,
+      need_open_comment: mi.need_open_comment,
+      only_fans_can_comment: mi.only_fans_can_comment,
+      only_fans_days_can_comment: mi.only_fans_days_can_comment,
+      sourceurl: mi.source_url,
+      insert_ad_mode: mi.insert_ad_mode,
+      can_insert_ad: mi.can_insert_ad,
+      claim_source_type: mi.claim_source_type,
+    }
+    if (material_item.item_show_type === 0) {
+      material_item.content_noencode = mi.content
+    } else if (material_item.item_show_type === 5) {
+      material_item.guide_words = mi.content
+      material_item.vid = mi.mp_video_info[0].vid
+      material_item.content_noencode = getVideoFrameHtml(material_item.vid, material_item.cdn_url)
+
+    }
+    return material_item
+  })
+  console.log("material_list:", material_list)
+
+  const postData = {
+    cookies: serializeCookie(JSON.parse(session_id)["cookie"]),
+    token: parseInt(token),
+    appmsgid,
+    material_list,
+    wechat_id: id,
+    remote_to_local: 1,
+  }
+
+  console.log("save appmsg postData=>", postData)
+  await saveAppMsg(postData).then(async (res) => {
+    await listAppMsgIds(id)
+    const new_appmsgid = res.data.data.appmsgid
+    const title = material_list[0].title
+    router.push({ path: '/editor3', query: { account_id: id, appmsgid: new_appmsgid, title } })
+  }).catch((e) => {
+    console.log('saveAppMsg catched e:', e)
+
+    console.log("=========")
+  })
+}
+
 // onMounted(async () => {
 //   // handleAccountFilter({ query: "" })
 // })
-onActivated(async () => {
-  console.log("---onActivated material_lib----")
 
+const registerChannels = () => {
   channelCleans[channelName] = window.ipcRenderer.receive(channelName, (msg) => {
     console.log("material_lib ipcRenderer receive fromMain:", msg)
     if (typeof msg === 'object' && Object.prototype.hasOwnProperty.call(msg, 'tag')) {
@@ -272,9 +377,33 @@ onActivated(async () => {
         nextTick(() => {
           elRef.value && elRef.value.updateOrder()
         })
+      } else if (tag === 'appmsg-ret:getAppmsgInDraftBox') {
+        const { success, appmsg_info, err_msg } = msg.data
+        if (!success) {
+          let message = err_msg === "invalid session" ? `当前账号session过期,请切换到*账号中心*重新登录` : err_msg
+          ElMessageBox.alert(message, '错误', {
+            confirmButtonText: '确定',
+            type: 'error'
+          }).then(() => {
+            console.log("then")
+          }).catch(() => {
+            console.log("catch")
+          })
+          dataLoadingRef.value = false
+          return
+        }
+        syncRemoteToLocal(appmsg_info).finally(() => {
+          dataLoadingRef.value = false
+        })
+
       }
     }
   })
+}
+
+onActivated(async () => {
+  console.log("---onActivated material_lib----")
+  registerChannels()
 })
 
 onDeactivated(async () => {

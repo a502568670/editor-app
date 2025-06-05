@@ -2,6 +2,14 @@
 import request from '@/utils/requestJson'
 import { getToken } from "@/utils/auth";
 
+export function listAppMsgs(data) {
+  return request({
+    url: '/appmsg/list',
+    method: 'post',
+    data
+  })
+}
+
 export function saveAppMsg(data) {
   return request({
     url: '/appmsg/save',
