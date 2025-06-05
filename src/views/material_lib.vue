@@ -82,7 +82,8 @@
                 </template>
               </el-dropdown>
               <el-tooltip class="box-item" effect="dark" content="发送到其他账号" placement="bottom">
-                <el-icon :size="24" class="cursor-pointer flex justify-center">
+                <el-icon :size="24" class="cursor-pointer flex justify-center"
+                  @click="handleSyncAppmsgToOtherAccounts(item)">
                   <Forward />
                 </el-icon>
               </el-tooltip>
@@ -104,6 +105,8 @@
       </div>
     </div>
   </div>
+  <SyncToOtherAccounts :dialogVisible="dialogSyncToOtherAccountsVisibleRef" :accounts="otherAccountsRef"
+    @instant-send="handleInstantSend" @dialog-closed="handleDialogClosed" />
 </template>
 <style scoped>
 :deep(.el-input__wrapper) {
@@ -119,6 +122,7 @@
 <script setup>
 import { ref, toRefs, useTemplateRef, computed, nextTick, onMounted, onActivated, onDeactivated } from 'vue';
 import { vScroll } from '@vueuse/components'
+import SyncToOtherAccounts from "@/dlgs/syncToOtherAccounts"
 import { ElMessage, ElMessageBox, ElLoading } from 'element-plus'
 import { RefreshRight, Search, Select } from '@element-plus/icons-vue'
 import AccountNav from "@/components/AccountNav"
@@ -130,14 +134,17 @@ import { fmtImageUrl } from "@/utils/format"
 import { formatDate } from "@/utils/date"
 import { getVideoFrameHtml } from "@/utils/video"
 import { debounceFn } from "@/utils/index"
+import { toDeepRaw } from "@/utils/convert"
 import { Clock, PencilLine, SendHorizonal, Forward, Trash2, MonitorDown } from 'lucide-vue-next';
 import { useRouter } from 'vue-router'
+import { useStore } from 'vuex'
 
 // 订阅
 const channelCleans = {}
 const channelName = 'fromMain'
 
-// const { all_accounts } = toRefs(store.getters)
+const store = useStore()
+const { all_accounts } = toRefs(store.getters)
 const router = useRouter();
 
 const elRef = useTemplateRef('el')
@@ -148,7 +155,9 @@ const queryRef = ref("")
 
 const selectedAccountRef = ref(null)
 const selectedIndexRef = ref(0)
+const otherAccountsRef = ref([])
 const dataLoadingRef = ref(false)
+const dialogSyncToOtherAccountsVisibleRef = ref(false)
 
 
 const listMode = ref(0) // 0-refresh 1-append
@@ -166,17 +175,21 @@ const onScroll = debounceFn((state) => {
       return
     }
     listMode.value = 1
+    // await listAppMsgIds(account.id)
     _listAppmsgsInDraftBox(begin)
   }
 }, 200, false)
 
 const handleAccountSelect = async ({ account, index }) => {
+  console.log('all_accounts.value=>', all_accounts.value)
   console.log("---->", account, index)
   selectedAccountRef.value = account
   selectedIndexRef.value = index
+  otherAccountsRef.value = toDeepRaw(all_accounts.value.list.filter(v => v.id !== account.id))
   listMode.value = 0
   await listAppMsgIds(account.id)
   await _listAppmsgsInDraftBox()
+
 }
 
 const handleAppMsgRefresh = async () => {
@@ -184,6 +197,7 @@ const handleAppMsgRefresh = async () => {
     return
   }
   listMode.value = 0
+  await listAppMsgIds(account.id)
   await _listAppmsgsInDraftBox()
 }
 
@@ -200,6 +214,7 @@ const handleAppMsgFilter = async () => {
     return
   }
   listMode.value = 0
+  // await listAppMsgIds(account.id)
   await _listAppmsgsInDraftBox()
 }
 
@@ -211,6 +226,21 @@ const handleAppmsgEdit = async (appmsg) => {
     console.warn("appmsg not exist local, sync..")
     _getAppmsgInDraftBox(appmsg.app_id)
   }
+}
+
+const handleSyncAppmsgToOtherAccounts = async (appmsg) => {
+  console.log("--handleSyncAppmsgToOtherAccounts--", appmsg)
+  dialogSyncToOtherAccountsVisibleRef.value = true
+}
+
+const handleInstantSend = async (otherAccountsChoosed) => {
+  console.log("--handleInstantSend--", otherAccountsChoosed)
+  dialogSyncToOtherAccountsVisibleRef.value = false
+}
+
+const handleDialogClosed = () => {
+  console.log("--handleDialogClosed--")
+  dialogSyncToOtherAccountsVisibleRef.value = false
 }
 
 const checkIsLocal = (remote_appmsgid) => {
