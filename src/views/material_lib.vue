@@ -88,7 +88,8 @@
                 </el-icon>
               </el-tooltip>
               <el-tooltip class="box-item" effect="dark" content="删除" placement="bottom">
-                <el-icon :size="24" class="cursor-pointer flex justify-center" title="删除">
+                <el-icon :size="24" class="cursor-pointer flex justify-center" title="删除"
+                  @click="handleRemoveAppmsg(item)">
                   <Trash2 />
                 </el-icon>
               </el-tooltip>
@@ -105,8 +106,10 @@
       </div>
     </div>
   </div>
-  <SyncToOtherAccounts :dialogVisible="dialogSyncToOtherAccountsVisibleRef" :accounts="otherAccountsRef"
-    @instant-send="handleInstantSend" @dialog-closed="handleDialogClosed" />
+  <SyncToOtherAccountsDialog :dialogVisible="dialogSyncToOtherAccountsVisibleRef" :accounts="otherAccountsRef"
+    @instant-send="handleInstantSend" @dialog-closed="dialogSyncToOtherAccountsVisibleRef = false" />
+  <OperateProgressDialog :dialogVisible="dialogOperateProgressVisbleRef" :percent="percentRef"
+    :progressDesc="progressDescRef" :progressResult="progressResultRef" @dialog-closed="dialogOperateProgressVisbleRef = false"  />
 </template>
 <style scoped>
 :deep(.el-input__wrapper) {
@@ -122,12 +125,13 @@
 <script setup>
 import { ref, toRefs, useTemplateRef, computed, nextTick, onMounted, onActivated, onDeactivated } from 'vue';
 import { vScroll } from '@vueuse/components'
-import SyncToOtherAccounts from "@/dlgs/syncToOtherAccounts"
+import SyncToOtherAccountsDialog from "@/dlgs/syncToOtherAccounts"
+import OperateProgressDialog from "@/dlgs/operateProgress"
 import { ElMessage, ElMessageBox, ElLoading } from 'element-plus'
 import { RefreshRight, Search, Select } from '@element-plus/icons-vue'
 import AccountNav from "@/components/AccountNav"
 import { VueFlexWaterfall } from 'vue-flex-waterfall';
-import { listAppMsgs, saveAppMsg, send_to_other_accounts_events } from "@/api/appmsg"
+import { listAppMsgs, saveAppMsg, deleteAppMsg, send_to_other_accounts_events } from "@/api/appmsg"
 import { getToken } from "@/utils/auth";
 import { serializeCookie } from "@/utils/cookie"
 import { fmtImageUrl } from "@/utils/format"
@@ -138,6 +142,7 @@ import { toDeepRaw } from "@/utils/convert"
 import { Clock, PencilLine, SendHorizonal, Forward, Trash2, MonitorDown } from 'lucide-vue-next';
 import { useRouter } from 'vue-router'
 import { useStore } from 'vuex'
+import JSON5 from "json5"
 
 // 订阅
 const channelCleans = {}
@@ -158,6 +163,14 @@ const selectedIndexRef = ref(0)
 const otherAccountsRef = ref([])
 const dataLoadingRef = ref(false)
 const dialogSyncToOtherAccountsVisibleRef = ref(false)
+const timeoutSendToOneAccount = 30 * 1000;
+const currentOperateAppMsgRef = ref(null)
+
+
+const dialogOperateProgressVisbleRef = ref(false)
+const percentRef = ref(0)
+const progressDescRef = ref("")
+const progressResultRef = ref(null)
 
 
 const listMode = ref(0) // 0-refresh 1-append
@@ -197,7 +210,7 @@ const handleAppMsgRefresh = async () => {
     return
   }
   listMode.value = 0
-  await listAppMsgIds(account.id)
+  await listAppMsgIds(selectedAccountRef.value.id)
   await _listAppmsgsInDraftBox()
 }
 
@@ -220,28 +233,56 @@ const handleAppMsgFilter = async () => {
 
 const handleAppmsgEdit = async (appmsg) => {
   console.log("handleAppmsgEdit=>", appmsg, checkIsLocal(appmsg.app_id))
-  if (checkIsLocal(appmsg.app_id)) {
-    router.push({ path: '/editor3', query: { account_id: selectedAccountRef.value.id, appmsgid: appmsg.app_id, title: appmsg.title } })
-  } else {
+  currentOperateAppMsgRef.value = appmsg
+  if (!checkIsLocal(appmsg.app_id)) {
     console.warn("appmsg not exist local, sync..")
-    _getAppmsgInDraftBox(appmsg.app_id)
+    await _getAppmsgInDraftBox(appmsg.app_id)
   }
+  router.push({ path: '/editor3', query: { account_id: selectedAccountRef.value.id, appmsgid: appmsg.app_id, title: appmsg.title } })
 }
 
 const handleSyncAppmsgToOtherAccounts = async (appmsg) => {
   console.log("--handleSyncAppmsgToOtherAccounts--", appmsg)
+  currentOperateAppMsgRef.value = appmsg
+  if (!checkIsLocal(appmsg.app_id)) {
+    console.warn("appmsg not exist local, sync..")
+    await _getAppmsgInDraftBox(appmsg.app_id)
+  }
   dialogSyncToOtherAccountsVisibleRef.value = true
 }
 
-const handleInstantSend = async (otherAccountsChoosed) => {
+const handleInstantSend = async ({ otherAccountsChoosed }) => {
   console.log("--handleInstantSend--", otherAccountsChoosed)
-  dialogSyncToOtherAccountsVisibleRef.value = false
+  const appmsgid = currentOperateAppMsgRef.value.app_id
+  await sendToOtherAccount(appmsgid, otherAccountsChoosed)
+  // dialogSyncToOtherAccountsVisibleRef.value = false
 }
 
-const handleDialogClosed = () => {
-  console.log("--handleDialogClosed--")
-  dialogSyncToOtherAccountsVisibleRef.value = false
+const handleRemoveAppmsg = async (appmsg) => {
+  const { id } = selectedAccountRef.value
+  ElMessageBox.confirm(
+    '此操作将从删除该素材, 是否继续?',
+    '提示',
+    {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning',
+    }
+  ).then(async () => {
+    dataLoadingRef.value = true
+    await removeAppMsg(appmsg.app_id)
+    await listAppMsgIds(id)
+    await _listAppmsgsInDraftBox()
+    dataLoadingRef.value = false
+  }).catch(() => {
+    console.log('取消removeAppMsg')
+  })
 }
+
+// const handleDialogClosed = () => {
+//   console.log("--handleDialogClosed--")
+//   dialogSyncToOtherAccountsVisibleRef.value = false
+// }
 
 const checkIsLocal = (remote_appmsgid) => {
   const idx = localAppmsgsRef.value.findIndex(v => v.appmsgid == remote_appmsgid)
@@ -291,6 +332,7 @@ const _listAppmsgsInDraftBox = async (begin = 0, count = _listCount) => {
       count
     }
   })
+  currentOperateAppMsgRef.value = null
 }
 
 const _getAppmsgInDraftBox = async (appmsgid) => {
@@ -363,6 +405,71 @@ const syncRemoteToLocal = async (appmsg_info) => {
     console.log('saveAppMsg catched e:', e)
 
     console.log("=========")
+  })
+}
+
+const sendToOtherAccount = async (appmsgid, otherAccountsChoosed) => {
+  console.log("otherAccountsChoosed=>", otherAccountsChoosed)
+  const timeoutSendToOtherAccounts = timeoutSendToOneAccount * otherAccountsChoosed.length
+  dialogOperateProgressVisbleRef.value = true
+  percentRef.value = 0
+  progressDescRef.value = "开始处理"
+  progressResultRef.value = null
+
+  let timeoutId = setTimeout(() => {
+    dialogOperateProgressVisbleRef.value = false
+    timeoutId = -1
+    ElMessageBox.alert('请求超时，请稍后再试', '错误', {
+      confirmButtonText: '确定',
+      type: 'error'
+    }).catch(() => { })
+  }, timeoutSendToOtherAccounts)
+
+  let stepRet
+  await send_to_other_accounts_events({
+    soruce_appmsgid: appmsgid,
+    target_wechat_ids: otherAccountsChoosed
+  }, (data) => {
+    // console.log("step raw=>", data)
+    try {
+      const v = data.replaceAll(/data: /gi, "")
+      stepRet = JSON5.parse(v)
+      // console.log("step data=>", v)
+      percentRef.value = stepRet.percent
+      progressDescRef.value = stepRet.desc
+      // console.log("percentRef.value=>", percentRef.value)
+      // console.log("progressDescRef.value=>", progressDescRef.value)
+    } catch(e) {
+      console.log("step data failed=>", e)
+      percentRef.value = 0;
+      progressDescRef.value = ""
+    }
+  })
+  if (stepRet) {
+    console.log("stepRet=>", stepRet)
+    progressResultRef.value = stepRet.result
+  }
+
+  if (timeoutId !== -1) {
+    clearTimeout(timeoutId)
+  }
+}
+
+const removeAppMsg = async (appmsgid) => {
+  const { token, name, id, session_id } = selectedAccountRef.value
+
+  const postData = {
+    cookies: serializeCookie(JSON.parse(session_id)["cookie"]),
+    token: parseInt(token),
+    appmsgid,
+  }
+  console.log("delete appmsg postData=>", postData)
+  await deleteAppMsg(postData)
+
+  ElMessage({
+    message: `素材删除成功`,
+    type: 'success',
+    duration: 2 * 1000
   })
 }
 

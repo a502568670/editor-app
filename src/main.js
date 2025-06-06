@@ -155,8 +155,8 @@ router.beforeEach((to, from, next) => {
       // next({ path: '/editor4' })
       store.dispatch('ListAccounts').then(() => {
         // next({ path: '/editor4' })
-        // next({ path: '/material_lib' })
-        next({ path: '/editor3' })
+        next({ path: '/material_lib' })
+        // next({ path: '/editor3' })
       })
       
     } else {

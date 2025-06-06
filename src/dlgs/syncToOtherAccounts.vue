@@ -1,6 +1,6 @@
 <template>
-  <el-dialog :close-on-click-modal="false" @closed="handleDialogClosed" title="发送到其他账号"
-    v-model="dialogSendArticleVisibleRef" width="600px">
+  <el-dialog :close-on-click-modal="false" @open="handleDialogOpen" @closed="handleDialogClosed" title="发送到其他账号"
+    v-model="dialogVisibleRef" width="600px">
     <el-row :gutter="40">
       <el-col :span="18">
         <el-checkbox label="全部" @change="clickAllOtherAccounts"></el-checkbox>
@@ -20,6 +20,7 @@
 <script setup>
 // import { useStore } from 'vuex'
 import { onActivated, onMounted, ref, toRefs, watch } from 'vue'
+import { ElMessage, ElMessageBox, ElLoading } from 'element-plus'
 import { toDeepRaw } from "@/utils/convert"
 
 // const store = useStore()
@@ -28,21 +29,14 @@ const props = defineProps(['dialogVisible', 'accounts']);
 
 const emitEvents = defineEmits(['dialogClosed', 'instantSend'])
 
-const dialogSendArticleVisibleRef = ref(false)
+const dialogVisibleRef = ref(false)
 // const otherAccountsRef = ref([])
 const otherAccountsChoosedRef = ref([])
 
 
 watch(() => [props.dialogVisible], (newVal) => {
   console.log("props.changed=>", newVal)
-  dialogSendArticleVisibleRef.value = newVal[0]
-})
-
-
-onActivated(() => {
-  otherAccountsChoosedRef.value = []
-
-  // otherAccountsRef.value = props.accounts;
+  dialogVisibleRef.value = newVal[0]
 })
 
 const clickAllOtherAccounts = (checkedAll) => {
@@ -52,6 +46,9 @@ const clickAllOtherAccounts = (checkedAll) => {
   } else {
     otherAccountsChoosedRef.value = []
   }
+}
+const handleDialogOpen = () => {
+  otherAccountsChoosedRef.value = []
 }
 
 const handleDialogClosed = () => {
@@ -66,7 +63,7 @@ const handleSend = () => {
     }).catch(() => { })
     return
   }
-
+  dialogVisibleRef.value = false
   emitEvents("instantSend", { otherAccountsChoosed: toDeepRaw(otherAccountsChoosedRef.value) })
 }
 

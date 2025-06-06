@@ -18,6 +18,14 @@ export function saveAppMsg(data) {
   })
 }
 
+export function deleteAppMsg(data) {
+  return request({
+    url: '/appmsg/delete',
+    method: 'post',
+    data
+  })
+}
+
 export async function send_to_other_accounts_events(data, cb) {
   const url = window.envVars.backend_url + '/appmsg/send_to_other_accounts/events'
   const token = getToken()
