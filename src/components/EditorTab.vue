@@ -15,7 +15,7 @@
               <el-dropdown-menu>
                 <el-dropdown-item
                   @click="emitEvents('createAppmsg', { type: 0, account_id: props.account.id })">创建当前公众号素材</el-dropdown-item>
-                <!-- <el-dropdown-item @click="emitEvents('createAppmsg', { type: 1 })">创建其他公众号素材</el-dropdown-item> -->
+                <el-dropdown-item @click="emitEvents('createAppmsg', { type: 1 })">创建其他公众号素材</el-dropdown-item>
               </el-dropdown-menu>
             </template>
           </el-dropdown>

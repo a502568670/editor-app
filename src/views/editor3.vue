@@ -37,6 +37,8 @@
       </div>
     </div>
   </div>
+  <ChooseAccountDialog :dialogVisible="dialogChooseAccountVisibleRef"
+    @dialog-closed="dialogChooseAccountVisibleRef = false" @account-choose="handleAccountChoose" />
 </template>
 <style>
 .editor-tabs>.el-tabs__content {
@@ -55,6 +57,7 @@
 import { onActivated, onDeactivated, onMounted, ref, toRefs } from 'vue'
 import { ElMessage, ElMessageBox, ElLoading } from 'element-plus'
 import EditorTab from "@/components/EditorTab"
+import ChooseAccountDialog from "@/dlgs/chooseAccount"
 import { Plus } from '@element-plus/icons-vue'
 import { toDeepRaw } from "@/utils/convert"
 import { useRoute } from 'vue-router'
@@ -73,20 +76,11 @@ const { all_accounts } = toRefs(store.getters)
 const selectedAccountRef = ref(null)
 const selectedIndexRef = ref(0)
 
+const dialogChooseAccountVisibleRef = ref(false)
+
 let tabIndex = 0
 const editableTabsValue = ref('')
-const editableTabs = ref([
-  // {
-  //   title: 'Tab 1',
-  //   name: '1',
-  //   content: 'Tab 1 content',
-  // },
-  // {
-  //   title: 'Tab 2',
-  //   name: '2',
-  //   content: 'Tab 2 content',
-  // },
-])
+const editableTabs = ref([])
 
 onMounted(async () => {
   console.log("onMounted query params:", route.query)
@@ -137,30 +131,30 @@ const handleAccountSelect = async ({ account, index }) => {
 }
 
 const handleCreateAppMsg = ({ type, account_id }) => {
-  const new_appmsgid = 0 - (+new Date())
-  const new_mp_msg = {
-    msg_id: 0 - (+new Date()),
-    item_show_type: 0,
-    title: `新标题${++tabIndex}`,
-    author: "",
-    copyright_type: 0,
-    cdn_url: "",
-    desc: "",
-    need_open_comment: 1,
-    only_fans_can_comment: 0,
-    only_fans_days_can_comment: 0,
-    sourceurl: "",
-    insert_ad_mode: 2,
-    can_insert_ad: 1,
-    content_noencode: "",
-  }
-  const newAppMsg = {
-    appmsgid: new_appmsgid,
-    title: new_mp_msg.title,
-    multi_item: [new_mp_msg]
-  }
-
   if (type === 0) {
+    const new_appmsgid = 0 - (+new Date())
+    const new_mp_msg = {
+      msg_id: 0 - (+new Date()),
+      item_show_type: 0,
+      title: `新标题${++tabIndex}`,
+      author: "",
+      copyright_type: 0,
+      cdn_url: "",
+      desc: "",
+      need_open_comment: 1,
+      only_fans_can_comment: 0,
+      only_fans_days_can_comment: 0,
+      sourceurl: "",
+      insert_ad_mode: 2,
+      can_insert_ad: 1,
+      content_noencode: "",
+    }
+    const newAppMsg = {
+      appmsgid: new_appmsgid,
+      title: new_mp_msg.title,
+      multi_item: [new_mp_msg]
+    }
+
     let account
     if (account_id === selectedAccountRef.value.id) {
       console.log("account_id match selectedAccountRef")
@@ -173,8 +167,15 @@ const handleCreateAppMsg = ({ type, account_id }) => {
       addTab(account, newAppMsg, 'create')
     }
   } else {
-
+    dialogChooseAccountVisibleRef.value = true
   }
+}
+
+const handleAccountChoose = ({ choosed }) => {
+  choosed.forEach((acc) => {
+    handleCreateAppMsg({ type: 0, account_id: acc.id })
+  })
+  dialogChooseAccountVisibleRef.value = false
 }
 
 const handleTitleChange = ({ appmsgid, title }) => {
@@ -185,7 +186,6 @@ const handleTitleChange = ({ appmsgid, title }) => {
     // console.log("idx=>", idx, msg)
     editableTabs.value[idx].title = title
   }
-
 }
 
 const handleCloseTab = (targetName) => {

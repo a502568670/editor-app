@@ -35,7 +35,7 @@ const otherAccountsChoosedRef = ref([])
 
 
 watch(() => [props.dialogVisible], (newVal) => {
-  console.log("props.changed=>", newVal)
+  // console.log("syncToOtherAccounts props.changed=>", newVal)
   dialogVisibleRef.value = newVal[0]
 })
 
