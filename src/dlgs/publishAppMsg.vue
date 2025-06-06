@@ -27,7 +27,7 @@
           </div>
           <div v-if="publishTimingFlagRef" class="w-full flex space-x-2">
             <el-select v-model="selectedPublishTimingDateRef" class="grid-content-control" value-key="id" filterable
-              placeholder="选择定时发布日期" @change="emitChangeForPublishTimingDate" style="width:100px">
+              placeholder="选择定时发布日期" @change="handleChangeForPublishTimingDate" style="width:100px">
               <el-option v-for="(item) in publishTimingDatesRef" :key="item.id" :label="item.name" :value="item" />
             </el-select>
             <el-time-picker v-model="publishTimeRef" format="HH:mm" :disabled-hours="disableHours"
@@ -83,7 +83,7 @@
     </div>
     <template #footer>
       <div class="dialog-footer">
-        <el-button @click="dialogPublishArticleVisibleRef = false">取消</el-button>
+        <el-button @click="dialogVisibleRef = false">取消</el-button>
         <el-button v-if="!instantPublishRef" @click="handleNext">继续</el-button>
         <el-button v-if="instantPublishRef" @click="handlePublish" type="primary" :disabled="publishLoadingRef">{{
           publishLoadingRef ? '发表中...' : '发表' }}</el-button>
@@ -205,6 +205,32 @@ const disableMinutes = (role, comparingDate) => {
 
   const idx = MINUTES.findIndex(v => v === minute)
   return MINUTES.slice(0, idx)
+}
+
+const handleChangeForPublishTimingDate = async (val) => {
+
+console.log("emitChangeForPublishTimingDate val=>", val)
+
+selectedPublishTimingDateRef.value = val
+const todayStr = new Date().toISOString().split('T')[0]
+if (todayStr === val.id) {
+  // check 5 minutes
+  publishTimeRef.value = +new Date() + 5 * 60 * 1000;
+} else {
+  publishTimeRef.value = +new Date(val.id + "T00:00");
+}
+// let currentDate = new Date(val.id)
+checkQuota(new Date(val.id))
+// publishTimingDatesRef.value = Array.from({ length: 7 }, (_, i) => {
+//   if (i === 0) {
+//     return { name: "今天", id: today.toISOString().split('T')[0] }
+//   } else if (i === 1) {
+//     return { name: "明天", id: createDateByDays(today, 1).toISOString().split('T')[0] }
+//   } else {
+//     let theDate = createDateByDays(today, i)
+//     return { name: `${theDate.getMonth() + 1}月${theDate.getDate()}日`, id: theDate.toISOString().split('T')[0] }
+//   }
+// });
 }
 
 const handleNext = async () => {

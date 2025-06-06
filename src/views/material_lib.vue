@@ -3,7 +3,7 @@
     <div class="w-[200px] border-r shadow-md">
       <account-nav :default-selected-index="selectedIndexRef" @account-select="handleAccountSelect" />
     </div>
-    <div class="flex-1 flex flex-col h-full">
+    <div class="flex-1 flex flex-col h-full" v-loading="dataLoadingRef">
       <div v-if="selectedAccountRef !== null" class="h-12 flex space-x-2 items-center pl-2 border-b mb-1 shadow-md">
         <div>草稿箱</div>
         <el-button @click="handleAppMsgRefresh" type="primary">
@@ -27,7 +27,7 @@
         </div>
         <div></div>
       </div>
-      <div v-scroll="onScroll" class="flex-1 overflow-auto pt-5" v-loading="dataLoadingRef">
+      <div v-scroll="onScroll" class="flex-1 overflow-auto pt-5" >
         <VueFlexWaterfall ref="el" align-content="center" col="3" col-spacing="20" :breakByContainer="true">
           <div v-for="item in list" :key="item.app_id"
             class="w-[280px] bg-white border flex flex-col mb-5 rounded shadow relative"
@@ -172,6 +172,7 @@ const selectedAccountRef = ref(null)
 const selectedIndexRef = ref(0)
 const otherAccountsRef = ref([])
 const dataLoadingRef = ref(false)
+const currentOperateName = ref("")
 const currentOperateAppMsgRef = ref(null)
 
 // appmsg同步到其他账号设置对话框
@@ -253,32 +254,37 @@ const handleAppMsgFilter = async () => {
 const handleAppmsgEdit = async (appmsg) => {
   console.log("handleAppmsgEdit=>", appmsg, checkIsLocal(appmsg.app_id))
   currentOperateAppMsgRef.value = appmsg
+  currentOperateName.value = "edit"
   if (!checkIsLocal(appmsg.app_id)) {
     console.warn("appmsg not exist local, sync..")
     await _getAppmsgInDraftBox(appmsg.app_id)
+  } else {
+    router.push({ path: '/editor3', query: { account_id: selectedAccountRef.value.id, appmsgid: appmsg.app_id, title: appmsg.title } })
   }
-  router.push({ path: '/editor3', query: { account_id: selectedAccountRef.value.id, appmsgid: appmsg.app_id, title: appmsg.title } })
 }
 
 const handleOpenPublish = async (appmsg) => {
-
   console.log("handleOpenPublish=>", appmsg, checkIsLocal(appmsg.app_id), selectedAccountRef.value)
   currentOperateAppMsgRef.value = appmsg
+  currentOperateName.value = "publish"
   if (!checkIsLocal(appmsg.app_id)) {
     console.warn("appmsg not exist local, sync..")
     await _getAppmsgInDraftBox(appmsg.app_id)
+  } else {
+    dialogPublishVisbleRef.value = true
   }
-  dialogPublishVisbleRef.value = true
 }
 
 const handleSyncAppmsgToOtherAccounts = async (appmsg) => {
   console.log("--handleSyncAppmsgToOtherAccounts--", appmsg)
   currentOperateAppMsgRef.value = appmsg
+  currentOperateName.value = "syncToOther"
   if (!checkIsLocal(appmsg.app_id)) {
     console.warn("appmsg not exist local, sync..")
     await _getAppmsgInDraftBox(appmsg.app_id)
+  } else {
+    dialogSyncToOtherAccountsVisibleRef.value = true
   }
-  dialogSyncToOtherAccountsVisibleRef.value = true
 }
 
 const handleInstantSend = async ({ otherAccountsChoosed }) => {
@@ -323,10 +329,7 @@ const handlePublishToWechat = async ({ send_time, isFreePublish, hasNotify, repr
   console.log("reprint_info=>", reprint_info)
   console.log("list=>", list)
   console.log('appmsgid=>', appmsgid)
-  // setTimeout(() => {
-  //   isPublishingRef.value = false
-  //   dialogPublishVisbleRef.value = false
-  // }, 5 * 1000)
+
   // reuturn
 
   const { token, session_id, wechat_id } = selectedAccountRef.value
@@ -349,9 +352,10 @@ const handlePublishToWechat = async ({ send_time, isFreePublish, hasNotify, repr
     }
   })
 
-  setTimeout(() => {
-    dataLoadingRef.value = true
-  }, 10 * 1000)
+  // setTimeout(() => {
+  //   isPublishingRef.value = false
+  //   dialogPublishVisbleRef.value = false
+  // }, 5 * 1000)
 }
 
 const checkIsLocal = (remote_appmsgid) => {
@@ -470,12 +474,19 @@ const syncRemoteToLocal = async (appmsg_info) => {
     await listAppMsgIds(id)
     const new_appmsgid = res.data.data.appmsgid
     const title = material_list[0].title
-    router.push({ path: '/editor3', query: { account_id: id, appmsgid: new_appmsgid, title } })
+    if (currentOperateName.value === "edit") {
+      router.push({ path: '/editor3', query: { account_id: id, appmsgid: new_appmsgid, title } })
+    } else if (currentOperateName.value === "publish") {
+      dialogPublishVisbleRef.value = true
+    } else if (currentOperateName.value === "syncToOther") {
+      dialogSyncToOtherAccountsVisibleRef.value = true
+    }
   }).catch((e) => {
     console.log('saveAppMsg catched e:', e)
 
     console.log("=========")
   })
+  console.log("--save appmsg postData dataLoadingRef=>", dataLoadingRef.value)
 }
 
 const sendToOtherAccount = async (appmsgid, otherAccountsChoosed) => {
@@ -599,6 +610,7 @@ const registerChannels = () => {
           dataLoadingRef.value = false
           return
         }
+        console.log("--appmsg-ret:getAppmsgInDraftBox dataLoadingRef=>", dataLoadingRef.value)
         syncRemoteToLocal(appmsg_info).finally(() => {
           dataLoadingRef.value = false
         })

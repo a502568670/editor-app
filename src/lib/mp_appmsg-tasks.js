@@ -24,7 +24,9 @@ const getDefaultHeader = () => {
 const api = {
   // 发布
   operation_seq: tk => `${baseUrl}/misc/safeassistant?1=1&token=${tk}&lang=zh_CN`,
-  timing_publish: (tk, hasNotify) => `${baseUrl}/cgi-bin/masssend?t=ajax-response&token=${tk}&lang=zh_CN` + (hasNotify ? "&is_release_publish_page=0" : "&is_release_publish_page=1"),
+
+  // 有通知又是定时，必须加&action=time_send， 其他可以不加
+  timing_publish: (tk, hasNotify) => `${baseUrl}/cgi-bin/masssend?t=ajax-response&token=${tk}&lang=zh_CN` + (hasNotify ? "&action=time_send" : "&is_release_publish_page=1"),
   instant_push: (tk, hasNotify) => `${baseUrl}/cgi-bin/masssend?t=ajax-response&token=${tk}&lang=zh_CN` + (hasNotify ? '&is_release_publish_page=0' : '&is_release_publish_page=1'),
 
   //数据
