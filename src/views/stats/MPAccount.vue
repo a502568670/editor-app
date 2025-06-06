@@ -52,7 +52,7 @@
 }
 </style>
 <script setup>
-import {ref,onMounted} from 'vue';
+import {ref,onMounted,getCurrentInstance} from 'vue';
 import Pagination from '@/components/Pagination'
 import {listAccount} from '@/api/account';
 import {cachedStat,setCachedStat} from '@/api/stat-client';
@@ -64,7 +64,12 @@ function moneyFormatter(row,col,v,i){
 function percentFormatter(row,col,v,i){
   return v==='-'?v:`${v}%`;
 }
+var $this=getCurrentInstance();
 window.ipcRenderer.receive('fromMain', (msg) => {
+  if(!$this||$this.isUnmounted){ // fix unregistered listeners
+    $this=null;
+    return;
+  }
   switch (msg.tag) {
     case 'stat-ret:getPvData': {
       var pvData = [];      
@@ -221,7 +226,7 @@ window.ipcRenderer.receive('fromMain', (msg) => {
               read_num,read_num_1,read_num_2,
             };
             var useCachePv = ({id,name,login,...res})=>({account_id:id,...res});
-            cacheData.push(useCachePv(pvData[i]));
+            if(id) cacheData.push(useCachePv(pvData[i]));
           } catch (error) {
             console.error(error);
           }
