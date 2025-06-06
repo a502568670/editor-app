@@ -1,11 +1,12 @@
 <template>
   <div class="flex w-ful h-full bg-[#e9f9f1] pt-1">
     <el-tabs v-show="editableTabs.length > 0" v-model="editableTabsValue" type="card" class="editor-tabs w-full h-full"
-      closable @tab-remove="removeTab">
+      closable @tab-remove="handleCloseTab">
       <el-tab-pane v-for="item in editableTabs" :key="item.name" :label="item.title" :name="item.name">
         <!-- <EditorTab :key="appmsgRef.appmsgid+''" :account="selectedAccountRef" :appmsg="appmsgRef" /> -->
         <component :key="item.appmsg.appmsgid" :is="EditorTab" :account="item.account" :appmsg="item.appmsg"
-          :mode="item.mode" :mainMsg="item.mainMsg"></component>
+          :mode="item.mode" :mainMsg="item.mainMsg" @title-change="handleTitleChange"
+          @create-appmsg="handleCreateAppMsg"></component>
       </el-tab-pane>
     </el-tabs>
     <div v-show="editableTabs.length === 0" class="flex w-full h-full">
@@ -21,7 +22,8 @@
             </div>
             <img src="@/assets/image/create_material.png" style="width: 100%" />
             <div class="flex justify-center items-center">
-              <el-button @click="handleCreateAppMsg" size="large" type="primary">
+              <el-button @click="handleCreateAppMsg({ type: 0, account_id: selectedAccountRef?.id })" size="large"
+                type="primary">
                 <div class="w-[180px] py-5 ">
                   <el-icon>
                     <Plus />
@@ -51,6 +53,7 @@
 </style>
 <script setup>
 import { onActivated, onDeactivated, onMounted, ref, toRefs } from 'vue'
+import { ElMessage, ElMessageBox, ElLoading } from 'element-plus'
 import EditorTab from "@/components/EditorTab"
 import { Plus } from '@element-plus/icons-vue'
 import { toDeepRaw } from "@/utils/convert"
@@ -99,7 +102,7 @@ onActivated(async () => {
   console.log("query account_id:", account_id, typeof account_id)
   console.log("all_accounts:", all_accounts.value)
   if (appmsgid && title && account_id) {
-    const tab = editableTabs.value.find(v => v.title === title && v.name === `${appmsgid}`)
+    const tab = editableTabs.value.find(v => v.account.id == account_id && v.name == `${appmsgid}`)
     if (!tab) {
       const appMsg = {
         appmsgid: parseInt(appmsgid),
@@ -113,8 +116,9 @@ onActivated(async () => {
       } else {
         console.log("not found account in account store=>")
       }
+    } else {
+      editableTabsValue.value = appmsgid
     }
-
   }
 
 })
@@ -132,7 +136,7 @@ const handleAccountSelect = async ({ account, index }) => {
   selectedIndexRef.value = index
 }
 
-const handleCreateAppMsg = () => {
+const handleCreateAppMsg = ({ type, account_id }) => {
   const new_appmsgid = 0 - (+new Date())
   const new_mp_msg = {
     msg_id: 0 - (+new Date()),
@@ -155,10 +159,54 @@ const handleCreateAppMsg = () => {
     title: new_mp_msg.title,
     multi_item: [new_mp_msg]
   }
-  const account = toDeepRaw(selectedAccountRef.value)
-  addTab(account, newAppMsg, 'create')
+
+  if (type === 0) {
+    let account
+    if (account_id === selectedAccountRef.value.id) {
+      console.log("account_id match selectedAccountRef")
+      account = toDeepRaw(selectedAccountRef.value)
+    } else {
+      console.log("account_id need find from all_accounts")
+      account = all_accounts.value.list.find(a => a.id === parseInt(account_id))
+    }
+    if (account) {
+      addTab(account, newAppMsg, 'create')
+    }
+  } else {
+
+  }
 }
 
+const handleTitleChange = ({ appmsgid, title }) => {
+  console.log("appmsgid=>", appmsgid)
+  console.log("title=>", title)
+  const idx = editableTabs.value.findIndex(v => v.name == appmsgid)
+  if (idx !== -1) {
+    // console.log("idx=>", idx, msg)
+    editableTabs.value[idx].title = title
+  }
+
+}
+
+const handleCloseTab = (targetName) => {
+  if (parseInt(targetName) < 0) {
+    ElMessageBox.confirm(
+      '此操作将关闭未保存的素材, 是否关闭?',
+      '提示',
+      {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning',
+      }
+    ).then(async () => {
+      removeTab(targetName)
+    }).catch(() => {
+      console.log('取消removeTab')
+    })
+  } else {
+    removeTab(targetName)
+  }
+}
 
 const addTab = (account, appmsg, mode) => {
   const newTabName = `${appmsg.appmsgid}`
@@ -173,6 +221,8 @@ const addTab = (account, appmsg, mode) => {
   editableTabsValue.value = newTabName
 
 }
+
+
 const removeTab = (targetName) => {
   const tabs = editableTabs.value
   let activeName = editableTabsValue.value

@@ -6,6 +6,20 @@
         <div class="flex-1 flex justify-start text-left items-center pl-1">
           {{ selectedAccount?.name }}
         </div>
+        <div>
+          <el-dropdown>
+            <el-button type="primary">
+              创建素材<el-icon class="el-icon--right"><arrow-down /></el-icon>
+            </el-button>
+            <template #dropdown>
+              <el-dropdown-menu>
+                <el-dropdown-item
+                  @click="emitEvents('createAppmsg', { type: 0, account_id: props.account.id })">创建当前公众号素材</el-dropdown-item>
+                <!-- <el-dropdown-item @click="emitEvents('createAppmsg', { type: 1 })">创建其他公众号素材</el-dropdown-item> -->
+              </el-dropdown-menu>
+            </template>
+          </el-dropdown>
+        </div>
       </div>
       <el-button @click="handleSaveAppMsg" type="success">暂存</el-button>
       <el-button @click="handleSyncToWechatDraftBox" type="success">保存到公众号草稿箱</el-button>
@@ -176,7 +190,7 @@
           </el-col>
         </el-row>
         <el-row :gutter="4" class="mb-1 w-full">
-          <el-col :span="24" class="h-20 py-2 w-full flex justify-center items-center">
+          <el-col :span="24" class="h-20 py-2 w-full flex justify-center items-center" style="display: none;">
             <img class="cursor-pointer max-h-16 block" @click="triggerFileInput" v-if="selectedCdnImageRef"
               :src="selectedCdnImageRef" alt="封面预览">
             <img class="cursor-pointer max-h-16 block" @click="triggerFileInput" v-else-if="currentArticleRef.cdn_url"
@@ -185,6 +199,7 @@
               class="cursor-pointer border h-16 w-[180px] flex justify-center items-center bg-[#8c8c8c]">设置封面图</div>
             <input class="invisible" ref="cdnFileInputRef" @change="handleImage" type="file" accept="image/*">
           </el-col>
+          <ImgCrop :imgSrc="currentArticleRef.cdn_url" placeholder="设置封面图" @change="handleImageUpload"></ImgCrop>
         </el-row>
         <!-- <el-row :gutter="4" class="mb-1 invisible">
         <el-col :span="24">
@@ -594,8 +609,10 @@ import { ArrowUp, ArrowDown, Delete, CircleCheckFilled, CircleCloseFilled, InfoF
 import { Link, Link2, RadioTower, DollarSign, SquareTerminal, Eye, ScanEye, Minus, Smartphone, Video } from 'lucide-vue-next';
 import axios from 'axios'
 import JSON5 from "json5"
+import ImgCrop from '@/components/ImgCrop.vue';
 
 const props = defineProps(['account', 'appmsg', 'mode', 'mainMsg']);
+const emitEvents = defineEmits(['titleChange', 'createAppmsg'])
 
 const { all_accounts } = toRefs(store.getters)
 // console.log('envVars.backend_url=>', envVars.backend_url)
@@ -902,6 +919,11 @@ const createBase64Image = async (fileObject) => {
     selectedCdnImageRef.value = reader.result
   };
   reader.readAsDataURL(fileObject);
+}
+
+function handleImageUpload(info) {
+  cdnRef.value = { cdn_content_type: info.type, cdn_base64_image: info.data, cdn_filename: info.name }
+  uploadCover()
 }
 
 const uploadCover = async () => {
@@ -2071,6 +2093,10 @@ const syncToList = (key) => {
   if (idx !== -1) {
     mp_msgsRef.value[idx][key] = currentArticleRef.value[key]
   }
+  if (key === "title") {
+    emitEvents("titleChange", { appmsgid: props.appmsg.appmsgid, title: currentArticleRef.value[key] })
+  }
+
 }
 
 watch(() => [props.mainMsg], (newVal) => {

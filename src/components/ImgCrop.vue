@@ -43,7 +43,7 @@ import { ElMessage } from 'element-plus'
 var opt = {
     centerBox: true, mode: 'contain', outputType: 'png', outputSize: 1,
     autoCrop: true, autoCropWidth: 900, autoCropHeight: 383,
-    // fixed:true,fixedNumber:[1,0.425],
+    fixed:true,fixedNumber:[1,0.425],
     full: true,
 }
 var open = ref(false)
