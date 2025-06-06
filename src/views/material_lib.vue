@@ -27,7 +27,7 @@
         </div>
         <div></div>
       </div>
-      <div v-scroll="onScroll" class="flex-1 overflow-auto pt-5" >
+      <div v-scroll="onScroll" class="flex-1 overflow-auto pt-5">
         <VueFlexWaterfall ref="el" align-content="center" col="3" col-spacing="20" :breakByContainer="true">
           <div v-for="item in list" :key="item.app_id"
             class="w-[280px] bg-white border flex flex-col mb-5 rounded shadow relative"
@@ -157,6 +157,7 @@ import JSON5 from "json5"
 // 订阅
 const channelCleans = {}
 const channelName = 'fromMain'
+const channelSource = 'material_lib'
 
 const store = useStore()
 const { all_accounts } = toRefs(store.getters)
@@ -335,6 +336,7 @@ const handlePublishToWechat = async ({ send_time, isFreePublish, hasNotify, repr
   const { token, session_id, wechat_id } = selectedAccountRef.value
   window.ipcRenderer.send('toMain', {
     tag: 'appmsg:publishToWechat',
+    source: channelSource,
     token: getToken(),
     wechat_id,
     publishData: {
@@ -396,6 +398,7 @@ const _listAppmsgsInDraftBox = async (begin = 0, count = _listCount) => {
   dataLoadingRef.value = true
   window.ipcRenderer.send('toMain', {
     tag: 'appmsg:listAppmsgsInDraftBox',
+    source: channelSource,
     token: getToken(),
     wechat_id: id,
     listData: {
@@ -417,6 +420,7 @@ const _getAppmsgInDraftBox = async (appmsgid) => {
   dataLoadingRef.value = true
   window.ipcRenderer.send('toMain', {
     tag: 'appmsg:getAppmsgInDraftBox',
+    source: channelSource,
     token: getToken(),
     wechat_id: id,
     getData: {
@@ -562,9 +566,13 @@ const registerChannels = () => {
   channelCleans[channelName] = window.ipcRenderer.receive(channelName, (msg) => {
     console.log("material_lib ipcRenderer receive fromMain:", msg)
     if (typeof msg === 'object' && Object.prototype.hasOwnProperty.call(msg, 'tag')) {
+      const { source, ret } = msg.data
+      if (source !== channelSource) {
+        return
+      }
       const tag = msg.tag;
       if (tag === "appmsg-ret:listAppmsgsInDraftBox") {
-        const { success, items, err_msg } = msg.data
+        const { success, items, err_msg } = ret
         if (!success) {
           let message = err_msg === "invalid session" ? `当前账号session过期,请切换到*账号中心*重新登录` : err_msg
           ElMessageBox.alert(message, '错误', {
@@ -596,7 +604,7 @@ const registerChannels = () => {
           elRef.value && elRef.value.updateOrder()
         })
       } else if (tag === 'appmsg-ret:getAppmsgInDraftBox') {
-        const { success, appmsg_info, err_msg } = msg.data
+        const { success, appmsg_info, err_msg } = ret
         if (!success) {
           let message = err_msg === "invalid session" ? `当前账号session过期,请切换到*账号中心*重新登录` : err_msg
           ElMessageBox.alert(message, '错误', {
@@ -618,7 +626,11 @@ const registerChannels = () => {
         console.log("material_lib publishToWechatResult msg.data=>", msg.data)
         dialogPublishVisbleRef.value = false
         isPublishingRef.value = false
-        const { success, msg: retmsg } = msg.data
+        const { source, ret } = msg.data
+        if (source !== channelSource) {
+          return
+        }
+        const { success, msg: retmsg } = ret
         if (success) {
           ElMessage({
             message: `发表成功`,

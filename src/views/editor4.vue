@@ -795,6 +795,7 @@ const instantPublishRef = ref(false)
 // 订阅
 const channelCleans = {}
 const channelName = 'fromMain'
+const channelSource = 'editor4'
 
 // 文章正文
 const currentArticleRef = ref({
@@ -1034,8 +1035,8 @@ const createBase64Image = async (fileObject) => {
   };
   reader.readAsDataURL(fileObject);
 }
-function handleImageUpload(info){
-  cdnRef.value={cdn_content_type:info.type,cdn_base64_image:info.data,cdn_filename:info.name}
+function handleImageUpload(info) {
+  cdnRef.value = { cdn_content_type: info.type, cdn_base64_image: info.data, cdn_filename: info.name }
   uploadCover()
 }
 
@@ -1788,6 +1789,7 @@ const handlePublishToWechat = async () => {
   const { token, session_id, wechat_id } = selectedAccount.value
   window.ipcRenderer.send('toMain', {
     tag: 'appmsg:publishToWechat',
+    source: channelSource,
     token: getToken(),
     wechat_id,
     publishData: {
@@ -2179,7 +2181,8 @@ const handleLocalExtractMpArticleUrl = async () => {
 
   globalLoadingRef.value = true
   window.ipcRenderer.send('toMain', {
-    tag: 'localExtractMpArticleUrl',
+    tag: 'appmsg:localExtractMpArticleUrl',
+    source: channelSource,
     token: getToken(),
     extractArticleUrl: extractArticleUrlRef.value,
   })
@@ -2358,7 +2361,8 @@ const handlePreview = async () => {
     const temp_url = data?.data?.temp_url
     if (temp_url) {
       window.ipcRenderer.send('toMain', {
-        tag: 'previewMpArticle',
+        tag: 'appmsg:previewMpArticle',
+        source: channelSource,
         url: temp_url,
       })
     }
@@ -2567,12 +2571,16 @@ onActivated(async () => {
   channelCleans[channelName] = window.ipcRenderer.receive(channelName, (msg) => {
     console.log("editor ipcRenderer receive fromMain:", msg)
     if (typeof msg === 'object' && Object.prototype.hasOwnProperty.call(msg, 'tag')) {
+      const { source, ret } = msg.data
+      if (source !== channelSource) {
+        return
+      }
       const tag = msg.tag;
-      if (tag === "localExtractMpArticleUrlResult") {
+      if (tag === "appmsg-ret:localExtractMpArticleUrlResult") {
         console.log(`tag:${msg.tag}`, typeof msg.data)
-        const { title, nick_name, copyright_stat, cdn_url, item_show_type, video_page_info } = msg.data
-        let { content_noencode, content_text } = msg.data
-        console.log("msg.data=>", msg.data)
+        const { title, nick_name, copyright_stat, cdn_url, item_show_type, video_page_info } = ret
+        let { content_noencode, content_text } = ret
+        console.log("ret=>", ret)
         let guide_words = "", vid = ""
         console.log("item_show_type=>", item_show_type)
         // const { video_page_infos } = msg.data
@@ -2608,8 +2616,8 @@ onActivated(async () => {
         extractArticleUrlRef.value = ""
         dialogExtractMpAritcleUrlRef.value = false
       } else if (tag === "appmsg-ret:publishToWechat") {
-        console.log("publishToWechatResult msg.data=>", msg.data)
-        const { success, msg: retmsg } = msg.data
+        console.log("publishToWechatResult ret=>", ret)
+        const { success, msg: retmsg } = ret
         if (success) {
           dialogPublishArticleVisibleRef.value = false
           ElMessage({

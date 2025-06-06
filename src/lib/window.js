@@ -460,7 +460,7 @@ async function reactToIpcObjectData(data, tabbedWin, viewContents) {
       }
       break
     }
-    case 'previewMpArticle': {
+    case 'appmsg:previewMpArticle': {
       verbose_log("===== listen previewMpArticle in main ====", data)
 
       let view = new BrowserWindow({
@@ -496,9 +496,9 @@ async function reactToIpcObjectData(data, tabbedWin, viewContents) {
 
       break
     }
-    case 'localExtractMpArticleUrl': {
+    case 'appmsg:localExtractMpArticleUrl': {
       verbose_log("===== listen localExtractMpArticleUrl in main ====", data)
-      const { extractArticleUrl } = data
+      const { source, extractArticleUrl } = data
       const html = await localExtractMpArticleUrlUseRequest(extractArticleUrl)
         .catch((err) => {
           verbose_error("reject localExtractMpArticleUrl for reason:", err)
@@ -506,14 +506,14 @@ async function reactToIpcObjectData(data, tabbedWin, viewContents) {
       verbose_log("html.length:", html.length)
       // fs.writeFileSync("a.html", html)
       // verbose_log("extract html:", html)
-      const result = await postJsonToJZLApi(`/prase_html_to_json?api_key=${encodeURIComponent("du&cgIYuosQcaSm6")}`, { html })
-      verbose_log("extract result:", result)
-      viewContents.send('fromMain', { tag: 'localExtractMpArticleUrlResult', data: result })
+      const ret = await postJsonToJZLApi(`/prase_html_to_json?api_key=${encodeURIComponent("du&cgIYuosQcaSm6")}`, { html })
+      verbose_log("extract result:", ret)
+      viewContents.send('fromMain', { tag: 'appmsg-ret:localExtractMpArticleUrlResult', data: { source, ret } })
       break;
     }
     case 'appmsg:listAppmsgsInDraftBox': {
       verbose_log("===== listen listAppmsgsInDraftBox in main ====", data)
-      const { token, listData } = data
+      const { source, token, listData } = data
       // token => userToken
       console.log("listData=>", listData)
       const ret = await listAppmsgsInDraftBox(listData)
@@ -522,12 +522,12 @@ async function reactToIpcObjectData(data, tabbedWin, viewContents) {
       } else {
         verbose_log("===== 获取草稿箱素材列表成功 ====", ret.items.length)
       }
-      viewContents.send('fromMain', { tag: 'appmsg-ret:listAppmsgsInDraftBox', data: ret })
+      viewContents.send('fromMain', { tag: 'appmsg-ret:listAppmsgsInDraftBox', data: { source, ret } })
       break
     }
     case 'appmsg:getAppmsgInDraftBox': {
       verbose_log("===== listen getAppmsgInDraftBox in main ====", data)
-      const { token, getData } = data
+      const { source, token, getData } = data
       // token => userToken
       console.log("getData=>", getData)
       const ret = await getAppmsgInDraftBox(getData)
@@ -536,12 +536,12 @@ async function reactToIpcObjectData(data, tabbedWin, viewContents) {
       } else {
         verbose_log("===== 获取草稿箱素材成功 ====", ret.appmsg_info)
       }
-      viewContents.send('fromMain', { tag: 'appmsg-ret:getAppmsgInDraftBox', data: ret })
+      viewContents.send('fromMain', { tag: 'appmsg-ret:getAppmsgInDraftBox', data: { source, ret } })
       break
     }
     case 'appmsg:publishToWechat': {
       verbose_log("===== listen publishToWechat in main ====", data)
-      const { token, wechat_id, publishData } = data
+      const { token, source, wechat_id, publishData } = data
       const ret = await publishAppmsg(publishData)
       if (ret.success) {
         verbose_log("===== 发布微信成功 ====", data)
@@ -552,7 +552,7 @@ async function reactToIpcObjectData(data, tabbedWin, viewContents) {
         verbose_log("mark_publish:", result)
       }
 
-      viewContents.send('fromMain', { tag: 'appmsg-ret:publishToWechat', data: ret })
+      viewContents.send('fromMain', { tag: 'appmsg-ret:publishToWechat', data: { source, ret } })
       break;
     }
     case 'stat:getPvData': {

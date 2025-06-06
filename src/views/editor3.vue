@@ -1,11 +1,11 @@
 <template>
   <div class="flex w-ful h-full bg-[#e9f9f1] pt-1">
-    {{ editableTabsValue }}
     <el-tabs v-show="editableTabs.length > 0" v-model="editableTabsValue" type="card" class="editor-tabs w-full h-full"
       closable @tab-remove="removeTab">
       <el-tab-pane v-for="item in editableTabs" :key="item.name" :label="item.title" :name="item.name">
         <!-- <EditorTab :key="appmsgRef.appmsgid+''" :account="selectedAccountRef" :appmsg="appmsgRef" /> -->
-        <component :key="item.appmsg.appmsgid" :is="EditorTab" :account="item.account" :appmsg="item.appmsg" :mode="item.mode"></component>
+        <component :key="item.appmsg.appmsgid" :is="EditorTab" :account="item.account" :appmsg="item.appmsg"
+          :mode="item.mode" :mainMsg="item.mainMsg"></component>
       </el-tab-pane>
     </el-tabs>
     <div v-show="editableTabs.length === 0" class="flex w-full h-full">
@@ -50,7 +50,7 @@
 }
 </style>
 <script setup>
-import { onActivated, onMounted, ref, toRefs } from 'vue'
+import { onActivated, onDeactivated, onMounted, ref, toRefs } from 'vue'
 import EditorTab from "@/components/EditorTab"
 import { Plus } from '@element-plus/icons-vue'
 import { toDeepRaw } from "@/utils/convert"
@@ -59,6 +59,11 @@ import { useStore } from 'vuex'
 
 const store = useStore()
 const route = useRoute()
+
+// 订阅
+const channelCleans = {}
+const channelName = 'fromMain'
+const channelSource = 'editor3'
 
 const { all_accounts } = toRefs(store.getters)
 
@@ -83,8 +88,10 @@ const editableTabs = ref([
 onMounted(async () => {
   console.log("onMounted query params:", route.query)
 })
+
 onActivated(async () => {
-  console.log("onActivated query params:", route.query)
+  console.log("----onActivated editor3-----")
+  registerChannels()
   const appmsgid = route.query.appmsgid
   const title = route.query.title
   const account_id = route.query.account_id
@@ -110,6 +117,14 @@ onActivated(async () => {
 
   }
 
+})
+
+onDeactivated(() => {
+  console.log("---onDeactivated editor3----")
+  if (channelCleans[channelName]) {
+    console.log(`cleanup channel ${channelName} for editor3`)
+    channelCleans[channelName]()
+  }
 })
 
 const handleAccountSelect = async ({ account, index }) => {
@@ -153,6 +168,7 @@ const addTab = (account, appmsg, mode) => {
     account,
     appmsg,
     mode,
+    mainMsg: null,
   })
   editableTabsValue.value = newTabName
 
@@ -175,6 +191,28 @@ const removeTab = (targetName) => {
   editableTabs.value = tabs.filter((tab) => tab.name !== targetName)
 }
 
+const registerChannels = () => {
+  channelCleans[channelName] = window.ipcRenderer.receive(channelName, (msg) => {
+    console.log("editor3 ipcRenderer receive fromMain:", msg)
+    const { source } = msg.data
+    console.log("source=>", source, typeof source)
+    if (source === channelSource) {
+      // 本地的消息处理
+      // if (typeof msg === 'object' && Object.prototype.hasOwnProperty.call(msg, 'tag')) {
+      //   const tag = msg.tag;
+      //   if (tag === "xxx") {
 
+      //   }
+      // }
+    } else {
+      // tab内的消息处理
+      const idx = editableTabs.value.findIndex(v => v.name == source)
+      if (idx !== -1) {
+        // console.log("idx=>", idx, msg)
+        editableTabs.value[idx].mainMsg = msg
+      }
+    }
+  })
+}
 
 </script>
