@@ -70,7 +70,12 @@
                   <PencilLine />
                 </el-icon>
               </el-tooltip>
-              <el-dropdown placement="bottom">
+              <el-tooltip class="box-item" effect="dark" content="发表" placement="bottom">
+                <el-icon :size="24" class="cursor-pointer flex justify-center" @click="handleOpenPublish(item)">
+                  <SendHorizonal />
+                </el-icon>
+              </el-tooltip>
+              <!-- <el-dropdown placement="bottom">
                 <el-icon :size="24" class="cursor-pointer flex justify-center focus:outline-none hover:outline-none">
                   <SendHorizonal />
                 </el-icon>
@@ -80,7 +85,7 @@
                     <el-dropdown-item>定时群发</el-dropdown-item>
                   </el-dropdown-menu>
                 </template>
-              </el-dropdown>
+</el-dropdown> -->
               <el-tooltip class="box-item" effect="dark" content="发送到其他账号" placement="bottom">
                 <el-icon :size="24" class="cursor-pointer flex justify-center"
                   @click="handleSyncAppmsgToOtherAccounts(item)">
@@ -109,7 +114,11 @@
   <SyncToOtherAccountsDialog :dialogVisible="dialogSyncToOtherAccountsVisibleRef" :accounts="otherAccountsRef"
     @instant-send="handleInstantSend" @dialog-closed="dialogSyncToOtherAccountsVisibleRef = false" />
   <OperateProgressDialog :dialogVisible="dialogOperateProgressVisbleRef" :percent="percentRef"
-    :progressDesc="progressDescRef" :progressResult="progressResultRef" @dialog-closed="dialogOperateProgressVisbleRef = false"  />
+    :progressDesc="progressDescRef" :progressResult="progressResultRef"
+    @dialog-closed="dialogOperateProgressVisbleRef = false" />
+  <PublishAppMsgDialog :dialogVisible="dialogPublishVisbleRef" :processing="isPublishingRef"
+    :selectedAccount="selectedAccountRef" :appmsgid="currentOperateAppMsgRef?.app_id" @publish="handlePublishToWechat"
+    @dialog-closed="dialogPublishVisbleRef = false" />
 </template>
 <style scoped>
 :deep(.el-input__wrapper) {
@@ -127,6 +136,7 @@ import { ref, toRefs, useTemplateRef, computed, nextTick, onMounted, onActivated
 import { vScroll } from '@vueuse/components'
 import SyncToOtherAccountsDialog from "@/dlgs/syncToOtherAccounts"
 import OperateProgressDialog from "@/dlgs/operateProgress"
+import PublishAppMsgDialog from "@/dlgs/publishAppMsg"
 import { ElMessage, ElMessageBox, ElLoading } from 'element-plus'
 import { RefreshRight, Search, Select } from '@element-plus/icons-vue'
 import AccountNav from "@/components/AccountNav"
@@ -162,15 +172,24 @@ const selectedAccountRef = ref(null)
 const selectedIndexRef = ref(0)
 const otherAccountsRef = ref([])
 const dataLoadingRef = ref(false)
-const dialogSyncToOtherAccountsVisibleRef = ref(false)
-const timeoutSendToOneAccount = 30 * 1000;
 const currentOperateAppMsgRef = ref(null)
 
+// appmsg同步到其他账号设置对话框
+const dialogSyncToOtherAccountsVisibleRef = ref(false)
+const timeoutSendToOneAccount = 30 * 1000;
 
+// appmsg同步到其他账号进度对话框
 const dialogOperateProgressVisbleRef = ref(false)
 const percentRef = ref(0)
 const progressDescRef = ref("")
 const progressResultRef = ref(null)
+
+// appmsg发表对话框
+const dialogPublishVisbleRef = ref(false)
+const isPublishingRef = ref(false)
+
+
+
 
 
 const listMode = ref(0) // 0-refresh 1-append
@@ -241,6 +260,17 @@ const handleAppmsgEdit = async (appmsg) => {
   router.push({ path: '/editor3', query: { account_id: selectedAccountRef.value.id, appmsgid: appmsg.app_id, title: appmsg.title } })
 }
 
+const handleOpenPublish = async (appmsg) => {
+
+  console.log("handleOpenPublish=>", appmsg, checkIsLocal(appmsg.app_id), selectedAccountRef.value)
+  currentOperateAppMsgRef.value = appmsg
+  if (!checkIsLocal(appmsg.app_id)) {
+    console.warn("appmsg not exist local, sync..")
+    await _getAppmsgInDraftBox(appmsg.app_id)
+  }
+  dialogPublishVisbleRef.value = true
+}
+
 const handleSyncAppmsgToOtherAccounts = async (appmsg) => {
   console.log("--handleSyncAppmsgToOtherAccounts--", appmsg)
   currentOperateAppMsgRef.value = appmsg
@@ -279,10 +309,50 @@ const handleRemoveAppmsg = async (appmsg) => {
   })
 }
 
-// const handleDialogClosed = () => {
-//   console.log("--handleDialogClosed--")
-//   dialogSyncToOtherAccountsVisibleRef.value = false
-// }
+const handlePublishToWechat = async ({ send_time, isFreePublish, hasNotify, reprint_info, list }) => {
+  isPublishingRef.value = true
+  console.log("current appmsg=>", currentOperateAppMsgRef.value)
+  const appmsgid = currentOperateAppMsgRef.value.app_id
+  const appmsg_item_count = currentOperateAppMsgRef.value.multi_item.length
+  console.log("appmsg_item_count=>", appmsg_item_count)
+
+  console.log("hasNotify=>", hasNotify)
+  console.log("isFreePublish=>", isFreePublish)
+  // console.log('is_release_publish_page=>', is_release_publish_page)
+  console.log('send_time=>', send_time)
+  console.log("reprint_info=>", reprint_info)
+  console.log("list=>", list)
+  console.log('appmsgid=>', appmsgid)
+  // setTimeout(() => {
+  //   isPublishingRef.value = false
+  //   dialogPublishVisbleRef.value = false
+  // }, 5 * 1000)
+  // reuturn
+
+  const { token, session_id, wechat_id } = selectedAccountRef.value
+  window.ipcRenderer.send('toMain', {
+    tag: 'appmsg:publishToWechat',
+    token: getToken(),
+    wechat_id,
+    publishData: {
+      // mp_msgs: toDeepRaw(mp_msgsRef.value),
+      cookies: serializeCookie(JSON.parse(session_id)["cookie"]),
+      token: parseInt(token),
+      send_time,
+      isFreePublish,
+      hasNotify,
+      // is_release_publish_page,
+      list,
+      reprint_info,
+      appmsgid,
+      appmsg_item_count
+    }
+  })
+
+  setTimeout(() => {
+    dataLoadingRef.value = true
+  }, 10 * 1000)
+}
 
 const checkIsLocal = (remote_appmsgid) => {
   const idx = localAppmsgsRef.value.findIndex(v => v.appmsgid == remote_appmsgid)
@@ -439,7 +509,7 @@ const sendToOtherAccount = async (appmsgid, otherAccountsChoosed) => {
       progressDescRef.value = stepRet.desc
       // console.log("percentRef.value=>", percentRef.value)
       // console.log("progressDescRef.value=>", progressDescRef.value)
-    } catch(e) {
+    } catch (e) {
       console.log("step data failed=>", e)
       percentRef.value = 0;
       progressDescRef.value = ""
@@ -532,7 +602,25 @@ const registerChannels = () => {
         syncRemoteToLocal(appmsg_info).finally(() => {
           dataLoadingRef.value = false
         })
-
+      } else if (tag === "appmsg-ret:publishToWechat") {
+        console.log("material_lib publishToWechatResult msg.data=>", msg.data)
+        dialogPublishVisbleRef.value = false
+        isPublishingRef.value = false
+        const { success, msg: retmsg } = msg.data
+        if (success) {
+          ElMessage({
+            message: `发表成功`,
+            type: 'success',
+            duration: 2 * 1000
+          })
+        } else {
+          ElMessageBox.alert(`发表到微信出现错误:${retmsg}`, '错误', {
+            confirmButtonText: '确定',
+            type: 'error'
+          }).catch(() => {
+            console.log("publish receive catch")
+          })
+        }
       }
     }
   })
