@@ -581,7 +581,6 @@ import {
 } from "@/api/mp_msg"
 import { saveAppMsg, send_to_other_accounts_events } from "@/api/appmsg"
 import { getMpUserInfo, getLastPreviewAccounts, sendPreview, listVideos, getMasssendInfo, stat_appmsg_copyright_stat_events } from "@/api/mp_wechat"
-import { getArticleContent, getArticleContent2 } from '@/api/jzl'
 import { format_to_UEditor_html, restore_from_UEditor_html } from "@/utils/dom";
 import { uploadImage } from "@/api/img"
 import { toDeepRaw } from "@/utils/convert"
@@ -592,7 +591,6 @@ import { getVideoFrameHtml } from "@/utils/video"
 import { claim_source_types, HOUSRS, MINUTES } from "@/utils/constants"
 import { ElMessage, ElMessageBox, ElLoading } from 'element-plus'
 import { ArrowUp, ArrowDown, Delete, CircleCheckFilled, CircleCloseFilled, InfoFilled } from '@element-plus/icons-vue'
-import { removeAppMsgId, setAppMsgId, getAppMsgId, getSelectedAccountId, setSelectedAccountId } from '@/utils/editor'
 import { Link, Link2, RadioTower, DollarSign, SquareTerminal, Eye, ScanEye, Minus, Smartphone, Video } from 'lucide-vue-next';
 import axios from 'axios'
 import JSON5 from "json5"
@@ -870,40 +868,6 @@ const validateAccount = () => {
     }).catch(() => { })
     return false;
   }
-  return true
-}
-
-const validateArticleData = () => {
-
-  if (!currentArticleRef.value.title.trim()) {
-    ElMessageBox.alert('标题不能为空', '错误', {
-      confirmButtonText: '确定',
-      type: 'error'
-    }).catch(() => { })
-    return false;
-  }
-  if (!currentArticleRef.value.author.trim()) {
-    ElMessageBox.alert('作者不能为空', '错误', {
-      confirmButtonText: '确定',
-      type: 'error'
-    }).catch(() => { })
-    return false;
-  }
-  if (!currentArticleRef.value.cdn_url && !cdnRef.value) {
-    ElMessageBox.alert('封面图片不能为空', '错误', {
-      confirmButtonText: '确定',
-      type: 'error'
-    }).catch(() => { })
-    return false;
-  }
-  if (mp_msgsRef.value.length >= 8 && msg_idRef.value === 0) {
-    ElMessageBox.alert('超出单消息最大文章数8篇', '错误', {
-      confirmButtonText: '确定',
-      type: 'error'
-    }).catch(() => { })
-    return false;
-  }
-
   return true
 }
 
@@ -1668,24 +1632,6 @@ const clickAllOtherAccounts = (checkedAll) => {
   }
 }
 
-
-const newArticleGroup = (item_show_type = 0) => {
-  // msg_idRef.value = 0
-  mp_msgsRef.value = []
-  cdnFileInputRef.value.value = ""
-
-  const new_appmsgid = 0 - (+new Date())
-  setAppMsgId(new_appmsgid)
-  newArticle(false, item_show_type)
-  const newAppMsg = {
-    appmsgid: new_appmsgid,
-    name: currentArticleRef.value.title
-  }
-  currentAppmsgRef.value = newAppMsg
-  // console.log("selected_mp_msg_groupRef=>")
-}
-
-
 // event handler
 const emitChangeForPublishTimingDate = async (val) => {
 
@@ -2201,7 +2147,7 @@ const registerChannels = () => {
 
 // 组件生命周期
 onMounted(async () => {
-  console.log("==onMounted==", props.appmsg)
+  console.log("==onMounted editorTab==", props.appmsg)
   registerChannels()
 
   accountsRef.value = toDeepRaw(all_accounts.value.list)
@@ -2212,18 +2158,16 @@ onMounted(async () => {
   if (props.mode === 'create') {
     loadArticleByMsgId(mp_msgsRef.value[0].msg_id)
   } else if (props.mode === 'edit') {
-    
+
     await listArticles()
     if (mp_msgsRef.value.length > 0) {
       loadArticle(mp_msgsRef.value[0])
     }
   }
-
-
 })
 
 onUnmounted(async () => {
-  console.log("---onDeactivated editorTab----")
+  console.log("---onUnmounted editorTab----")
   if (channelCleans[channelName]) {
     console.log(`cleanup channel ${channelName} for editor4`)
     channelCleans[channelName]()
@@ -2232,20 +2176,20 @@ onUnmounted(async () => {
 
 
 
-onActivated(async () => {
-  console.log("---onActivated editorTab----")
-  // await listArticles()
-  // 用户切换标签页时，主进程会发送 fromMain 消息，通知当前选中的标签页 ID。
+// onActivated(async () => {
+//   console.log("---onActivated editorTab----")
+//   // await listArticles()
+//   // 用户切换标签页时，主进程会发送 fromMain 消息，通知当前选中的标签页 ID。
 
-})
+// })
 
-onDeactivated(async () => {
-  console.log("---onDeactivated editorTab----")
-  if (channelCleans[channelName]) {
-    console.log(`cleanup channel ${channelName} for editor4`)
-    channelCleans[channelName]()
-  }
-})
+// onDeactivated(async () => {
+//   console.log("---onDeactivated editorTab----")
+//   if (channelCleans[channelName]) {
+//     console.log(`cleanup channel ${channelName} for editor4`)
+//     channelCleans[channelName]()
+//   }
+// })
 
 
 </script>

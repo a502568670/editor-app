@@ -1,10 +1,11 @@
 <template>
   <div class="flex w-ful h-full bg-[#e9f9f1] pt-1">
+    {{ editableTabsValue }}
     <el-tabs v-show="editableTabs.length > 0" v-model="editableTabsValue" type="card" class="editor-tabs w-full h-full"
       closable @tab-remove="removeTab">
       <el-tab-pane v-for="item in editableTabs" :key="item.name" :label="item.title" :name="item.name">
         <!-- <EditorTab :key="appmsgRef.appmsgid+''" :account="selectedAccountRef" :appmsg="appmsgRef" /> -->
-        <component :is="EditorTab" :account="item.account" :appmsg="item.appmsg" :mode="item.mode"></component>
+        <component :key="item.appmsg.appmsgid" :is="EditorTab" :account="item.account" :appmsg="item.appmsg" :mode="item.mode"></component>
       </el-tab-pane>
     </el-tabs>
     <div v-show="editableTabs.length === 0" class="flex w-full h-full">
@@ -173,5 +174,7 @@ const removeTab = (targetName) => {
   editableTabsValue.value = activeName
   editableTabs.value = tabs.filter((tab) => tab.name !== targetName)
 }
+
+
 
 </script>
