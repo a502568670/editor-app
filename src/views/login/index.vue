@@ -245,7 +245,8 @@ export default {
             this.loading = false
 
             store.dispatch('ListAccounts').then(() => {
-              router.push({ path: '/editor4', replace: true });
+              // router.push({ path: '/editor4', replace: true });
+              router.push({ path: '/material_lib', replace: true });
             })
             // router.push({ path: '/home' })
 
