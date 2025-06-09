@@ -1,9 +1,9 @@
 <template>
   <div class="flex flex-col h-full bg-[#e9f9f1]">
     <div class="h-10 flex space-x-2 items-center border-b mb-1 shadow-md">
-      <div class="flex items-center basis-1/4 pl-1">
+      <div class="flex items-center pl-1">
         <img class="w-9 h-9 rounded-full" :src="selectedAccount?.avatar" />
-        <div class="flex-1 flex justify-start text-left items-center pl-1">
+        <div class="flex-1 flex justify-start text-left items-center pl-1 min-w-[190px]">
           {{ selectedAccount?.name }}
         </div>
         <div>
@@ -951,12 +951,13 @@ const listArticles = async () => {
   const appmsgid = _getAppMsgId()
   // appmsgidRef.value
   console.log("appmsgid=>", appmsgid)
-  if (appmsgid > 0) {
+  if (appmsgid > 0 || props.mode === 'edit') {
     mp_msgsRef.value = await listArticlesByAppMsg(appmsgid).catch((err) => { }).then(response => {
       return response.data;
     })
     console.log("mp_msgsRef.value=>", mp_msgsRef.value)
   } else {
+    console.log("is in create mode")
     mp_msgsRef.value = []
   }
 }

@@ -4,8 +4,28 @@
       <account-nav :default-selected-index="selectedIndexRef" @account-select="handleAccountSelect" />
     </div>
     <div class="flex-1 flex flex-col h-full" v-loading="dataLoadingRef">
-      <div v-if="selectedAccountRef !== null" class="h-12 flex space-x-2 items-center pl-2 border-b mb-1 shadow-md">
-        <div>草稿箱</div>
+      <div class="h-12 flex space-x-2 items-center pl-2 border-b mb-1 shadow-md">
+        <el-button @click="handleCreateNewMaterial" type="success">
+          <el-icon>
+            <Plus />
+          </el-icon>
+          <span class="ml-1">创建新素材</span>
+        </el-button>
+        <el-button v-if="materialTypeRef === 0" @click="handleSwitchToLocal">
+          <el-icon>
+            <Files />
+          </el-icon>
+          <span class="ml-1">本地素材</span>
+        </el-button>
+        <el-button v-if="materialTypeRef === 1" @click="handleSwitchToDraftBox">
+          <el-icon>
+            <Files />
+          </el-icon>
+          <span class="ml-1">返回草稿箱</span>
+        </el-button>
+      </div>
+      <div v-if="selectedAccountRef !== null" class="h-10  flex space-x-2 items-center pl-2">
+        <div class="text-gray-500">{{ materialTypeRef === 0 ? '草稿箱' : '本地素材' }}</div>
         <el-button @click="handleAppMsgRefresh" type="primary">
           <el-icon>
             <RefreshRight />
@@ -20,7 +40,7 @@
         </el-button> -->
         <div class="flex-1"></div>
         <div class="bg-white px-2 py-0.5 flex items-center border rounded-sm"><el-input class="bg-white"
-            v-model="queryRef" style="width: 100%;" placeholder="请输入账号关键词" />
+            v-model="queryRef" style="width: 100%;" placeholder="请输入账号关键词" @input="handleAppMsgFilterInput" />
           <el-icon style="cursor: pointer;" @click="handleAppMsgFilter">
             <Search />
           </el-icon>
@@ -38,7 +58,7 @@
               </el-icon>
               <span class="ml-2">
                 最新修改: {{
-                  formatDate(item.update_time * 1000, 'yyyy-MM-dd HH:mm') }}
+                  formatDate(materialTypeRef === 0 ? item.update_time * 1000 : item.update_time, 'yyyy-MM-dd HH:mm') }}
               </span>
             </div>
             <div v-for="(subitem, index) in item.multi_item" :key="subitem.msg_index_id"
@@ -70,23 +90,13 @@
                   <PencilLine />
                 </el-icon>
               </el-tooltip>
-              <el-tooltip class="box-item" effect="dark" content="发表" placement="bottom">
+              <el-tooltip v-if="materialTypeRef === 0" class="box-item" effect="dark" content="发表" placement="bottom">
                 <el-icon :size="24" class="cursor-pointer flex justify-center" @click="handleOpenPublish(item)">
                   <SendHorizonal />
                 </el-icon>
               </el-tooltip>
-              <!-- <el-dropdown placement="bottom">
-                <el-icon :size="24" class="cursor-pointer flex justify-center focus:outline-none hover:outline-none">
-                  <SendHorizonal />
-                </el-icon>
-                <template #dropdown>
-                  <el-dropdown-menu>
-                    <el-dropdown-item>群发</el-dropdown-item>
-                    <el-dropdown-item>定时群发</el-dropdown-item>
-                  </el-dropdown-menu>
-                </template>
-</el-dropdown> -->
-              <el-tooltip class="box-item" effect="dark" content="发送到其他账号" placement="bottom">
+              <el-tooltip v-if="materialTypeRef === 0" class="box-item" effect="dark" content="发送到其他账号"
+                placement="bottom">
                 <el-icon :size="24" class="cursor-pointer flex justify-center"
                   @click="handleSyncAppmsgToOtherAccounts(item)">
                   <Forward />
@@ -138,10 +148,10 @@ import SyncToOtherAccountsDialog from "@/dlgs/syncToOtherAccounts"
 import OperateProgressDialog from "@/dlgs/operateProgress"
 import PublishAppMsgDialog from "@/dlgs/publishAppMsg"
 import { ElMessage, ElMessageBox, ElLoading } from 'element-plus'
-import { RefreshRight, Search, Select } from '@element-plus/icons-vue'
+import { RefreshRight, Search, Select, Plus, Files } from '@element-plus/icons-vue'
 import AccountNav from "@/components/AccountNav"
 import { VueFlexWaterfall } from 'vue-flex-waterfall';
-import { listAppMsgs, saveAppMsg, deleteAppMsg, send_to_other_accounts_events } from "@/api/appmsg"
+import { groupAppMsgs, listAppMsgs, saveAppMsg, deleteAppMsg, send_to_other_accounts_events } from "@/api/appmsg"
 import { getToken } from "@/utils/auth";
 import { serializeCookie } from "@/utils/cookie"
 import { fmtImageUrl } from "@/utils/format"
@@ -175,6 +185,7 @@ const otherAccountsRef = ref([])
 const dataLoadingRef = ref(false)
 const currentOperateName = ref("")
 const currentOperateAppMsgRef = ref(null)
+const materialTypeRef = ref(0) // 0-草稿箱 1-本地素材
 
 // appmsg同步到其他账号设置对话框
 const dialogSyncToOtherAccountsVisibleRef = ref(false)
@@ -189,10 +200,6 @@ const progressResultRef = ref(null)
 // appmsg发表对话框
 const dialogPublishVisbleRef = ref(false)
 const isPublishingRef = ref(false)
-
-
-
-
 
 const listMode = ref(0) // 0-refresh 1-append
 const _listCount = 10
@@ -210,7 +217,9 @@ const onScroll = debounceFn((state) => {
     }
     listMode.value = 1
     // await listAppMsgIds(account.id)
-    _listAppmsgsInDraftBox(begin)
+    materialTypeRef.value === 0 ?
+      _listAppmsgsInDraftBox(begin) :
+      _listAppmsgsInLocal(begin)
   }
 }, 200, false)
 
@@ -221,9 +230,12 @@ const handleAccountSelect = async ({ account, index }) => {
   selectedIndexRef.value = index
   otherAccountsRef.value = toDeepRaw(all_accounts.value.list.filter(v => v.id !== account.id))
   listMode.value = 0
-  await listAppMsgIds(account.id)
-  await _listAppmsgsInDraftBox()
-
+  if (materialTypeRef.value === 0) {
+    await listAppMsgIds(account.id)
+    await _listAppmsgsInDraftBox()
+  } else {
+    await _listAppmsgsInLocal()
+  }
 }
 
 const handleAppMsgRefresh = async () => {
@@ -231,25 +243,58 @@ const handleAppMsgRefresh = async () => {
     return
   }
   listMode.value = 0
-  await listAppMsgIds(selectedAccountRef.value.id)
-  await _listAppmsgsInDraftBox()
+  console.log('materialTypeRef.value=>', materialTypeRef.value)
+  if (materialTypeRef.value === 0) {
+    await listAppMsgIds(selectedAccountRef.value.id)
+    await _listAppmsgsInDraftBox()
+  } else {
+    await _listAppmsgsInLocal()
+  }
+}
+
+const clearQuery = () => {
+  queryRef.value = ""
 }
 
 const handleAppMsgFilter = async () => {
   if (!selectedAccountRef.value) {
     return
   }
-  if (!queryRef.value) {
-    ElMessage({
-      message: `请输入搜索关键字`,
-      type: 'warning',
-      duration: 2 * 1000
-    })
-    return
-  }
+  // if (!queryRef.value) {
+  //   ElMessage({
+  //     message: `请输入搜索关键字`,
+  //     type: 'warning',
+  //     duration: 2 * 1000
+  //   })
+  //   return
+  // }
   listMode.value = 0
   // await listAppMsgIds(account.id)
-  await _listAppmsgsInDraftBox()
+  // await _listAppmsgsInDraftBox()
+  if (materialTypeRef.value === 0) {
+    // await listAppMsgIds(account.id)
+    await _listAppmsgsInDraftBox()
+  } else {
+    await _listAppmsgsInLocal()
+  }
+}
+
+const handleAppMsgFilterInput = debounceFn(handleAppMsgFilter, 700, false)
+
+const handleCreateNewMaterial = async () => {
+  router.push({ path: '/editor3', query: { account_id: selectedAccountRef.value.id } })
+}
+
+const handleSwitchToLocal = async () => {
+  materialTypeRef.value = 1
+  clearQuery()
+  await handleAppMsgRefresh()
+}
+
+const handleSwitchToDraftBox = async () => {
+  materialTypeRef.value = 0
+  clearQuery()
+  await handleAppMsgRefresh()
 }
 
 const handleAppmsgEdit = async (appmsg) => {
@@ -308,8 +353,13 @@ const handleRemoveAppmsg = async (appmsg) => {
   ).then(async () => {
     dataLoadingRef.value = true
     await removeAppMsg(appmsg.app_id)
-    await listAppMsgIds(id)
-    await _listAppmsgsInDraftBox()
+    if (materialTypeRef.value === 0) {
+      await listAppMsgIds(id)
+      await _listAppmsgsInDraftBox()
+    } else {
+      await _listAppmsgsInLocal()
+    }
+    // await _listAppmsgsInDraftBox()
     dataLoadingRef.value = false
   }).catch(() => {
     console.log('取消removeAppMsg')
@@ -385,7 +435,7 @@ const validateAccount = () => {
 }
 
 const listAppMsgIds = async (account_id) => {
-  const res = await listAppMsgs({ wechat_id: account_id, only_show_group_key: 0 })
+  const res = await groupAppMsgs({ wechat_id: account_id, only_show_group_key: 1, only_show_local: 0 })
   localAppmsgsRef.value = res.data;
 }
 
@@ -410,6 +460,29 @@ const _listAppmsgsInDraftBox = async (begin = 0, count = _listCount) => {
     }
   })
   currentOperateAppMsgRef.value = null
+}
+
+const _listAppmsgsInLocal = async (begin = 0, count = _listCount) => {
+  if (!validateAccount()) {
+    return
+  }
+  dataLoadingRef.value = true
+  const { id } = selectedAccountRef.value
+  const res = await listAppMsgs({ wechat_id: id, only_show_group_key: 0, only_show_local: 1, k: queryRef.value, begin, count })
+  console.log("_listAppmsgsInLocal res=>", res)
+  const items = res.data
+  const transformed_items = items.map(it => ({
+    ...it,
+    app_id: it.appmsgid,
+    height: (50 + (it.multi_item.length === 1 ? 115 : (115 + (it.multi_item.length - 1) * 75)) + 40),
+  }))
+  if (listMode.value === 0) {
+    list.value = transformed_items
+  } else {
+    list.value.push(...transformed_items)
+  }
+  // elRef.value.updateOrder()
+  dataLoadingRef.value = false
 }
 
 const _getAppmsgInDraftBox = async (appmsgid) => {

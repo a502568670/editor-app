@@ -113,6 +113,8 @@ onActivated(async () => {
     } else {
       editableTabsValue.value = appmsgid
     }
+  } else if (account_id) {
+    handleCreateAppMsg({ type: 0, account_id: parseInt(account_id) })
   }
 
 })

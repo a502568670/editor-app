@@ -15,6 +15,7 @@ export function parseDate(dateStr, fmt) {
 }
 
 export function formatDate(date, fmt) {
+  console.log("formatDate data=>", date)
   let d = new Date(date),
     month = '' + (d.getMonth() + 1),
     day = '' + d.getDate(),
