@@ -47,7 +47,7 @@
                         <img :src="v.row.cover" alt="" class="size-[48px] rounded-[4px]">
                     </template>
                 </el-table-column>
-                <el-table-column prop="hot" label="爆值" :formatter="hotFormatter" min-width="100">
+                <el-table-column prop="hot" label="爆值" :formatter="hotFormatter" min-width="120">
                     <template #header>
                         <el-tooltip content="爆文值（10倍及以上）=爆文阅读量/前7天头条阅读量平均值">
                             <el-icon style="position: relative;top: 2px;right: 2px;"><QuestionFilled /></el-icon>
@@ -58,7 +58,7 @@
                         <el-tag type="danger" effect="light" round><ICFire class="icon" /> {{ hotFormatter(0,0,v.row.hot) }}</el-tag>
                     </template>
                 </el-table-column>
-                <el-table-column prop="read_num" label="阅读数">
+                <el-table-column prop="read_num" label="阅读数" width="90">
                     <template #header>
                         <span class="thead" :class="params.mode===2&&'active'" @click="params.mode=2">阅读数</span>
                     </template>
