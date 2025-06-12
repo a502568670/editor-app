@@ -2,9 +2,33 @@
 import request from '@/utils/requestJson'
 import { getToken } from "@/utils/auth";
 
+export function groupAppMsgs(data) {
+  return request({
+    url: '/appmsg/group',
+    method: 'post',
+    data
+  })
+}
+
+export function listAppMsgs(data) {
+  return request({
+    url: '/appmsg/list',
+    method: 'post',
+    data
+  })
+}
+
 export function saveAppMsg(data) {
   return request({
     url: '/appmsg/save',
+    method: 'post',
+    data
+  })
+}
+
+export function deleteAppMsg(data) {
+  return request({
+    url: '/appmsg/delete',
     method: 'post',
     data
   })

@@ -1,74 +1,86 @@
 <template>
-  <div class="login-container" :style="{'background-image':`url('${bg}')`}">
-    <div v-if="type=='login'" class="login-form">
+  <div class="login-container" :style="{ 'background-image': `url('${bg}')` }">
+    <div v-if="type == 'login'" class="login-form">
       <el-form ref="loginForm" :model="loginForm" :rules="loginRules" auto-complete="on" label-position="left">
         <div class="title-container">
           <div style="font-size: 36px; font-weight: bold; color:#0B0B0B; line-height: 72px;text-align: center;">登录</div>
         </div>
-          <el-form-item prop="username" style="margin-top: 30px;">
-            <el-input v-model="loginForm.username" name="username" tabindex="1" autocomplete="on" placeholder="登录手机号">
-            </el-input>
-          </el-form-item>
+        <el-form-item prop="username" style="margin-top: 30px;">
+          <el-input v-model="loginForm.username" name="username" tabindex="1" autocomplete="on" placeholder="登录手机号">
+          </el-input>
+        </el-form-item>
 
-          <el-form-item prop="password" style="margin-top: 10px;">
-            <el-input v-model="loginForm.password" type="password" name="password" autocomplete="on" tabindex="2" show-password placeholder="登录密码" @keyup.enter="handleLogin">
-            </el-input>
-          </el-form-item>
+        <el-form-item prop="password" style="margin-top: 10px;">
+          <el-input v-model="loginForm.password" type="password" name="password" autocomplete="on" tabindex="2"
+            show-password placeholder="登录密码" @keyup.enter="handleLogin">
+          </el-input>
+        </el-form-item>
         <el-form-item>
           <div>
             <el-checkbox label="记住密码" v-model="jzmm" />
           </div>
           <div style="width: 100%">
-            <el-button  :loading="loading" type="success" style="width: 100%; height:46px; display: flex; align-items: center; justify-content: center; background-color: #2cc47d; border-color: #2cc47d;" @click.prevent="handleLogin">登录</el-button>
+            <el-button :loading="loading" type="success"
+              style="width: 100%; height:46px; display: flex; align-items: center; justify-content: center; background-color: #2cc47d; border-color: #2cc47d;"
+              @click.prevent="handleLogin">登录</el-button>
           </div>
           <div style="display:flex;align-items: center;justify-content: space-between;width: 100%;margin-top: 10px;">
             <!-- <span @click="type='password'">忘记密码</span>
-            <span @click="type='register'">注册</span> -->
+             -->
+             <span @click="type='register'" class="cursor-pointer text-gray-400 text-sm">注册</span>
           </div>
         </el-form-item>
       </el-form>
     </div>
-    <div v-if="type=='register'" class="login-form" style="padding-bottom:20px;">
+    <div v-if="type == 'register'" class="login-form" style="padding-bottom:20px;">
       <el-form ref="registerForm" :model="loginForm" :rules="registerRules" auto-complete="on" label-position="left">
         <div class="title-container">
           <div style="font-size: 36px; font-weight: bold; color:#0B0B0B; line-height: 72px;text-align: center;">注册</div>
         </div>
         <el-form-item prop="username" style="margin-top: 30px;">
-          <el-input v-model="loginForm.username" name="username" tabindex="1" autocomplete="on" placeholder="请输入登录手机号">
+          <el-input v-model="loginForm.username" name="username" tabindex="1" autocomplete="on"
+            placeholder="请输入用户名,至少五个字符">
           </el-input>
         </el-form-item>
-        <el-form-item prop="code" style="margin-top: 10px;">
+        <!-- <el-form-item prop="code" style="margin-top: 10px;">
           <div style="display: flex;align-items: center">
             <el-input v-model="loginForm.code" name="code" tabindex="1" autocomplete="on" placeholder="验证码">
             </el-input>
             <el-button :disabled="djs>0" @click="send_sms(1)" style="margin-left: 5px;background-color: #2cc47d; border-color: #2cc47d;color: #FFF">{{djs==0? '获取验证码':djs+'秒后获取'}}</el-button>
           </div>
-        </el-form-item>
+        </el-form-item> -->
         <el-form-item prop="password" style="margin-top: 10px;">
-          <el-input v-model="loginForm.password" type="password" name="password" autocomplete="on" tabindex="2" show-password placeholder="登录密码">
+          <el-input v-model="loginForm.password" type="password" name="password" autocomplete="on" tabindex="2"
+            show-password placeholder="登录密码">
           </el-input>
         </el-form-item>
         <el-form-item prop="r_password" style="margin-top: 10px;">
-          <el-input v-model="loginForm.r_password" type="password" name="password" autocomplete="on" tabindex="3" show-password placeholder="确认密码">
+          <el-input v-model="loginForm.r_password" type="password" name="password" autocomplete="on" tabindex="3"
+            show-password placeholder="确认密码">
           </el-input>
         </el-form-item>
         <el-form-item prop="checked">
-          <el-checkbox v-model="loginForm.checked">我已阅读并同意</el-checkbox><span style="color: #5473E8; cursor: pointer;" @click="dialogVisible = true"> 《用户协议》</span>
+          <el-checkbox v-model="loginForm.checked">我已阅读并同意</el-checkbox><span style="color: #5473E8; cursor: pointer;"
+            @click="dialogVisible = true"> 《用户协议》</span>
         </el-form-item>
         <el-form-item>
           <div style="width: 100%">
-            <el-button  :loading="loading" type="success" style="width: 100%; height:46px; display: flex; align-items: center; justify-content: center; background-color: #2cc47d; border-color: #2cc47d;" @click.prevent="register">注册</el-button>
+            <el-button :loading="loading" type="success"
+              style="width: 100%; height:46px; display: flex; align-items: center; justify-content: center; background-color: #2cc47d; border-color: #2cc47d;"
+              @click.prevent="register">注册</el-button>
           </div>
         </el-form-item>
         <div style="text-align: right">
-          <span @click="type='login'">已有账号，去登录</span>
+          <span @click="type = 'login'" class="cursor-pointer underline text-gray-400 text-sm">已有账号，去登录</span>
         </div>
       </el-form>
     </div>
-    <div v-if="type=='password'" class="login-form" style="padding-bottom:20px;">
-      <el-form ref="modifypasswordForm" :model="loginForm" :rules="modifypasswordRules" auto-complete="on" label-position="left">
+    <div v-if="type == 'password'" class="login-form" style="padding-bottom:20px;">
+      <el-form ref="modifypasswordForm" :model="loginForm" :rules="modifypasswordRules" auto-complete="on"
+        label-position="left">
         <div class="title-container">
-          <div style="font-size: 36px; font-weight: bold; color:#0B0B0B; line-height: 72px;text-align: center;">忘记密码</div>
+          <div style="font-size: 36px; font-weight: bold; color:#0B0B0B; line-height: 72px;text-align: center;">忘记密码
+          </div>
         </div>
         <el-form-item prop="username" style="margin-top: 30px;">
           <el-input v-model="loginForm.username" name="username" tabindex="1" autocomplete="on" placeholder="请输入登录手机号">
@@ -78,54 +90,59 @@
           <div style="display: flex;align-items: center">
             <el-input v-model="loginForm.code" name="code" tabindex="1" autocomplete="on" placeholder="验证码">
             </el-input>
-            <el-button :disabled="djs>0" @click="send_sms(2)" style="margin-left: 5px;background-color: #2cc47d; border-color: #2cc47d;color: #FFF">{{djs==0? '获取验证码':djs+'秒后获取'}}</el-button>
+            <el-button :disabled="djs > 0" @click="send_sms(2)"
+              style="margin-left: 5px;background-color: #2cc47d; border-color: #2cc47d;color: #FFF">{{ djs == 0 ?
+                '获取验证码' : djs+'秒后获取'}}</el-button>
           </div>
         </el-form-item>
         <el-form-item prop="password" style="margin-top: 10px;">
-          <el-input v-model="loginForm.password" type="password" name="password" autocomplete="on" tabindex="2" show-password placeholder="登录密码">
+          <el-input v-model="loginForm.password" type="password" name="password" autocomplete="on" tabindex="2"
+            show-password placeholder="登录密码">
           </el-input>
         </el-form-item>
         <el-form-item prop="r_password" style="margin-top: 10px;">
-          <el-input v-model="loginForm.r_password" type="password" name="password" autocomplete="on" tabindex="3" show-password placeholder="确认密码">
+          <el-input v-model="loginForm.r_password" type="password" name="password" autocomplete="on" tabindex="3"
+            show-password placeholder="确认密码">
           </el-input>
         </el-form-item>
         <el-form-item>
           <div style="width: 100%">
-            <el-button  :loading="loading" type="success" style="width: 100%; height:46px; display: flex; align-items: center; justify-content: center; background-color: #2cc47d; border-color: #2cc47d;" @click.prevent="modifypassword">确定</el-button>
+            <el-button :loading="loading" type="success"
+              style="width: 100%; height:46px; display: flex; align-items: center; justify-content: center; background-color: #2cc47d; border-color: #2cc47d;"
+              @click.prevent="modifypassword">确定</el-button>
           </div>
         </el-form-item>
         <div style="text-align: right">
-          <span @click="type='login'">返回</span>
+          <span @click="type = 'login'">返回</span>
         </div>
       </el-form>
     </div>
-    <span class="absolute right-2 top-2 flex justify-center items-center cursor-pointer text-green-800" @click="gotoExternal(jzl_assistant_url)">
+    <span class="absolute right-2 top-2 flex justify-center items-center cursor-pointer text-green-800"
+      @click="gotoExternal(jzl_assistant_url)">
       极致了助手
-      <svg viewBox="0 0 24 24" width="1.2em" height="1.2em" class="link-icon"><path fill="currentColor" d="M10 6v2H5v11h11v-5h2v6a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h6zm11-3v8h-2V6.413l-7.793 7.794l-1.414-1.414L17.585 5H13V3h8z"></path></svg>
+      <svg viewBox="0 0 24 24" width="1.2em" height="1.2em" class="link-icon">
+        <path fill="currentColor"
+          d="M10 6v2H5v11h11v-5h2v6a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h6zm11-3v8h-2V6.413l-7.793 7.794l-1.414-1.414L17.585 5H13V3h8z">
+        </path>
+      </svg>
     </span>
-    <el-dialog
-      title="用户授权协议"
-      v-model="dialogVisible"
-      width="50%"
-      :show-close="false"
-      :close-on-click-modal="false"
-    >
-<!--      <iframe :src="htmlSrc" width="100%" height="500px"></iframe>-->
+    <el-dialog title="用户授权协议" v-model="dialogVisible" width="50%" :show-close="false" :close-on-click-modal="false">
+      <!--      <iframe :src="htmlSrc" width="100%" height="500px"></iframe>-->
       <div v-html="htmlSrc">
 
       </div>
       <template #footer>
-      <span  class="dialog-footer">
-        <el-button @click="dialogVisible = false; loginForm.checked = false;">取 消</el-button>
-        <el-button type="primary" @click="dialogVisible = false; loginForm.checked = true;">确 定</el-button>
-      </span>
+        <span class="dialog-footer">
+          <el-button @click="dialogVisible = false; loginForm.checked = false;">取 消</el-button>
+          <el-button type="primary" @click="dialogVisible = false; loginForm.checked = true;">确 定</el-button>
+        </span>
       </template>
     </el-dialog>
   </div>
 </template>
 
 <script>
-import {send_sms,register, registerSimple,modifypassword} from '@/api/login'
+import { send_sms, register, registerSimple, modifypassword } from '@/api/login'
 import { gotoExternal } from "@/utils/openWindow"
 import { useStore } from 'vuex'
 import { useRouter } from 'vue-router'
@@ -135,8 +152,8 @@ let router;
 export default {
   name: 'Login',
   setup() {
-     store = useStore()
-     router = useRouter();
+    store = useStore()
+    router = useRouter();
   },
   data() {
     const validateChecked = (rule, value, callback) => {
@@ -154,32 +171,32 @@ export default {
       }
     }
     const init_username = localStorage.getItem("username")
-    const init_password  = localStorage.getItem("password")
+    const init_password = localStorage.getItem("password")
     return {
       dialogVisible: false,
-      htmlSrc:'',
-      bg:'',
+      htmlSrc: '',
+      bg: '',
       jzl_assistant_url: '',
-      type:'login',
-      jzmm:true,
+      type: 'login',
+      jzmm: true,
       loginForm: {
         username: init_username,
         password: init_password,
-        r_password:'',
-        checked:false,
+        r_password: '',
+        checked: false,
         code: ''
       },
       loginRules: {
-        username: [{ required: true, message: '手机号不允许为空', trigger: 'blur' }],
+        username: [{ required: true, message: '用户名不允许为空', trigger: 'blur' }],
         password: [
           { required: true, message: '密码不允许为空', trigger: 'blur' },
           { validator: validatePassword, trigger: 'blur' }
         ]
       },
       registerRules: {
-        checked:[{ validator: validateChecked, trigger: 'blur' }],
-        username: [{ required: true, message: '手机号不允许为空', trigger: 'blur' }],
-        code: [{ required: true, message: '验证码不允许为空', trigger: 'blur' }],
+        checked: [{ validator: validateChecked, trigger: 'blur' }],
+        username: [{ required: true, message: '用户名不允许为空', trigger: 'blur' }],
+        // code: [{ required: true, message: '验证码不允许为空', trigger: 'blur' }],
         password: [
           { required: true, message: '密码不允许为空', trigger: 'blur' },
           { validator: validatePassword, trigger: 'blur' }
@@ -201,15 +218,15 @@ export default {
           { validator: validatePassword, trigger: 'blur' }
         ]
       },
-      djs:0,
+      djs: 0,
       loading: false
     }
   },
   created() {
     store.dispatch('GetConfig').then(() => {
-      this.bg=store.state.config?.home_bg
+      this.bg = store.state.config?.home_bg
       this.jzl_assistant_url = store.state.config?.jzl_assistant_url
-      this.htmlSrc=store.state.config?.register_agree
+      this.htmlSrc = store.state.config?.register_agree
     })
   },
 
@@ -221,20 +238,21 @@ export default {
           // console.log('this.loginForm=>', this.loginForm)
           store.dispatch('LoginByUsernameSimple', this.loginForm).then(response => {
             // console.log('LoginByUsernameSimple response=>', response)
-            if(this.jzmm){
-              localStorage.setItem("username",this.loginForm.username)
-              localStorage.setItem("password",this.loginForm.password)
+            if (this.jzmm) {
+              localStorage.setItem("username", this.loginForm.username)
+              localStorage.setItem("password", this.loginForm.password)
             }
             this.loading = false
 
-            store.dispatch('ListAccounts').then(()=>{
-              router.push({ path: '/editor4', replace: true });
+            store.dispatch('ListAccounts').then(() => {
+              // router.push({ path: '/editor4', replace: true });
+              router.push({ path: '/material_lib', replace: true });
             })
             // router.push({ path: '/home' })
-            
+
           }).catch(response => {
             console.info(response)
-            if(response.data?.msg) {
+            if (response.data?.msg) {
               this.$notify.error({
                 title: '失败',
                 message: response.data.msg
@@ -278,7 +296,7 @@ export default {
           // 存储token（如果需要）
           if (data.data?.token) {
             localStorage.setItem("auth_token", data.data.token);
-            
+
           }
 
           // 跳转首页
@@ -334,19 +352,19 @@ export default {
 
 
 
-    send_sms(type){
+    send_sms(type) {
       send_sms({
-        mobile:this.loginForm.username,
-        type:type
+        mobile: this.loginForm.username,
+        type: type
       }).then(response => {
-        this.djs=120
-       let s= setInterval(()=>{
+        this.djs = 120
+        let s = setInterval(() => {
           this.djs--
-         if(this.djs<=0){
-           clearInterval(s)
-           this.djs=0
-         }
-        },1000)
+          if (this.djs <= 0) {
+            clearInterval(s)
+            this.djs = 0
+          }
+        }, 1000)
         this.$notify.success({
           title: '成功',
           message: '发送成功'
@@ -358,24 +376,26 @@ export default {
         })
       })
     },
-    register(){
+    register() {
       this.$refs.registerForm.validate(valid => {
         if (valid) {
+          console.log("register valid:", valid)
           registerSimple({
-            mobile:this.loginForm.username,
-            password:this.loginForm.password,
-            r_password:this.loginForm.r_password,
+            username: this.loginForm.username,
+            password: this.loginForm.password,
+            r_password: this.loginForm.r_password,
             // code:this.loginForm.code
           }).then(response => {
-            this.type='login';
+            this.type = 'login';
             this.$notify.success({
               title: '成功',
               message: '注册成功'
             })
-          }).catch(response => {
+          }).catch(err => {
+            console.log("response.data=>", err)
             this.$notify.error({
               title: '失败',
-              message: response.data.msg
+              message: err.response.data.detail
             })
           })
         } else {
@@ -383,16 +403,16 @@ export default {
         }
       })
     },
-    modifypassword(){
+    modifypassword() {
       this.$refs.modifypasswordForm.validate(valid => {
         if (valid) {
           modifypassword({
-            mobile:this.loginForm.username,
-            password:this.loginForm.password,
-            r_password:this.loginForm.r_password,
-            code:this.loginForm.code
+            mobile: this.loginForm.username,
+            password: this.loginForm.password,
+            r_password: this.loginForm.r_password,
+            code: this.loginForm.code
           }).then(response => {
-            this.type='login';
+            this.type = 'login';
             this.$notify.success({
               title: '成功',
               message: '密码修改成功'
@@ -412,8 +432,7 @@ export default {
 }
 </script>
 
-<style  scoped>
-
+<style scoped>
 .login-container {
   background-repeat: no-repeat;
   position: relative;
@@ -451,6 +470,7 @@ export default {
   text-align: center;
   height: 60px;
 }
+
 .title {
   font-size: 2rem;
   color: #262626;
@@ -460,4 +480,3 @@ export default {
   font-weight: bold;
 }
 </style>
-

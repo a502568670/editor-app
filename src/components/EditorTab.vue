@@ -1,23 +1,26 @@
 <template>
   <div class="flex flex-col h-full bg-[#e9f9f1]">
-    <div class="h-10 flex space-x-2 items-center pl-2 border-b mb-1 shadow-md">
-      <div>账号：</div>
-      <el-select v-model="selectedAccount" class="grid-content-control" value-key="id" filterable placeholder="选择发布公众账号"
-        @change="emitChangeForAccount">
-        <el-option v-for="(item) in accountsRef" :key="item.id" :label="item.name" :value="item" />
-      </el-select>
-      <el-dropdown>
-        <el-button type="primary">
-          新消息列表<el-icon class="el-icon--right"><arrow-down /></el-icon>
-        </el-button>
-        <template #dropdown>
-          <el-dropdown-menu>
-            <el-dropdown-item @click="() => newArticleGroup(0)">图文消息</el-dropdown-item>
-            <el-dropdown-item @click="() => newArticleGroup(5)">视频消息</el-dropdown-item>
-          </el-dropdown-menu>
-        </template>
-      </el-dropdown>
-      <!-- <el-button @click="saveArticle" type="danger">暂存文章</el-button> -->
+    <div class="h-10 flex space-x-2 items-center border-b mb-1 shadow-md">
+      <div class="flex items-center pl-1">
+        <img class="w-9 h-9 rounded-full" :src="selectedAccount?.avatar" />
+        <div class="flex-1 flex justify-start text-left items-center pl-1 min-w-[190px]">
+          {{ selectedAccount?.name }}
+        </div>
+        <div>
+          <el-dropdown>
+            <el-button type="primary">
+              创建素材<el-icon class="el-icon--right"><arrow-down /></el-icon>
+            </el-button>
+            <template #dropdown>
+              <el-dropdown-menu>
+                <el-dropdown-item
+                  @click="emitEvents('createAppmsg', { type: 0, account_id: props.account.id })">创建当前公众号素材</el-dropdown-item>
+                <el-dropdown-item @click="emitEvents('createAppmsg', { type: 1 })">创建其他公众号素材</el-dropdown-item>
+              </el-dropdown-menu>
+            </template>
+          </el-dropdown>
+        </div>
+      </div>
       <el-button @click="handleSaveAppMsg" type="success">暂存</el-button>
       <el-button @click="handleSyncToWechatDraftBox" type="success">保存到公众号草稿箱</el-button>
       <el-button @click="openSendArticleDialog" type="success">同步到其他账号</el-button>
@@ -31,29 +34,20 @@
             <el-dropdown-item divided @click="openSendArticleDialog">同步到其他账号</el-dropdown-item>
           </el-dropdown-menu>
         </template>
-      </el-dropdown> -->
+</el-dropdown> -->
       <!-- <el-button @click="handleSyncToWechatDraftBox" type="danger">同步到微信草稿箱</el-button>
       <el-button @click="openSendArticleDialog" type="danger">同步到其他账号</el-button> -->
     </div>
     <el-row :gutter="0" class="flex-1">
       <el-col :span="6" class="h-full overflow-scroll bg-white">
-        <div class="grid-content flex space-x-1 pl-1 mt-1">
-          <el-select v-model="selected_mp_msg_groupRef" value-key="appmsgid" filterable placeholder="文章列表"
-            @change="emitChangeForAppMsgGroup">
-            <el-option v-for="(item) in mp_msg_groupsRef" :key="item.appmsgid"
-              :label="item.name + (item.publish_flag ? '(已发布)' : '')" :value="item" />
-          </el-select>
-
-          <!-- <el-button @click="newArticleGroup" class="max-w-[80px]" type="primary">新列表</el-button> -->
-        </div>
         <div class="bg-white  shadow-xl">
           <div v-if="mp_msgsRef">
-            <div ref="elListMsgsRef" class="overflow-auto" style="height:calc(100vh - 158px)">
+            <div ref="elListMsgsRef" class="overflow-auto" style="height:calc(100vh - 208px)">
               <div @click="loadArticle(item, true)" v-for="(item, index) in mp_msgsRef" :key="item.msg_id"
                 class="flex items-center p-2 border-b w-full">
-                <img v-if="item.cdn_url" :src="item.cdn_url" style="width:0px;height:0px;"
+                <img v-if="item.cdn_url" :src="fmtImageUrl(item.cdn_url)" style="width:0px;height:0px;"
                   referrerpolicy="no-referrer" />
-                <div v-if="index === 0" :style="{ '--image-url': 'url(' + item.cdn_url + ')' }"
+                <div v-if="index === 0" :style="{ '--image-url': 'url(' + fmtImageUrl(item.cdn_url) + ')' }"
                   class='w-full flex h-40 justify-between items-end bg-no-repeat bg-center bg-cover bg-[#e6e6e6] bg-[image:var(--image-url)]'
                   :class="{ 'border-2 border-[#07C160]': (item.msg_id === msg_idRef) }">
                   <div class="flex text-white p-1"><span v-if="item.msg_id === 0">*</span>{{ item.title }}</div>
@@ -80,7 +74,7 @@
                     </div>
                     <!-- <div class=" text-sm flex-0" style="color: #51ce94">{{ item.author }}</div> -->
                   </div>
-                  <img v-if="item.cdn_url" class="w-10 h-10 rounded-sm" :src="item.cdn_url" />
+                  <img v-if="item.cdn_url" class="w-10 h-10 rounded-sm" :src="fmtImageUrl(item.cdn_url)" />
                   <div class="flex flex-col justify-around px-1 h-full" v-if="item.msg_id === msg_idRef">
                     <el-icon class="cursor-pointer" @click="swapUp(item.msg_id)">
                       <component :is="ArrowUpRef"></component>
@@ -119,8 +113,8 @@
         <div class="h-full flex flex-col">
           <div ref="ueditor_wrapper" style="height:calc(100vh - 140px)">
             <vue-ueditor-wrap v-if="msg_idRef !== 0 && currentArticleRef.item_show_type === 0"
-              v-model="currentArticleRef.content_noencode" editor-id="editor" @ready="ready" :config="editorConfigRef"
-              :editorDependencies="['ueditor.config.js', 'ueditor.all.js']" />
+              v-model="currentArticleRef.content_noencode" :editor-id="editorIdRef" @ready="ready"
+              :config="editorConfigRef" :editorDependencies="['ueditor.config.js', 'ueditor.all.js']" />
             <div v-if="msg_idRef !== 0 && currentArticleRef.item_show_type === 5" class="w-full p-2">
               <el-row :gutter="4" class="mb-1 w-full">
                 <el-col :span="24">
@@ -591,7 +585,7 @@
 }
 </style>
 <script setup>
-import { ref, toRefs, shallowRef, onMounted, onBeforeUnmount, nextTick, onActivated, onDeactivated } from 'vue';
+import { ref, toRefs, shallowRef, onMounted, onBeforeUnmount, nextTick, onActivated, onDeactivated, onUnmounted, watch } from 'vue';
 // import { listAccount } from '@/api/account'
 import store from '@/store'
 import { getToken } from "@/utils/auth";
@@ -602,21 +596,23 @@ import {
 } from "@/api/mp_msg"
 import { saveAppMsg, send_to_other_accounts_events } from "@/api/appmsg"
 import { getMpUserInfo, getLastPreviewAccounts, sendPreview, listVideos, getMasssendInfo, stat_appmsg_copyright_stat_events } from "@/api/mp_wechat"
-import { getArticleContent, getArticleContent2 } from '@/api/jzl'
 import { format_to_UEditor_html, restore_from_UEditor_html } from "@/utils/dom";
 import { uploadImage } from "@/api/img"
 import { toDeepRaw } from "@/utils/convert"
+import { fmtImageUrl } from "@/utils/format"
 import { createDateByDays, parseDate, formatDate } from "@/utils/date"
 import { ad_categorys, adMarkerContentInUEditor, format_ad_content_in_UEditor, restore_ad_content_from_UEditor, has_ad_in_wangEditor, has_ad_in_raw } from "@/utils/ad"
 import { getVideoFrameHtml } from "@/utils/video"
 import { claim_source_types, HOUSRS, MINUTES } from "@/utils/constants"
 import { ElMessage, ElMessageBox, ElLoading } from 'element-plus'
 import { ArrowUp, ArrowDown, Delete, CircleCheckFilled, CircleCloseFilled, InfoFilled } from '@element-plus/icons-vue'
-import { removeAppMsgId, setAppMsgId, getAppMsgId, getSelectedAccountId, setSelectedAccountId } from '@/utils/editor'
 import { Link, Link2, RadioTower, DollarSign, SquareTerminal, Eye, ScanEye, Minus, Smartphone, Video } from 'lucide-vue-next';
 import axios from 'axios'
 import JSON5 from "json5"
 import ImgCrop from '@/components/ImgCrop.vue';
+
+const props = defineProps(['account', 'appmsg', 'mode', 'mainMsg']);
+const emitEvents = defineEmits(['titleChange', 'createAppmsg'])
 
 const { all_accounts } = toRefs(store.getters)
 // console.log('envVars.backend_url=>', envVars.backend_url)
@@ -624,6 +620,7 @@ const { all_accounts } = toRefs(store.getters)
 const isDebugRef = ref(envVars.is_debug)
 const ueditor_wrapper = ref(null)
 const editorRef = shallowRef()
+const editorIdRef = ref(null)
 const editorConfigRef = ref({
   // 后端服务地址，后端处理参考
   // https://open-doc.modstart.com/ueditor-plus/backend.html
@@ -712,7 +709,7 @@ const DeleteRef = shallowRef(Delete);
 const msg_idRef = ref(0)
 const mp_msgsRef = ref([])
 const mp_msg_groupsRef = ref([])
-const selected_mp_msg_groupRef = ref(null)
+const currentAppmsgRef = ref(null)
 const elListMsgsRef = ref(null)
 // 封面
 const cdnRef = ref(null)
@@ -795,7 +792,6 @@ const instantPublishRef = ref(false)
 // 订阅
 const channelCleans = {}
 const channelName = 'fromMain'
-const channelSource = 'editor4'
 
 // 文章正文
 const currentArticleRef = ref({
@@ -832,88 +828,17 @@ function ready(editorInstance) {
   // const conatinerHeight = document.querySelector("#edui1").clientHeight
   // console.log("toolbarHeight:", toolbarHeight)
   // console.log("conatinerHeight:", conatinerHeight)
-  editorInstance.setHeight(wrapprHeight - toolbarHeight + 1)
+  editorInstance.setHeight(wrapprHeight - toolbarHeight - 40 + 1)
   // listHeightRef.value = `${wrapprHeight-120}px`
   // elListMsgsRef.value.style.height = `${wrapprHeight - 120}px`
 
 }
 
 
-// 组件生命周期
-onMounted(async () => {
-  console.log("==onMounted==")
-
-  // const accountsRet = await listAccount()
-  // console.log('accountsRet=>', accountsRet)
-  // accountsRef.value = accountsRet.data.data.list
-  // const filteredAccounts = toDeepRaw(all_accounts.value.list)
-  // accountsRef.value = toDeepRaw(all_accounts.value.list)
-
-  // console.log("load accounts:", accountsRef.value)
-  // const init_account_id = getSelectedAccountId()
-  // console.log("init_account_id=>", init_account_id)
-  // if (init_account_id) {
-  //   const find_account = accountsRef.value.find(v => v.id === parseInt(init_account_id))
-  //   console.log("find_account=>", find_account)
-  //   if (find_account) {
-  //     selectedAccount.value = find_account
-  //     // setImageUploadConfig()
-  //   }
-  // } else {
-  //   if (accountsRef.value.length > 0) {
-  //     selectedAccount.value = accountsRef.value[0];
-  //     // setImageUploadConfig()
-  //     setSelectedAccountId(selectedAccount.value.id)
-  //   }
-  // }
-
-  // await loadArticleGroups()
-  // await listArticles()
-})
-
-onActivated(async () => {
-  console.log("==onActivated editor4==")
-
-  accountsRef.value = toDeepRaw(all_accounts.value.list)
-
-  console.log("load accounts:", accountsRef.value)
-  const init_account_id = getSelectedAccountId()
-  console.log("init_account_id=>", init_account_id)
-  if (init_account_id) {
-    const find_account = accountsRef.value.find(v => v.id === parseInt(init_account_id))
-    console.log("find_account=>", find_account)
-    if (find_account) {
-      selectedAccount.value = find_account
-      // setImageUploadConfig()
-    }
-  } else {
-    if (accountsRef.value.length > 0) {
-      selectedAccount.value = accountsRef.value[0];
-      // setImageUploadConfig()
-      setSelectedAccountId(selectedAccount.value.id)
-    }
-  }
-
-  await loadArticleGroups()
-  await listArticles()
-
-})
-
-// 组件销毁时，也及时销毁编辑器
-// onBeforeUnmount(() => {
-//   const editor = editorRef.value
-//   if (editor == null) return
-//   try {
-//     editor.destroy()
-//   } catch (e) {
-//     console.error("destroy error", e)
-//   }
-// })
-
 
 // 帮助方法
 const _getAppMsgId = () => {
-  return selected_mp_msg_groupRef.value?.appmsgid
+  return currentAppmsgRef.value?.appmsgid
 }
 
 const serializeCookie = (arr) => {
@@ -963,46 +888,6 @@ const validateAccount = () => {
   return true
 }
 
-const validateArticleData = () => {
-
-  if (!currentArticleRef.value.title.trim()) {
-    ElMessageBox.alert('标题不能为空', '错误', {
-      confirmButtonText: '确定',
-      type: 'error'
-    }).catch(() => { })
-    return false;
-  }
-  if (!currentArticleRef.value.author.trim()) {
-    ElMessageBox.alert('作者不能为空', '错误', {
-      confirmButtonText: '确定',
-      type: 'error'
-    }).catch(() => { })
-    return false;
-  }
-  if (!currentArticleRef.value.cdn_url && !cdnRef.value) {
-    ElMessageBox.alert('封面图片不能为空', '错误', {
-      confirmButtonText: '确定',
-      type: 'error'
-    }).catch(() => { })
-    return false;
-  }
-  if (mp_msgsRef.value.length >= 8 && msg_idRef.value === 0) {
-    ElMessageBox.alert('超出单消息最大文章数8篇', '错误', {
-      confirmButtonText: '确定',
-      type: 'error'
-    }).catch(() => { })
-    return false;
-  }
-
-  return true
-}
-const needRefreshGroup = (msg_id) => {
-  if (msg_id > 0) {
-    const idx = mp_msgsRef.value.findIndex(v => v.msg_id === msg_id)
-    return idx === 0
-  }
-  return true
-}
 const createBase64Image = async (fileObject) => {
   const reader = new FileReader();
   const filename = fileObject.name;
@@ -1035,6 +920,7 @@ const createBase64Image = async (fileObject) => {
   };
   reader.readAsDataURL(fileObject);
 }
+
 function handleImageUpload(info) {
   cdnRef.value = { cdn_content_type: info.type, cdn_base64_image: info.data, cdn_filename: info.name }
   uploadCover()
@@ -1060,56 +946,18 @@ const uploadCover = async () => {
 }
 
 // data methods
-const loadArticleGroups = async () => {
-  if (!selectedAccount.value) {
-    ElMessage({
-      message: `请选择公众账号`,
-      type: 'warning',
-      duration: 2 * 1000
-    })
-    return
-  }
-
-  mp_msg_groupsRef.value = await listArticleGroups(selectedAccount.value.wechat_id).catch((err) => { }).then(response => {
-    return response.data;
-  })
-  console.log("mp_msg_groupsRef.value=>", mp_msg_groupsRef.value)
-
-  // if (!selected_mp_msg_groupRef.value) {
-
-  // }
-  const init_appmsgid = getAppMsgId()
-  console.log("init_appmsgid=>", init_appmsgid)
-  if (init_appmsgid) {
-    const find_group = mp_msg_groupsRef.value.find(v => v.appmsgid === parseInt(init_appmsgid))
-    console.log("find_group=>", find_group)
-    if (find_group) {
-      selected_mp_msg_groupRef.value = find_group
-      console.log("1 selected_mp_msg_groupRef.value=>", selected_mp_msg_groupRef.value)
-      setAppMsgId(selected_mp_msg_groupRef.value.appmsgid)
-      return
-    }
-  }
-  if (mp_msg_groupsRef.value.length > 0) {
-    selected_mp_msg_groupRef.value = mp_msg_groupsRef.value[0]
-    console.log("2 selected_mp_msg_groupRef.value=>", selected_mp_msg_groupRef.value)
-    setAppMsgId(selected_mp_msg_groupRef.value.appmsgid)
-  } else {
-    setAppMsgId("")
-    selected_mp_msg_groupRef.value = null
-  }
-}
 
 const listArticles = async () => {
   const appmsgid = _getAppMsgId()
   // appmsgidRef.value
   console.log("appmsgid=>", appmsgid)
-  if (appmsgid) {
+  if (appmsgid > 0 || props.mode === 'edit') {
     mp_msgsRef.value = await listArticlesByAppMsg(appmsgid).catch((err) => { }).then(response => {
       return response.data;
     })
     console.log("mp_msgsRef.value=>", mp_msgsRef.value)
   } else {
+    console.log("is in create mode")
     mp_msgsRef.value = []
   }
 }
@@ -1188,9 +1036,6 @@ const swapUp = async (msg_id) => {
   const prev = mp_msgsRef.value[idx - 1].msg_id
   console.log("prev index:", prev)
   await swapArticles(prev, msg_id).catch((err) => { })
-  if (needRefreshGroup(prev)) {
-    await loadArticleGroups()
-  }
   await listArticles()
 }
 const swapDown = async (msg_id) => {
@@ -1201,9 +1046,6 @@ const swapDown = async (msg_id) => {
   const next = mp_msgsRef.value[idx + 1].msg_id
   console.log("next index:", next)
   await swapArticles(msg_id, next)
-  if (idx === 0) {
-    await loadArticleGroups()
-  }
   await listArticles()
 }
 
@@ -1322,142 +1164,6 @@ const handleActionErr = (account_name, e) => {
   }
 }
 
-const saveArticle = async () => {
-
-  if (!validateAccount() || !validateArticleData()) {
-    return
-  }
-  console.log("==continue saveArticle===")
-
-  // 声明原创
-  currentArticleRef.value.copyright_type = copyrightRef.value ? 1 : 0
-
-  // 留言
-  if (needOpenCommentRef.value) {
-    currentArticleRef.value.need_open_comment = 1
-    if (commentTypeRef.value === "0") {
-      currentArticleRef.value.only_fans_can_comment = 0
-      currentArticleRef.value.only_fans_days_can_comment = 0
-    } else if (commentTypeRef.value === "1") {
-      currentArticleRef.value.only_fans_can_comment = 1
-      currentArticleRef.value.only_fans_days_can_comment = 0
-    }
-  } else {
-    currentArticleRef.value.need_open_comment = 0
-    currentArticleRef.value.only_fans_can_comment = 0
-    currentArticleRef.value.only_fans_days_can_comment = 0
-  }
-
-  // 创作来源
-  currentArticleRef.value.claim_source_type = selected_claim_source_typeRef.value.id
-
-
-  console.log("adCategoryChoosedRef=>", adCategoryChoosedRef.value)
-
-  console.log(currentArticleRef.value)
-
-  const { token, name, session_id, wechat_id } = selectedAccount.value
-  console.log("session_id=>", session_id)
-  // const saveContent = currentArticleRef.value.content_noencode
-  // console.log("token:", token)
-  console.log("save name:", name)
-
-
-  // console.log("wechat_id:", wechat_id)
-  // console.log("raw content_noencode:", debug_content_noencode_ref.value)
-
-  // console.log("restore content_noencode:", currentArticleRef.value.content_noencode)
-  // const parser = new DOMParser();
-  // const doc1 = parser.parseFromString(debug_content_noencode_ref.value, "text/html");
-  // const doc2 = parser.parseFromString(currentArticleRef.value.content_noencode, "text/html");
-  // console.log("compare", doc1, doc2)
-  // const to_save_content_noencode = restore_from_UEditor_html(currentArticleRef.value.content_noencode);
-  const to_save_content_noencode = currentArticleRef.value.content_noencode;
-  // console.log("to_save_content_noencode:", to_save_content_noencode)
-
-  const category_id_list = adCategoryChoosedRef.value.join("|")
-  console.log("category_id_list:", category_id_list)
-
-  const vhtml = restore_ad_content_from_UEditor(to_save_content_noencode, category_id_list, ad_idRef.value)
-  console.log("ad vhtml=>", vhtml)
-  currentArticleRef.value.content_noencode = vhtml
-
-
-  const msg_id = msg_idRef.value
-  // const appmsgid =  appmsgidRef.value 
-  const appmsgid = _getAppMsgId()
-  // console.log("msg_id", msg_id)
-  // console.log("appmsgid", appmsgid)
-  console.log("session_id:", session_id)
-  if (!session_id) {
-    ElMessageBox.alert(`当前账号(${name})session过期,请切换到*账号中心*重新登录`, '错误', {
-      confirmButtonText: '确定',
-      type: 'error'
-    }).then(() => {
-      console.log("then")
-    }).catch(() => {
-      console.log("catch")
-    })
-    return
-  }
-
-  const postData = {
-    cookies: serializeCookie(JSON.parse(session_id)["cookie"]),
-    token: parseInt(token),
-    wechat_id,
-    appmsgid,
-    msg_id,
-    material_list: [{
-      ...currentArticleRef.value
-    }],
-    // material_list: [{
-    //     content_noencode: currentArticleRef.value.content_noencode,
-    //     // cdn_url: "https://mmbiz.qpic.cn/sz_mmbiz_jpg/4WT2I2qqeFAibhrnd1BP6uhtX6Y395tHhMxfXaJrWW5w8JpQibmicJCqfdGL1uWQErUlUVyScV2bs59oj9rhicnTaQ/640?wx_fmt=jpeg&from=appmsg&wxfrom=13&tp=wxpic",
-    //     cdn_url: "",
-    //     desc: "",
-    //     title: titleRef.value,
-    //     author: authorRef.value,
-    //     copyright_type: 0
-    //   }],
-    ...cdnRef.value
-  }
-  console.log("save postData=>", postData)
-  const loader = ElLoading.service({
-    target: '.main'
-  })
-  await saveArticleDraft(postData).then(async (res) => {
-    ElMessage({
-      message: `文章暂存成功`,
-      type: 'success',
-      duration: 2 * 1000
-    })
-    console.log("saveArticleDraft res=>", res)
-    if (msg_id === 0 && (!appmsgid && res.data.data.appmsgid)) {
-      // 新列表 需要设置新的appmsgid到localstorage
-      setAppMsgId(res.data.data.appmsgid)
-    }
-    if (needRefreshGroup(msg_id)) {
-      await loadArticleGroups()
-    }
-
-
-    await listArticles()
-    const new_msg_id = res.data.data.msg_id
-    loadArticleByMsgId(new_msg_id)
-
-  }).catch((e) => {
-    handleActionErr(name, e)
-  }).finally(() => {
-    loader.close()
-  })
-
-  // 暂时从前端提交
-  //   window.ipcRenderer.send('toMain', {
-  //   tag: 'saveArticleDraft',
-  //   content: postData
-  // })
-}
-
 const saveCurrentToList = (msg_id) => {
   // 声明原创
   currentArticleRef.value.copyright_type = copyrightRef.value ? 1 : 0
@@ -1548,14 +1254,15 @@ const _saveAppMsg = async (push_to_remote) => {
       duration: 2 * 1000
     })
     console.log("saveArticleDraft res=>", res)
+    mp_msgsRef.value = res.data.data.mp_msgs
     const isCreateNewAppMsg = appmsgid <= 0 && res.data.data.appmsgid > 0
     appmsgid = res.data.data.appmsgid
     if (isCreateNewAppMsg) {
-      // 新列表 需要设置新的appmsgid到localstorage
-      setAppMsgId(appmsgid)
-      await loadArticleGroups()
+      // 新列表 需要更新currentAppmsgRef
+      currentAppmsgRef.value.appmsgid = appmsgid
+      currentAppmsgRef.value.title = mp_msgsRef.value[0].title
     }
-    mp_msgsRef.value = res.data.data.mp_msgs
+
     // await listArticles()
     // const msg_ids = res.data.data.msg_ids
     if (selected_idx === -1) {
@@ -1563,6 +1270,7 @@ const _saveAppMsg = async (push_to_remote) => {
     }
     loadArticle(mp_msgsRef.value[selected_idx])
   }).catch((e) => {
+    console.log('saveAppMsg catched e:', e)
     handleActionErr(name, e)
     console.log("=========")
   }).finally(() => {
@@ -1576,7 +1284,7 @@ const handleSaveAppMsg = async () => {
 
 
 const handleSyncToWechatDraftBox = async () => {
-  const publish_flag = selected_mp_msg_groupRef.value.publish_flag;
+  const publish_flag = currentAppmsgRef.value.publish_flag;
   console.log("publish_flag=>", publish_flag)
   if (publish_flag === 1) {
     ElMessageBox.confirm(
@@ -1608,7 +1316,7 @@ const checkQuota = (date) => {
 }
 
 const confirmOpenPublishToWechatDialog = async () => {
-  const publish_flag = selected_mp_msg_groupRef.value.publish_flag;
+  const publish_flag = currentAppmsgRef.value.publish_flag;
   console.log("publish_flag=>", publish_flag)
   if (publish_flag === 1) {
     ElMessageBox.confirm(
@@ -1789,7 +1497,7 @@ const handlePublishToWechat = async () => {
   const { token, session_id, wechat_id } = selectedAccount.value
   window.ipcRenderer.send('toMain', {
     tag: 'appmsg:publishToWechat',
-    source: channelSource,
+    source: `${props.appmsg.appmsgid}`,
     token: getToken(),
     wechat_id,
     publishData: {
@@ -1865,80 +1573,12 @@ const removeArticle = async (msg_id) => {
     console.log("mp_msgsRef.value=>", mp_msgsRef.value)
     if (mp_msgsRef.value.length === 0) {
       //该系列下没有文章，删除localStorage中保存的数据
-      removeAppMsgId()
-      selected_mp_msg_groupRef.value = null
+      currentAppmsgRef.value = null
     }
-    if (needRefreshGroup(msg_id) || mp_msgsRef.value.length === 0) {
-      await loadArticleGroups()
-      listArticles().then(() => {
-        loadArticle(mp_msgsRef.value[0])
-      })
-    }
+
   }).catch(() => {
     console.log('取消removeArticle')
   })
-}
-
-const deleteArticle = async (msg_id) => {
-  ElMessageBox.confirm(
-    '此操作将删除该文章, 是否继续?',
-    '提示',
-    {
-      confirmButtonText: '确定',
-      cancelButtonText: '取消',
-      type: 'warning',
-    }
-  ).then(async () => {
-    if (checkHasNotSave(false)) {
-      console.log("checkHasNotSave=>", true)
-      const not_save_idx = mp_msgsRef.value.findIndex(v => v.msg_id === 0)
-      console.log("not_save_idx=>", not_save_idx)
-      const mp_msgs = mp_msgsRef.value
-      mp_msgs.splice(not_save_idx, 1)
-      mp_msgsRef.value = mp_msgs
-      return
-    }
-
-    const { token, name, session_id, wechat_id } = selectedAccount.value
-    const postData = {
-      cookies: serializeCookie(JSON.parse(session_id)["cookie"]),
-      token: parseInt(token),
-      wechat_id,
-      msg_id,
-    }
-    console.log("delete postData=>", postData)
-    const loader = ElLoading.service({
-      target: '.main'
-    })
-
-    await deleteArticleDraft(postData).catch((e) => {
-      handleActionErr(name, e)
-    }).finally(() => {
-      loader.close()
-    })
-    ElMessage({
-      message: `文章删除成功`,
-      type: 'success',
-      duration: 2 * 1000
-    })
-
-    await listArticles()
-    console.log("mp_msgsRef.value=>", mp_msgsRef.value)
-    if (mp_msgsRef.value.length === 0) {
-      //该系列下没有文章，删除localStorage中保存的数据
-      removeAppMsgId()
-      selected_mp_msg_groupRef.value = null
-    }
-    if (needRefreshGroup(msg_id) || mp_msgsRef.value.length === 0) {
-      await loadArticleGroups()
-      listArticles().then(() => {
-        loadArticle(mp_msgsRef.value[0])
-      })
-    }
-  }).catch(() => {
-    console.log('取消')
-  })
-
 }
 
 const openSendArticleDialog = () => {
@@ -2016,26 +1656,6 @@ const clickAllOtherAccounts = (checkedAll) => {
   }
 }
 
-
-const newArticleGroup = (item_show_type = 0) => {
-  // msg_idRef.value = 0
-  mp_msgsRef.value = []
-  cdnFileInputRef.value.value = ""
-
-  const new_appmsgid = 0 - (+new Date())
-  setAppMsgId(new_appmsgid)
-  newArticle(false, item_show_type)
-  const newAppMsg = {
-    appmsgid: new_appmsgid,
-    name: currentArticleRef.value.title
-  }
-  selected_mp_msg_groupRef.value = newAppMsg
-  mp_msg_groupsRef.value.push(newAppMsg)
-
-  console.log("selected_mp_msg_groupRef=>")
-}
-
-
 // event handler
 const emitChangeForPublishTimingDate = async (val) => {
 
@@ -2063,40 +1683,6 @@ const emitChangeForPublishTimingDate = async (val) => {
   // });
 }
 
-const emitChangeForAppMsgGroup = async (val) => {
-  console.log("emitChangeForAppMsgGroup val=>", val)
-  if (val) {
-    selected_mp_msg_groupRef.value = val
-    await listArticles()
-    if (mp_msgsRef.value.length > 0) {
-      loadArticle(mp_msgsRef.value[0])
-    } else {
-      // newArticle()
-    }
-    setAppMsgId(val.appmsgid)
-
-  }
-}
-
-const emitChangeForAccount = async (val) => {
-  console.log("emitChange=>", val)
-  selectedAccount.value = val;
-  // setImageUploadConfig()
-  setSelectedAccountId(selectedAccount.value.id)
-  await loadArticleGroups()
-  await listArticles()
-  if (mp_msgsRef.value.length > 0) {
-    loadArticle(mp_msgsRef.value[0])
-  } else {
-    // newArticle()
-  }
-  setAppMsgId(val.appmsgid)
-  // await loadArticleGroups()
-  // console.log("editorConfigRef=>", editorConfigRef.value)
-  // console.log("selectedAccount=>", selectedAccount)
-  // this.$emit('change', val)
-}
-
 const triggerFileInput = () => {
   cdnFileInputRef.value.click()
 }
@@ -2115,61 +1701,6 @@ const openExtractMpArticleUrlDialog = () => {
   dialogExtractMpAritcleUrlRef.value = true
 }
 
-// const handleExtractMpArticleUrl = async () => {
-//   const editor = editorRef.value; // 获取 editor ，必须等待它渲染完之后
-//   if (editor == null) return;
-
-//   if (!extractArticleUrlRef.value) {
-//     ElMessageBox.alert('请输入有效的提取链接', '警告', {
-//       confirmButtonText: '确定',
-//       type: 'warning'
-//     }).catch(() => { })
-//     return
-//   }
-//   await handleLocalExtractMpArticleUrl()
-// }
-
-// const handleRemoteExtractMpArticleUrl = async () => {
-//   const editor = editorRef.value; // 获取 editor ，必须等待它渲染完之后
-//   if (editor == null) return;
-
-//   if (!extractArticleUrlRef.value) {
-//     ElMessageBox.alert('请输入有效的提取链接', '警告', {
-//       confirmButtonText: '确定',
-//       type: 'warning'
-//     }).catch(() => { })
-//     return
-//   }
-
-//   const loader = ElLoading.service({
-//     target: '.main'
-//   })
-//   const v = await getArticleContent(extractArticleUrlRef.value)
-//   console.log("v.data=>", v.data)
-//   const { title, nick_name, copyright_stat, cdn_url, item_show_type } = v.data
-//   let { content_noencode } = v.data
-//   // console.log("content_noencode=>", content_noencode)
-//   if (item_show_type === 5) {
-//     // 独立视频
-//     const { video_id } = v.data
-//     content_noencode = `<iframe class="edui-video-iframe" data-vidtype="2" data-mpvid="${video_id}" data-cover="${cdn_url}" allowfullscreen="" frameborder="0" data-w="1080" data-ratio="0.5625" style="border-radius: 4px;" src="https://mp.weixin.qq.com/cgi-bin/readtemplate?t=tmpl/video_tmpl&vid=${video_id}" width="420" height="280" frameborder="0" allowfullscreen=""></iframe>` + content_noencode
-//   }
-
-//   currentArticleRef.value = {
-//     ...currentArticleRef.value,
-//     // content_noencode: content_noencode.replace(/[\u200B-\u200D\uFEFF]/gim, ''),
-//     // content_noencode: "<p>" + format_to_wangEditor_html(content_noencode) + "<p>",
-//     content_noencode: format_to_UEditor_html(content_noencode),
-//     title,
-//     author: nick_name,
-//     copyright_type: copyright_stat,
-//     cdn_url,
-//   }
-
-//   dialogExtractMpAritcleUrlRef.value = false
-//   loader.close()
-// }
-
 const handleLocalExtractMpArticleUrl = async () => {
   if (!extractArticleUrlRef.value) {
     ElMessageBox.alert('请输入有效的提取链接', '警告', {
@@ -2182,7 +1713,7 @@ const handleLocalExtractMpArticleUrl = async () => {
   globalLoadingRef.value = true
   window.ipcRenderer.send('toMain', {
     tag: 'appmsg:localExtractMpArticleUrl',
-    source: channelSource,
+    source: `${props.appmsg.appmsgid}`,
     token: getToken(),
     extractArticleUrl: extractArticleUrlRef.value,
   })
@@ -2362,7 +1893,7 @@ const handlePreview = async () => {
     if (temp_url) {
       window.ipcRenderer.send('toMain', {
         tag: 'appmsg:previewMpArticle',
-        source: channelSource,
+        source: `${props.appmsg.appmsgid}`,
         url: temp_url,
       })
     }
@@ -2394,7 +1925,7 @@ const openMobilePreviewDialog = async () => {
 }
 
 const validateAppMsgPreview = () => {
-  if (!selected_mp_msg_groupRef.value) {
+  if (!currentAppmsgRef.value) {
     ElMessageBox.alert('请选择图文消息(文章列表)', '警告', {
       confirmButtonText: '确定',
       type: 'error'
@@ -2506,7 +2037,7 @@ const openAppMsgMobilePreviewDialog = async () => {
 
 const sendPreviewToMobile = () => {
   const { token, session_id, name } = selectedAccount.value
-  const { appmsgid } = selected_mp_msg_groupRef.value
+  const { appmsgid } = currentAppmsgRef.value
   const pre_view_users = previewersRef.value.join(",")
   console.log("appmsgid=>", appmsgid)
   console.log("pre_view_users=>", pre_view_users)
@@ -2563,96 +2094,132 @@ const syncToList = (key) => {
   if (idx !== -1) {
     mp_msgsRef.value[idx][key] = currentArticleRef.value[key]
   }
+  if (key === "title") {
+    emitEvents("titleChange", { appmsgid: props.appmsg.appmsgid, title: currentArticleRef.value[key] })
+  }
+
 }
 
-onActivated(async () => {
-  console.log("---onActivated editor4----")
-  // 用户切换标签页时，主进程会发送 fromMain 消息，通知当前选中的标签页 ID。
-  channelCleans[channelName] = window.ipcRenderer.receive(channelName, (msg) => {
-    console.log("editor ipcRenderer receive fromMain:", msg)
-    if (typeof msg === 'object' && Object.prototype.hasOwnProperty.call(msg, 'tag')) {
-      const { source, ret } = msg.data
-      if (source !== channelSource) {
-        return
+watch(() => [props.mainMsg], (newVal) => {
+  console.log("EditorTab props.changed=>", newVal)
+  const msg = newVal[0]
+  if (typeof msg === 'object' && Object.prototype.hasOwnProperty.call(msg, 'tag')) {
+    const tag = msg.tag;
+    if (tag === "appmsg-ret:localExtractMpArticleUrlResult") {
+      console.log(`tag:${msg.tag}`, typeof msg.data)
+      const { ret } = msg.data
+      const { title, nick_name, copyright_stat, cdn_url, item_show_type, video_page_info } = ret
+      let { content_noencode, content_text } = ret
+      console.log("ret=>", ret)
+      let guide_words = "", vid = ""
+      console.log("item_show_type=>", item_show_type)
+      // const { video_page_infos } = msg.data
+
+      if (currentArticleRef.value.item_show_type === 5 && video_page_info) {
+        // 独立视频
+        // console.log("video_page_infos=>",)
+        guide_words = content_text
+        vid = video_page_info.video_id
+        content_noencode = getVideoFrameHtml(vid, cdn_url) //`<iframe class="edui-video-iframe" data-vidtype="2" data-mpvid="${video_id}" data-cover="${cdn_url}" allowfullscreen="" frameborder="0" data-w="1080" data-ratio="0.5625" style="border-radius: 4px;" src="https://mp.weixin.qq.com/cgi-bin/readtemplate?t=tmpl/video_tmpl&vid=${video_id}" width="420" height="280" frameborder="0" allowfullscreen=""></iframe>`
       }
-      const tag = msg.tag;
-      if (tag === "appmsg-ret:localExtractMpArticleUrlResult") {
-        console.log(`tag:${msg.tag}`, typeof msg.data)
-        const { title, nick_name, copyright_stat, cdn_url, item_show_type, video_page_info } = ret
-        let { content_noencode, content_text } = ret
-        console.log("ret=>", ret)
-        let guide_words = "", vid = ""
-        console.log("item_show_type=>", item_show_type)
-        // const { video_page_infos } = msg.data
+      // console.log("content_noencode=>", content_noencode)
+      // if (currentArticleRef.value.item_show_type === 0) {
+      //   content_noencode = content_noencode + "<p>" + content_text + "<p>"
+      // }
 
-        if (currentArticleRef.value.item_show_type === 5 && video_page_info) {
-          // 独立视频
-          console.log("video_page_infos=>",)
-          guide_words = content_text
-          vid = video_page_info.video_id
-          content_noencode = getVideoFrameHtml(vid, cdn_url) //`<iframe class="edui-video-iframe" data-vidtype="2" data-mpvid="${video_id}" data-cover="${cdn_url}" allowfullscreen="" frameborder="0" data-w="1080" data-ratio="0.5625" style="border-radius: 4px;" src="https://mp.weixin.qq.com/cgi-bin/readtemplate?t=tmpl/video_tmpl&vid=${video_id}" width="420" height="280" frameborder="0" allowfullscreen=""></iframe>`
-        }
-        console.log("content_noencode=>", content_noencode)
-        // if (currentArticleRef.value.item_show_type === 0) {
-        //   content_noencode = content_noencode + "<p>" + content_text + "<p>"
-        // }
-
-        currentArticleRef.value = {
-          ...currentArticleRef.value,
-          // content_noencode: content_noencode.replace(/[\u200B-\u200D\uFEFF]/gim, ''),
-          // content_noencode: "<p>" + format_to_wangEditor_html(content_noencode) + "<p>",
-          content_noencode: format_to_UEditor_html(content_noencode),
-          title,
-          author: nick_name,
-          copyright_type: copyright_stat,
-          cdn_url,
-          guide_words,
-          vid,
-        }
-        const idx = mp_msgsRef.value.findIndex(v => v.msg_id === currentArticleRef.value.msg_id)
-        if (idx !== -1) {
-          mp_msgsRef.value[idx] = currentArticleRef.value
-        }
-        extractArticleUrlRef.value = ""
-        dialogExtractMpAritcleUrlRef.value = false
-      } else if (tag === "appmsg-ret:publishToWechat") {
-        console.log("publishToWechatResult ret=>", ret)
-        const { success, msg: retmsg } = ret
-        if (success) {
-          dialogPublishArticleVisibleRef.value = false
-          ElMessage({
-            message: `发布成功`,
-            type: 'success',
-            duration: 2 * 1000
-          })
-        } else {
-          ElMessageBox.alert(`发布到微信出现错误:${retmsg}`, '错误', {
-            confirmButtonText: '确定',
-            type: 'error'
-          }).catch(() => {
-            console.log("publish receive catch")
-          })
-        }
-        if (publishLoadingRef.value) {
-          publishLoadingRef.value = false
-        }
+      currentArticleRef.value = {
+        ...currentArticleRef.value,
+        // content_noencode: content_noencode.replace(/[\u200B-\u200D\uFEFF]/gim, ''),
+        // content_noencode: "<p>" + format_to_wangEditor_html(content_noencode) + "<p>",
+        content_noencode: format_to_UEditor_html(content_noencode),
+        title,
+        author: nick_name,
+        copyright_type: copyright_stat,
+        cdn_url,
+        guide_words,
+        vid,
       }
-
-      if (globalLoadingRef.value) {
-        globalLoadingRef.value = false
-
+      const idx = mp_msgsRef.value.findIndex(v => v.msg_id === currentArticleRef.value.msg_id)
+      if (idx !== -1) {
+        mp_msgsRef.value[idx] = currentArticleRef.value
+      }
+      extractArticleUrlRef.value = ""
+      dialogExtractMpAritcleUrlRef.value = false
+    } else if (tag === "appmsg-ret:publishToWechat") {
+      console.log("publishToWechatResult msg.data=>", msg.data)
+      const { ret } = msg.data
+      const { success, msg: retmsg } = ret
+      if (success) {
+        dialogPublishArticleVisibleRef.value = false
+        ElMessage({
+          message: `发布成功`,
+          type: 'success',
+          duration: 2 * 1000
+        })
+      } else {
+        ElMessageBox.alert(`发布到微信出现错误:${retmsg}`, '错误', {
+          confirmButtonText: '确定',
+          type: 'error'
+        }).catch(() => {
+          console.log("publish receive catch")
+        })
+      }
+      if (publishLoadingRef.value) {
+        publishLoadingRef.value = false
       }
     }
-  })
+
+    if (globalLoadingRef.value) {
+      globalLoadingRef.value = false
+
+    }
+  }
+
 })
 
-onDeactivated(async () => {
-  console.log("---onDeactivated editor4----")
+// 组件生命周期
+onMounted(async () => {
+  console.log("==onMounted editorTab==", props.appmsg)
+
+  accountsRef.value = toDeepRaw(all_accounts.value.list)
+  selectedAccount.value = props.account
+  currentAppmsgRef.value = props.appmsg
+  editorIdRef.value = `editor-${props.appmsg.appmsgid}`
+  mp_msgsRef.value = props.appmsg.multi_item
+  if (props.mode === 'create') {
+    loadArticleByMsgId(mp_msgsRef.value[0].msg_id)
+  } else if (props.mode === 'edit') {
+    await listArticles()
+    if (mp_msgsRef.value.length > 0) {
+      loadArticle(mp_msgsRef.value[0])
+    }
+  }
+})
+
+onUnmounted(async () => {
+  console.log("---onUnmounted editorTab----")
   if (channelCleans[channelName]) {
     console.log(`cleanup channel ${channelName} for editor4`)
     channelCleans[channelName]()
   }
 })
+
+
+
+// onActivated(async () => {
+//   console.log("---onActivated editorTab----")
+//   // await listArticles()
+//   // 用户切换标签页时，主进程会发送 fromMain 消息，通知当前选中的标签页 ID。
+
+// })
+
+// onDeactivated(async () => {
+//   console.log("---onDeactivated editorTab----")
+//   if (channelCleans[channelName]) {
+//     console.log(`cleanup channel ${channelName} for editor4`)
+//     channelCleans[channelName]()
+//   }
+// })
 
 
 </script>

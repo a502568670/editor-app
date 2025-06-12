@@ -16,7 +16,7 @@ global.common = {
   DARK_WIN_COLOUR: "#000",
   LIGHT_WIN_COLOUR: "#FFF",
   MIN_WIN_HEIGHT: 768,
-  MIN_WIN_WIDTH: 1024,
+  MIN_WIN_WIDTH: 1280,
   MACOS: "darwin",
   TITLE_BAR_OVERLAY_COLOUR: "#0f172a",
   TAB_BAR_HEIGHT: 100,  // tab栏的高度

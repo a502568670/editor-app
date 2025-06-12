@@ -58,15 +58,21 @@ const menuList = ref([
 //   icon:require('@/assets/image/hot.png'),
 //   icon_active:require('@/assets/image/hot_active.png')
 // },
+{
+  name:'素材库',
+  url:'/material_lib',
+  icon:require('@/assets/image/hot.png'),
+  icon_active:require('@/assets/image/hot_active.png')
+},
 // {
-//   name:'素材库',
-//   url:'/material_lib',
-//   icon:require('@/assets/image/hot.png'),
-//   icon_active:require('@/assets/image/hot_active.png')
+//   name:'编辑器old',
+//   url:'/editor4',
+//   icon:require('@/assets/image/editor.png'),
+//   icon_active:require('@/assets/image/editor_active.png')
 // },
 {
   name:'编辑器',
-  url:'/editor4',
+  url:'/editor3',
   icon:require('@/assets/image/editor.png'),
   icon_active:require('@/assets/image/editor_active.png')
 },

@@ -164,16 +164,16 @@ export const unixhms = data => {
 }
 
 // 判断某个时间是否在某段时间内
-export const timeRange = (day,start,end) => {
+export const timeRange = (day, start, end) => {
   let curDate = new Date(day).getTime();
   let startDate = new Date(start).getTime();
   let endDate = new Date(end).getTime();
-  console.log(curDate,startDate,endDate)
+  console.log(curDate, startDate, endDate)
   let a = curDate - startDate;
   let b = curDate - endDate;
-  if(a < 0 || b > 0){
+  if (a < 0 || b > 0) {
     return false;
-  }else{
+  } else {
     return true;
   }
 }
@@ -219,4 +219,8 @@ export const unixToymd = data => {
   const day = unixTimestamp.getDate()
 
   return [year, month, day].map(formatNumber).join('-')
+}
+
+export const fmtImageUrl = url => {
+  return url.replace("http://", "https://")
 }
