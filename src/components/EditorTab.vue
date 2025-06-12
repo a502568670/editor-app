@@ -2133,7 +2133,7 @@ watch(() => [props.mainMsg], (newVal) => {
         // content_noencode: "<p>" + format_to_wangEditor_html(content_noencode) + "<p>",
         content_noencode: format_to_UEditor_html(content_noencode),
         title,
-        author: nick_name,
+        author: '',
         copyright_type: copyright_stat,
         cdn_url,
         guide_words,

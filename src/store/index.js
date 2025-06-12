@@ -1,6 +1,6 @@
 import { createStore } from 'vuex';
 import { loginByUsername, loginByUsernameSimple, logout, getUserInfo } from '@/api/login'
-import { listAccount } from "@/api/account"
+import { listAccount, removeAccount } from "@/api/account"
 import { removeToken, setToken, getToken } from '@/utils/auth'
 import { newGetconfig } from '@/api/config'
 export default createStore({
@@ -82,6 +82,13 @@ export default createStore({
       const response = await listAccount({ page, num })
       console.info("SET_ACCOUNTS", response.data.data)
       commit('SET_ACCOUNTS', response.data.data)
+    },
+    async DelAccount({commit,state},wechat_id=0){
+      await removeAccount({wechat_id})
+      var {list,total}=state.accounts
+      total--
+      list=list.filter(v=>v.wechat_id!==wechat_id)
+      commit('SET_ACCOUNTS',{list,total})
     },
 
     // 获取用户信息

@@ -25,10 +25,15 @@
         <div @click="addNewTab(item)" v-for="item in accounts" :key="item.id"
           style="display: flex;align-items: center;padding: 5px; border-bottom: solid 1px #ccc;">
           <img style="width: 40px; height: 40px;border-radius: 50%" :src="item.avatar" />
-          <div style="margin-left: 10px">
+          <div style="margin-left: 10px;flex: 1;">
             <div>{{ item.name }}</div>
             <div style="color: #51ce94">{{ item.platform_name + "(" + item.name + ")" }}</div>
           </div>
+          <el-popconfirm title="你是否要删除该公众号" @confirm="onDelMPAccount(item.wechat_id)" width="250">
+            <template #reference>
+              <el-icon @click.native.stop><Delete/></el-icon>
+            </template>
+          </el-popconfirm>
         </div>
       </div>
       <el-row :gutter="10">
@@ -53,7 +58,7 @@
       <!--      右侧账号展示 当前打开的标签页列表  标签页数据 (tabs) 的获取-->
       <!--      通过 window.ipcRenderer.receive('tabs-update', ...) 监听来自主进程的消息更新。-->
       <div class="tab-control-wrap" v-show="tabs.length > 0">
-        <div class="control-left">
+        <div class="control-left" style="line-height: 0;">
           <el-tabs v-model="currentTabId" ref="elTabsRef" type="border-card" closable
             style="display: inline-block; max-width: calc(100vw - 300px)" :stretch="false" @tab-remove="removeTab"
             @tab-change="changeTab">
@@ -77,7 +82,7 @@
           <el-button @click="goBack">后退</el-button>
           <el-button @click="goForward">前进</el-button>
         </div>
-        <div v-if="isDebugRef" style="flex: 1;padding-left: 15px;">{{ currentTab.url }}</div>
+        <div v-if="isDebugRef" style="flex: 1;padding: 0 15px;width: 0;overflow: scroll;white-space: nowrap;">{{ currentTab.url }}</div>
         <div v-if="isDebugRef">
           <el-button @click="refresh()">刷新</el-button>
           <el-button @click="copy(currentTab.url)">复制链接</el-button>
@@ -102,7 +107,8 @@
 
 <script setup>
 import { nextTick, onMounted, onActivated, onUnmounted, ref, toRefs, onDeactivated } from 'vue'
-import { ElNotification } from 'element-plus'
+import { ElMessage, ElNotification } from 'element-plus'
+import {Delete} from '@element-plus/icons-vue'
 import { getToken } from "@/utils/auth";
 import store from '@/store'
 import {
@@ -229,6 +235,11 @@ const handleAddAccount = (item, index) => {
     })
   }
 }
+async function onDelMPAccount(id){
+  await store.dispatch('DelAccount',id)
+  getList()
+  ElMessage({type:'success',message:'删除成功'})
+}
 const refresh = () => {
   window.ipcRenderer.send('refresh-tab', currentTabId.value)
 }
@@ -306,9 +317,10 @@ const throttleFunc = throttle(() => {
   if (webRef.value) {
     const width = webRef.value.offsetWidth;
     const height = webRef.value.offsetHeight;
+    var x=webRef.value.offsetLeft,y=webRef.value.offsetTop
     window.ipcRenderer.send('webBounds', {
       width,
-      height
+      height,x,y
     })
   }
 }, 200);
@@ -383,9 +395,10 @@ onMounted(() => {
           if (webRef.value) {
             const width = webRef.value.offsetWidth;
             const height = webRef.value.offsetHeight;
+            var x=webRef.value.offsetLeft,y=webRef.value.offsetTop
             window.ipcRenderer.send('webBounds', {
               width,
-              height
+              height,x,y
             })
           }
         })
@@ -434,9 +447,10 @@ onMounted(() => {
       if (webRef.value) {
         const width = webRef.value.offsetWidth;
         const height = webRef.value.offsetHeight;
+        var x=webRef.value.offsetLeft,y=webRef.value.offsetTop
         window.ipcRenderer.send('webBounds', {
           width,
-          height
+          height,x,y
         })
       }
     })
@@ -461,7 +475,7 @@ window.ipcRenderer.send('control-ready')
 <style scoped>
 .tab-control-wrap {
   width: 100%;
-  height: 60px;
+  /* height: 60px; */
   /* background-color: #e9f9f1; */
   background-color: #ccc;
   display: flex;

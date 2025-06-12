@@ -209,9 +209,9 @@ const _listCount = 10
 const onScroll = debounceFn((state) => {
   console.log(state) // {x, y, isScrolling, arrivedState, directions}
   if (state.arrivedState.bottom) {
-    console.log('到底了!')
     const begin = list.value.length;
-    if (begin < _listCount) {
+    console.log('到底了!',begin,file_cnt)
+    if ((materialTypeRef.value === 0&&begin>=file_cnt.draft_count)||begin < _listCount) {
       console.log("未满一页")
       return
     }
@@ -635,6 +635,7 @@ const removeAppMsg = async (appmsgid) => {
 //   // handleAccountFilter({ query: "" })
 // })
 
+var file_cnt;
 const registerChannels = () => {
   channelCleans[channelName] = window.ipcRenderer.receive(channelName, (msg) => {
     console.log("material_lib ipcRenderer receive fromMain:", msg)
@@ -660,6 +661,7 @@ const registerChannels = () => {
           return
         }
 
+        file_cnt=ret.file_cnt
         const transformed_items = items.map(it => ({
           ...it,
           height: (50 + (it.multi_item.length === 1 ? 115 : (115 + (it.multi_item.length - 1) * 75)) + 40),
