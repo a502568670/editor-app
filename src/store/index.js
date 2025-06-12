@@ -3,6 +3,7 @@ import { loginByUsername, loginByUsernameSimple, logout, getUserInfo } from '@/a
 import { listAccount } from "@/api/account"
 import { removeToken, setToken, getToken } from '@/utils/auth'
 import { newGetconfig } from '@/api/config'
+import { setAccesstoken } from '@/api/posts';
 export default createStore({
   state() {
     return {
@@ -90,6 +91,7 @@ export default createStore({
         getUserInfo().then(response => {
           const data = response.data.data
           commit('setUser', data)
+          setAccesstoken()
           resolve(response)
         }).catch(error => {
           reject(error)

@@ -1,5 +1,6 @@
 import {ElMessage} from 'element-plus'
 import dayjs from 'dayjs'
+import request from '@/utils/request'
 
 export async function getPosts(params) {
     var req = await fetch(`https://www.dajiala.com/fbmain/main/v1/today_hot?${new URLSearchParams(params)}`);
@@ -40,7 +41,16 @@ export async function getDetailPosts(params) {
     return res;
 }
 
-var accesstoken='69712_6d054f8b28b153bfa6ab8f5bd486c6ba';
+var accesstoken;
+export async function setAccesstoken() {
+    accesstoken=localStorage.getItem('accesstoken')
+    if(!accesstoken){
+        var res = await request({url:'/user/ow_info',method:'post'})
+        accesstoken=res.data.data.ow_token
+        localStorage.setItem('accesstoken',accesstoken)
+    }
+    return accesstoken
+}
 function showErrorMsg(resp) {
     var success=false;
     if('code' in resp){
