@@ -7,6 +7,13 @@ export function listAccount(data) {
     data
   })
 }
+export function removeAccount(data) {
+  return request({
+    url: '/platform/removeAccount',
+    method: 'post',
+    data
+  })
+}
 
 
 export function createAccount(data) {

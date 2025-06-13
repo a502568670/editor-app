@@ -59,10 +59,10 @@ const menuList = ref([
 //   icon_active:require('@/assets/image/hot_active.png')
 // },
 {
-  name:'素材库',
+  name:'草稿箱',
   url:'/material_lib',
-  icon:require('@/assets/image/hot.png'),
-  icon_active:require('@/assets/image/hot_active.png')
+  icon:require('@/assets/image/box.png'),
+  icon_active:require('@/assets/image/box_active.png')
 },
 // {
 //   name:'编辑器old',

@@ -599,8 +599,8 @@ export class TabbedWindow extends EventEmitter {
           this.currentView.setBounds({
             height: data.height,
             width: data.width,
-            x: contentWidth - data.width,
-            y: contentHeight - data.height,
+            x: data.x,
+            y: data.y,
           });
         }
       })

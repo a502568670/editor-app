@@ -39,6 +39,7 @@ import { Search } from '@element-plus/icons-vue'
 import { debounceFn } from "@/utils/index"
 import { toDeepRaw } from "@/utils/convert"
 import store from '@/store'
+import { apperrmsg } from '@/utils/constants';
 
 const { all_accounts } = toRefs(store.getters)
 
@@ -92,7 +93,8 @@ const handleSelect = (account) => {
   // console.log("id=>", id)
   // console.log("session_id=>", session_id)
   if (!token || !session_id) {
-    ElMessageBox.alert(`当前账号session过期,请切换到*账号中心*重新登录`, '错误', {
+    //TODO:封装成微信错误码invalid_session
+    ElMessageBox.alert(apperrmsg.invalid_session, '错误', {
       confirmButtonText: '确定',
       type: 'error'
     }).then(() => {

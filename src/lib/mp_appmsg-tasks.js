@@ -128,7 +128,8 @@ const listAppmsgsInDraftBox = async ({ cookies, token, query, begin, count = 10 
 
   return {
     success: true,
-    items: res.app_msg_info.item
+    items: res.app_msg_info.item,
+    file_cnt:res.app_msg_info.file_cnt,
   }
 }
 
