@@ -47,11 +47,12 @@
                 class="flex items-center p-2 border-b w-full">
                 <img v-if="item.cdn_url" :src="fmtImageUrl(item.cdn_url)" style="width:0px;height:0px;"
                   referrerpolicy="no-referrer" />
-                <div v-if="index === 0" :style="{ '--image-url': 'url(' + fmtImageUrl(item.cdn_url) + ')' }"
-                  class='w-full flex h-40 justify-between items-end bg-no-repeat bg-center bg-cover bg-[#e6e6e6] bg-[image:var(--image-url)]'
+                <div v-if="index === 0" 
+                  class='relative w-full flex h-40 justify-between items-end bg-[#e6e6e6] '
                   :class="{ 'border-2 border-[#07C160]': (item.msg_id === msg_idRef) }">
-                  <div class="flex text-white p-1"><span v-if="item.msg_id === 0">*</span>{{ item.title }}</div>
-                  <div class="flex justify-between px-1 space-x-2 py-1 text-white bg-gray-600 opacity-50"
+                  <img v-if="item.cdn_url" class="w-full h-full  object-cover rounded-sm" :src="item.cdn_url" referrerpolicy="no-referrer"  />
+                  <div class="flex absolute text-white p-1"><span v-if="item.msg_id === 0">*</span>{{ item.title }}</div>
+                  <div class="flex absolute right-0 justify-between px-1 space-x-2 py-1 text-white bg-gray-600 opacity-70"
                     v-if="item.msg_id === msg_idRef">
                     <el-icon class="cursor-pointer" @click="swapDown(item.msg_id)">
                       <component :is="ArrowDown"></component>
