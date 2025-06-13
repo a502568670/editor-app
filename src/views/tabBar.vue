@@ -31,7 +31,7 @@
           </div>
           <el-popconfirm title="你是否要删除该公众号" @confirm="onDelMPAccount(item.wechat_id)" width="250">
             <template #reference>
-              <el-icon @click.native.stop><Delete/></el-icon>
+              <el-icon @click.prevent.stop class=" cursor-pointer"><Delete/></el-icon>
             </template>
           </el-popconfirm>
         </div>

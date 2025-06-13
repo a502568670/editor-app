@@ -3,7 +3,7 @@
         <div class="w-auto bg-white flex flex-col">
             <el-button class="m-2" :icon="Plus" @click="openDialog">添加关键词</el-button>
             <el-menu class="w-auto flex-1" @select="index=>params.user_keyword=index" :default-active="words[0]">
-                <el-menu-item class="word justify-between" v-for="v in words" :index="v">
+                <el-menu-item class="word justify-between" v-for="(v, idx) in words" :key="idx" :index="v">
                     <el-tooltip :content="v" placement="top">
                         <span class="flex-1 text-ellipsis overflow-hidden max-w-[80px]">{{ v }}</span>
                     </el-tooltip>
