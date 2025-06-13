@@ -603,7 +603,7 @@ import { fmtImageUrl } from "@/utils/format"
 import { createDateByDays, parseDate, formatDate } from "@/utils/date"
 import { ad_categorys, adMarkerContentInUEditor, format_ad_content_in_UEditor, restore_ad_content_from_UEditor, has_ad_in_wangEditor, has_ad_in_raw } from "@/utils/ad"
 import { getVideoFrameHtml } from "@/utils/video"
-import { claim_source_types, HOUSRS, MINUTES } from "@/utils/constants"
+import { apperrmsg, claim_source_types, HOUSRS, MINUTES } from "@/utils/constants"
 import { ElMessage, ElMessageBox, ElLoading } from 'element-plus'
 import { ArrowUp, ArrowDown, Delete, CircleCheckFilled, CircleCloseFilled, InfoFilled } from '@element-plus/icons-vue'
 import { Link, Link2, RadioTower, DollarSign, SquareTerminal, Eye, ScanEye, Minus, Smartphone, Video } from 'lucide-vue-next';
@@ -679,7 +679,7 @@ const editorConfigRef = ref({
           //   type: 'error',
           //   duration: 2 * 1000
           // })
-          ElMessageBox.alert(`当前账号(${name})session过期,请切换到*账号中心*重新登录`, '错误', {
+          ElMessageBox.alert(apperrmsg.invalid_session, '错误', {
             confirmButtonText: '确定',
             type: 'error'
           }).then(() => {
@@ -1115,7 +1115,10 @@ const newArticle = async (before_save = true, item_show_type = 0) => {
   // console.log('elListMsgsRef.value.scrollHeight=>', elListMsgsRef.value.scrollHeight)
   // elListMsgsRef.value.scrollTop = elListMsgsRef.value.scrollHeight
   await nextTick()
-  elListMsgsRef.value.lastElementChild?.scrollIntoView({ behavior: 'smooth' })
+  var {clientHeight}=elListMsgsRef.value.children[elListMsgsRef.value.children.length-2]
+  var top=clientHeight+elListMsgsRef.value.scrollTop
+  elListMsgsRef.value.scrollTo({top,behavior:'smooth'})
+  // elListMsgsRef.value.lastElementChild?.scrollIntoView({ behavior: 'smooth' })
   // nextTick(() => {
   //   elListMsgsRef.value.scrollTop = elListMsgsRef.value.scrollHeight
   //   // elListMsgsRef.value.scrollIntoView({ behavior: 'smooth', block: 'end' })
@@ -1146,7 +1149,7 @@ const handleActionErr = (account_name, e) => {
   console.error('handleActionErr:', e);
   const err = e.response.data.detail
   if (err?.base_resp?.err_msg?.includes("session")) {
-    ElMessageBox.alert(`当前账号(${account_name})session过期,请切换到*账号中心*重新登录`, '错误', {
+    ElMessageBox.alert(apperrmsg.invalid_session, '错误', {
       confirmButtonText: '确定',
       type: 'error'
     }).then(() => {
@@ -1217,7 +1220,7 @@ const _saveAppMsg = async (push_to_remote) => {
 
   const { token, name, session_id, wechat_id } = selectedAccount.value
   if (!session_id) {
-    ElMessageBox.alert(`当前账号(${name})session过期,请切换到*账号中心*重新登录`, '错误', {
+    ElMessageBox.alert(apperrmsg.invalid_session, '错误', {
       confirmButtonText: '确定',
       type: 'error'
     }).then(() => {
@@ -1987,7 +1990,7 @@ const handleAddPreviewerConfirm = () => {
 const handleMpWechatActionErr = (account_name, base_resp) => {
   console.error('handleMpWechatActionErr:', base_resp);
   if (base_resp.ret == 200003) {
-    ElMessageBox.alert(`当前账号(${account_name})session过期,请切换到*账号中心*重新登录`, '错误', {
+    ElMessageBox.alert(apperrmsg.invalid_session, '错误', {
       confirmButtonText: '确定',
       type: 'error'
     }).then(() => {
