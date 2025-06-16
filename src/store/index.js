@@ -3,7 +3,7 @@ import { loginByUsername, loginByUsernameSimple, logout, getUserInfo } from '@/a
 import { listAccount, removeAccount } from "@/api/account"
 import { removeToken, setToken, getToken } from '@/utils/auth'
 import { newGetconfig } from '@/api/config'
-import { setAccesstoken } from '@/api/posts';
+import { removeAccesstoken, setAccesstoken } from '@/api/posts';
 import { checkWxSession } from '@/utils/cookie';
 export default createStore({
   state() {
@@ -112,6 +112,7 @@ export default createStore({
       return new Promise(resolve => {
         commit('SET_TOKEN', '')
         removeToken()
+        removeAccesstoken()
         commit('setUser', {})
         resolve()
       })

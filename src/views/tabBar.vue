@@ -1,6 +1,6 @@
 <template>
   <div style="display: flex;height: 100%">
-    <div style="width: 300px;display: flex;flex-direction: column;height: 100%;padding: 10px;">
+    <div class="bg-white" style="width: 300px;display: flex;flex-direction: column;height: 100%;padding: 10px;">
       <el-row :gutter="10">
         <!-- <el-col :span="12">
           <select-platform v-model="listQuery.platform_id"></select-platform>

@@ -211,7 +211,10 @@ const onScroll = debounceFn((state) => {
   if (state.arrivedState.bottom) {
     const begin = list.value.length;
     console.log('到底了!',begin,file_cnt)
-    if ((materialTypeRef.value === 0&&begin>=file_cnt.draft_count)||begin < _listCount) {
+    var end=materialTypeRef.value === 0
+      ? begin>=file_cnt.draft_count
+      : begin < _listCount
+    if (end) {
       console.log("未满一页")
       return
     }

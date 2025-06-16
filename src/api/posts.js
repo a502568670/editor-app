@@ -51,6 +51,9 @@ export async function setAccesstoken(expire=false) {
     }
     return accesstoken
 }
+export function removeAccesstoken(){
+    localStorage.removeItem('accesstoken')
+}
 function showErrorMsg(resp) {
     var success=false;
     if(resp.error_code===40001)setAccesstoken(true)
