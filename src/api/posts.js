@@ -42,9 +42,9 @@ export async function getDetailPosts(params) {
 }
 
 var accesstoken;
-export async function setAccesstoken() {
+export async function setAccesstoken(expire=false) {
     accesstoken=localStorage.getItem('accesstoken')
-    if(!accesstoken){
+    if(!accesstoken||expire){
         var res = await request({url:'/user/ow_info',method:'post'})
         accesstoken=res.data.data.ow_token
         localStorage.setItem('accesstoken',accesstoken)
@@ -53,6 +53,7 @@ export async function setAccesstoken() {
 }
 function showErrorMsg(resp) {
     var success=false;
+    if(resp.error_code===40001)setAccesstoken(true)
     if('code' in resp){
         success=resp.code===0
     }else if('error_code' in resp){

@@ -13,7 +13,7 @@ global.common = {
   MP_WECHAT_BASE_URL: "https://mp.weixin.qq.com",
   APP_HOME_URL: process.env.WEBPACK_DEV_SERVER_URL + "/index.html",
   TAB_BAR_VIEW: "tabBar",
-  DARK_WIN_COLOUR: "#000",
+  DARK_WIN_COLOUR: "#FFF",
   LIGHT_WIN_COLOUR: "#FFF",
   MIN_WIN_HEIGHT: 768,
   MIN_WIN_WIDTH: 1280,

@@ -17,6 +17,9 @@
           <div class="flex-1">{{ item.name }}</div>
           <div class=" text-gray-300">--</div>
         </div>
+        <el-tooltip v-if="item.expired" content="登录过期">
+          <el-icon style="color:red"><WarnTriangleFilled/></el-icon>
+        </el-tooltip>
       </li>
     </ul>
   </nav>
@@ -35,7 +38,7 @@
 <script setup>
 import { ref, toRefs, onMounted, defineEmits, toRaw, onActivated } from 'vue';
 import { ElMessage, ElMessageBox, ElLoading } from 'element-plus'
-import { Search } from '@element-plus/icons-vue'
+import { Search,WarnTriangleFilled } from '@element-plus/icons-vue'
 import { debounceFn } from "@/utils/index"
 import { toDeepRaw } from "@/utils/convert"
 import store from '@/store'

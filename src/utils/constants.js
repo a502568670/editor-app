@@ -20,5 +20,5 @@ export const HOUSRS = [...Array(24).keys()];
 export const MINUTES = [...Array(60).keys()];
 
 export const apperrmsg={
-  invalid_session:'当前账号登录失效',
+  invalid_session:'当前公众号登录过期',
 }

@@ -4,6 +4,7 @@ import { listAccount, removeAccount } from "@/api/account"
 import { removeToken, setToken, getToken } from '@/utils/auth'
 import { newGetconfig } from '@/api/config'
 import { setAccesstoken } from '@/api/posts';
+import { checkWxSession } from '@/utils/cookie';
 export default createStore({
   state() {
     return {
@@ -82,6 +83,7 @@ export default createStore({
     async ListAccounts({ commit, state }, {page = 1, num = 100} = {page: 1, num: 100}) {
       const response = await listAccount({ page, num })
       console.info("SET_ACCOUNTS", response.data.data)
+      response.data.data.list?.forEach(v=>v.expired=checkWxSession(v.session_id))
       commit('SET_ACCOUNTS', response.data.data)
     },
     async DelAccount({commit,state},wechat_id=0){

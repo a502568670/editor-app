@@ -1821,7 +1821,7 @@ const insertAd = () => {
 
 const validatePreview = () => {
   if (msg_idRef.value <= 0) {
-    ElMessageBox.alert('请选择预览文章，或者将当前新建的文章暂存到草稿箱', '警告', {
+    ElMessageBox.alert('请把文章先保存到公众号草稿箱，再预览', '警告', {
       confirmButtonText: '确定',
       type: 'error'
     }).catch(() => { })
@@ -2112,9 +2112,13 @@ watch(() => [props.mainMsg], (newVal) => {
     if (tag === "appmsg-ret:localExtractMpArticleUrlResult") {
       console.log(`tag:${msg.tag}`, typeof msg.data)
       const { ret } = msg.data
+      console.log("ret=>", ret)
+      if(ret.code==101){
+        ElMessage({type:'error',message:ret.msg})
+        return
+      }
       const { title, nick_name, copyright_stat, cdn_url, item_show_type, video_page_info } = ret
       let { content_noencode, content_text } = ret
-      console.log("ret=>", ret)
       let guide_words = "", vid = ""
       console.log("item_show_type=>", item_show_type)
       // const { video_page_infos } = msg.data

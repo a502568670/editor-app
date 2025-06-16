@@ -29,6 +29,9 @@
             <div>{{ item.name }}</div>
             <div style="color: #51ce94">{{ item.platform_name + "(" + item.name + ")" }}</div>
           </div>
+          <el-tooltip v-if="item.expired" content="登录过期">
+            <el-icon class="mr-1" style="color:red"><WarnTriangleFilled/></el-icon>
+          </el-tooltip>
           <el-popconfirm title="你是否要删除该公众号" @confirm="onDelMPAccount(item.wechat_id)" width="250">
             <template #reference>
               <el-icon @click.prevent.stop class=" cursor-pointer"><Delete/></el-icon>
@@ -108,7 +111,7 @@
 <script setup>
 import { nextTick, onMounted, onActivated, onUnmounted, ref, toRefs, onDeactivated } from 'vue'
 import { ElMessage, ElNotification } from 'element-plus'
-import {Delete} from '@element-plus/icons-vue'
+import {Delete,WarnTriangleFilled} from '@element-plus/icons-vue'
 import { getToken } from "@/utils/auth";
 import store from '@/store'
 import {
