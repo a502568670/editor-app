@@ -1,5 +1,5 @@
 <template>
-  <nav class="flex flex-col">
+  <nav class="flex flex-col h-full overflow-y-scroll bg-white">
     <div class="p-2 bg-white">
       <div class="px-2 py-0.5 flex items-center border rounded-sm">
         <el-icon>
@@ -14,7 +14,7 @@
         class="flex p-1 h-[75px] items-center border-b hover:bg-gray-100 cursor-pointer">
         <img class="w-10 h-10 rounded-full" :src="item.avatar" />
         <div class="flex-1 self-start pl-2 flex flex-col">
-          <div class="flex-1">{{ item.name }}</div>
+          <div class="flex-1 break-all">{{ item.name }}</div>
           <div class=" text-gray-300">--</div>
         </div>
         <el-tooltip v-if="item.expired" content="登录过期">

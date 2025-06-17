@@ -131,6 +131,7 @@
       <div v-html="htmlSrc">
 
       </div>
+      <UsrAgree></UsrAgree>
       <template #footer>
         <span class="dialog-footer">
           <el-button @click="dialogVisible = false; loginForm.checked = false;">取 消</el-button>
@@ -147,10 +148,12 @@ import { gotoExternal } from "@/utils/openWindow"
 import { useStore } from 'vuex'
 import { useRouter } from 'vue-router'
 import axios from "axios";
+import UsrAgree from './UsrAgree'
 let store;
 let router;
 export default {
   name: 'Login',
+  components:{UsrAgree},
   setup() {
     store = useStore()
     router = useRouter();

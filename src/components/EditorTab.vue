@@ -151,6 +151,7 @@
             title="提取链接内容">
             <Link />
           </el-icon>
+          <BatchExtractMpArticle v-model="mp_msgsRef" @confirm="onBatchExtractMp"/>
           <el-icon :size="20" class="cursor-pointer flex justify-center" @click="openAdDialog" title="设置广告">
             <DollarSign />
           </el-icon>
@@ -611,6 +612,7 @@ import { Link, Link2, RadioTower, DollarSign, SquareTerminal, Eye, ScanEye, Minu
 import axios from 'axios'
 import JSON5 from "json5"
 import ImgCrop from '@/components/ImgCrop.vue';
+import BatchExtractMpArticle from '@/components/editor/BatchExtractMpArticle.vue';
 
 const props = defineProps(['account', 'appmsg', 'mode', 'mainMsg']);
 const emitEvents = defineEmits(['titleChange', 'createAppmsg'])
@@ -1726,6 +1728,20 @@ const handleLocalExtractMpArticleUrl = async () => {
     globalLoadingRef.value = false
     dialogExtractMpAritcleUrlRef.value = false
   }, timeoutExtract)
+}
+async function onBatchExtractMp(list) {
+  for(var item of list){
+    globalLoadingRef.value=true
+    await newArticle(true,item.type)
+    window.ipcRenderer.send('toMain', {
+      tag: 'appmsg:localExtractMpArticleUrl',
+      source: `${props.appmsg.appmsgid}`,
+      token: getToken(),
+      extractArticleUrl: item.url,
+    })
+    await new Promise(r=>setTimeout(r,timeoutExtract))
+  }
+  globalLoadingRef.value=false
 }
 
 const openVideoMaterialDialog = async () => {

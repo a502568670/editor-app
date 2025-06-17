@@ -44,10 +44,13 @@ export async function getDetailPosts(params) {
 var accesstoken;
 export async function setAccesstoken(expire=false) {
     accesstoken=localStorage.getItem('accesstoken')
-    if(!accesstoken||expire){
+    if(!accesstoken){
         var res = await request({url:'/user/ow_info',method:'post'})
         accesstoken=res.data.data.ow_token
         localStorage.setItem('accesstoken',accesstoken)
+    }
+    if(expire){
+        await request({url:'/user/ow_info?force_refresh=1',method:'post'})
     }
     return accesstoken
 }
