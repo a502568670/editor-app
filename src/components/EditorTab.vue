@@ -615,7 +615,7 @@ import ImgCrop from '@/components/ImgCrop.vue';
 import BatchExtractMpArticle from '@/components/editor/BatchExtractMpArticle.vue';
 
 const props = defineProps(['account', 'appmsg', 'mode', 'mainMsg']);
-const emitEvents = defineEmits(['titleChange', 'createAppmsg'])
+const emitEvents = defineEmits(['titleChange', 'createAppmsg','msgidChange'])
 
 const { all_accounts } = toRefs(store.getters)
 // console.log('envVars.backend_url=>', envVars.backend_url)
@@ -1267,6 +1267,7 @@ const _saveAppMsg = async (push_to_remote) => {
       // 新列表 需要更新currentAppmsgRef
       currentAppmsgRef.value.appmsgid = appmsgid
       currentAppmsgRef.value.title = mp_msgsRef.value[0].title
+      emitEvents('msgidChange',appmsgid)
     }
 
     // await listArticles()
@@ -1274,6 +1275,7 @@ const _saveAppMsg = async (push_to_remote) => {
     if (selected_idx === -1) {
       selected_idx = 0
     }
+    if(isCreateNewAppMsg)mp_msgsRef.value[selected_idx].appmsgid=appmsgid
     loadArticle(mp_msgsRef.value[selected_idx])
   }).catch((e) => {
     console.log('saveAppMsg catched e:', e)

@@ -2,11 +2,11 @@
   <div class="flex w-ful h-full bg-[#e9f9f1] pt-1">
     <el-tabs v-show="editableTabs.length > 0" v-model="editableTabsValue" type="card" class="editor-tabs w-full h-full"
       closable @tab-remove="handleCloseTab">
-      <el-tab-pane v-for="item in editableTabs" :key="item.name" :label="item.title" :name="item.name">
+      <el-tab-pane v-for="(item,idx) in editableTabs" :key="item.name" :label="item.title" :name="item.name">
         <!-- <EditorTab :key="appmsgRef.appmsgid+''" :account="selectedAccountRef" :appmsg="appmsgRef" /> -->
         <component :key="item.appmsg.appmsgid" :is="EditorTab" :account="item.account" :appmsg="item.appmsg"
           :mode="item.mode" :mainMsg="item.mainMsg" @title-change="handleTitleChange"
-          @create-appmsg="handleCreateAppMsg"></component>
+          @create-appmsg="handleCreateAppMsg" @msgid-change="id=>onMsgidChange(id,idx)"></component>
       </el-tab-pane>
     </el-tabs>
     <div v-show="editableTabs.length === 0" class="flex w-full h-full">
@@ -265,6 +265,13 @@ const registerChannels = () => {
       }
     }
   })
+}
+function onMsgidChange(id,index){
+  editableTabsValue.value=id+''
+  editableTabs.value[index].name=id+'';
+  editableTabs.value[index].mode='edit';
+  editableTabs.value[index].appmsg.appmsgid=id;
+  editableTabs.value[index].appmsg.multi_item[0].msg_id=id
 }
 
 </script>
