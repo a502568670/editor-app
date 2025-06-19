@@ -6,12 +6,12 @@
     <div class="w-full">
       <el-input class="my-1" v-for="(v,idx) in inputs" :key="idx" v-model.trim="inputs[idx].url" clearable placeholder="请输入文章提取地址">
         <template #prepend>#{{ idx+posts.length+1 }}</template>
-        <template #append>
+        <!-- <template #append>
           <el-select v-model="inputs[idx].type" style="width: 80px">
             <el-option label="图文" :value="0" />
             <el-option label="视频" :value="5" />
           </el-select>
-        </template>
+        </template> -->
       </el-input>
     </div>
     <template #footer>

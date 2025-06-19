@@ -2139,7 +2139,7 @@ watch(() => [props.mainMsg], (newVal) => {
       console.log("item_show_type=>", item_show_type)
       // const { video_page_infos } = msg.data
 
-      if (currentArticleRef.value.item_show_type === 5 && video_page_info) {
+      if (item_show_type === 5 && video_page_info) {
         // 独立视频
         // console.log("video_page_infos=>",)
         guide_words = content_text
@@ -2153,6 +2153,7 @@ watch(() => [props.mainMsg], (newVal) => {
 
       currentArticleRef.value = {
         ...currentArticleRef.value,
+        item_show_type,
         // content_noencode: content_noencode.replace(/[\u200B-\u200D\uFEFF]/gim, ''),
         // content_noencode: "<p>" + format_to_wangEditor_html(content_noencode) + "<p>",
         content_noencode: format_to_UEditor_html(content_noencode),
