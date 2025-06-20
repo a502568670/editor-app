@@ -102,7 +102,8 @@ const publishAppmsg = async ({ cookies, token, send_time, hasNotify, isFreePubli
   if (base_resp.ret !== 0) {
     return {
       success: false,
-      msg: base_resp.err_msg
+      msg: base_resp.err_msg,
+      code: base_resp.ret,
     }
   }
 
