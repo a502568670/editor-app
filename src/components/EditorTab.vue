@@ -42,17 +42,29 @@
       <el-col :span="6" class="h-full overflow-scroll bg-white">
         <div class="bg-white  shadow-xl">
           <div v-if="mp_msgsRef">
+            <div class="flex w-full items-center pl-2 pt-2">
+              <el-button type="primary" :disabled="mp_msgsRef.length === 0" @click="checkTitles">
+                检测标题(30天内)
+              </el-button>
+            </div>
             <div ref="elListMsgsRef" class="overflow-auto" style="height:calc(100vh - 208px)">
               <div @click="loadArticle(item, true)" v-for="(item, index) in mp_msgsRef" :key="item.msg_id"
                 class="flex items-center p-2 border-b w-full">
                 <img v-if="item.cdn_url" :src="fmtImageUrl(item.cdn_url)" style="width:0px;height:0px;"
                   referrerpolicy="no-referrer" />
-                <div v-if="index === 0" 
-                  class='relative w-full flex h-40 justify-between items-end bg-[#e6e6e6] '
+                <div v-if="index === 0" class='relative w-full flex h-40 justify-between items-end bg-[#e6e6e6] '
                   :class="{ 'border-2 border-[#07C160]': (item.msg_id === msg_idRef) }">
-                  <img v-if="item.cdn_url" class="w-full h-full  object-cover rounded-sm" :src="item.cdn_url" referrerpolicy="no-referrer"  />
-                  <div class="flex absolute text-white p-1"><span v-if="item.msg_id === 0">*</span>{{ item.title }}</div>
-                  <div class="flex absolute right-0 justify-between px-1 space-x-2 py-1 text-white bg-gray-600 opacity-70"
+                  <div v-if="isShowCheckTitleResults(item.title)"
+                    class="flex absolute left-0 top-0 justify-between px-1 space-x-2 text-white text-sm opacity-70"
+                    :class="checkTitleIsPublished(item.title) ? 'bg-red-600' : 'bg-green-600'">
+                    {{ getTitleMessage(item.title) }}
+                  </div>
+                  <img v-if="item.cdn_url" class="w-full h-full  object-cover rounded-sm" :src="item.cdn_url"
+                    referrerpolicy="no-referrer" />
+                  <div class="flex absolute text-white p-1"><span v-if="item.msg_id === 0">*</span>{{ item.title }}
+                  </div>
+                  <div
+                    class="flex absolute right-0 justify-between px-1 space-x-2 py-1 text-white bg-gray-600 opacity-70"
                     v-if="item.msg_id === msg_idRef">
                     <el-icon class="cursor-pointer" @click="swapDown(item.msg_id)">
                       <component :is="ArrowDown"></component>
@@ -62,10 +74,10 @@
                     </el-icon>
                   </div>
                 </div>
-                <div class="w-full flex h-20 items-center p-1"
+                <div class="w-full flex h-20 items-center p-1 relative"
                   :class="{ 'border-2 border-[#07C160]': (item.msg_id === msg_idRef) }" v-else>
-                  <div class="flex flex-col flex-1 h-full">
-                    <div class="flex-1 h-2/3 w-full max-w-full max-h-2/3 overflow-y-hidden"><span
+                  <div class="flex flex-col flex-1 h-full justify-end">
+                    <div class="h-[54px] w-full max-w-full max-h-[54px] overflow-y-hidden"><span
                         class="mx-1 text-red-500" v-if="item.msg_id === 0">*</span>
                       <el-icon v-if="item.item_show_type === 5" :size="20"
                         class="cursor-pointer flex justify-center items-end" title="视频文章">
@@ -74,6 +86,11 @@
                       {{ item.title }}
                     </div>
                     <!-- <div class=" text-sm flex-0" style="color: #51ce94">{{ item.author }}</div> -->
+                  </div>
+                  <div v-if="isShowCheckTitleResults(item.title)"
+                    class="flex absolute top-0 justify-between px-1 space-x-2 text-white text-sm opacity-70"
+                    :class="checkTitleIsPublished(item.title) ? 'bg-red-600' : 'bg-green-600'">
+                    {{ getTitleMessage(item.title) }}
                   </div>
                   <img v-if="item.cdn_url" class="w-10 h-10 rounded-sm" :src="fmtImageUrl(item.cdn_url)" />
                   <div class="flex flex-col justify-around px-1 h-full" v-if="item.msg_id === msg_idRef">
@@ -151,7 +168,7 @@
             title="提取链接内容">
             <Link />
           </el-icon>
-          <BatchExtractMpArticle v-model="mp_msgsRef" @confirm="onBatchExtractMp"/>
+          <BatchExtractMpArticle v-model="mp_msgsRef" @confirm="onBatchExtractMp" />
           <el-icon :size="20" class="cursor-pointer flex justify-center" @click="openAdDialog" title="设置广告">
             <DollarSign />
           </el-icon>
@@ -609,13 +626,14 @@ import { apperrmsg, claim_source_types, HOUSRS, MINUTES } from "@/utils/constant
 import { ElMessage, ElMessageBox, ElLoading } from 'element-plus'
 import { ArrowUp, ArrowDown, Delete, CircleCheckFilled, CircleCloseFilled, InfoFilled } from '@element-plus/icons-vue'
 import { Link, Link2, RadioTower, DollarSign, SquareTerminal, Eye, ScanEye, Minus, Smartphone, Video } from 'lucide-vue-next';
+import { serializeCookie } from "@/utils/cookie"
 import axios from 'axios'
 import JSON5 from "json5"
 import ImgCrop from '@/components/ImgCrop.vue';
 import BatchExtractMpArticle from '@/components/editor/BatchExtractMpArticle.vue';
 
 const props = defineProps(['account', 'appmsg', 'mode', 'mainMsg']);
-const emitEvents = defineEmits(['titleChange', 'createAppmsg','msgidChange'])
+const emitEvents = defineEmits(['titleChange', 'createAppmsg', 'msgidChange'])
 
 const { all_accounts } = toRefs(store.getters)
 // console.log('envVars.backend_url=>', envVars.backend_url)
@@ -757,6 +775,9 @@ let otherAccountsChoosedRef = ref([])
 const timeoutSendToOneAccount = 30 * 1000; // ms
 
 
+// 标题检测
+const checkTitleResults = ref([])
+const timeoutCheckTitle = 3 * 1000; // ms
 
 // 提取链接
 // const extractArticleUrlRef = ref("https://mp.weixin.qq.com/s/G2TYEsgZsTJ1VWj4R2F2hQ?from=kdocs_link")
@@ -844,14 +865,14 @@ const _getAppMsgId = () => {
   return currentAppmsgRef.value?.appmsgid
 }
 
-const serializeCookie = (arr) => {
-  const items = []
-  arr.forEach((v) => {
-    items.push(`${encodeURIComponent(v["name"])}=${encodeURIComponent(v["value"])}`)
-  });
-  // console.log("items=>", items)
-  return items.join(";")
-}
+// const serializeCookie = (arr) => {
+//   const items = []
+//   arr.forEach((v) => {
+//     items.push(`${encodeURIComponent(v["name"])}=${encodeURIComponent(v["value"])}`)
+//   });
+//   // console.log("items=>", items)
+//   return items.join(";")
+// }
 
 const showSerializeCookie = (session_id) => {
   if (!session_id) {
@@ -1118,9 +1139,9 @@ const newArticle = async (before_save = true, item_show_type = 0) => {
   // console.log('elListMsgsRef.value.scrollHeight=>', elListMsgsRef.value.scrollHeight)
   // elListMsgsRef.value.scrollTop = elListMsgsRef.value.scrollHeight
   await nextTick()
-  var {clientHeight}=elListMsgsRef.value.children[elListMsgsRef.value.children.length-2]
-  var top=clientHeight+elListMsgsRef.value.scrollTop
-  elListMsgsRef.value.scrollTo({top,behavior:'smooth'})
+  var { clientHeight } = elListMsgsRef.value.children[elListMsgsRef.value.children.length - 2]
+  var top = clientHeight + elListMsgsRef.value.scrollTop
+  elListMsgsRef.value.scrollTo({ top, behavior: 'smooth' })
   // elListMsgsRef.value.lastElementChild?.scrollIntoView({ behavior: 'smooth' })
   // nextTick(() => {
   //   elListMsgsRef.value.scrollTop = elListMsgsRef.value.scrollHeight
@@ -1267,7 +1288,7 @@ const _saveAppMsg = async (push_to_remote) => {
       // 新列表 需要更新currentAppmsgRef
       currentAppmsgRef.value.appmsgid = appmsgid
       currentAppmsgRef.value.title = mp_msgsRef.value[0].title
-      emitEvents('msgidChange',appmsgid)
+      emitEvents('msgidChange', appmsgid)
     }
 
     // await listArticles()
@@ -1275,7 +1296,7 @@ const _saveAppMsg = async (push_to_remote) => {
     if (selected_idx === -1) {
       selected_idx = 0
     }
-    if(isCreateNewAppMsg)mp_msgsRef.value[selected_idx].appmsgid=appmsgid
+    if (isCreateNewAppMsg) mp_msgsRef.value[selected_idx].appmsgid = appmsgid
     loadArticle(mp_msgsRef.value[selected_idx])
   }).catch((e) => {
     console.log('saveAppMsg catched e:', e)
@@ -1705,6 +1726,75 @@ const handleImage = async (e) => {
   }
 }
 
+const checkTitles = () => {
+
+  globalLoadingRef.value = true
+  const { token, session_id, name } = selectedAccount.value
+  const titles = mp_msgsRef.value.map(v => v.title)
+  window.ipcRenderer.send('toMain', {
+    tag: 'appmsg:searchAppmsgsInPublishForQuerys',
+    source: `${props.appmsg.appmsgid}`,
+    token: getToken(),
+    getData: {
+      cookies: serializeCookie(JSON.parse(session_id)["cookie"]),
+      token: parseInt(token),
+      querys: titles,
+      begin: 0,
+    }
+  })
+
+  setTimeout(() => {
+    globalLoadingRef.value = false
+  }, timeoutCheckTitle * titles.length)
+
+}
+
+const isShowCheckTitleResults = (title) => {
+  const idx = checkTitleResults.value.findIndex(v => v.query === title)
+  return idx !== -1
+}
+
+const checkTitleIsPublished = (title, prev_days = 30) => {
+  const ret = checkTitleResults.value.find(v => v.query === title)
+  if (!ret) return
+  if (ret.success) {
+    // publish_list
+    const { total_count, publish_list } = ret.value
+    const pre_days_ts = +new Date() - prev_days * 24 * 3600 * 1000
+    // console.log("aaa=>", publish_list.map(v => JSON.parse(v.publish_info)).flatMap(v => v.appmsg_info))
+    // const a = publish_list.map(v => JSON.parse(v.publish_info)).flatMap(v => v.appmsg_info)
+    // if (a.length > 0) {
+    //   console.log('a:',a[0])
+    //   console.log('a:', a[0],a[0].send_time * 1000, pre_days_ts, a[0].send_time * 1000 > pre_days_ts)
+    // }
+    //1748508012
+    return total_count > 0 && publish_list.map(v => JSON.parse(v.publish_info)).flatMap(v => v.appmsg_info).filter(o => o.send_time * 1000 > pre_days_ts).length > 0
+  }
+  return false
+}
+
+const getTitleMessage = (title, prev_days = 30) => {
+  const ret = checkTitleResults.value.find(v => v.query === title)
+  console.log("ret=>", title, ret)
+  if (!ret) return
+  if (ret.success) {
+    // publish_list
+    const { total_count, publish_list } = ret.value
+    const pre_days_ts = +new Date() - prev_days * 24 * 3600 * 1000
+
+    const publish_item = total_count > 0 && publish_list.map(v => JSON.parse(v.publish_info)).flatMap(v => v.appmsg_info).find(o => o.send_time * 1000 > pre_days_ts)
+    if (publish_item) {
+      console.log("found publish_item:", publish_item)
+      const datestr = formatDate(new Date(publish_item.send_time * 1000), "yyyy-MM-dd")
+      return `${datestr} 已发送`
+    } else {
+      console.log("not found publish_item:")
+      return `${prev_days}天内没有重复`
+    }
+  }
+  return ret.reason || ""
+}
+
 const openExtractMpArticleUrlDialog = () => {
   dialogExtractMpAritcleUrlRef.value = true
 }
@@ -1732,18 +1822,18 @@ const handleLocalExtractMpArticleUrl = async () => {
   }, timeoutExtract)
 }
 async function onBatchExtractMp(list) {
-  for(var item of list){
-    globalLoadingRef.value=true
-    await newArticle(true,item.type)
+  for (var item of list) {
+    globalLoadingRef.value = true
+    await newArticle(true, item.type)
     window.ipcRenderer.send('toMain', {
       tag: 'appmsg:localExtractMpArticleUrl',
       source: `${props.appmsg.appmsgid}`,
       token: getToken(),
       extractArticleUrl: item.url,
     })
-    await new Promise(r=>setTimeout(r,timeoutExtract))
+    await new Promise(r => setTimeout(r, timeoutExtract))
   }
-  globalLoadingRef.value=false
+  globalLoadingRef.value = false
 }
 
 const openVideoMaterialDialog = async () => {
@@ -2131,8 +2221,8 @@ watch(() => [props.mainMsg], (newVal) => {
       console.log(`tag:${msg.tag}`, typeof msg.data)
       const { ret } = msg.data
       console.log("ret=>", ret)
-      if(ret.code==101){
-        ElMessage({type:'error',message:ret.msg})
+      if (ret.code == 101) {
+        ElMessage({ type: 'error', message: ret.msg })
         return
       }
       const { title, nick_name, copyright_stat, cdn_url, item_show_type, video_page_info } = ret
@@ -2194,6 +2284,15 @@ watch(() => [props.mainMsg], (newVal) => {
       if (publishLoadingRef.value) {
         publishLoadingRef.value = false
       }
+    } else if (tag === "appmsg-ret:searchAppmsgsInPublishForQuerys") {
+      console.log(`tag:${msg.tag}`, typeof msg.data)
+      const { ret } = msg.data
+      console.log("ret=>", ret)
+      const { success, items } = ret
+      if (success) {
+        checkTitleResults.value = items
+      }
+
     }
 
     if (globalLoadingRef.value) {

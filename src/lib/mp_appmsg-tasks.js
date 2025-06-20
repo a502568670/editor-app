@@ -31,7 +31,10 @@ const api = {
 
   //数据
   list_in_draftbox: (tk, query, begin, count) => `${baseUrl}/cgi-bin/appmsg?begin=${begin}&count=${count}&type=77&action=list_card&token=${tk}&lang=zh_CN&f=json&query=${query}`,
-  get_in_draftbox: (tk, appmsgid) => `${baseUrl}/cgi-bin/appmsg?t=media/appmsg_edit&action=edit&type=77&appmsgid=${appmsgid}&isMul=1&replaceScene=0&isSend=0&isFreePublish=0&token=${tk}&lang=zh_CN&timestamp=${+new Date()}&f=json`
+  get_in_draftbox: (tk, appmsgid) => `${baseUrl}/cgi-bin/appmsg?t=media/appmsg_edit&action=edit&type=77&appmsgid=${appmsgid}&isMul=1&replaceScene=0&isSend=0&isFreePublish=0&token=${tk}&lang=zh_CN&timestamp=${+new Date()}&f=json`,
+  list_in_publish: (tk, query, begin, count) => `${baseUrl}/cgi-bin/appmsgpublish?sub=list&begin=${begin}&count=${count}&query=${query}&token=${tk}&lang=zh_CN&f=json`,
+  search_in_publish: (tk, query, begin, count) => `${baseUrl}/cgi-bin/appmsgpublish?sub=search&begin=${begin}&count=${count}&query=${query}&token=${tk}&lang=zh_CN&f=json`
+
 };
 // &is_release_publish_page=1
 
@@ -116,7 +119,7 @@ const listAppmsgsInDraftBox = async ({ cookies, token, query, begin, count = 10 
   verbose_log('api url:', url)
   verbose_log('api opts:', opts)
   let res = (await netFetch(url, { ...opts }))
-  verbose_log("list_in_draftbox res:", typeof res, res)
+  // verbose_log("list_in_draftbox res:", typeof res, res)
   res = JSON.parse(res)
   let base_resp = res.base_resp
   if (base_resp.ret !== 0) {
@@ -129,7 +132,7 @@ const listAppmsgsInDraftBox = async ({ cookies, token, query, begin, count = 10 
   return {
     success: true,
     items: res.app_msg_info.item,
-    file_cnt:res.app_msg_info.file_cnt,
+    file_cnt: res.app_msg_info.file_cnt,
   }
 }
 
@@ -162,6 +165,72 @@ const getAppmsgInDraftBox = async ({ cookies, token, appmsgid }) => {
   }
 }
 
+const listAppmsgsInPublishForQuerys = async ({ cookies, token, querys, begin, count = 10 }) => {
+  const opts = {
+    headers: { ...getDefaultHeader(), cookie: cookies }
+  };
+  const urls = querys.map(query => api.list_in_publish(token, encodeURIComponent(query), begin, count))
+  verbose_log("urls=>", urls)
+  const netFetchs = urls.map(url => netFetch(url, opts))
+
+  const data = await Promise.allSettled(netFetchs);
+  const items = data.map((ret, idx) => {
+    // verbose_log("ret:", ret)
+    if (ret.status === "fulfilled") {
+      const { base_resp, publish_page } = JSON.parse(ret.value)
+      if (base_resp.ret === 0) {
+        const publish_page_o = JSON.parse(publish_page)
+        return { success: true, value: publish_page_o }
+      } else {
+        return { success: false, reason: ret.err_msg }
+      }
+
+    } else {
+      return { success: false, reason: ret.reason }
+    }
+  })
+
+  return {
+    success: true,
+    items: items,
+  }
+}
+
+const searchAppmsgsInPublishForQuerys = async ({ cookies, token, querys, begin, count = 10 }) => {
+  const opts = {
+    headers: { ...getDefaultHeader(), cookie: cookies }
+  };
+  const urls = querys.map(query => api.search_in_publish(token, encodeURIComponent(query), begin, count))
+  verbose_log("urls=>", urls)
+  const netFetchs = urls.map(url => netFetch(url, opts))
+
+  const data = await Promise.allSettled(netFetchs);
+  const items = data.map((ret, idx) => {
+    verbose_log("ret:", ret)
+    const query = querys[idx]
+
+    if (ret.status === "fulfilled") {
+      const { base_resp, publish_page } = JSON.parse(ret.value)
+      if (base_resp.ret === 0) {
+        const publish_page_o = JSON.parse(publish_page)
+        return { success: true, query, value: publish_page_o }
+      } else {
+        return { success: false, query, reason: ret.err_msg }
+      }
+
+    } else {
+      return { success: false, query, reason: ret.reason }
+    }
+  })
+
+  return {
+    success: true,
+    items: items,
+  }
+}
+
 exports.publishAppmsg = publishAppmsg;
 exports.listAppmsgsInDraftBox = listAppmsgsInDraftBox;
 exports.getAppmsgInDraftBox = getAppmsgInDraftBox;
+exports.listAppmsgsInPublishForQuerys = listAppmsgsInPublishForQuerys
+exports.searchAppmsgsInPublishForQuerys = searchAppmsgsInPublishForQuerys

@@ -8,7 +8,10 @@
 import { TabbedWindow } from "./tabbed-window.js";
 import { nativeTheme, screen, dialog, Notification, app, ipcMain, webContents, net, BrowserWindow } from 'electron'
 import { localExtractMpArticleUrlUseRequest } from "./mp_account-tasks.js"
-import { publishAppmsg, listAppmsgsInDraftBox, getAppmsgInDraftBox } from "./mp_appmsg-tasks.js"
+import {
+  publishAppmsg, listAppmsgsInDraftBox, getAppmsgInDraftBox,
+  searchAppmsgsInPublishForQuerys
+} from "./mp_appmsg-tasks.js"
 import { postJsonToJZLApi, postJsonToEditorApi } from "./request.js"
 const path = require('path')
 const fs = require('fs')
@@ -553,6 +556,20 @@ async function reactToIpcObjectData(data, tabbedWin, viewContents) {
       }
 
       viewContents.send('fromMain', { tag: 'appmsg-ret:publishToWechat', data: { source, ret } })
+      break;
+    }
+    case 'appmsg:searchAppmsgsInPublishForQuerys': {
+      verbose_log("===== listen searchAppmsgsInPublishForQuerys in main ====", data)
+      const { source, token, getData } = data
+      // token => userToken
+      console.log("getData=>", getData)
+      const ret = await searchAppmsgsInPublishForQuerys(getData)
+      if (!ret.success) {
+        verbose_log("===== 批量关键词查询发表记录失败 ====", ret.err_msg)
+      } else {
+        verbose_log("===== 批量关键词查询发表记录成功 ====", ret)
+      }
+      viewContents.send('fromMain', { tag: 'appmsg-ret:searchAppmsgsInPublishForQuerys', data: { source, ret } })
       break;
     }
     case 'stat:getPvData': {
