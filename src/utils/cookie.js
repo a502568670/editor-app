@@ -20,7 +20,7 @@ export function checkWxSession(session_id=''){
     })
     return expired;
   } catch (error) {
-    console.error(error);
+    // console.error(error);
   }
   return true;
 }

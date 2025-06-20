@@ -162,7 +162,7 @@ import { Clock, PencilLine, SendHorizonal, Forward, Trash2, MonitorDown } from '
 import { useRouter } from 'vue-router'
 import { useStore } from 'vuex'
 import JSON5 from "json5"
-import { apperrmsg } from '@/utils/constants';
+import { apperrmsg, wxretmsg } from '@/utils/constants';
 
 // 订阅
 const channelCleans = {}
@@ -708,7 +708,7 @@ const registerChannels = () => {
         if (source !== channelSource) {
           return
         }
-        const { success, msg: retmsg } = ret
+        const { success, msg: retmsg,code } = ret
         if (success) {
           ElMessage({
             message: `发表成功`,
@@ -716,6 +716,10 @@ const registerChannels = () => {
             duration: 2 * 1000
           })
         } else {
+          if(wxretmsg[code]){
+            ElMessage({type:'error',message:wxretmsg[code]})
+            return
+          }
           ElMessageBox.alert(`发表到微信出现错误:${retmsg}`, '错误', {
             confirmButtonText: '确定',
             type: 'error'

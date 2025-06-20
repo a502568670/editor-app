@@ -107,7 +107,7 @@
                 </div>
               </div>
               <div class="w-full flex h-20 items-center p-1 justify-center">
-                <el-dropdown v-if="mp_msgsRef.length">
+                <el-dropdown>
                   <el-button type="primary">
                     新建消息<el-icon class="el-icon--right"><arrow-down /></el-icon>
                   </el-button>
@@ -622,7 +622,7 @@ import { fmtImageUrl } from "@/utils/format"
 import { createDateByDays, parseDate, formatDate } from "@/utils/date"
 import { ad_categorys, adMarkerContentInUEditor, format_ad_content_in_UEditor, restore_ad_content_from_UEditor, has_ad_in_wangEditor, has_ad_in_raw } from "@/utils/ad"
 import { getVideoFrameHtml } from "@/utils/video"
-import { apperrmsg, claim_source_types, HOUSRS, MINUTES } from "@/utils/constants"
+import { apperrmsg, claim_source_types, HOUSRS, MINUTES, wxretmsg } from "@/utils/constants"
 import { ElMessage, ElMessageBox, ElLoading } from 'element-plus'
 import { ArrowUp, ArrowDown, Delete, CircleCheckFilled, CircleCloseFilled, InfoFilled } from '@element-plus/icons-vue'
 import { Link, Link2, RadioTower, DollarSign, SquareTerminal, Eye, ScanEye, Minus, Smartphone, Video } from 'lucide-vue-next';
@@ -1370,6 +1370,7 @@ const openPublishToWechatDialog = async () => {
 
   // 发布调试完毕需要先将appmsg同步到草稿箱
   await _saveAppMsg(1)
+  if(!currentArticleRef.value.cdn_url) return
   dialogPublishArticleVisibleRef.value = true
   const today = new Date()
   publishTimingDatesRef.value = Array.from({ length: 7 }, (_, i) => {
@@ -2265,7 +2266,7 @@ watch(() => [props.mainMsg], (newVal) => {
     } else if (tag === "appmsg-ret:publishToWechat") {
       console.log("publishToWechatResult msg.data=>", msg.data)
       const { ret } = msg.data
-      const { success, msg: retmsg } = ret
+      const { success, msg: retmsg,code } = ret
       if (success) {
         dialogPublishArticleVisibleRef.value = false
         ElMessage({
@@ -2274,6 +2275,10 @@ watch(() => [props.mainMsg], (newVal) => {
           duration: 2 * 1000
         })
       } else {
+        if(wxretmsg[code]){
+          ElMessage({type:'error',message:wxretmsg[code]})
+          return;
+        }
         ElMessageBox.alert(`发布到微信出现错误:${retmsg}`, '错误', {
           confirmButtonText: '确定',
           type: 'error'
