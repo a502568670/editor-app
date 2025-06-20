@@ -376,22 +376,9 @@
       </div>
     </template>
   </el-dialog>
-  <el-dialog :close-on-click-modal="false" title="发送到其他账号" v-model="dialogSendArticleVisibleRef" width="600px">
-    <el-row :gutter="40">
-      <el-col :span="18">
-        <el-checkbox label="全部" @change="clickAllOtherAccounts"></el-checkbox>
-        <el-checkbox-group v-model="otherAccountsChoosedRef">
-          <el-checkbox v-for="(item) in otherAccountsRef" :key="item.id" :label="item.id">
-            {{ item.name }}
-          </el-checkbox>
-          <!-- <el-checkbox label="Option 2 & Value 2" /> -->
-        </el-checkbox-group>
-      </el-col>
-      <el-col :span="6">
-        <el-button @click="handleSendToOtherAccount" type="primary">立即发送</el-button>
-      </el-col>
-    </el-row>
-  </el-dialog>
+  <SyncToOtherAccountsDialog :dialogVisible="dialogSendArticleVisibleRef" :accounts="otherAccountsRef"
+    @instant-send="handleInstantSend" @dialog-closed="dialogSendArticleVisibleRef = false" />
+
   <el-dialog :close-on-click-modal="false" title="操作进度" v-model="dialogPercentVisbleRef" width="360px">
     <div class="flex flex-col w-full">
       <div class="flex justify-center">
@@ -631,6 +618,7 @@ import axios from 'axios'
 import JSON5 from "json5"
 import ImgCrop from '@/components/ImgCrop.vue';
 import BatchExtractMpArticle from '@/components/editor/BatchExtractMpArticle.vue';
+import SyncToOtherAccountsDialog from "@/dlgs/syncToOtherAccounts"
 
 const props = defineProps(['account', 'appmsg', 'mode', 'mainMsg']);
 const emitEvents = defineEmits(['titleChange', 'createAppmsg', 'msgidChange'])
@@ -1617,6 +1605,10 @@ const openSendArticleDialog = () => {
   dialogSendArticleVisibleRef.value = true
 }
 
+function handleInstantSend({otherAccountsChoosed}){
+  otherAccountsChoosedRef.value=otherAccountsChoosed
+  handleSendToOtherAccount()
+}
 const handleSendToOtherAccount = async () => {
   const appmsgid = _getAppMsgId()
   console.log('choosed', otherAccountsChoosedRef);
