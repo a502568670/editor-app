@@ -22,7 +22,7 @@
 
       <!--      左侧账号展示 账号列表数据 (accounts) 的获取-->
       <div style="flex: 1;overflow-y: auto;">
-        <div @click="addNewTab(item)" v-for="item in accounts" :key="item.id"
+        <div @click="item.expired ? handleAddMPAccount(mp_platform):addNewTab(item)" v-for="item in accounts" :key="item.id"
           style="display: flex;align-items: center;padding: 5px; border-bottom: solid 1px #ccc;">
           <img style="width: 40px; height: 40px;border-radius: 50%" :src="item.avatar" />
           <div style="margin-left: 10px;flex: 1;">
