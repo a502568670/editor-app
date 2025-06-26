@@ -2,11 +2,12 @@
   <div class="flex w-ful h-full bg-[#e9f9f1] pt-1">
     <el-tabs v-show="editableTabs.length > 0" v-model="editableTabsValue" type="card" class="editor-tabs w-full h-full"
       closable @tab-remove="handleCloseTab">
-      <el-tab-pane v-for="(item,idx) in editableTabs" :key="idx" :label="item.title" :name="item.name">
+      <el-tab-pane v-for="(item, idx) in editableTabs" :key="idx"  :name="item.name">
+        <template #label><i><img class="w-6 h-6 rounded-full mr-2" :src="item.icon" /></i> {{ item.title }}</template>
         <!-- <EditorTab :key="appmsgRef.appmsgid+''" :account="selectedAccountRef" :appmsg="appmsgRef" /> -->
-        <component :key="idx" :is="EditorTab" :account="item.account" :appmsg="item.appmsg"
-          :mode="item.mode" :mainMsg="item.mainMsg" @title-change="handleTitleChange"
-          @create-appmsg="handleCreateAppMsg" @msgid-change="id=>onMsgidChange(id,idx)"></component>
+        <component :key="idx" :is="EditorTab" :account="item.account" :appmsg="item.appmsg" :mode="item.mode"
+          :mainMsg="item.mainMsg" @title-change="handleTitleChange" @create-appmsg="handleCreateAppMsg"
+          @msgid-change="id => onMsgidChange(id, idx)"></component>
       </el-tab-pane>
     </el-tabs>
     <div v-show="editableTabs.length === 0" class="flex w-full h-full">
@@ -22,8 +23,9 @@
             </div>
             <img src="@/assets/image/create_material.png" style="width: 100%" />
             <div class="flex justify-center items-center">
-              <el-button @click="handleCreateAppMsg({ type: 0, account_id: selectedAccountRef?.id })" size="large"
-                type="primary">
+              <el-button
+                @click="handleCreateAppMsg({ type: 0, account_id: selectedAccountRef?.id })"
+                size="large" type="primary">
                 <div class="w-[180px] py-5 ">
                   <el-icon>
                     <Plus />
@@ -106,7 +108,7 @@ onActivated(async () => {
       const account = all_accounts.value.list.find(a => a.id === parseInt(account_id))
       console.log("account=>", account)
       if (account) {
-        addTab(account, appMsg, 'edit')
+        addTab(account, appMsg, { icon: account.avatar, mode: 'edit' })
       } else {
         console.log("not found account in account store=>")
       }
@@ -132,7 +134,11 @@ const handleAccountSelect = async ({ account, index }) => {
   selectedIndexRef.value = index
 }
 
+// const formatTitleSuffix = (account_name) => {
+//   return account_name ? `-<${account_name}>` : ""
+// }
 const handleCreateAppMsg = ({ type, account_id }) => {
+
   if (type === 0) {
     const new_appmsgid = 0 - (+new Date())
     const new_mp_msg = {
@@ -166,7 +172,7 @@ const handleCreateAppMsg = ({ type, account_id }) => {
       account = all_accounts.value.list.find(a => a.id === parseInt(account_id))
     }
     if (account) {
-      addTab(account, newAppMsg, 'create')
+      addTab(account, newAppMsg, { icon: account.avatar, mode: 'create' })
     }
   } else {
     dialogChooseAccountVisibleRef.value = true
@@ -186,6 +192,11 @@ const handleTitleChange = ({ appmsgid, title }) => {
   const idx = editableTabs.value.findIndex(v => v.name == appmsgid)
   if (idx !== -1) {
     // console.log("idx=>", idx, msg)
+    // const split_str = '-<'
+    // const arr =  editableTabs.value[idx].title.split(split_str)
+    // console.log('arr=>', arr)
+    // arr[0] = title 
+    // editableTabs.value[idx].title = arr.join(split_str)
     editableTabs.value[idx].title = title
   }
 }
@@ -210,10 +221,11 @@ const handleCloseTab = (targetName) => {
   }
 }
 
-const addTab = (account, appmsg, mode) => {
+const addTab = (account, appmsg, { title, icon, mode }) => {
   const newTabName = `${appmsg.appmsgid}`
   editableTabs.value.push({
-    title: appmsg.title,
+    title: title ? title : appmsg.title,
+    icon: icon,
     name: newTabName,
     account,
     appmsg,
@@ -266,12 +278,12 @@ const registerChannels = () => {
     }
   })
 }
-function onMsgidChange(id,index){
-  editableTabsValue.value=id+''
-  editableTabs.value[index].name=id+'';
-  editableTabs.value[index].mode='edit';
-  editableTabs.value[index].appmsg.appmsgid=id;
-  editableTabs.value[index].appmsg.multi_item[0].msg_id=id
+function onMsgidChange(id, index) {
+  editableTabsValue.value = id + ''
+  editableTabs.value[index].name = id + '';
+  editableTabs.value[index].mode = 'edit';
+  editableTabs.value[index].appmsg.appmsgid = id;
+  editableTabs.value[index].appmsg.multi_item[0].msg_id = id
 }
 
 </script>
