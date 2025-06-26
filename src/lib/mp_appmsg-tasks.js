@@ -1,6 +1,7 @@
 const { net } = require('electron');
 const global = require("./global")
 const { netFetch } = require('./request')
+// import JSON5 from "json5"
 
 
 const verbose_log = global.default.utils.verbose_log;
@@ -79,24 +80,28 @@ const publishAppmsg = async ({ cookies, token, send_time, hasNotify, isFreePubli
   formdata = `token=${token}&lang=zh_CN&f=json&ajax=1&random=${Math.random()}&ack=&code=&reprint_info=${reprint_info_json_str}&reprint_confirm=${reprint_confirm}&list=${list}&groupid=&sex=0&country=&province=&city=&send_time=${send_time}&type=10&share_page=1&synctxweibo=0&operation_seq=${operation_seq}&req_id=${req_id}&req_time=${req_time}&sync_version=1&isFreePublish=${isFreePublish}&appmsgid=${appmsgid}&isMulti=${isMulti}&direct_send=1`
   verbose_log('api opts:', opts)
   verbose_log('api formdata:', formdata)
+  let url;
   if (send_time > 0) {
-    const url = api.timing_publish(token, hasNotify)
-    verbose_log('定时api url:', url)
+    url = api.timing_publish(token, hasNotify)
+    verbose_log('定时发表 api url:', url)
     // return {
     //   success: false,
     //   msg: "人工终止"
     // }
-    res = (await netFetch(url, { ...opts, body: formdata }))
+    // res = (await netFetch(url, { ...opts, body: formdata }))
   } else {
-    verbose_log('api url:', api.instant_push(token, hasNotify))
+    url = api.instant_push(token, hasNotify)
+    verbose_log('立即发表 api url:', url)
     // return {
     //   success: false,
     //   msg: "人工终止"
     // }
-    // res = (await netFetch(api.instant_push(token, hasNotify), { ...opts, body: formdata }))
   }
-  verbose_log('api res:', res)
-  res = JSON.parse(res)
+  res = (await netFetch(url, { ...opts, body: formdata }))
+  // verbose_log('api res:', typeof res, res)
+  if (typeof res === 'string') {
+    res = JSON.parse(res)
+  }
 
   base_resp = res.base_resp
   if (base_resp.ret !== 0) {
