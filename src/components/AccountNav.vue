@@ -9,13 +9,14 @@
       </div>
     </div>
     <div class="w-full flex flex-col bg-white" style="height:calc(100vh - 158px)">
-      <draggable v-model="accountsRef" class="list-group" ghost-class="ghost" @start="handleDragStart"
-        @end="handleDragEnd" item-key="id">
+      <draggable v-model="accountsRef" class="list-group" ghost-class="ghost" :disabled="dragDisabled" handle=".handle"
+        @start="handleDragStart" @end="handleDragEnd" item-key="id">
         <template #item="{ element }">
           <div @click="handleSelect(element)"
             class="flex p-1 h-[75px] items-center border-b hover:bg-gray-100 cursor-pointer list-group-item"
             :class="{ 'bg-gray-100': selected_account_id === element.id }">
-            <img class="w-10 h-10 rounded-full" :src="element.avatar" />
+            <img class="w-10 h-10 rounded-full" :class="{ 'handle cursor-move': !dragDisabled }"
+              :src="element.avatar" />
             <div class="flex-1 self-start pl-2 flex flex-col">
               <div class="flex-1 break-all">{{ element.name }}({{ element.id }})</div>
               <div class=" text-gray-300">--</div>
@@ -70,7 +71,7 @@
 }
 </style>
 <script setup>
-import { ref, toRefs, onMounted, defineEmits, toRaw, onActivated } from 'vue';
+import { ref, toRefs, onMounted, defineEmits, toRaw, onActivated, computed, watchEffect } from 'vue';
 import { ElMessage, ElMessageBox, ElLoading } from 'element-plus'
 import { Search, WarnTriangleFilled } from '@element-plus/icons-vue'
 import { debounceFn, sortByOrder } from "@/utils/index"
@@ -86,8 +87,15 @@ const accountsRef = ref([])
 const selected_account_id = ref(0)
 const queryRef = ref("")
 
+
 // drag
 const dragging = ref(false)
+const dragDisabled = computed(() => queryRef.value.length > 0);
+
+watchEffect(() => {
+  console.log('Count or message changed:', account_orders.value);
+});
+
 
 const props = defineProps({
   defaultSelectedIndex: {
@@ -177,6 +185,7 @@ const handleDragEnd = async (e) => {
     // store.dispatch('SWAPAccounts', { oldId, newId })
     const new_account_orders = accountsRef.value.map(v => v.id)
     console.log('new_account_orders', new_account_orders)
+    store.commit('SET_ACCOUNT_ORDERS', new_account_orders)
     localStorage.setItem("account_orders", new_account_orders)
     emitAccountEvents("accountReorder")
   }

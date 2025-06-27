@@ -514,6 +514,9 @@ export function sortByOrder(sortArray, orderArray) {
   const map = new Map();
   for (const item of sortArray) {
       map.set(item.id, item);
+      if (!orderArray.find(i => i == item.id)) {
+        orderArray.push(item.id)
+      }
   }
   
   const result = [];
