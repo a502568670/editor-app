@@ -8,7 +8,29 @@
         <el-input class="bg-white" v-model="queryRef" placeholder="搜索公众号" @input="handleInput" />
       </div>
     </div>
-    <ul class="w-full flex flex-col bg-white" style="height:calc(100vh - 158px)">
+    <div class="w-full flex flex-col bg-white" style="height:calc(100vh - 158px)">
+      <draggable v-model="accountsRef" class="list-group" ghost-class="ghost" @start="handleDragStart"
+        @end="handleDragEnd" item-key="id">
+        <template #item="{ element }">
+          <div @click="handleSelect(element)"
+            class="flex p-1 h-[75px] items-center border-b hover:bg-gray-100 cursor-pointer list-group-item"
+            :class="{ 'bg-gray-100': selected_account_id === element.id }">
+            <img class="w-10 h-10 rounded-full" :src="element.avatar" />
+            <div class="flex-1 self-start pl-2 flex flex-col">
+              <div class="flex-1 break-all">{{ element.name }}({{ element.id }})</div>
+              <div class=" text-gray-300">--</div>
+            </div>
+            <el-tooltip v-if="element.expired" content="登录过期">
+              <el-icon style="color:red">
+                <WarnTriangleFilled />
+              </el-icon>
+            </el-tooltip>
+          </div>
+        </template>
+      </draggable>
+    </div>
+
+    <!-- <ul class="w-full flex flex-col bg-white" style="height:calc(100vh - 158px)">
       <li @click="handleSelect(item)" v-for="item in accountsRef" :key="item.id"
         :class="{ 'bg-gray-100': selected_account_id === item.id }"
         class="flex p-1 h-[75px] items-center border-b hover:bg-gray-100 cursor-pointer">
@@ -18,10 +40,12 @@
           <div class=" text-gray-300">--</div>
         </div>
         <el-tooltip v-if="item.expired" content="登录过期">
-          <el-icon style="color:red"><WarnTriangleFilled/></el-icon>
+          <el-icon style="color:red">
+            <WarnTriangleFilled />
+          </el-icon>
         </el-tooltip>
       </li>
-    </ul>
+    </ul> -->
   </nav>
 </template>
 <style scoped>
@@ -34,21 +58,36 @@
 :deep(.el-input__wrapper .el-input__inner) {
   cursor: default !important;
 }
+
+
+.ghost {
+  opacity: 0.5;
+  background: #c8ebfb;
+}
+
+.not-draggable {
+  cursor: no-drop;
+}
 </style>
 <script setup>
 import { ref, toRefs, onMounted, defineEmits, toRaw, onActivated } from 'vue';
 import { ElMessage, ElMessageBox, ElLoading } from 'element-plus'
-import { Search,WarnTriangleFilled } from '@element-plus/icons-vue'
-import { debounceFn } from "@/utils/index"
+import { Search, WarnTriangleFilled } from '@element-plus/icons-vue'
+import { debounceFn, sortByOrder } from "@/utils/index"
 import { toDeepRaw } from "@/utils/convert"
 import store from '@/store'
 import { apperrmsg } from '@/utils/constants';
+import draggable from "vuedraggable";
 
-const { all_accounts } = toRefs(store.getters)
+
+const { all_accounts, account_orders } = toRefs(store.getters)
 
 const accountsRef = ref([])
 const selected_account_id = ref(0)
 const queryRef = ref("")
+
+// drag
+const dragging = ref(false)
 
 const props = defineProps({
   defaultSelectedIndex: {
@@ -65,7 +104,11 @@ const props = defineProps({
 
 const listAccounts = (query) => {
   const filteredAccounts = all_accounts.value.list.filter(a => a.name.includes(query))
-  accountsRef.value = toDeepRaw(filteredAccounts)
+  const not_sort = toDeepRaw(filteredAccounts)
+  console.log("all_accounts=>", all_accounts)
+  console.log("account_orders=>", account_orders.value)
+  const { result: sorted } = sortByOrder(not_sort, toDeepRaw(account_orders.value))
+  accountsRef.value = sorted
   console.log("accountsRef.value=>", accountsRef.value)
 }
 
@@ -83,7 +126,7 @@ onActivated(async () => {
   }
 })
 
-const emitAccountEvents = defineEmits(['accountFilter', 'accountSelect'])
+const emitAccountEvents = defineEmits(['accountFilter', 'accountSelect', 'accountReorder'])
 
 const handleInput = debounceFn((query) => {
   listAccounts(query)
@@ -112,6 +155,31 @@ const handleSelect = (account) => {
   console.log("selected account.id=>", account.id)
   console.log("selected idx=>", idx)
   emitAccountEvents("accountSelect", { account: toRaw(account), index: idx })
+}
+
+const handleDragStart = (e) => {
+  // console.log('handleDragStart:',e)
+  dragging.value = true
+}
+
+const handleDragEnd = async (e) => {
+  // console.log('handleDragEnd:',e)
+  dragging.value = false
+  const { oldIndex, newIndex } = e
+  if (oldIndex != newIndex) {
+    console.log('oldIndex:', oldIndex)
+    console.log('newIndex:', newIndex)
+    const oldId = accountsRef.value[newIndex].id
+    const newId = accountsRef.value[oldIndex].id
+    console.log(`oldId:${oldId}, newId:${newId}`)
+    console.log('all_accounts.list:', all_accounts.value.list.map(v => v.id))
+    console.log('==================')
+    // store.dispatch('SWAPAccounts', { oldId, newId })
+    const new_account_orders = accountsRef.value.map(v => v.id)
+    console.log('new_account_orders', new_account_orders)
+    localStorage.setItem("account_orders", new_account_orders)
+    emitAccountEvents("accountReorder")
+  }
 }
 
 </script>
