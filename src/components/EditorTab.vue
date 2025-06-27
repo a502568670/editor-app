@@ -2236,6 +2236,7 @@ watch(() => [props.mainMsg], (newVal) => {
       //   content_noencode = content_noencode + "<p>" + content_text + "<p>"
       // }
 
+      content_noencode += '\v'
       currentArticleRef.value = {
         ...currentArticleRef.value,
         item_show_type,
