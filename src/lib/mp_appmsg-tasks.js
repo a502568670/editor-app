@@ -1,6 +1,6 @@
 const { net } = require('electron');
 const global = require("./global")
-const { netFetch } = require('./request')
+const { netFetch, getDefaultHeader } = require('./request')
 // import JSON5 from "json5"
 
 
@@ -14,13 +14,13 @@ function getid(e) {
   return t;
 }
 
-const getDefaultHeader = () => {
-  return {
-    "Referer": "https://mp.weixin.qq.com",
-    'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8',
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36",
-  }
-}
+// const getDefaultHeader = () => {
+//   return {
+//     "Referer": "https://mp.weixin.qq.com",
+//     'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8',
+//     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36",
+//   }
+// }
 
 const api = {
   // 发布
