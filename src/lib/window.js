@@ -12,7 +12,7 @@ import {
   publishAppmsg, listAppmsgsInDraftBox, getAppmsgInDraftBox,
   searchAppmsgsInPublishForQuerys
 } from "./mp_appmsg-tasks.js"
-import { listFiles } from "./mp_file-tasks.js"
+import { listFiles, listVideos } from "./mp_file-tasks.js"
 import { postJsonToJZLApi, postJsonToEditorApi } from "./request.js"
 const path = require('path')
 const fs = require('fs')
@@ -582,9 +582,23 @@ async function reactToIpcObjectData(data, tabbedWin, viewContents) {
       if (!ret.success) {
         verbose_error("===== 获取图片素材失败 ====", ret.err_msg)
       } else {
-        verbose_log("===== 获取图谱素材成功 ====")
+        verbose_log("===== 获取图片素材成功 ====")
       }
       viewContents.send('fromMain', { tag: 'image-ret:listImages', data: { source, ret } })
+      break
+    }
+    case 'video:listVideos': {
+      verbose_log("===== listen listVideos in main ====", data)
+      const { source, token, listData } = data
+      // token => userToken
+      console.log("listData=>", listData)
+      const ret = await listVideos({ count: 10, ...listData })
+      if (!ret.success) {
+        verbose_error("===== 获取视频素材失败 ====", ret.err_msg)
+      } else {
+        verbose_log("===== 获取视频素材成功 ====", ret.page_info.item.length)
+      }
+      viewContents.send('fromMain', { tag: 'video-ret:listVideos', data: { source, ret } })
       break
     }
     case 'stat:getPvData': {

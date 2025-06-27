@@ -3,7 +3,7 @@
     <div class="p-2 bg-white">
       <div class="px-2 py-0.5 flex items-center border rounded-sm">
         <el-icon>
-          <Search />
+          <Search class="text-gray-400" />
         </el-icon>
         <el-input class="bg-white" v-model="queryRef" placeholder="搜索公众号" @input="handleInput" />
       </div>
@@ -71,7 +71,7 @@
 }
 </style>
 <script setup>
-import { ref, toRefs, onMounted, defineEmits, toRaw, onActivated, computed, watchEffect } from 'vue';
+import { ref, toRefs, onMounted, defineEmits, toRaw, onActivated, computed } from 'vue';
 import { ElMessage, ElMessageBox, ElLoading } from 'element-plus'
 import { Search, WarnTriangleFilled } from '@element-plus/icons-vue'
 import { debounceFn, sortByOrder } from "@/utils/index"
@@ -91,10 +91,6 @@ const queryRef = ref("")
 // drag
 const dragging = ref(false)
 const dragDisabled = computed(() => queryRef.value.length > 0);
-
-watchEffect(() => {
-  console.log('Count or message changed:', account_orders.value);
-});
 
 
 const props = defineProps({

@@ -25,7 +25,7 @@
       <el-button @click="handleSyncToWechatDraftBox" type="success">保存到公众号草稿箱</el-button>
       <el-button @click="openSendArticleDialog" type="success">同步到其他账号</el-button>
       <el-button @click="confirmOpenPublishToWechatDialog" type="danger">发表</el-button>
-      <el-button @click="testQueryImages" type="danger">调试查询图片</el-button>
+      <el-button @click="testQueryImages" type="danger">调试查询视频</el-button>
       <!-- <el-dropdown split-button type="danger">
         其他
         <template #dropdown>
@@ -292,7 +292,19 @@
   </el-dialog>
   <el-dialog :close-on-click-modal="false" title="视频素材" v-model="dialogVideoMaterialRef" width="600px">
     <el-row :gutter="40" class="w-full h-[400px]" v-loading="videoLoadingRef">
-      <el-col :span="24" class="w-full h-full overflow-auto">
+      <el-col :span="12">
+      </el-col>
+      <el-col :span="11">
+        <div class="px-2 py-0.5 flex items-center border rounded-sm">
+          <el-input class="bg-white query-input" v-model="video_queryRef" placeholder="搜索视频" />
+          <el-icon class="cursor-pointer" @click="openVideoMaterialDialog(2)">
+            <Search class="text-gray-400" />
+          </el-icon>
+        </div>
+      </el-col>
+      <el-col :span="1">
+      </el-col>
+      <el-col :span="24" class="w-full h-[350px] overflow-auto">
         <div class="w-full flex flex-wrap justify-start gap-4 ">
           <div v-for="(item, index) in videosRef" :key="index" class="w-[250px]"
             :class="{ 'border border-green-400': item.vid == selected_videoRef?.vid }">
@@ -305,7 +317,10 @@
       </el-col>
     </el-row>
     <template #footer>
-      <div class="dialog-footer">
+      <div class="dialog-footer flex items-center justify-center">
+        <div><simple-pager :page_no="video_current_pageRef" :total_cnt="video_total_cntRef"
+            :page_count="video_count_per_page" :list_by="paginate_videos" /></div>
+        <div class="flex-1"></div>
         <el-button @click="dialogVideoMaterialRef = false">取消</el-button>
         <el-button @click="handleImportVideo" type="primary">确定</el-button>
       </div>
@@ -590,6 +605,16 @@
 .demo-progress .el-progress--circle {
   margin-right: 15px;
 }
+
+.query-input :deep(.el-input__wrapper) {
+  box-shadow: 0 0 0 0px var(--el-input-border-color, var(--el-border-color)) inset;
+  background: transparent;
+  cursor: default;
+}
+
+.query-input :deep(.el-input__wrapper .el-input__inner) {
+  cursor: default !important;
+}
 </style>
 <script setup>
 import { ref, toRefs, shallowRef, onMounted, onBeforeUnmount, nextTick, onActivated, onDeactivated, onUnmounted, watch } from 'vue';
@@ -612,7 +637,7 @@ import { ad_categorys, adMarkerContentInUEditor, format_ad_content_in_UEditor, r
 import { getVideoFrameHtml } from "@/utils/video"
 import { apperrmsg, claim_source_types, HOUSRS, MINUTES, wxretmsg } from "@/utils/constants"
 import { ElMessage, ElMessageBox, ElLoading } from 'element-plus'
-import { ArrowUp, ArrowDown, Delete, CircleCheckFilled, CircleCloseFilled, InfoFilled } from '@element-plus/icons-vue'
+import { ArrowUp, ArrowDown, Delete, CircleCheckFilled, CircleCloseFilled, InfoFilled, Search } from '@element-plus/icons-vue'
 import { Link, Link2, RadioTower, DollarSign, SquareTerminal, Eye, ScanEye, Minus, Smartphone, Video } from 'lucide-vue-next';
 import { serializeCookie } from "@/utils/cookie"
 import axios from 'axios'
@@ -620,6 +645,7 @@ import JSON5 from "json5"
 import ImgCrop from '@/components/ImgCrop.vue';
 import BatchExtractMpArticle from '@/components/editor/BatchExtractMpArticle.vue';
 import SyncToOtherAccountsDialog from "@/dlgs/syncToOtherAccounts"
+import SimplePager from "@/components/SimplePager"
 
 const props = defineProps(['account', 'appmsg', 'mode', 'mainMsg']);
 const emitEvents = defineEmits(['titleChange', 'createAppmsg', 'msgidChange'])
@@ -780,6 +806,10 @@ const dialogVideoMaterialRef = ref(false)
 const videosRef = ref([])
 const selected_videoRef = ref(null)
 const videoLoadingRef = ref(false)
+const video_count_per_page = 2
+const video_current_pageRef = ref(1)
+const video_total_cntRef = ref(0)
+const video_queryRef = ref("")
 
 // global loading
 const globalLoadingRef = ref(false)
@@ -1830,29 +1860,102 @@ async function onBatchExtractMp(list) {
   globalLoadingRef.value = false
 }
 
-const openVideoMaterialDialog = async () => {
+// type: 0-server 1-local init 2-local query
+const openVideoMaterialDialog = async (type = 1) => {
   dialogVideoMaterialRef.value = true
   videoLoadingRef.value = true
   selected_videoRef.value = null
   videosRef.value = []
+  video_current_pageRef.value = 1
+  if (type < 2) {
+    video_queryRef.value = "" // 打开对话框
+  }
 
   const { token, session_id, name } = selectedAccount.value
 
-  const ret = await listVideos({
-    cookies: serializeCookie(JSON.parse(session_id)["cookie"]),
-    token: parseInt(token),
-    begin: 0,
-    count: 100,
-  }).catch((e) => {
-    console.log("listVideos catch:", e)
-    // handleActionErr(name, e)
-  }).finally(() => {
-    videoLoadingRef.value = false
-  })
-  console.log("videos=>", ret)
-  // videosRef.value = [...ret.data, ...ret.data, ...ret.data, ...ret.data, ...ret.data]
-  videosRef.value = ret.data
+  if (type === 0) {
+    const ret = await listVideos({
+      cookies: serializeCookie(JSON.parse(session_id)["cookie"]),
+      token: parseInt(token),
+      begin: 0,
+      count: video_count_per_page,
+    }).catch((e) => {
+      console.log("listVideos catch:", e)
+      // handleActionErr(name, e)
+    }).finally(() => {
+      videoLoadingRef.value = false
+    })
+    console.log("videos=>", ret)
+    // videosRef.value = [...ret.data, ...ret.data, ...ret.data, ...ret.data, ...ret.data]
+    videosRef.value = ret.data
+  } else {
+    // 本地请求
+
+    // const { token, session_id, name } = selectedAccount.value
+    window.ipcRenderer.send('toMain', {
+      tag: 'video:listVideos',
+      source: `${props.appmsg.appmsgid}`,
+      token: getToken(),
+      listData: {
+        cookies: serializeCookie(JSON.parse(session_id)["cookie"]),
+        token: parseInt(token),
+        query: video_queryRef.value,
+        begin: 0,
+        count: video_count_per_page,
+      }
+    })
+
+    setTimeout(() => {
+      videoLoadingRef.value = false
+    }, 15000)
+  }
 }
+
+const paginate_videos = async ({begin, count, new_page }) => {
+  console.log(`begin:${begin}, count:${count}, new_page:${new_page}`)
+  videoLoadingRef.value = true
+  selected_videoRef.value = null
+  video_current_pageRef.value = new_page
+
+  const { token, session_id, name } = selectedAccount.value
+  const type = 1
+  if (type === 0) {
+    const ret = await listVideos({
+      cookies: serializeCookie(JSON.parse(session_id)["cookie"]),
+      token: parseInt(token),
+      begin: 0,
+      count,
+    }).catch((e) => {
+      console.log("listVideos catch:", e)
+      // handleActionErr(name, e)
+    }).finally(() => {
+      videoLoadingRef.value = false
+    })
+    console.log("videos=>", ret)
+    // videosRef.value = [...ret.data, ...ret.data, ...ret.data, ...ret.data, ...ret.data]
+    videosRef.value = ret.data
+  } else {
+    // 本地请求
+    // const { token, session_id, name } = selectedAccount.value
+    window.ipcRenderer.send('toMain', {
+      tag: 'video:listVideos',
+      source: `${props.appmsg.appmsgid}`,
+      token: getToken(),
+      listData: {
+        cookies: serializeCookie(JSON.parse(session_id)["cookie"]),
+        token: parseInt(token),
+        query: video_queryRef.value,
+        begin,
+        count,
+      }
+    })
+
+    setTimeout(() => {
+      videoLoadingRef.value = false
+    }, 15000)
+  }
+}
+
 
 const handleChooseVideo = (val) => {
   selected_videoRef.value = val
@@ -2210,7 +2313,7 @@ const testQueryImages = () => {
   globalLoadingRef.value = true
   const { token, session_id, name } = selectedAccount.value
   window.ipcRenderer.send('toMain', {
-    tag: 'image:listImages',
+    tag: 'video:listVideos',
     source: `${props.appmsg.appmsgid}`,
     token: getToken(),
     listData: {
@@ -2224,6 +2327,21 @@ const testQueryImages = () => {
   setTimeout(() => {
     globalLoadingRef.value = false
   }, 6000)
+}
+
+const format_video_page_info = (page_info) => {
+  const { file_cnt, item } = page_info
+  const total_cnt = file_cnt.video_msg_cnt
+  const items = item.map(v => ({
+    cdn_url: v.img_url,
+    guide_words: v.multi_item?.[0]?.video_desc ?? "",
+    title: v.title,
+    vid: v.content,
+  }))
+  return {
+    total_cnt,
+    items,
+  }
 }
 
 watch(() => [props.mainMsg], (newVal) => {
@@ -2318,6 +2436,23 @@ watch(() => [props.mainMsg], (newVal) => {
       const { success, page_info } = ret
       if (success) {
         console.log("page_info=>", page_info)
+      }
+    } else if (tag === "video-ret:listVideos") {
+      // 关闭对话框
+      console.log(`tag:${msg.tag}`, typeof msg.data)
+      const { ret } = msg.data
+      // console.log("ret=>", ret)
+      const { success, page_info } = ret
+      if (success) {
+        // console.log("page_info=>", page_info)
+        const { items, total_cnt } = format_video_page_info(page_info)
+        // videosRef.value = [...items, ...items, ...items, ...items, ...items]
+        // video_current_pageRef.value = 1
+        // video_total_cntRef.value = 5 // total_cnt
+
+        videosRef.value = items
+        video_total_cntRef.value = total_cnt
+        videoLoadingRef.value = false
       }
     }
 
