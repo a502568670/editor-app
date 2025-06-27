@@ -227,7 +227,7 @@ const onScroll = debounceFn((state) => {
 }, 200, false)
 
 const handleAccountSelect = async ({ account, index }) => {
-  console.log('all_accounts.value=>', all_accounts.value)
+  // console.log('all_accounts.value=>', all_accounts.value)
   console.log("---->", account, index)
   selectedAccountRef.value = account
   selectedIndexRef.value = index

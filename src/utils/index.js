@@ -507,3 +507,29 @@ export function partitionPages(arr, length) {
   })
   return pages
 }
+
+// 排序函数
+export function sortByOrder(sortArray, orderArray) {
+  // 创建映射以快速查找
+  const map = new Map();
+  for (const item of sortArray) {
+      map.set(item.id, item);
+      if (!orderArray.find(i => i == item.id)) {
+        orderArray.push(item.id)
+      }
+  }
+  
+  const result = [];
+  const missingIds = [];
+  
+  // 按照顺序数组排序
+  for (const id of orderArray) {
+      if (map.has(id)) {
+          result.push(map.get(id));
+      } else {
+          missingIds.push(id);
+      }
+  }
+  
+  return { result, missingIds };
+}

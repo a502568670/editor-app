@@ -14,7 +14,8 @@ export default createStore({
       accounts: {
         list: [],
         total: 0,
-      }
+      },
+      account_orders: [],
     };
   },
   mutations: {
@@ -29,8 +30,10 @@ export default createStore({
       state.user = u;
     },
     SET_ACCOUNTS: (state, accounts) => {
-      
       state.accounts = accounts
+    },
+    SET_ACCOUNT_ORDERS: (state, account_orders) => {
+      state.account_orders = account_orders
     }
   },
   actions: {
@@ -80,20 +83,37 @@ export default createStore({
     },
 
     // 分页获取账号数据(目前按照100条先不分页)
-    async ListAccounts({ commit, state }, {page = 1, num = 100} = {page: 1, num: 100}) {
+    async ListAccounts({ commit, state, dispatch }, { page = 1, num = 100 } = { page: 1, num: 100 }) {
       const response = await listAccount({ page, num })
       console.info("SET_ACCOUNTS", response.data.data)
-      response.data.data.list?.forEach(v=>v.expired=checkWxSession(v.session_id))
+      response.data.data.list?.forEach(v => v.expired = checkWxSession(v.session_id))
       commit('SET_ACCOUNTS', response.data.data)
+      const account_orders = localStorage.getItem("account_orders")
+      if (!account_orders) {
+        console.log("==SaveAccountOrders== in ListAccounts")
+        dispatch('SaveAccountOrders', response.data.data.list)
+      } else {
+        if (state.account_orders.length === 0) {
+          console.log("account_orders:", typeof account_orders, account_orders)
+          commit('SET_ACCOUNT_ORDERS', account_orders.split(",").map(id => parseInt(id)))
+        }
+      }
     },
-    async DelAccount({commit,state},wechat_id=0){
-      await removeAccount({wechat_id})
-      var {list,total}=state.accounts
+    async DelAccount({ commit, state }, wechat_id = 0) {
+      await removeAccount({ wechat_id })
+      var { list, total } = state.accounts
       total--
-      list=list.filter(v=>v.wechat_id!==wechat_id)
-      commit('SET_ACCOUNTS',{list,total})
+      list = list.filter(v => v.wechat_id !== wechat_id)
+      commit('SET_ACCOUNTS', { list, total })
     },
-
+    async SaveAccountOrders({ commit, state }, { list }) {
+      if (list.length > 0) {
+        const account_orders = list.map(v => v.id)
+        console.log("new account_orders=>", account_orders)
+        commit('SET_ACCOUNT_ORDERS', account_orders)
+        localStorage.setItem("account_orders", account_orders)
+      }
+    },
     // 获取用户信息
     GetUserInfo({ commit, state }) {
       return new Promise((resolve, reject) => {
@@ -120,5 +140,6 @@ export default createStore({
   },
   getters: {
     all_accounts: (state) => state.accounts,
+    account_orders: (state) => state.account_orders,
   },
 });

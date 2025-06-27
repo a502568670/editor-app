@@ -12,6 +12,7 @@ import {
   publishAppmsg, listAppmsgsInDraftBox, getAppmsgInDraftBox,
   searchAppmsgsInPublishForQuerys
 } from "./mp_appmsg-tasks.js"
+import { listFiles } from "./mp_file-tasks.js"
 import { postJsonToJZLApi, postJsonToEditorApi } from "./request.js"
 const path = require('path')
 const fs = require('fs')
@@ -571,6 +572,20 @@ async function reactToIpcObjectData(data, tabbedWin, viewContents) {
       }
       viewContents.send('fromMain', { tag: 'appmsg-ret:searchAppmsgsInPublishForQuerys', data: { source, ret } })
       break;
+    }
+    case 'image:listImages': {
+      verbose_log("===== listen listImages in main ====", data)
+      const { source, token, listData } = data
+      // token => userToken
+      console.log("listData=>", listData)
+      const ret = await listFiles({ count: 12, ...listData, type: 2 })
+      if (!ret.success) {
+        verbose_error("===== 获取图片素材失败 ====", ret.err_msg)
+      } else {
+        verbose_log("===== 获取图谱素材成功 ====")
+      }
+      viewContents.send('fromMain', { tag: 'image-ret:listImages', data: { source, ret } })
+      break
     }
     case 'stat:getPvData': {
       var { list, exports } = data.data;

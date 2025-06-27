@@ -12,32 +12,41 @@
           <select-group v-model="listQuery.cate_id"></select-group>
         </el-col> -->
         <el-col :span="24" style="margin-top: 10px">
-          <el-input v-model="listQuery.keyword" clearable style="width: 100%;" placeholder="请输入账号关键词" />
+          <el-input v-model="listQuery.keyword" clearable style="width: 100%;" placeholder="请输入账号关键词" @input="handleInput" />
         </el-col>
-        <el-col :span="24" style="padding-top: 10px;">
+        <!-- <el-col :span="24" style="padding-top: 10px;">
           <el-button style="width: 100%;background-color: #51ce94;border: none" type="primary"
             @click="handleFilter">搜索</el-button>
-        </el-col>
+        </el-col> -->
       </el-row>
 
       <!--      左侧账号展示 账号列表数据 (accounts) 的获取-->
       <div style="flex: 1;overflow-y: auto;">
-        <div @click="item.expired ? handleAddMPAccount(mp_platform):addNewTab(item)" v-for="item in accounts" :key="item.id"
-          style="display: flex;align-items: center;padding: 5px; border-bottom: solid 1px #ccc;">
-          <img style="width: 40px; height: 40px;border-radius: 50%" :src="item.avatar" />
-          <div style="margin-left: 10px;flex: 1;">
-            <div>{{ item.name }}</div>
-            <div style="color: #51ce94">{{ item.platform_name + "(" + item.name + ")" }}</div>
-          </div>
-          <el-tooltip v-if="item.expired" content="登录过期">
-            <el-icon class="mr-1" style="color:red"><WarnTriangleFilled/></el-icon>
-          </el-tooltip>
-          <el-popconfirm title="你是否要删除该公众号" @confirm="onDelMPAccount(item.wechat_id)" width="250">
-            <template #reference>
-              <el-icon @click.prevent.stop class=" cursor-pointer"><Delete/></el-icon>
-            </template>
-          </el-popconfirm>
-        </div>
+        <draggable v-model="accounts" class="list-group" ghost-class="ghost" :disabled="dragDisabled"
+          handle=".handle" @start="handleDragStart" @end="handleDragEnd" item-key="id">
+          <template #item="{ element }">
+            <div @click="element.expired ? handleAddMPAccount(mp_platform):addNewTab(element)" 
+              style="display: flex;align-items: center;padding: 5px; border-bottom: solid 1px #ccc;">
+              <img style="width: 40px; height: 40px;border-radius: 50%" :src="element.avatar" :class="{'handle cursor-move': !dragDisabled }" />
+              <div style="margin-left: 10px;flex: 1;">
+                <div>{{ element.name }}</div>
+                <div style="color: #51ce94">{{ element.platform_name + "(" + element.name + ")" }}</div>
+              </div>
+              <el-tooltip v-if="element.expired" content="登录过期">
+                <el-icon class="mr-1" style="color:red">
+                  <WarnTriangleFilled />
+                </el-icon>
+              </el-tooltip>
+              <el-popconfirm title="你是否要删除该公众号" @confirm="onDelMPAccount(element.wechat_id)" width="250">
+                <template #reference>
+                  <el-icon @click.prevent.stop class=" cursor-pointer">
+                    <Delete />
+                  </el-icon>
+                </template>
+              </el-popconfirm>
+            </div>
+          </template>
+        </draggable>
       </div>
       <el-row :gutter="10">
         <!-- <el-col :span="8" style="text-align: center">
@@ -70,7 +79,7 @@
               <template #label>
                 <span class="custom-tabs-label">
                   <span v-if="item.title.length > 9" :title="item.title" class="tab-title">{{ item.title.slice(0, 9)
-                    }}</span>
+                  }}</span>
                   <span v-else class="tab-title">{{ item.title }}</span>
                 </span>
               </template>
@@ -85,7 +94,8 @@
           <el-button @click="goBack">后退</el-button>
           <el-button @click="goForward">前进</el-button>
         </div>
-        <div v-if="isDebugRef" style="flex: 1;padding: 0 15px;width: 0;overflow: scroll;white-space: nowrap;">{{ currentTab.url }}</div>
+        <div v-if="isDebugRef" style="flex: 1;padding: 0 15px;width: 0;overflow: scroll;white-space: nowrap;">{{
+          currentTab.url }}</div>
         <div v-if="isDebugRef">
           <el-button @click="refresh()">刷新</el-button>
           <el-button @click="copy(currentTab.url)">复制链接</el-button>
@@ -109,21 +119,23 @@
 </template>
 
 <script setup>
-import { nextTick, onMounted, onActivated, onUnmounted, ref, toRefs, onDeactivated } from 'vue'
+import { nextTick, onMounted, onActivated, onUnmounted, ref, toRefs, onDeactivated, computed } from 'vue'
 import { ElMessage, ElNotification } from 'element-plus'
-import {Delete,WarnTriangleFilled} from '@element-plus/icons-vue'
+import { Delete, WarnTriangleFilled } from '@element-plus/icons-vue'
 import { getToken } from "@/utils/auth";
+import { debounceFn, sortByOrder } from "@/utils/index"
 import store from '@/store'
 import {
   listAccount, createAccount, updateAccount, deleteAccount,
   removeAccountSession, refreshAccountSession
 } from '@/api/account'
+import draggable from "vuedraggable";
 import { listPlatform } from '@/api/platform'
 import { toDeepRaw } from "@/utils/convert"
 import selectPlatform from "../components/selectPlatform";
 import selectUser from "../components/selectUser";
 // import selectGroup from "../components/selectGroup";
-const { all_accounts } = toRefs(store.getters)
+const { all_accounts, account_orders } = toRefs(store.getters)
 
 const tabs = ref([])
 const currentTabId = ref(0)
@@ -144,17 +156,26 @@ const accounts = ref([])
 // const selectedAccount = ref(null)
 // const selectedAccountLoginStatus = ref({})
 
+// drag
+const dragging = ref(false)
+const dragDisabled = computed(() => listQuery.value.keyword.length > 0);
+
 const getList = () => {
   const query = listQuery.value.keyword
   console.log("query=>", query)
   console.log("all_accounts.value=>", all_accounts.value)
   const filteredAccounts = toDeepRaw(all_accounts.value.list.filter(a => a.name.includes(query)))
 
-  accounts.value = filteredAccounts
+  const not_sort = toDeepRaw(filteredAccounts)
+  console.log("all_accounts=>", all_accounts)
+  console.log("account_orders=>", account_orders.value)
+  const { result: sorted } = sortByOrder(not_sort, toDeepRaw(account_orders.value))
+
+  accounts.value = sorted
   accountTotal.value = all_accounts.value.total
   accountTotalPage.value = parseInt(accountTotal.value / listQuery.value.num) + (accountTotal.value % listQuery.value.num > 0 ? 1 : 0)
 
-  console.log("filteredAccounts=>", filteredAccounts)
+  // console.log("filteredAccounts=>", filteredAccounts)
 
   // return listAccount(listQuery.value).then(response => {
   //   accounts.value = response.data.data.list
@@ -172,6 +193,12 @@ const prvePage = () => {
   listQuery.value.page = listQuery.value.page - 1
   getList();
 }
+
+const handleInput = debounceFn((query) => {
+  listQuery.value.page = 1
+  getList()
+  // emitAccountEvents("accountFilter", { query })
+}, 200, false)
 
 
 
@@ -202,7 +229,26 @@ listPlatform({}).then(response => {
   console.error('Failed to fetch platform list:', error)
 })
 
+const handleDragStart = (e) => {
+  // console.log('handleDragStart:',e)
+  dragging.value = true
+}
 
+const handleDragEnd = async (e) => {
+  // console.log('handleDragEnd:',e)
+  dragging.value = false
+  const { oldIndex, newIndex } = e
+  if (oldIndex != newIndex) {
+    const oldId = accounts.value[newIndex].id
+    const newId = accounts.value[oldIndex].id
+    // store.dispatch('SWAPAccounts', { oldId, newId })
+    const new_account_orders = accounts.value.map(v => v.id)
+    // console.log('new_account_orders', new_account_orders)
+    store.commit('SET_ACCOUNT_ORDERS', new_account_orders)
+    localStorage.setItem("account_orders", new_account_orders)
+
+  }
+}
 
 const handleAddMPAccount = (item) => {
   console.log("handleAddMPAccount", item)
@@ -238,10 +284,10 @@ const handleAddAccount = (item, index) => {
     })
   }
 }
-async function onDelMPAccount(id){
-  await store.dispatch('DelAccount',id)
+async function onDelMPAccount(id) {
+  await store.dispatch('DelAccount', id)
   getList()
-  ElMessage({type:'success',message:'删除成功'})
+  ElMessage({ type: 'success', message: '删除成功' })
 }
 const refresh = () => {
   window.ipcRenderer.send('refresh-tab', currentTabId.value)
@@ -320,10 +366,10 @@ const throttleFunc = throttle(() => {
   if (webRef.value) {
     const width = webRef.value.offsetWidth;
     const height = webRef.value.offsetHeight;
-    var x=webRef.value.offsetLeft,y=webRef.value.offsetTop
+    var x = webRef.value.offsetLeft, y = webRef.value.offsetTop
     window.ipcRenderer.send('webBounds', {
       width,
-      height,x,y
+      height, x, y
     })
   }
 }, 200);
@@ -398,10 +444,10 @@ onMounted(() => {
           if (webRef.value) {
             const width = webRef.value.offsetWidth;
             const height = webRef.value.offsetHeight;
-            var x=webRef.value.offsetLeft,y=webRef.value.offsetTop
+            var x = webRef.value.offsetLeft, y = webRef.value.offsetTop
             window.ipcRenderer.send('webBounds', {
               width,
-              height,x,y
+              height, x, y
             })
           }
         })
@@ -450,10 +496,10 @@ onMounted(() => {
       if (webRef.value) {
         const width = webRef.value.offsetWidth;
         const height = webRef.value.offsetHeight;
-        var x=webRef.value.offsetLeft,y=webRef.value.offsetTop
+        var x = webRef.value.offsetLeft, y = webRef.value.offsetTop
         window.ipcRenderer.send('webBounds', {
           width,
-          height,x,y
+          height, x, y
         })
       }
     })
@@ -527,5 +573,13 @@ window.ipcRenderer.send('control-ready')
 
 ::v-deep .el-tabs--border-card>.el-tabs__content {
   padding: 0px !important;
+}
+.ghost {
+  opacity: 0.5;
+  background: #c8ebfb;
+}
+
+.not-draggable {
+  cursor: no-drop;
 }
 </style>

@@ -25,6 +25,7 @@
       <el-button @click="handleSyncToWechatDraftBox" type="success">保存到公众号草稿箱</el-button>
       <el-button @click="openSendArticleDialog" type="success">同步到其他账号</el-button>
       <el-button @click="confirmOpenPublishToWechatDialog" type="danger">发表</el-button>
+      <el-button @click="testQueryImages" type="danger">调试查询图片</el-button>
       <!-- <el-dropdown split-button type="danger">
         其他
         <template #dropdown>
@@ -1358,7 +1359,7 @@ const openPublishToWechatDialog = async () => {
 
   // 发布调试完毕需要先将appmsg同步到草稿箱
   await _saveAppMsg(1)
-  if(!currentArticleRef.value.cdn_url) return
+  if (!currentArticleRef.value.cdn_url) return
   dialogPublishArticleVisibleRef.value = true
   const today = new Date()
   publishTimingDatesRef.value = Array.from({ length: 7 }, (_, i) => {
@@ -1605,8 +1606,8 @@ const openSendArticleDialog = () => {
   dialogSendArticleVisibleRef.value = true
 }
 
-function handleInstantSend({otherAccountsChoosed}){
-  otherAccountsChoosedRef.value=otherAccountsChoosed
+function handleInstantSend({ otherAccountsChoosed }) {
+  otherAccountsChoosedRef.value = otherAccountsChoosed
   handleSendToOtherAccount()
 }
 const handleSendToOtherAccount = async () => {
@@ -2205,6 +2206,26 @@ const syncToList = (key) => {
 
 }
 
+const testQueryImages = () => {
+  globalLoadingRef.value = true
+  const { token, session_id, name } = selectedAccount.value
+  window.ipcRenderer.send('toMain', {
+    tag: 'image:listImages',
+    source: `${props.appmsg.appmsgid}`,
+    token: getToken(),
+    listData: {
+      cookies: serializeCookie(JSON.parse(session_id)["cookie"]),
+      token: parseInt(token),
+      //group_id: ??, // 不传或者传0 就是我的图片
+      begin: 0,
+    }
+  })
+
+  setTimeout(() => {
+    globalLoadingRef.value = false
+  }, 6000)
+}
+
 watch(() => [props.mainMsg], (newVal) => {
   console.log("EditorTab props.changed=>", newVal)
   const msg = newVal[0]
@@ -2259,7 +2280,7 @@ watch(() => [props.mainMsg], (newVal) => {
     } else if (tag === "appmsg-ret:publishToWechat") {
       console.log("publishToWechatResult msg.data=>", msg.data)
       const { ret } = msg.data
-      const { success, msg: retmsg,code } = ret
+      const { success, msg: retmsg, code } = ret
       if (success) {
         dialogPublishArticleVisibleRef.value = false
         ElMessage({
@@ -2268,8 +2289,8 @@ watch(() => [props.mainMsg], (newVal) => {
           duration: 2 * 1000
         })
       } else {
-        if(wxretmsg[code]){
-          ElMessage({type:'error',message:wxretmsg[code]})
+        if (wxretmsg[code]) {
+          ElMessage({ type: 'error', message: wxretmsg[code] })
           return;
         }
         ElMessageBox.alert(`发布到微信出现错误:${retmsg}`, '错误', {
@@ -2291,6 +2312,14 @@ watch(() => [props.mainMsg], (newVal) => {
         checkTitleResults.value = items
       }
 
+    } else if (tag === "image-ret:listImages") {
+      console.log(`tag:${msg.tag}`, typeof msg.data)
+      const { ret } = msg.data
+      // console.log("ret=>", ret)
+      const { success, page_info } = ret
+      if (success) {
+        console.log("page_info=>", page_info)
+      }
     }
 
     if (globalLoadingRef.value) {
