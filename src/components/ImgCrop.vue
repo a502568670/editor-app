@@ -1,6 +1,7 @@
 <template>
-    <div class="container-img-crop">
+    <div class="container-img-crop" :class="{plain:button}">
         <img v-if="imgSrc" :src="previewSrc || imgSrc" class="max-h-full" alt="">
+        <el-button v-else-if="button" type="primary" :icon="UploadFilled" @click="refInput.click()">本地上传</el-button>
         <template v-else>
             <el-icon :size="24">
                 <UploadFilled />
@@ -47,7 +48,20 @@ var opt = {
     full: true,
 }
 var open = ref(false)
-var { imgSrc } = defineProps(['imgSrc'])
+var { imgSrc, button } = defineProps({
+    imgSrc: String,
+    button: Boolean,
+})
+defineExpose({
+    click(){
+        refInput.click()
+    },
+    cropWith(url){
+        open.value=true
+        cropperSrc.value=url
+        opt.extraData={name:'图片-'+Date.now()+'.png',type:'image/png'}
+    },
+})
 // var imgSrc=defineModel()
 var $emit = defineEmits(['change'])
 var previewSrc = ref(imgSrc)
@@ -93,7 +107,7 @@ watch(() => imgSrc, () => {
 })
 </script>
 <style>
-.container-img-crop {
+.container-img-crop:not(.plain) {
     display: flex;
     flex-direction: column;
     align-items: center;
