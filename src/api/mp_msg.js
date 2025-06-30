@@ -37,6 +37,12 @@ export function listArticlesByAppMsg(appmsgid) {
   })
 }
 
+export function newlistArticlesByAppMsg(wechat_id, appmsgid) {
+  return request({
+    url: `/mp_msg/${wechat_id}/newlist?appmsgid=${appmsgid}`
+  })
+}
+
 export function listArticleGroups(wechat_id) {
   return request({
     url: `/mp_msg/${wechat_id}/groups`
