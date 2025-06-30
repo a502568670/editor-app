@@ -91,7 +91,7 @@ export default createStore({
       const account_orders = localStorage.getItem("account_orders")
       if (!account_orders) {
         console.log("==SaveAccountOrders== in ListAccounts")
-        dispatch('SaveAccountOrders', response.data.data.list)
+        dispatch('SaveAccountOrders', response.data.data)
       } else {
         if (state.account_orders.length === 0) {
           console.log("account_orders:", typeof account_orders, account_orders)
