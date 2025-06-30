@@ -14,8 +14,14 @@
             <template #dropdown>
               <el-dropdown-menu>
                 <el-dropdown-item
-                  @click="emitEvents('createAppmsg', { type: 0, account_id: props.account.id })">创建当前公众号素材</el-dropdown-item>
-                <el-dropdown-item @click="emitEvents('createAppmsg', { type: 1 })">创建其他公众号素材</el-dropdown-item>
+                  @click="emitEvents('createAppmsg', { type: 0, account_id: props.account.id })">创建当前公众号图文素材</el-dropdown-item>
+                  <el-dropdown-item
+                  @click="emitEvents('createAppmsg', { type: 0, account_id: props.account.id, item_show_type: 8 })">创建当前公众号小绿书</el-dropdown-item>
+                  <el-dropdown-item
+                  @click="emitEvents('createAppmsg', { type: 0, account_id: props.account.id, item_show_type: 5 })">创建当前公众号视频素材</el-dropdown-item>
+                <el-dropdown-item divided @click="emitEvents('createAppmsg', { type: 1 })">创建其他公众号图文素材</el-dropdown-item>
+                <el-dropdown-item  @click="emitEvents('createAppmsg', { type: 1, item_show_type: 8 })">创建其他公众号小绿书</el-dropdown-item>
+                <el-dropdown-item  @click="emitEvents('createAppmsg', { type: 1, item_show_type: 5 })">创建其他公众号视频素材</el-dropdown-item>
               </el-dropdown-menu>
             </template>
           </el-dropdown>
@@ -108,7 +114,7 @@
                 </div>
               </div>
               <div class="w-full flex h-20 items-center p-1 justify-center">
-                <el-dropdown>
+                <el-dropdown :class="{'hidden': is_xiaolvshu}" >
                   <el-button type="primary">
                     新建消息<el-icon class="el-icon--right"><arrow-down /></el-icon>
                   </el-button>
@@ -617,7 +623,7 @@
 }
 </style>
 <script setup>
-import { ref, toRefs, shallowRef, onMounted, onBeforeUnmount, nextTick, onActivated, onDeactivated, onUnmounted, watch } from 'vue';
+import { ref, toRefs, shallowRef, onMounted, onBeforeUnmount, nextTick, onActivated, onDeactivated, onUnmounted, watch, computed } from 'vue';
 // import { listAccount } from '@/api/account'
 import store from '@/store'
 import { getToken } from "@/utils/auth";
@@ -649,6 +655,7 @@ import SimplePager from "@/components/SimplePager"
 
 const props = defineProps(['account', 'appmsg', 'mode', 'mainMsg']);
 const emitEvents = defineEmits(['titleChange', 'createAppmsg', 'msgidChange'])
+const is_xiaolvshu = computed(() => props.appmsg?.item_show_type === 8);
 
 const { all_accounts } = toRefs(store.getters)
 // console.log('envVars.backend_url=>', envVars.backend_url)
@@ -2369,6 +2376,18 @@ watch(() => [props.mainMsg], (newVal) => {
         guide_words = content_text
         vid = video_page_info.video_id
         content_noencode = getVideoFrameHtml(vid, cdn_url) //`<iframe class="edui-video-iframe" data-vidtype="2" data-mpvid="${video_id}" data-cover="${cdn_url}" allowfullscreen="" frameborder="0" data-w="1080" data-ratio="0.5625" style="border-radius: 4px;" src="https://mp.weixin.qq.com/cgi-bin/readtemplate?t=tmpl/video_tmpl&vid=${video_id}" width="420" height="280" frameborder="0" allowfullscreen=""></iframe>`
+      }
+
+      if (item_show_type === 8 && currentArticleRef.value.item_show_type != 8) {
+        // 小绿书
+        console.log("小绿书:", ret)
+        ElMessageBox.alert(`当前的素材和导入的是小绿书链接不匹配`, '错误', {
+          confirmButtonText: '确定',
+          type: 'error'
+        }).catch(() => {
+          console.log("publish receive catch")
+        })
+        return
       }
       // console.log("content_noencode=>", content_noencode)
       // if (currentArticleRef.value.item_show_type === 0) {

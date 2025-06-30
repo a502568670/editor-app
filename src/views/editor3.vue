@@ -2,7 +2,7 @@
   <div class="flex w-ful h-full bg-[#e9f9f1] pt-1">
     <el-tabs v-show="editableTabs.length > 0" v-model="editableTabsValue" type="card" class="editor-tabs w-full h-full"
       closable @tab-remove="handleCloseTab">
-      <el-tab-pane v-for="(item, idx) in editableTabs" :key="idx"  :name="item.name">
+      <el-tab-pane v-for="(item, idx) in editableTabs" :key="idx" :name="item.name">
         <template #label><i><img class="w-6 h-6 rounded-full mr-2" :src="item.icon" /></i> {{ item.title }}</template>
         <!-- <EditorTab :key="appmsgRef.appmsgid+''" :account="selectedAccountRef" :appmsg="appmsgRef" /> -->
         <component :key="idx" :is="EditorTab" :account="item.account" :appmsg="item.appmsg" :mode="item.mode"
@@ -23,16 +23,31 @@
             </div>
             <img src="@/assets/image/create_material.png" style="width: 100%" />
             <div class="flex justify-center items-center">
-              <el-button
-                @click="handleCreateAppMsg({ type: 0, account_id: selectedAccountRef?.id })"
-                size="large" type="primary">
+              <!-- <el-button @click="handleCreateAppMsg({ type: 0, account_id: selectedAccountRef?.id })" size="large"
+                type="primary">
                 <div class="w-[180px] py-5 ">
                   <el-icon>
                     <Plus />
                   </el-icon>
                   <span class="ml-5 text-lg">创建素材</span>
                 </div>
-              </el-button>
+              </el-button> -->
+              <div class="w-[180px] py-5 ">
+                <el-dropdown>
+                  <el-button type="primary" size="large" class="text-lg">
+                    <el-icon>
+                      <Plus />
+                    </el-icon><span class="ml-5 text-lg">创建素材</span>
+                  </el-button>
+                  <template #dropdown>
+                    <el-dropdown-menu>
+                      <el-dropdown-item @click="handleCreateAppMsg({ type: 0, account_id: selectedAccountRef?.id })">创建图文素材</el-dropdown-item>
+                      <el-dropdown-item @click="handleCreateAppMsg({ type: 0, account_id: selectedAccountRef?.id, item_show_type: 8 })">创建小绿书</el-dropdown-item>
+                      <el-dropdown-item @click="handleCreateAppMsg({ type: 0, account_id: selectedAccountRef?.id, item_show_type: 5 })">创建视频素材</el-dropdown-item>
+                    </el-dropdown-menu>
+                  </template>
+                </el-dropdown>
+              </div>
             </div>
           </div>
         </el-card>
@@ -137,13 +152,13 @@ const handleAccountSelect = async ({ account, index }) => {
 // const formatTitleSuffix = (account_name) => {
 //   return account_name ? `-<${account_name}>` : ""
 // }
-const handleCreateAppMsg = ({ type, account_id }) => {
+const handleCreateAppMsg = ({ type, account_id, item_show_type = 0 }) => {
 
   if (type === 0) {
     const new_appmsgid = 0 - (+new Date())
     const new_mp_msg = {
       msg_id: 0 - (+new Date()),
-      item_show_type: 0,
+      item_show_type,
       title: `新标题${++tabIndex}`,
       author: "",
       copyright_type: 0,
