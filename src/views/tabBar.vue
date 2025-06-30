@@ -25,7 +25,7 @@
         <draggable v-model="accounts" class="list-group" ghost-class="ghost" :disabled="dragDisabled"
           handle=".handle" @start="handleDragStart" @end="handleDragEnd" item-key="id">
           <template #item="{ element }">
-            <div @click="addNewTab(element)" 
+            <div @click="element.expired ? handleAddMPAccount(mp_platform):addNewTab(element)" 
               style="display: flex;align-items: center;padding: 5px; border-bottom: solid 1px #ccc;">
               <img style="width: 40px; height: 40px;border-radius: 50%" :src="element.avatar" :class="{'handle cursor-move': !dragDisabled }" />
               <div style="margin-left: 10px;flex: 1;">
