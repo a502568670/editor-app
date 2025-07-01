@@ -133,7 +133,11 @@ app.on('ready', async () => {
   if (isDevelopment && !process.env.IS_TEST) {
     // Install Vue Devtools
     try {
+      // const vuejs_devtools_path = "/Users/zppro/Library/Application Support/Google/Chrome/Default/Extensions/nhdogjmejiglipccpnnnanhbledajbpd/7.7.7_0"
       // await installExtension(VUEJS3_DEVTOOLS)
+      // session.defaultSession.loadExtension(
+      //   vuejs_devtools_path
+      // );
     } catch (e) {
       console.error('Vue Devtools failed to install:', e.toString())
     }
