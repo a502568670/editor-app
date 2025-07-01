@@ -83,7 +83,7 @@ export default createStore({
     },
 
     // 分页获取账号数据(目前按照100条先不分页)
-    async ListAccounts({ commit, state, dispatch }, { page = 1, num = 100 } = { page: 1, num: 100 }) {
+    async ListAccounts({ commit, state, dispatch }, { page = 1, num = 500 } = { page: 1, num: 500 }) {
       const response = await listAccount({ page, num })
       console.info("SET_ACCOUNTS", response.data.data)
       response.data.data.list?.forEach(v => v.expired = checkWxSession(v.session_id))
@@ -91,7 +91,7 @@ export default createStore({
       const account_orders = localStorage.getItem("account_orders")
       if (!account_orders) {
         console.log("==SaveAccountOrders== in ListAccounts")
-        dispatch('SaveAccountOrders', response.data.data.list)
+        dispatch('SaveAccountOrders', response.data.data)
       } else {
         if (state.account_orders.length === 0) {
           console.log("account_orders:", typeof account_orders, account_orders)

@@ -629,7 +629,7 @@ import store from '@/store'
 import { getToken } from "@/utils/auth";
 import {
   saveArticleDraft,
-  listArticlesByAppMsg, listArticleGroups, swapArticles,
+  newlistArticlesByAppMsg, listArticleGroups, swapArticles,
   deleteArticleDraft, removeMpMsg, genArticleDraftPreviewUrl, previewQRCode,
 } from "@/api/mp_msg"
 import { saveAppMsg, send_to_other_accounts_events } from "@/api/appmsg"
@@ -1001,8 +1001,10 @@ const listArticles = async () => {
   const appmsgid = _getAppMsgId()
   // appmsgidRef.value
   console.log("appmsgid=>", appmsgid)
+
   if (appmsgid > 0 || props.mode === 'edit') {
-    mp_msgsRef.value = await listArticlesByAppMsg(appmsgid).catch((err) => { }).then(response => {
+    const { wechat_id } = selectedAccount.value
+    mp_msgsRef.value = await newlistArticlesByAppMsg(wechat_id, appmsgid).catch((err) => { }).then(response => {
       return response.data;
     })
     console.log("mp_msgsRef.value=>", mp_msgsRef.value)
@@ -1680,8 +1682,10 @@ const handleSendToOtherAccount = async () => {
   //   soruce_appmsgid: appmsgid,
   //   target_wechat_ids: otherAccountsChoosedRef.value
   // })
+  const { wechat_id } = selectedAccount.value
   let stepRet
   await send_to_other_accounts_events({
+    source_wechat_id: wechat_id,
     soruce_appmsgid: appmsgid,
     target_wechat_ids: otherAccountsChoosedRef.value
   }, (data) => {

@@ -585,9 +585,10 @@ const sendToOtherAccount = async (appmsgid, otherAccountsChoosed) => {
       type: 'error'
     }).catch(() => { })
   }, timeoutSendToOtherAccounts)
-
+  const { wechat_id } = selectedAccountRef.value
   let stepRet
   await send_to_other_accounts_events({
+    source_wechat_id: wechat_id,
     soruce_appmsgid: appmsgid,
     target_wechat_ids: otherAccountsChoosed
   }, (data) => {
