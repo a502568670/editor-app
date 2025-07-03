@@ -189,7 +189,7 @@ const materialTypeRef = ref(0) // 0-草稿箱 1-本地素材
 
 // appmsg同步到其他账号设置对话框
 const dialogSyncToOtherAccountsVisibleRef = ref(false)
-const timeoutSendToOneAccount = 30 * 1000;
+const timeoutSendToOneAccount = 3 * 60 * 1000;
 
 // appmsg同步到其他账号进度对话框
 const dialogOperateProgressVisbleRef = ref(false)
@@ -585,9 +585,10 @@ const sendToOtherAccount = async (appmsgid, otherAccountsChoosed) => {
       type: 'error'
     }).catch(() => { })
   }, timeoutSendToOtherAccounts)
-
+  const { wechat_id } = selectedAccountRef.value
   let stepRet
   await send_to_other_accounts_events({
+    source_wechat_id: wechat_id,
     soruce_appmsgid: appmsgid,
     target_wechat_ids: otherAccountsChoosed
   }, (data) => {
