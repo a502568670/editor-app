@@ -787,7 +787,7 @@ let accountsRef = ref([])
 const dialogSendArticleVisibleRef = ref(false)
 let otherAccountsRef = ref([])
 let otherAccountsChoosedRef = ref([])
-const timeoutSendToOneAccount = 30 * 1000; // ms
+const timeoutSendToOneAccount = 3 * 60 * 1000; // ms
 
 
 // 标题检测
