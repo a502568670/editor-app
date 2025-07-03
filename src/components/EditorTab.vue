@@ -1088,6 +1088,12 @@ const swapUp = async (msg_id) => {
   const idx = mp_msgsRef.value.findIndex(v => v.msg_id === msg_id)
   const prev = mp_msgsRef.value[idx - 1].msg_id
   console.log("prev index:", prev)
+  if (props.mode === 'create') {
+    var tmp=mp_msgsRef.value[idx];
+    mp_msgsRef.value[idx]=mp_msgsRef.value[idx-1]
+    mp_msgsRef.value[idx-1]=tmp
+    return;
+  }
   await swapArticles(prev, msg_id).catch((err) => { })
   await listArticles()
 }
@@ -1096,14 +1102,21 @@ const swapDown = async (msg_id) => {
     return
   }
   const idx = mp_msgsRef.value.findIndex(v => v.msg_id === msg_id)
-  const next = mp_msgsRef.value[idx + 1].msg_id
+  const next = mp_msgsRef.value[idx + 1]?.msg_id
   console.log("next index:", next)
+  if(!next)return
+  if (props.mode === 'create') {
+    var tmp=mp_msgsRef.value[idx];
+    mp_msgsRef.value[idx]=mp_msgsRef.value[idx+1]
+    mp_msgsRef.value[idx+1]=tmp
+    return;
+  }
   await swapArticles(msg_id, next)
   await listArticles()
 }
 
 const checkHasNotSave = (showMessage) => {
-  const not_save = mp_msgsRef.value.find(v => v.msg_id === 0)
+  const not_save = mp_msgsRef.value.find(v => v.msg_id < 0)&&props.mode==='edit'
   if (not_save && showMessage) {
     ElMessageBox.alert(`将当前未保存的文章暂存后再操作`, '信息', {
       confirmButtonText: '确定',
