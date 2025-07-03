@@ -7,25 +7,25 @@
         </el-icon>
         <span class="mt-1">{{ $attrs.placeholder }}</span>
     </template>
-    <el-dialog class="img-picker dialog" v-model="open" title="选择图片" width="850px" append-to-body>
-      <div class="w-full flex">
+    <el-dialog class="img-picker dialog " v-model="open" title="选择图片" width="850px"  append-to-body>
+      <div class="w-full flex h-[480px]">
         <div class="w-[130px] h-full overflow-y-scroll">
-          <el-menu class="min-h-full" default-active="local" @select="onSelect">
+          <el-menu class="min-h-full h-full" :default-active="0" default-openeds="['material']" @select="onSelect">
             <el-menu-item index="local">从正文选择</el-menu-item>
             <el-sub-menu index="material">
               <template #title>公众号图片</template>
               <el-menu-item v-for="v in groups" :key="v.id" :index="v.id">
-                {{ v.name }}
+                 {{ v.name }}
                 <el-tag class="ml-1" size="small" round>{{ v.count }}</el-tag>
               </el-menu-item>
             </el-sub-menu>
           </el-menu>
         </div>
-        <div class="w-[700px]">
+        <div class="w-[700px] h-[480px] flex flex-col">
           <div class="flex justify-end">
             <ImgCrop ref="refImgCrop" @change="onImageCrop" button/>
           </div>
-          <el-checkbox-group v-if="imgs.length" class="flex flex-wrap p-2 mt-2" v-model="selected">
+          <el-checkbox-group v-if="imgs.length" class="flex-1 flex flex-wrap p-2 mt-2" v-model="selected">
             <div class="item ml-3 mb-3" v-for="(v,idx) in imgs" :key="idx">
               <!-- <img class="img size-[100px] object-contain" :src="v.cdn_url" alt=""  @click="selected.indexOf(idx)<0&&selected.push(idx)"/> -->
               <el-image class="img size-[100px] object-contain" fit="contain" :src="v.cdn_url" alt=""  @click="selected.indexOf(idx)<0&&selected.push(idx)"/>
@@ -58,11 +58,12 @@ var pickerQuery=defineModel()
 var total=computed(()=>groups.value.find(v=>v.id==pickerQuery.value.group_id).count)
 var groups=shallowRef([])
 var open=ref(false)
-var activeMenu=ref('local')
+var activeMenu=ref(['material', 0])
 var imgs=ref([])
 var refInput=ref(null)
 var selected=ref([])
 var refImgCrop=ref(null)
+
 defineExpose({
   uploadSucc(url){
     if(activeMenu.value==='material'){
@@ -120,6 +121,8 @@ function getEditorImgs(){
   imgs.value=urls;
 }
 function onSelect(index, indexPath){
+  console.log("index:", index)
+  console.log("indexPath:", indexPath)
   if(indexPath.length>1){
     activeMenu.value=indexPath[0]
     pickerQuery.value={...initParams,group_id:indexPath[1]}
