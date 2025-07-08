@@ -5,7 +5,7 @@
       <el-tab-pane v-for="(item, idx) in editableTabs" :key="idx" :name="item.name">
         <template #label><i><img class="w-6 h-6 rounded-full mr-2" :src="item.icon" /></i> {{ item.title }}</template>
         <!-- <EditorTab :key="appmsgRef.appmsgid+''" :account="selectedAccountRef" :appmsg="appmsgRef" /> -->
-        <component :key="idx" :is="EditorTab" :account="item.account" :appmsg="item.appmsg" :mode="item.mode"
+        <component :key="item.tabKey" :is="EditorTab" :account="item.account" :appmsg="item.appmsg" :mode="item.mode"
           :mainMsg="item.mainMsg" @title-change="handleTitleChange" @create-appmsg="handleCreateAppMsg"
           @msgid-change="id => onMsgidChange(id, idx)"></component>
       </el-tab-pane>
@@ -77,6 +77,7 @@ import EditorTab from "@/components/EditorTab"
 import ChooseAccountDialog from "@/dlgs/chooseAccount"
 import { Plus } from '@element-plus/icons-vue'
 import { toDeepRaw } from "@/utils/convert"
+import { v4 as uuidv4 } from 'uuid';
 import { useRoute } from 'vue-router'
 import { useStore } from 'vuex'
 
@@ -238,6 +239,7 @@ const handleCloseTab = (targetName) => {
 
 const addTab = (account, appmsg, { title, icon, mode }) => {
   const newTabName = `${appmsg.appmsgid}`
+  const tabKey = uuidv4()
   editableTabs.value.push({
     title: title ? title : appmsg.title,
     icon: icon,
@@ -246,6 +248,7 @@ const addTab = (account, appmsg, { title, icon, mode }) => {
     appmsg,
     mode,
     mainMsg: null,
+    tabKey,
   })
   editableTabsValue.value = newTabName
 

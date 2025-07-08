@@ -18,7 +18,7 @@
             <img class="w-10 h-10 rounded-full" :class="{ 'handle cursor-move': !dragDisabled }"
               :src="element.avatar" />
             <div class="flex-1 self-start pl-2 flex flex-col">
-              <div class="flex-1 break-all">{{ element.name }}({{ element.id }})</div>
+              <div class="flex-1 break-all">{{ element.name }}</div>
               <div class=" text-gray-300">--</div>
             </div>
             <el-tooltip v-if="element.expired" content="登录过期">

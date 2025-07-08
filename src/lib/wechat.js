@@ -102,7 +102,8 @@ async function init(d, postTokenInWin) {
           // verbose_log("checkLoginStatus finalURL2=>", d.webview.webContents.getURL())
           const urlParams = new URLSearchParams(new URL(finalURL).search);
           const token = urlParams.get('token');
-          const settingPageURL = `https://mp.weixin.qq.com/cgi-bin/settingpage?t=setting/index&action=index&token=${token}&lang=zh_CN&f=json`;
+          const settingPageURL_Old = `https://mp.weixin.qq.com/cgi-bin/settingpage?t=setting/index&action=index&token=${token}&lang=zh_CN&f=json`;
+          const settingPageURL = `https://mp.weixin.qq.com/cgi-bin/safecenterstatus?action=protect&t=setting/safe-protect&token=${token}&lang=zh_CN&f=json`;
           verbose_log('拼接后的settingPageURL', settingPageURL);
           // const session = viewData.webview.webContents.session;
 
@@ -125,8 +126,10 @@ async function init(d, postTokenInWin) {
             if (response.ok) {
               const data = await response.json();
               // verbose_log('data=>', data)
-              let nickname = data.setting_info && data.setting_info.nickname && data.setting_info.nickname.nickname;
-              const originalUsername = data.setting_info && data.setting_info.original_username;
+              // let nickname = data.setting_info && data.setting_info.nickname && data.setting_info.nickname.nickname;
+              // const originalUsername = data.setting_info && data.setting_info.original_username;
+              let nickname = data.user_info && data.user_info.nick_name;
+              const originalUsername = data.base_resp && data.base_resp.master_ticket_id;
               verbose_log('获取到的原始iD:', originalUsername);
               const original_id = viewData.user && viewData.user.original_id;
               if (original_id && original_id !== originalUsername) {
@@ -139,7 +142,8 @@ async function init(d, postTokenInWin) {
                 nickname = "未命名账号"
               }
               if (originalUsername) {
-                const avatarUrl = `https://open.weixin.qq.com/qr/code?username=${originalUsername}`;
+                // const avatarUrl = `https://open.weixin.qq.com/qr/code?username=${originalUsername}`;
+                const avatarUrl = data.user_info && data.user_info.head_img;
 
 
                 const decodedNickname = escape(nickname)

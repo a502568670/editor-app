@@ -241,9 +241,11 @@ export default {
           // console.log('this.loginForm=>', this.loginForm)
           store.dispatch('LoginByUsernameSimple', this.loginForm).then(response => {
             // console.log('LoginByUsernameSimple response=>', response)
+            localStorage.setItem("username", this.loginForm.username)
             if (this.jzmm) {
-              localStorage.setItem("username", this.loginForm.username)
               localStorage.setItem("password", this.loginForm.password)
+            } else {
+              localStorage.removeItem("password")
             }
             this.loading = false
 

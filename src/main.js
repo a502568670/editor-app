@@ -15,7 +15,7 @@ import locale from 'element-plus/dist/locale/zh-cn.mjs'
 import './assets/styles/global.css'
 import Layout from '@/layout/index.vue'
 import Home from '@/layout/home.vue'
-import { getToken } from "./utils/auth";
+import { getToken, removeToken } from "./utils/auth";
 import CKEditor from '@mayasabha/ckeditor4-vue3';
 import VueUeditorWrap from 'vue-ueditor-wrap';
 
@@ -153,12 +153,17 @@ router.beforeEach((to, from, next) => {
     if (to.path === '/login') {
       // next({ path: '/home' })
       // next({ path: '/editor4' })
-      store.dispatch('ListAccounts').then(() => {
-        // next({ path: '/editor4' })
-        next({ path: '/material_lib' })
-        // next({ path: '/editor3' })
-      })
-      
+      if (localStorage.getItem("password")) {
+        store.dispatch('ListAccounts').then(() => {
+          // next({ path: '/editor4' })
+          next({ path: '/material_lib' })
+          // next({ path: '/editor3' })
+        })
+      } else {
+        console.log("not remember password")
+        removeToken()
+        next()
+      }
     } else {
       store.dispatch('GetUserInfo').then(res => { // 拉取user_info
         // console.log("GetUserInfo=>", res)

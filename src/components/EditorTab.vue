@@ -31,7 +31,6 @@
       <el-button @click="handleSyncToWechatDraftBox" type="success">保存到公众号草稿箱</el-button>
       <el-button @click="openSendArticleDialog" type="success">同步到其他账号</el-button>
       <el-button @click="confirmOpenPublishToWechatDialog" type="danger">发表</el-button>
-      <el-button @click="testQueryImages" type="danger">调试查询视频</el-button>
       <!-- <el-dropdown split-button type="danger">
         其他
         <template #dropdown>
@@ -225,7 +224,10 @@
               class="cursor-pointer border h-16 w-[180px] flex justify-center items-center bg-[#8c8c8c]">设置封面图</div>
             <input class="invisible" ref="cdnFileInputRef" @change="handleImage" type="file" accept="image/*">
           </el-col>
-          <ImgCrop :imgSrc="currentArticleRef.cdn_url" placeholder="设置封面图" @change="handleImageUpload"></ImgCrop>
+          <ImgPicker ref="refImgPicker" v-model="pickerQuery" :pageInfo="pickerPageInfo" 
+            :imgSrc="currentArticleRef.cdn_url" placeholder="设置封面图" 
+            @change="handleImageUpload" @confirm="onImgPick" :editorInst="editorRef"/>
+          <!-- <ImgCrop :imgSrc="currentArticleRef.cdn_url" placeholder="设置封面图" @change="handleImageUpload"></ImgCrop> -->
         </el-row>
         <!-- <el-row :gutter="4" class="mb-1 invisible">
         <el-col :span="24">
@@ -652,6 +654,7 @@ import ImgCrop from '@/components/ImgCrop.vue';
 import BatchExtractMpArticle from '@/components/editor/BatchExtractMpArticle.vue';
 import SyncToOtherAccountsDialog from "@/dlgs/syncToOtherAccounts"
 import SimplePager from "@/components/SimplePager"
+import ImgPicker from '@/components/editor/ImgPicker.vue';
 
 const props = defineProps(['account', 'appmsg', 'mode', 'mainMsg']);
 const emitEvents = defineEmits(['titleChange', 'createAppmsg', 'msgidChange'])
@@ -794,7 +797,7 @@ let accountsRef = ref([])
 const dialogSendArticleVisibleRef = ref(false)
 let otherAccountsRef = ref([])
 let otherAccountsChoosedRef = ref([])
-const timeoutSendToOneAccount = 30 * 1000; // ms
+const timeoutSendToOneAccount = 3 * 60 * 1000; // ms
 
 
 // 标题检测
@@ -975,7 +978,11 @@ function handleImageUpload(info) {
   cdnRef.value = { cdn_content_type: info.type, cdn_base64_image: info.data, cdn_filename: info.name }
   uploadCover()
 }
-
+function onImgPick(urls){
+  currentArticleRef.value.cdn_url = urls[0]
+  syncToList("cdn_url")
+}
+var refImgPicker=ref(null)
 const uploadCover = async () => {
   const { session_id, token } = selectedAccount.value
   console.log("uploadCover=>", cdnRef.value)
@@ -992,6 +999,7 @@ const uploadCover = async () => {
     currentArticleRef.value.cdn_url = cdn_url
 
     syncToList("cdn_url")
+    refImgPicker.value.uploadSucc(cdn_url)
   }
 }
 
@@ -1087,6 +1095,12 @@ const swapUp = async (msg_id) => {
   const idx = mp_msgsRef.value.findIndex(v => v.msg_id === msg_id)
   const prev = mp_msgsRef.value[idx - 1].msg_id
   console.log("prev index:", prev)
+  if (props.mode === 'create') {
+    var tmp=mp_msgsRef.value[idx];
+    mp_msgsRef.value[idx]=mp_msgsRef.value[idx-1]
+    mp_msgsRef.value[idx-1]=tmp
+    return;
+  }
   await swapArticles(prev, msg_id).catch((err) => { })
   await listArticles()
 }
@@ -1095,14 +1109,21 @@ const swapDown = async (msg_id) => {
     return
   }
   const idx = mp_msgsRef.value.findIndex(v => v.msg_id === msg_id)
-  const next = mp_msgsRef.value[idx + 1].msg_id
+  const next = mp_msgsRef.value[idx + 1]?.msg_id
   console.log("next index:", next)
+  if(!next)return
+  if (props.mode === 'create') {
+    var tmp=mp_msgsRef.value[idx];
+    mp_msgsRef.value[idx]=mp_msgsRef.value[idx+1]
+    mp_msgsRef.value[idx+1]=tmp
+    return;
+  }
   await swapArticles(msg_id, next)
   await listArticles()
 }
 
 const checkHasNotSave = (showMessage) => {
-  const not_save = mp_msgsRef.value.find(v => v.msg_id === 0)
+  const not_save = mp_msgsRef.value.find(v => v.msg_id < 0)&&props.mode==='edit'
   if (not_save && showMessage) {
     ElMessageBox.alert(`将当前未保存的文章暂存后再操作`, '信息', {
       confirmButtonText: '确定',
@@ -2324,14 +2345,14 @@ const testQueryImages = () => {
   globalLoadingRef.value = true
   const { token, session_id, name } = selectedAccount.value
   window.ipcRenderer.send('toMain', {
-    tag: 'video:listVideos',
+    tag: 'image:listImages',
     source: `${props.appmsg.appmsgid}`,
     token: getToken(),
     listData: {
       cookies: serializeCookie(JSON.parse(session_id)["cookie"]),
       token: parseInt(token),
-      //group_id: ??, // 不传或者传0 就是我的图片
-      begin: 0,
+      group_id:pickerQuery.value.group_id, // 不传或者传0 就是我的图片
+      begin: (pickerQuery.value.page-1)*pickerQuery.value.limit,
     }
   })
 
@@ -2339,6 +2360,11 @@ const testQueryImages = () => {
     globalLoadingRef.value = false
   }, 6000)
 }
+var pickerPageInfo=shallowRef(null)
+var pickerQuery=ref({page:1,limit:12,group_id:0})
+watch(pickerQuery,()=>{
+  testQueryImages()
+},{deep:true})
 
 const format_video_page_info = (page_info) => {
   const { file_cnt, item } = page_info
@@ -2460,6 +2486,7 @@ watch(() => [props.mainMsg], (newVal) => {
       const { success, page_info } = ret
       if (success) {
         console.log("page_info=>", page_info)
+        pickerPageInfo.value=page_info
       }
     } else if (tag === "video-ret:listVideos") {
       // 关闭对话框
