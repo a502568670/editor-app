@@ -67,11 +67,11 @@
                   </div>
                   <img v-if="item.cdn_url" class="w-full h-full  object-cover rounded-sm" :src="item.cdn_url"
                     referrerpolicy="no-referrer" />
-                  <div class="flex absolute text-white p-1"><span v-if="item.msg_id === 0">*</span>{{ item.title }}
+                  <div class="flex absolute text-white p-1 bg-gray-600 opacity-70"><span v-if="item.msg_id === 0">*</span>{{ item.title }}
                   </div>
                   <div
                     class="flex absolute right-0 justify-between px-1 space-x-2 py-1 text-white bg-gray-600 opacity-70"
-                    v-if="item.msg_id === msg_idRef">
+                    v-if="item.msg_id === msg_idRef && !is_xiaolvshu">
                     <el-icon class="cursor-pointer" @click="swapDown(item.msg_id)">
                       <component :is="ArrowDown"></component>
                     </el-icon>
@@ -112,8 +112,8 @@
                   </div>
                 </div>
               </div>
-              <div class="w-full flex h-20 items-center p-1 justify-center">
-                <el-dropdown :class="{'hidden': is_xiaolvshu}" >
+              <div  class="w-full flex h-20 items-center p-1 justify-center">
+                <el-dropdown v-if="!is_xiaolvshu" >
                   <el-button type="primary">
                     新建消息<el-icon class="el-icon--right"><arrow-down /></el-icon>
                   </el-button>
@@ -139,6 +139,7 @@
             <vue-ueditor-wrap v-if="msg_idRef !== 0 && currentArticleRef.item_show_type === 0"
               v-model="currentArticleRef.content_noencode" :editor-id="editorIdRef" @ready="ready"
               :config="editorConfigRef" :editorDependencies="['ueditor.config.js', 'ueditor.all.js']" />
+            <!-- 这里是视频的编辑区 -->
             <div v-if="msg_idRef !== 0 && currentArticleRef.item_show_type === 5" class="w-full p-2">
               <el-row :gutter="4" class="mb-1 w-full">
                 <el-col :span="24">
@@ -149,7 +150,7 @@
               <el-row :gutter="4" class="mb-1 w-full">
                 <el-col :span="24" class="flex w-full">
                   <!-- <el-input v-model="currentArticleRef.author" clearable class="w-full" placeholder="请输入视频介绍,可以不填" /> -->
-                  <el-mention v-model="currentArticleRef.guide_words" type="textarea" class="w-full"
+                  <el-mention v-model="currentArticleRef.guide_words" type="textarea" class="w-full h-40"
                     placeholder="请输入视频介绍,可以不填" />
                 </el-col>
               </el-row>
@@ -161,6 +162,27 @@
                   </div>
                   <div v-else v-html="currentArticleRef.content_noencode">
                   </div>
+                </el-col>
+              </el-row>
+            </div>
+            <!-- 这里是小绿书的编辑区 -->
+            <div v-if="msg_idRef !== 0 && currentArticleRef.item_show_type === 8" class="w-full p-2 pb-5 flex flex-col h-full">
+              <el-row :gutter="4" class="mb-1 w-full flex-1">
+                <el-col :span="24">
+                  <div class="w-full h-full border"></div>
+                </el-col>
+              </el-row>
+              <el-row :gutter="4" class="mb-1 w-full">
+                <el-col :span="24">
+                  <el-input v-model="currentArticleRef.title" clearable class="w-full" placeholder="请在这里输入标题 (选填)"
+                    @input="syncToList('title')" />
+                </el-col>
+              </el-row>
+              <el-row :gutter="4" class="mb-1 w-full ">
+                <el-col :span="24" class="flex w-full">
+                  <!-- <el-input v-model="currentArticleRef.author" clearable class="w-full" placeholder="请输入视频介绍,可以不填" /> -->
+                  <el-mention v-model="currentArticleRef.guide_words" type="textarea" class="w-full h-40" 
+                    placeholder="填写描述信息，让大家了解更多内容" />
                 </el-col>
               </el-row>
             </div>
@@ -203,13 +225,13 @@
         </div>
       </el-col>
       <el-col :span="5" class="h-full p-1">
-        <el-row :gutter="4" class="mb-1" v-if="currentArticleRef.item_show_type !== 5">
+        <el-row :gutter="4" class="mb-1" v-if="![5, 8].includes(currentArticleRef.item_show_type)">
           <el-col :span="24">
             <el-input v-model="currentArticleRef.title" clearable class="grid-content-control" placeholder="请输入文章标题"
               @input="syncToList('title')" />
           </el-col>
         </el-row>
-        <el-row :gutter="4" class="mb-1">
+        <el-row :gutter="4" class="mb-1" v-if="![8].includes(currentArticleRef.item_show_type)">
           <el-col :span="24">
             <el-input v-model="currentArticleRef.author" clearable class="grid-content-control" placeholder="请输入文章作者" />
           </el-col>
@@ -623,6 +645,13 @@
 .query-input :deep(.el-input__wrapper .el-input__inner) {
   cursor: default !important;
 }
+.el-textarea {
+    height:100%;
+}
+
+:deep(.el-textarea__inner) {
+    height: 100%;
+}
 </style>
 <script setup>
 import { ref, toRefs, shallowRef, onMounted, onBeforeUnmount, nextTick, onActivated, onDeactivated, onUnmounted, watch, computed } from 'vue';
@@ -658,7 +687,7 @@ import ImgPicker from '@/components/editor/ImgPicker.vue';
 
 const props = defineProps(['account', 'appmsg', 'mode', 'mainMsg']);
 const emitEvents = defineEmits(['titleChange', 'createAppmsg', 'msgidChange'])
-const is_xiaolvshu = computed(() => props.appmsg?.item_show_type === 8);
+const is_xiaolvshu = computed(() => props.appmsg?.multi_item[0]?.item_show_type === 8);
 
 const { all_accounts } = toRefs(store.getters)
 // console.log('envVars.backend_url=>', envVars.backend_url)
@@ -865,6 +894,7 @@ const currentArticleRef = ref({
   vid: "",
   // content_noencode: "<section>hello</section>",
   content_noencode: "",
+  picture_page_info_list: null
 })
 
 
@@ -2394,7 +2424,7 @@ watch(() => [props.mainMsg], (newVal) => {
         ElMessage({ type: 'error', message: ret.msg })
         return
       }
-      const { title, nick_name, copyright_stat, cdn_url, item_show_type, video_page_info } = ret
+      const { title, nick_name, copyright_stat, cdn_url, item_show_type, video_page_info, picture_page_info_list } = ret
       let { content_noencode, content_text } = ret
       let guide_words = "", vid = ""
       console.log("item_show_type=>", item_show_type)
@@ -2419,6 +2449,9 @@ watch(() => [props.mainMsg], (newVal) => {
         })
         return
       }
+      if (item_show_type === 8 && picture_page_info_list) {
+        guide_words = content_noencode
+      }
       // console.log("content_noencode=>", content_noencode)
       // if (currentArticleRef.value.item_show_type === 0) {
       //   content_noencode = content_noencode + "<p>" + content_text + "<p>"
@@ -2437,6 +2470,7 @@ watch(() => [props.mainMsg], (newVal) => {
         cdn_url,
         guide_words,
         vid,
+        picture_page_info_list,
       }
       const idx = mp_msgsRef.value.findIndex(v => v.msg_id === currentArticleRef.value.msg_id)
       if (idx !== -1) {
@@ -2518,6 +2552,7 @@ watch(() => [props.mainMsg], (newVal) => {
 // 组件生命周期
 onMounted(async () => {
   console.log("==onMounted editorTab==", props.appmsg)
+  console.log("props.appmsg?.multi_item[0]?.item_show_type=>", props.appmsg?.multi_item[0]?.item_show_type)
 
   accountsRef.value = toDeepRaw(all_accounts.value.list)
   selectedAccount.value = props.account
