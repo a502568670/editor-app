@@ -809,7 +809,7 @@ const dialogVideoMaterialRef = ref(false)
 const videosRef = ref([])
 const selected_videoRef = ref(null)
 const videoLoadingRef = ref(false)
-const video_count_per_page = 2
+const video_count_per_page = 4
 const video_current_pageRef = ref(1)
 const video_total_cntRef = ref(0)
 const video_queryRef = ref("")
@@ -2362,11 +2362,12 @@ watch(pickerQuery,()=>{
 const format_video_page_info = (page_info) => {
   const { file_cnt, item } = page_info
   const total_cnt = file_cnt.video_msg_cnt
+  console.log(item)
   const items = item.map(v => ({
     cdn_url: v.img_url,
     guide_words: v.multi_item?.[0]?.video_desc ?? "",
     title: v.title,
-    vid: v.content,
+    vid:  v.multi_item?.[0]?.mp_video_info?.[0]?.vid ?? "" //v.content, //
   }))
   return {
     total_cnt,
@@ -2481,7 +2482,7 @@ watch(() => [props.mainMsg], (newVal) => {
         // videosRef.value = [...items, ...items, ...items, ...items, ...items]
         // video_current_pageRef.value = 1
         // video_total_cntRef.value = 5 // total_cnt
-
+        console.log("items=>", items)
         videosRef.value = items
         video_total_cntRef.value = total_cnt
         videoLoadingRef.value = false
