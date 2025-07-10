@@ -156,7 +156,8 @@ router.beforeEach((to, from, next) => {
       if (localStorage.getItem("password")) {
         store.dispatch('ListAccounts').then(() => {
           // next({ path: '/editor4' })
-          next({ path: '/material_lib' })
+          // next({ path: '/material_lib' })
+          next({ path: '/tabbar' })
           // next({ path: '/editor3' })
         })
       } else {
