@@ -795,14 +795,14 @@ const timeoutSendToOneAccount = 3 * 60 * 1000; // ms
 
 // 标题检测
 const checkTitleResults = ref([])
-const timeoutCheckTitle = 3 * 1000; // ms
+const timeoutCheckTitle = 60 * 1000; // ms
 
 // 提取链接
 // const extractArticleUrlRef = ref("https://mp.weixin.qq.com/s/G2TYEsgZsTJ1VWj4R2F2hQ?from=kdocs_link")
 // const extractArticleUrlRef = ref("https://mp.weixin.qq.com/s/riiYjv8HUqyUZz_-IQKe9g")
 const extractArticleUrlRef = ref("")
 const dialogExtractMpAritcleUrlRef = ref(false)
-const timeoutExtract = 3 * 1000; // ms
+const timeoutExtract = 60 * 1000; // ms
 
 // 视频素材
 const dialogVideoMaterialRef = ref(false)
@@ -818,7 +818,7 @@ const video_queryRef = ref("")
 const globalLoadingRef = ref(false)
 
 // 发布
-const timeoutPublish = 10 * 1000; // ms
+const timeoutPublish = 60 * 1000; // ms
 const dialogPublishArticleVisibleRef = ref(false)
 const publishStepRef = ref(0)
 const publishStepsRef = ref([])
