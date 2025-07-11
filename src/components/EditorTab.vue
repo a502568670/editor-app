@@ -667,7 +667,7 @@ import { saveAppMsg, send_to_other_accounts_events } from "@/api/appmsg"
 import { getMpUserInfo, getLastPreviewAccounts, sendPreview, listVideos, getMasssendInfo, stat_appmsg_copyright_stat_events } from "@/api/mp_wechat"
 import { format_to_UEditor_html, restore_from_UEditor_html } from "@/utils/dom";
 import { uploadImage } from "@/api/img"
-import { toDeepRaw } from "@/utils/convert"
+import { toDeepRaw, toPicPageInfo } from "@/utils/convert"
 import { fmtImageUrl } from "@/utils/format"
 import { createDateByDays, parseDate, formatDate } from "@/utils/date"
 import { ad_categorys, adMarkerContentInUEditor, format_ad_content_in_UEditor, restore_ad_content_from_UEditor, has_ad_in_wangEditor, has_ad_in_raw } from "@/utils/ad"
@@ -1058,6 +1058,12 @@ const listArticles = async () => {
   if (appmsgid > 0 || props.mode === 'edit') {
     const { wechat_id } = selectedAccount.value
     mp_msgsRef.value = await newlistArticlesByAppMsg(wechat_id, appmsgid).catch((err) => { }).then(response => {
+      response.data.forEach(v=>{
+        if(!v.picture_page_info_list){
+          v.picture_page_info_list=[]
+        }
+        v.picture_page_info_list=toPicPageInfo(v.picture_page_info_list,0)
+      })
       return response.data;
     })
     console.log("mp_msgsRef.value=>", mp_msgsRef.value)

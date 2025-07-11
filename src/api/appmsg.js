@@ -1,6 +1,7 @@
 
 import request from '@/utils/requestJson'
 import { getToken } from "@/utils/auth";
+import { toPicPageInfo } from '@/utils/convert';
 
 export function groupAppMsgs(data) {
   return request({
@@ -19,6 +20,11 @@ export function listAppMsgs(data) {
 }
 
 export function saveAppMsg(data) {
+  data.material_list.forEach(v=>{
+    if(v.picture_page_info_list?.length){
+      v.picture_page_info_list=toPicPageInfo(v.picture_page_info_list,1)
+    }
+  })
   return request({
     url: '/appmsg/save',
     method: 'post',

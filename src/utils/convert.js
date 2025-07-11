@@ -26,7 +26,7 @@ export function toDeepRaw (data) {
 
 export function rgbObj(hex) {
   if (!/^#([0-9A-F]{3}|[0-9A-F]{6})$/i.test(hex)) {
-    throw new Error("Invalid HEX color.");
+    throw new Error("Invalid HEX color: "+hex);
   }
   let value = hex.slice(1);
   if (value.length === 3) {
@@ -41,6 +41,7 @@ function strHex(s){
   return s.toString(16).padStart(2,0)
 }
 export function toPicPageInfo(o,from=0) {
+  if(!o?.length) return [];
   if(from){
     return o.map(v=>({
       url:v.url,
