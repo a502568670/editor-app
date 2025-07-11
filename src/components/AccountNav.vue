@@ -9,7 +9,7 @@
       </div>
     </div>
     <div class="w-full flex flex-col bg-white" style="height:calc(100vh - 158px)">
-      <draggable v-model="accountsRef" class="list-group" ghost-class="ghost" :disabled="dragDisabled" handle=".handle"
+      <draggable v-model="accountsRef" class="list-group" ref="refList" ghost-class="ghost" :disabled="dragDisabled" handle=".handle"
         @start="handleDragStart" @end="handleDragEnd" item-key="id">
         <template #item="{ element }">
           <div @click="handleSelect(element)"
@@ -69,9 +69,12 @@
 .not-draggable {
   cursor: no-drop;
 }
+.list-group-item{
+  scroll-margin-top: 100px;
+}
 </style>
 <script setup>
-import { ref, toRefs, onMounted, defineEmits, toRaw, onActivated, computed } from 'vue';
+import { ref, toRefs, onMounted, defineEmits, toRaw, onActivated, computed, useTemplateRef,nextTick } from 'vue';
 import { ElMessage, ElMessageBox, ElLoading } from 'element-plus'
 import { Search, WarnTriangleFilled } from '@element-plus/icons-vue'
 import { debounceFn, sortByOrder } from "@/utils/index"
@@ -128,7 +131,15 @@ onActivated(async () => {
     selected_account_id.value = accountsRef.value[props.defaultSelectedIndex].id
     emitAccountEvents("accountSelect", { account: toDeepRaw(accountsRef.value[props.defaultSelectedIndex]), index: props.defaultSelectedIndex })
   }
+  nextTick(scrollIndexIntoView);
+  
 })
+var refList=useTemplateRef('refList')
+function scrollIndexIntoView(){
+  var $body=refList.value.$el;
+  var $idx=$body.childNodes[props.defaultSelectedIndex]
+  $idx?.scrollIntoView();
+}
 
 const emitAccountEvents = defineEmits(['accountFilter', 'accountSelect', 'accountReorder'])
 
