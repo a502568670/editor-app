@@ -37,3 +37,20 @@ export function rgbObj(hex) {
   const b = parseInt(value.slice(4, 6), 16);
   return { r, g, b };
 }
+function strHex(s){
+  return s.toString(16).padStart(2,0)
+}
+export function toPicPageInfo(o,from=0) {
+  if(from){
+    return o.map(v=>({
+      url:v.url,
+      cdn_url:v.url,
+      width:300,height:400,
+      theme_color:rgbObj(v.bg),
+    }))
+  }
+  return o.map(v=>({
+    url:v.cdn_url,
+    bg:'#'+`${strHex(v.theme_color.r)}${strHex(v.theme_color.g)}${strHex(v.theme_color.b)}`
+  }));
+}
