@@ -166,12 +166,12 @@
               </el-row>
             </div>
             <!-- 这里是小绿书的编辑区 -->
-            <div v-if="msg_idRef !== 0 && currentArticleRef.item_show_type === 8" class="w-full p-2 pb-5 flex flex-col h-full">
-              <el-row :gutter="4" class="mb-1 w-full flex-1">
-                <el-col :span="24">
-                  <div class="w-full h-full border"></div>
-                </el-col>
-              </el-row>
+            <div v-if="msg_idRef !== 0 && currentArticleRef.item_show_type === 8" class="w-full p-2 pb-5 flex-col h-full overflow-auto">
+              <ImgListPicker v-model="currentArticleRef.picture_page_info_list">
+                <template #picker>
+                  <el-icon class="item bg-white" @click="refImgPicker.openDialog(),imgListPicking=true"><Plus/></el-icon>
+                </template>
+              </ImgListPicker>
               <el-row :gutter="4" class="mb-1 w-full">
                 <el-col :span="24">
                   <el-input v-model="currentArticleRef.title" clearable class="w-full" placeholder="请在这里输入标题 (选填)"
@@ -654,7 +654,7 @@
 }
 </style>
 <script setup>
-import { ref, toRefs, shallowRef, onMounted, onBeforeUnmount, nextTick, onActivated, onDeactivated, onUnmounted, watch, computed } from 'vue';
+import { ref, toRefs, shallowRef, onMounted, onBeforeUnmount, nextTick, onActivated, onDeactivated, onUnmounted, watch, computed, provide } from 'vue';
 // import { listAccount } from '@/api/account'
 import store from '@/store'
 import { getToken } from "@/utils/auth";
@@ -674,7 +674,7 @@ import { ad_categorys, adMarkerContentInUEditor, format_ad_content_in_UEditor, r
 import { getVideoFrameHtml } from "@/utils/video"
 import { apperrmsg, claim_source_types, HOUSRS, MINUTES, wxretmsg } from "@/utils/constants"
 import { ElMessage, ElMessageBox, ElLoading } from 'element-plus'
-import { ArrowUp, ArrowDown, Delete, CircleCheckFilled, CircleCloseFilled, InfoFilled, Search } from '@element-plus/icons-vue'
+import { ArrowUp, ArrowDown, Delete, CircleCheckFilled, CircleCloseFilled, InfoFilled, Search,Plus } from '@element-plus/icons-vue'
 import { Link, Link2, RadioTower, DollarSign, SquareTerminal, Eye, ScanEye, Minus, Smartphone, Video } from 'lucide-vue-next';
 import { serializeCookie } from "@/utils/cookie"
 import axios from 'axios'
@@ -684,6 +684,7 @@ import BatchExtractMpArticle from '@/components/editor/BatchExtractMpArticle.vue
 import SyncToOtherAccountsDialog from "@/dlgs/syncToOtherAccounts"
 import SimplePager from "@/components/SimplePager"
 import ImgPicker from '@/components/editor/ImgPicker.vue';
+import ImgListPicker from '@/components/editor/ImgListPicker.vue';
 
 const props = defineProps(['account', 'appmsg', 'mode', 'mainMsg']);
 const emitEvents = defineEmits(['titleChange', 'createAppmsg', 'msgidChange'])
@@ -894,7 +895,7 @@ const currentArticleRef = ref({
   vid: "",
   // content_noencode: "<section>hello</section>",
   content_noencode: "",
-  picture_page_info_list: null
+  picture_page_info_list: [],
 })
 
 
@@ -1008,11 +1009,21 @@ function handleImageUpload(info) {
   cdnRef.value = { cdn_content_type: info.type, cdn_base64_image: info.data, cdn_filename: info.name }
   uploadCover()
 }
+var imgListPicking=false
 function onImgPick(urls){
+  if(imgListPicking){
+    imgListPicking=false
+    if (!currentArticleRef.value.picture_page_info_list) {
+      currentArticleRef.value.picture_page_info_list=[]
+    }
+    currentArticleRef.value.picture_page_info_list.push(...urls.map(v=>({url:v,bg:'#fff'})))
+    return
+  }
   currentArticleRef.value.cdn_url = urls[0]
   syncToList("cdn_url")
 }
 var refImgPicker=ref(null)
+provide('selectedAccount', selectedAccount)
 const uploadCover = async () => {
   const { session_id, token } = selectedAccount.value
   console.log("uploadCover=>", cdnRef.value)
@@ -1026,9 +1037,13 @@ const uploadCover = async () => {
     }
     const { data } = await uploadImage(imgData)
     const { cdn_url } = data
-    currentArticleRef.value.cdn_url = cdn_url
-
-    syncToList("cdn_url")
+    if(imgListPicking){
+      imgListPicking=false
+      currentArticleRef.value.picture_page_info_list.push({url:cdn_url,bg:'#fff'})
+    }else{
+      currentArticleRef.value.cdn_url = cdn_url
+      syncToList("cdn_url")
+    }
     refImgPicker.value.uploadSucc(cdn_url)
   }
 }
@@ -2424,7 +2439,7 @@ watch(() => [props.mainMsg], (newVal) => {
         ElMessage({ type: 'error', message: ret.msg })
         return
       }
-      const { title, nick_name, copyright_stat, cdn_url, item_show_type, video_page_info, picture_page_info_list } = ret
+      const { title, nick_name, copyright_stat, cdn_url, item_show_type, video_page_info, picture_page_info_list=[] } = ret
       let { content_noencode, content_text } = ret
       let guide_words = "", vid = ""
       console.log("item_show_type=>", item_show_type)

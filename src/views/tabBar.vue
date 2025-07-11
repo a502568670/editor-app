@@ -12,7 +12,7 @@
           <select-group v-model="listQuery.cate_id"></select-group>
         </el-col> -->
         <el-col :span="24" style="margin-top: 10px">
-          <el-input v-model="listQuery.keyword" clearable style="width: 100%;" placeholder="请输入账号关键词" @input="handleInput" />
+          <el-input v-model="listQuery.keyword" clearable style="width: 100%;" :placeholder="`请输入账号关键词(总共${accountTotal}个公众号)`" @input="handleInput" />
         </el-col>
         <!-- <el-col :span="24" style="padding-top: 10px;">
           <el-button style="width: 100%;background-color: #51ce94;border: none" type="primary"
@@ -37,7 +37,7 @@
                   <WarnTriangleFilled />
                 </el-icon>
               </el-tooltip>
-              <el-popconfirm title="你是否要删除该公众号" @confirm="onDelMPAccount(element.wechat_id)" width="250">
+              <el-popconfirm title="你是否要删除该公众号" @confirm="onDelMPAccount(element.wechat_id)" width="250" placement="top-end">
                 <template #reference>
                   <el-icon @click.prevent.stop class=" cursor-pointer">
                     <Delete />

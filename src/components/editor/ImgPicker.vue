@@ -10,7 +10,7 @@
     <el-dialog class="img-picker dialog " v-model="open" title="选择图片" width="850px"  append-to-body>
       <div class="w-full flex h-[480px]">
         <div class="w-[130px] h-full overflow-y-scroll">
-          <el-menu class="min-h-full h-full" :default-active="0" default-openeds="['material']" @select="onSelect">
+          <el-menu class="min-h-full h-full" :default-active="0" :default-openeds="['material']" @select="onSelect">
             <el-menu-item index="local">从正文选择</el-menu-item>
             <el-sub-menu index="material">
               <template #title>公众号图片</template>
@@ -72,7 +72,8 @@ defineExpose({
     }else{
       open.value=false
     }
-  }
+  },
+  openDialog,
 });
 watchEffect(()=>{
   if(pageInfo?.file_cnt){
@@ -116,7 +117,7 @@ function openDialog(){
   pickerQuery.value={...initParams}
 }
 function getEditorImgs(){
-  var $imgs = editorInst.document ? Array.from(editorInst.document.images) :[];
+  var $imgs = editorInst?.document ? Array.from(editorInst.document.images) :[];
   var urls = $imgs.map(v=>({cdn_url:v.src||v.dataset.src})).filter(v=>v.cdn_url)
   imgs.value=urls;
 }
