@@ -642,6 +642,7 @@ export class TabbedWindow extends EventEmitter {
     // })
 
     this.currentViewId = viewId;
+    verbose_log("tabbed-window.js::setCurrentView")
     this.win.webContents.send('fromMain', { currentTabId: viewId });
     this.currentWebContents.focus();
 
@@ -681,6 +682,7 @@ export class TabbedWindow extends EventEmitter {
   setTabConfig(viewId, kv) {
     const tab = this.tabConfigs[viewId];
     const { webContents } = this.views[viewId] || {};
+    verbose_log("-----setTabConfig------", viewId, kv)
     this.tabConfigs = {
       ...this.tabConfigs,
       [viewId]: {

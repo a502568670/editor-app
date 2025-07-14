@@ -290,6 +290,7 @@ function initialiseIpcMainListener(stockList, tabbedWin) {
 }
 
 async function reactToIpcIdData(data, stockList, tabbedWin, viewContents) {
+  verbose_log("window.js::reactToIpcIdData=>", data)
   switch (data) {
     // 最小化窗口
     case 'minimiseWin': {
@@ -327,6 +328,7 @@ async function reactToIpcIdData(data, stockList, tabbedWin, viewContents) {
     }
     // 首次打开页面，返回第一个tab id
     case 'getStartTabId': {
+      verbose_log("window.js::getStartTabId")
       const startTabId = {}
       startTabId.currentTabId = tabbedWin.tabs[0]
       viewContents.send('fromMain', startTabId)
@@ -513,6 +515,52 @@ async function reactToIpcObjectData(data, tabbedWin, viewContents) {
       const ret = await postJsonToJZLApi(`/prase_html_to_json?api_key=${encodeURIComponent("du&cgIYuosQcaSm6")}`, { html })
       verbose_log("extract result:", ret)
       viewContents.send('fromMain', { tag: 'appmsg-ret:localExtractMpArticleUrlResult', data: { source, ret } })
+      break;
+    }
+    case 'appmsg:batchExtractMpArticleUrls': {
+      verbose_log("===== listen localExtractMpArticleUrl in main ====", data)
+      const { source, extractArticleUrls } = data
+
+      const ret = []
+      // 同步顺序调用
+      // 
+      // for await (const extractArticleUrl of extractArticleUrls) {
+      //   const html = await localExtractMpArticleUrlUseRequest(extractArticleUrl)
+      //     .catch((err) => {
+      //       verbose_error("reject localExtractMpArticleUrl for reason:", err)
+      //     });
+      //   verbose_log("html.length:", html.length)
+      //   // fs.writeFileSync("a.html", html)
+      //   // verbose_log("extract html:", html)
+      //   const ret_item = await postJsonToJZLApi(`/prase_html_to_json?api_key=${encodeURIComponent("du&cgIYuosQcaSm6")}`, { html })
+      //   // verbose_log("extract result:", ret_item)
+      //   ret.push(ret_item)
+      // }
+
+      // 异步并发调用
+      const promises = []
+      for (const extractArticleUrl of extractArticleUrls) {
+        promises.push(new Promise((resolve, reject) => {
+          localExtractMpArticleUrlUseRequest(extractArticleUrl)
+            .then((html) => {
+              postJsonToJZLApi(`/prase_html_to_json?api_key=${encodeURIComponent("du&cgIYuosQcaSm6")}`, { html })
+                .then(resolve).catch(reject)
+            })
+            .catch(reject);
+        }))
+      }
+      const all_ret = await Promise.allSettled(promises);
+      const failed = []
+      for (const idx in all_ret) {
+        if (all_ret[idx].status === 'fulfilled') {
+          ret.push(all_ret[idx].value)
+        } else {
+          failed.push({ url: extractArticleUrls[idx], reason: all_ret[idx].reason })
+        }
+      }
+
+      // const ret = all_ret.filter(v => v.status === 'fulfilled').map(v => v.value)
+      viewContents.send('fromMain', { tag: 'appmsg-ret:batchExtractMpArticleUrls', data: { source, ret, failed } })
       break;
     }
     case 'appmsg:listAppmsgsInDraftBox': {
