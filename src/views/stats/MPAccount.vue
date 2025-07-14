@@ -54,7 +54,7 @@
 <script setup>
 import {ref,onMounted,getCurrentInstance} from 'vue';
 import Pagination from '@/components/Pagination'
-import {listAccount} from '@/api/account';
+import {listAccount,listOrderedAccount, withOrderedAccount} from '@/api/account';
 import {cachedStat,setCachedStat} from '@/api/stat-client';
 var tableData = ref([]);
 var loading=ref(true);
@@ -249,6 +249,7 @@ window.ipcRenderer.receive('fromMain', (msg) => {
         exported.value=true
       }else{
         tableData.value = [...tableData.value,...pvData];  
+        withOrderedAccount(tableData.value);
       }
       if(cacheData.length){
         setCachedStat({items:cacheData});
@@ -264,7 +265,7 @@ window.ipcRenderer.receive('fromMain', (msg) => {
 });
 var accounts=[],newAccounts=[],total=ref(0);
 onMounted(async ()=>{
-  var res = await listAccount();
+  var res = await listOrderedAccount();
   accounts = res.data.data.list;
   total.value=accounts.length;
   await getListBy(listQuery.value);

@@ -209,6 +209,10 @@ const _listCount = 10
 const onScroll = debounceFn((state) => {
   console.log(state) // {x, y, isScrolling, arrivedState, directions}
   if (state.arrivedState.bottom) {
+    loadMore()
+  }
+}, 200, false)
+async function loadMore(params) {
     const begin = list.value.length;
     console.log('到底了!',begin,file_cnt)
     var end=materialTypeRef.value === 0
@@ -223,8 +227,7 @@ const onScroll = debounceFn((state) => {
     materialTypeRef.value === 0 ?
       _listAppmsgsInDraftBox(begin) :
       _listAppmsgsInLocal(begin)
-  }
-}, 200, false)
+}
 
 const handleAccountSelect = async ({ account, index }) => {
   // console.log('all_accounts.value=>', all_accounts.value)
@@ -679,6 +682,9 @@ const registerChannels = () => {
         }
         // elRef.value.updateOrder()
         dataLoadingRef.value = false
+        if(list.value.length < Math.min(_listCount, file_cnt.draft_count)){
+          loadMore()
+        }
         nextTick(() => {
           elRef.value && elRef.value.updateOrder()
         })
