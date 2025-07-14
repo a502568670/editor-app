@@ -46,12 +46,13 @@ export function toPicPageInfo(o,from=0) {
     return o.map(v=>({
       url:v.url,
       cdn_url:v.url,
-      width:300,height:400,
+      width:v.width||300,height:v.height||400,
       theme_color:rgbObj(v.bg),
     }))
   }
   return o.map(v=>({
     url:v.cdn_url,
+    width:v.width,height:v.height,
     bg:'#'+`${strHex(v.theme_color.r)}${strHex(v.theme_color.g)}${strHex(v.theme_color.b)}`
   }));
 }
