@@ -246,9 +246,9 @@
               class="cursor-pointer border h-16 w-[180px] flex justify-center items-center bg-[#8c8c8c]">设置封面图</div>
             <input class="invisible" ref="cdnFileInputRef" @change="handleImage" type="file" accept="image/*">
           </el-col>
-          <ImgPicker ref="refImgPicker" v-model="pickerQuery" :pageInfo="pickerPageInfo" 
-            :imgSrc="currentArticleRef.cdn_url" placeholder="设置封面图" 
-            @change="handleImageUpload" @confirm="onImgPick" :editorInst="editorRef"/>
+          <ImgPicker ref="refImgPicker" v-model="pickerQuery" :pageInfo="pickerPageInfo"
+            :imgSrc="currentArticleRef.cdn_url" placeholder="设置封面图" @change="handleImageUpload" @confirm="onImgPick"
+            :editorInst="editorRef" />
           <!-- <ImgCrop :imgSrc="currentArticleRef.cdn_url" placeholder="设置封面图" @change="handleImageUpload"></ImgCrop> -->
         </el-row>
         <!-- <el-row :gutter="4" class="mb-1 invisible">
@@ -832,21 +832,21 @@ const timeoutSendToOneAccount = 3 * 60 * 1000; // ms
 
 // 标题检测
 const checkTitleResults = ref([])
-const timeoutCheckTitle = 3 * 1000; // ms
+const timeoutCheckTitle = 60 * 1000; // ms
 
 // 提取链接
 // const extractArticleUrlRef = ref("https://mp.weixin.qq.com/s/G2TYEsgZsTJ1VWj4R2F2hQ?from=kdocs_link")
 // const extractArticleUrlRef = ref("https://mp.weixin.qq.com/s/riiYjv8HUqyUZz_-IQKe9g")
 const extractArticleUrlRef = ref("")
 const dialogExtractMpAritcleUrlRef = ref(false)
-const timeoutExtract = 3 * 1000; // ms
+const timeoutExtract = 60 * 1000; // ms
 
 // 视频素材
 const dialogVideoMaterialRef = ref(false)
 const videosRef = ref([])
 const selected_videoRef = ref(null)
 const videoLoadingRef = ref(false)
-const video_count_per_page = 2
+const video_count_per_page = 4
 const video_current_pageRef = ref(1)
 const video_total_cntRef = ref(0)
 const video_queryRef = ref("")
@@ -855,7 +855,7 @@ const video_queryRef = ref("")
 const globalLoadingRef = ref(false)
 
 // 发布
-const timeoutPublish = 10 * 1000; // ms
+const timeoutPublish = 60 * 1000; // ms
 const dialogPublishArticleVisibleRef = ref(false)
 const publishStepRef = ref(0)
 const publishStepsRef = ref([])
@@ -1147,9 +1147,9 @@ const swapUp = async (msg_id) => {
   const prev = mp_msgsRef.value[idx - 1].msg_id
   console.log("prev index:", prev)
   if (props.mode === 'create') {
-    var tmp=mp_msgsRef.value[idx];
-    mp_msgsRef.value[idx]=mp_msgsRef.value[idx-1]
-    mp_msgsRef.value[idx-1]=tmp
+    var tmp = mp_msgsRef.value[idx];
+    mp_msgsRef.value[idx] = mp_msgsRef.value[idx - 1]
+    mp_msgsRef.value[idx - 1] = tmp
     return;
   }
   await swapArticles(prev, msg_id).catch((err) => { })
@@ -1162,11 +1162,11 @@ const swapDown = async (msg_id) => {
   const idx = mp_msgsRef.value.findIndex(v => v.msg_id === msg_id)
   const next = mp_msgsRef.value[idx + 1]?.msg_id
   console.log("next index:", next)
-  if(!next)return
+  if (!next) return
   if (props.mode === 'create') {
-    var tmp=mp_msgsRef.value[idx];
-    mp_msgsRef.value[idx]=mp_msgsRef.value[idx+1]
-    mp_msgsRef.value[idx+1]=tmp
+    var tmp = mp_msgsRef.value[idx];
+    mp_msgsRef.value[idx] = mp_msgsRef.value[idx + 1]
+    mp_msgsRef.value[idx + 1] = tmp
     return;
   }
   await swapArticles(msg_id, next)
@@ -1174,7 +1174,7 @@ const swapDown = async (msg_id) => {
 }
 
 const checkHasNotSave = (showMessage) => {
-  const not_save = mp_msgsRef.value.find(v => v.msg_id < 0)&&props.mode==='edit'
+  const not_save = mp_msgsRef.value.find(v => v.msg_id < 0) && props.mode === 'edit'
   if (not_save && showMessage) {
     ElMessageBox.alert(`将当前未保存的文章暂存后再操作`, '信息', {
       confirmButtonText: '确定',
@@ -1928,7 +1928,7 @@ const handleLocalExtractMpArticleUrl = async () => {
     dialogExtractMpAritcleUrlRef.value = false
   }, timeoutExtract)
 }
-async function onBatchExtractMp(list) {
+async function onBatchExtractMpOld(list) {
   for (var item of list) {
     globalLoadingRef.value = true
     await newArticle(true, item.type)
@@ -1940,6 +1940,19 @@ async function onBatchExtractMp(list) {
     })
     await new Promise(r => setTimeout(r, timeoutExtract))
   }
+  globalLoadingRef.value = false
+}
+
+async function onBatchExtractMp(list) {
+  globalLoadingRef.value = true
+  // await newArticle(true, item.type)
+  window.ipcRenderer.send('toMain', {
+    tag: 'appmsg:batchExtractMpArticleUrls',
+    source: `${props.appmsg.appmsgid}`,
+    token: getToken(),
+    extractArticleUrls: list.map(item => item.url),
+  })
+
   globalLoadingRef.value = false
 }
 
@@ -1994,7 +2007,7 @@ const openVideoMaterialDialog = async (type = 1) => {
   }
 }
 
-const paginate_videos = async ({begin, count, new_page }) => {
+const paginate_videos = async ({ begin, count, new_page }) => {
   console.log(`begin:${begin}, count:${count}, new_page:${new_page}`)
   videoLoadingRef.value = true
   selected_videoRef.value = null
@@ -2369,6 +2382,7 @@ const sendPreviewToMobile = () => {
 // debug
 const openDebugDialog = () => {
   dialogDebugVisibleRef.value = true
+  console.log(mp_msgsRef.value)
 }
 
 const clickAllCategory = (checkedAll) => {
@@ -2402,8 +2416,8 @@ const testQueryImages = () => {
     listData: {
       cookies: serializeCookie(JSON.parse(session_id)["cookie"]),
       token: parseInt(token),
-      group_id:pickerQuery.value.group_id, // 不传或者传0 就是我的图片
-      begin: (pickerQuery.value.page-1)*pickerQuery.value.limit,
+      group_id: pickerQuery.value.group_id, // 不传或者传0 就是我的图片
+      begin: (pickerQuery.value.page - 1) * pickerQuery.value.limit,
     }
   })
 
@@ -2411,20 +2425,21 @@ const testQueryImages = () => {
     globalLoadingRef.value = false
   }, 6000)
 }
-var pickerPageInfo=shallowRef(null)
-var pickerQuery=ref({page:1,limit:12,group_id:0})
-watch(pickerQuery,()=>{
+var pickerPageInfo = shallowRef(null)
+var pickerQuery = ref({ page: 1, limit: 12, group_id: 0 })
+watch(pickerQuery, () => {
   testQueryImages()
-},{deep:true})
+}, { deep: true })
 
 const format_video_page_info = (page_info) => {
   const { file_cnt, item } = page_info
   const total_cnt = file_cnt.video_msg_cnt
+  console.log(item)
   const items = item.map(v => ({
     cdn_url: v.img_url,
     guide_words: v.multi_item?.[0]?.video_desc ?? "",
     title: v.title,
-    vid: v.content,
+    vid: v.multi_item?.[0]?.mp_video_info?.[0]?.vid ?? "" //v.content, //
   }))
   return {
     total_cnt,
@@ -2432,7 +2447,43 @@ const format_video_page_info = (page_info) => {
   }
 }
 
-watch(() => [props.mainMsg], (newVal) => {
+const parseExtractMpArticleData = (ret) => {
+  const { title, nick_name, copyright_stat, cdn_url, item_show_type, video_page_info } = ret
+  let { content_noencode, content_text } = ret
+  let guide_words = "", vid = ""
+  console.log("item_show_type=>", item_show_type)
+  // const { video_page_infos } = msg.data
+
+  if (item_show_type === 5 && video_page_info) {
+    // 独立视频
+    // console.log("video_page_infos=>",)
+    guide_words = content_text
+    vid = video_page_info.video_id
+    content_noencode = getVideoFrameHtml(vid, cdn_url) //`<iframe class="edui-video-iframe" data-vidtype="2" data-mpvid="${video_id}" data-cover="${cdn_url}" allowfullscreen="" frameborder="0" data-w="1080" data-ratio="0.5625" style="border-radius: 4px;" src="https://mp.weixin.qq.com/cgi-bin/readtemplate?t=tmpl/video_tmpl&vid=${video_id}" width="420" height="280" frameborder="0" allowfullscreen=""></iframe>`
+  }
+  // console.log("content_noencode=>", content_noencode)
+  // if (currentArticleRef.value.item_show_type === 0) {
+  //   content_noencode = content_noencode + "<p>" + content_text + "<p>"
+  // }
+
+  content_noencode += '\v'
+  content_noencode = format_to_UEditor_html(content_noencode)
+
+  return {
+    item_show_type,
+    // content_noencode: content_noencode.replace(/[\u200B-\u200D\uFEFF]/gim, ''),
+    // content_noencode: "<p>" + format_to_wangEditor_html(content_noencode) + "<p>",
+    content_noencode,
+    title,
+    author: '',
+    copyright_type: 0,
+    cdn_url,
+    guide_words,
+    vid,
+  }
+}
+
+watch(() => [props.mainMsg], async (newVal) => {
   console.log("EditorTab props.changed=>", newVal)
   const msg = newVal[0]
   if (typeof msg === 'object' && Object.prototype.hasOwnProperty.call(msg, 'tag')) {
@@ -2445,60 +2496,41 @@ watch(() => [props.mainMsg], (newVal) => {
         ElMessage({ type: 'error', message: ret.msg })
         return
       }
-      const { title, nick_name, copyright_stat, cdn_url, item_show_type, video_page_info, picture_page_info_list=[] } = ret
-      let { content_noencode, content_text } = ret
-      let guide_words = "", vid = ""
-      console.log("item_show_type=>", item_show_type)
-      // const { video_page_infos } = msg.data
-
-      if (item_show_type === 5 && video_page_info) {
-        // 独立视频
-        // console.log("video_page_infos=>",)
-        guide_words = content_text
-        vid = video_page_info.video_id
-        content_noencode = getVideoFrameHtml(vid, cdn_url) //`<iframe class="edui-video-iframe" data-vidtype="2" data-mpvid="${video_id}" data-cover="${cdn_url}" allowfullscreen="" frameborder="0" data-w="1080" data-ratio="0.5625" style="border-radius: 4px;" src="https://mp.weixin.qq.com/cgi-bin/readtemplate?t=tmpl/video_tmpl&vid=${video_id}" width="420" height="280" frameborder="0" allowfullscreen=""></iframe>`
-      }
-
-      if (item_show_type === 8 && currentArticleRef.value.item_show_type != 8) {
-        // 小绿书
-        console.log("小绿书:", ret)
-        ElMessageBox.alert(`当前的素材和导入的是小绿书链接不匹配`, '错误', {
-          confirmButtonText: '确定',
-          type: 'error'
-        }).catch(() => {
-          console.log("publish receive catch")
-        })
-        return
-      }
-      if (item_show_type === 8 && picture_page_info_list) {
-        guide_words = content_noencode
-      }
-      // console.log("content_noencode=>", content_noencode)
-      // if (currentArticleRef.value.item_show_type === 0) {
-      //   content_noencode = content_noencode + "<p>" + content_text + "<p>"
-      // }
-
-      content_noencode += '\v'
+      let parsed_data = parseExtractMpArticleData(ret)
       currentArticleRef.value = {
         ...currentArticleRef.value,
-        item_show_type,
-        // content_noencode: content_noencode.replace(/[\u200B-\u200D\uFEFF]/gim, ''),
-        // content_noencode: "<p>" + format_to_wangEditor_html(content_noencode) + "<p>",
-        content_noencode: format_to_UEditor_html(content_noencode),
-        title,
-        author: '',
-        copyright_type: copyright_stat,
-        cdn_url,
-        guide_words,
-        vid,
-        picture_page_info_list,
+        ...parsed_data,
       }
       const idx = mp_msgsRef.value.findIndex(v => v.msg_id === currentArticleRef.value.msg_id)
       if (idx !== -1) {
         mp_msgsRef.value[idx] = currentArticleRef.value
       }
+
       extractArticleUrlRef.value = ""
       dialogExtractMpAritcleUrlRef.value = false
+    } else if (tag === "appmsg-ret:batchExtractMpArticleUrls") {
+      console.log(`tag:${msg.tag}`, typeof msg.data)
+      const { ret, failed } = msg.data
+      console.log("ret=>", ret)
+      console.log("failed=>", failed)
+      if (ret.code == 101) {
+        ElMessage({ type: 'error', message: ret.msg })
+        return
+      }
+      console.log("ret=>", ret.length)
+      for (const item of ret) {
+        await newArticle(true)
+        let parsed_data = parseExtractMpArticleData(item)
+        currentArticleRef.value = {
+          ...currentArticleRef.value,
+          ...parsed_data,
+        }
+        const idx = mp_msgsRef.value.findIndex(v => v.msg_id === currentArticleRef.value.msg_id)
+        if (idx !== -1) {
+          mp_msgsRef.value[idx] = currentArticleRef.value
+        }
+      }
+
     } else if (tag === "appmsg-ret:publishToWechat") {
       console.log("publishToWechatResult msg.data=>", msg.data)
       const { ret } = msg.data
@@ -2541,7 +2573,7 @@ watch(() => [props.mainMsg], (newVal) => {
       const { success, page_info } = ret
       if (success) {
         console.log("page_info=>", page_info)
-        pickerPageInfo.value=page_info
+        pickerPageInfo.value = page_info
       }
     } else if (tag === "video-ret:listVideos") {
       // 关闭对话框
@@ -2555,7 +2587,7 @@ watch(() => [props.mainMsg], (newVal) => {
         // videosRef.value = [...items, ...items, ...items, ...items, ...items]
         // video_current_pageRef.value = 1
         // video_total_cntRef.value = 5 // total_cnt
-
+        console.log("items=>", items)
         videosRef.value = items
         video_total_cntRef.value = total_cnt
         videoLoadingRef.value = false
