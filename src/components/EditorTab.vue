@@ -168,7 +168,7 @@
             <!-- 这里是小绿书的编辑区 -->
             <div v-if="msg_idRef !== 0 && currentArticleRef.item_show_type === 8" class="w-full p-2 pb-5 flex-col h-full overflow-auto">
               <ImgListPicker v-model="currentArticleRef.picture_page_info_list">
-                <template #picker>
+                <template #picker v-if="currentArticleRef.picture_page_info_list?.length <= 20">
                   <el-icon class="item bg-white" @click="refImgPicker.openDialog(),imgListPicking=true"><Plus/></el-icon>
                 </template>
               </ImgListPicker>
@@ -1017,6 +1017,7 @@ function onImgPick(urls){
       currentArticleRef.value.picture_page_info_list=[]
     }
     currentArticleRef.value.picture_page_info_list.push(...urls.map(v=>({url:v,bg:'#fff'})))
+    currentArticleRef.value.picture_page_info_list=currentArticleRef.value.picture_page_info_list.slice(0, 20)
     return
   }
   currentArticleRef.value.cdn_url = urls[0]
