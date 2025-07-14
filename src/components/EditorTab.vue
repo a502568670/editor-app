@@ -15,13 +15,16 @@
               <el-dropdown-menu>
                 <el-dropdown-item
                   @click="emitEvents('createAppmsg', { type: 0, account_id: props.account.id })">创建当前公众号图文素材</el-dropdown-item>
-                  <el-dropdown-item
+                <el-dropdown-item
                   @click="emitEvents('createAppmsg', { type: 0, account_id: props.account.id, item_show_type: 8 })">创建当前公众号小绿书</el-dropdown-item>
-                  <el-dropdown-item
+                <el-dropdown-item
                   @click="emitEvents('createAppmsg', { type: 0, account_id: props.account.id, item_show_type: 5 })">创建当前公众号视频素材</el-dropdown-item>
-                <el-dropdown-item divided @click="emitEvents('createAppmsg', { type: 1 })">创建其他公众号图文素材</el-dropdown-item>
-                <el-dropdown-item  @click="emitEvents('createAppmsg', { type: 1, item_show_type: 8 })">创建其他公众号小绿书</el-dropdown-item>
-                <el-dropdown-item  @click="emitEvents('createAppmsg', { type: 1, item_show_type: 5 })">创建其他公众号视频素材</el-dropdown-item>
+                <el-dropdown-item divided
+                  @click="emitEvents('createAppmsg', { type: 1 })">创建其他公众号图文素材</el-dropdown-item>
+                <el-dropdown-item
+                  @click="emitEvents('createAppmsg', { type: 1, item_show_type: 8 })">创建其他公众号小绿书</el-dropdown-item>
+                <el-dropdown-item
+                  @click="emitEvents('createAppmsg', { type: 1, item_show_type: 5 })">创建其他公众号视频素材</el-dropdown-item>
               </el-dropdown-menu>
             </template>
           </el-dropdown>
@@ -67,7 +70,9 @@
                   </div>
                   <img v-if="item.cdn_url" class="w-full h-full  object-cover rounded-sm" :src="item.cdn_url"
                     referrerpolicy="no-referrer" />
-                  <div class="flex absolute text-white p-1 bg-gray-600 opacity-70"><span v-if="item.msg_id === 0">*</span>{{ item.title }}
+                  <div class="flex absolute text-white p-1 bg-gray-600 opacity-70"><span
+                      v-if="item.msg_id === 0">*</span>{{
+                        item.title }}
                   </div>
                   <div
                     class="flex absolute right-0 justify-between px-1 space-x-2 py-1 text-white bg-gray-600 opacity-70"
@@ -112,8 +117,8 @@
                   </div>
                 </div>
               </div>
-              <div  class="w-full flex h-20 items-center p-1 justify-center">
-                <el-dropdown v-if="!is_xiaolvshu" >
+              <div class="w-full flex h-20 items-center p-1 justify-center">
+                <el-dropdown v-if="!is_xiaolvshu">
                   <el-button type="primary">
                     新建消息<el-icon class="el-icon--right"><arrow-down /></el-icon>
                   </el-button>
@@ -166,12 +171,19 @@
               </el-row>
             </div>
             <!-- 这里是小绿书的编辑区 -->
-            <div v-if="msg_idRef !== 0 && currentArticleRef.item_show_type === 8" class="w-full p-2 pb-5 flex-col h-full overflow-auto">
-              <ImgListPicker v-model="currentArticleRef.picture_page_info_list">
-                <template #picker>
-                  <el-icon class="item bg-white" @click="refImgPicker.openDialog(),imgListPicking=true"><Plus/></el-icon>
-                </template>
-              </ImgListPicker>
+            <div v-if="msg_idRef !== 0 && currentArticleRef.item_show_type === 8"
+              class="w-full p-2 pb-5 flex-col h-full overflow-auto">
+              <el-row :gutter="4" class="mb-1 w-full">
+                <el-col :span="24">
+                  <ImgListPicker v-model="currentArticleRef.picture_page_info_list">
+                    <template #picker>
+                      <el-icon class="item bg-white" @click="refImgPicker.openDialog(), imgListPicking = true">
+                        <Plus />
+                      </el-icon>
+                    </template>
+                  </ImgListPicker>
+                </el-col>
+              </el-row>
               <el-row :gutter="4" class="mb-1 w-full">
                 <el-col :span="24">
                   <el-input v-model="currentArticleRef.title" clearable class="w-full" placeholder="请在这里输入标题 (选填)"
@@ -181,7 +193,7 @@
               <el-row :gutter="4" class="mb-1 w-full ">
                 <el-col :span="24" class="flex w-full">
                   <!-- <el-input v-model="currentArticleRef.author" clearable class="w-full" placeholder="请输入视频介绍,可以不填" /> -->
-                  <el-mention v-model="currentArticleRef.guide_words" type="textarea" class="w-full h-40" 
+                  <el-mention v-model="currentArticleRef.guide_words" type="textarea" class="w-full h-20"
                     placeholder="填写描述信息，让大家了解更多内容" />
                 </el-col>
               </el-row>
@@ -645,12 +657,13 @@
 .query-input :deep(.el-input__wrapper .el-input__inner) {
   cursor: default !important;
 }
+
 .el-textarea {
-    height:100%;
+  height: 100%;
 }
 
 :deep(.el-textarea__inner) {
-    height: 100%;
+  height: 100%;
 }
 </style>
 <script setup>
@@ -667,14 +680,14 @@ import { saveAppMsg, send_to_other_accounts_events } from "@/api/appmsg"
 import { getMpUserInfo, getLastPreviewAccounts, sendPreview, listVideos, getMasssendInfo, stat_appmsg_copyright_stat_events } from "@/api/mp_wechat"
 import { format_to_UEditor_html, restore_from_UEditor_html } from "@/utils/dom";
 import { uploadImage } from "@/api/img"
-import { toDeepRaw, toPicPageInfo } from "@/utils/convert"
+import { toDeepRaw, toPicPageInfo, gen_picture_page_info_list } from "@/utils/convert"
 import { fmtImageUrl } from "@/utils/format"
 import { createDateByDays, parseDate, formatDate } from "@/utils/date"
 import { ad_categorys, adMarkerContentInUEditor, format_ad_content_in_UEditor, restore_ad_content_from_UEditor, has_ad_in_wangEditor, has_ad_in_raw } from "@/utils/ad"
 import { getVideoFrameHtml } from "@/utils/video"
 import { apperrmsg, claim_source_types, HOUSRS, MINUTES, wxretmsg } from "@/utils/constants"
 import { ElMessage, ElMessageBox, ElLoading } from 'element-plus'
-import { ArrowUp, ArrowDown, Delete, CircleCheckFilled, CircleCloseFilled, InfoFilled, Search,Plus } from '@element-plus/icons-vue'
+import { ArrowUp, ArrowDown, Delete, CircleCheckFilled, CircleCloseFilled, InfoFilled, Search, Plus } from '@element-plus/icons-vue'
 import { Link, Link2, RadioTower, DollarSign, SquareTerminal, Eye, ScanEye, Minus, Smartphone, Video } from 'lucide-vue-next';
 import { serializeCookie } from "@/utils/cookie"
 import axios from 'axios'
@@ -1009,20 +1022,20 @@ function handleImageUpload(info) {
   cdnRef.value = { cdn_content_type: info.type, cdn_base64_image: info.data, cdn_filename: info.name }
   uploadCover()
 }
-var imgListPicking=false
-function onImgPick(urls){
-  if(imgListPicking){
-    imgListPicking=false
+var imgListPicking = false
+function onImgPick(urls) {
+  if (imgListPicking) {
+    imgListPicking = false
     if (!currentArticleRef.value.picture_page_info_list) {
-      currentArticleRef.value.picture_page_info_list=[]
+      currentArticleRef.value.picture_page_info_list = []
     }
-    currentArticleRef.value.picture_page_info_list.push(...urls.map(v=>({url:v,bg:'#fff'})))
+    currentArticleRef.value.picture_page_info_list.push(...urls.map(v => ({ url: v, bg: '#fff' })))
     return
   }
   currentArticleRef.value.cdn_url = urls[0]
   syncToList("cdn_url")
 }
-var refImgPicker=ref(null)
+var refImgPicker = ref(null)
 provide('selectedAccount', selectedAccount)
 const uploadCover = async () => {
   const { session_id, token } = selectedAccount.value
@@ -1037,10 +1050,10 @@ const uploadCover = async () => {
     }
     const { data } = await uploadImage(imgData)
     const { cdn_url } = data
-    if(imgListPicking){
-      imgListPicking=false
-      currentArticleRef.value.picture_page_info_list.push({url:cdn_url,bg:'#fff'})
-    }else{
+    if (imgListPicking) {
+      imgListPicking = false
+      currentArticleRef.value.picture_page_info_list.push({ url: cdn_url, bg: '#fff' })
+    } else {
       currentArticleRef.value.cdn_url = cdn_url
       syncToList("cdn_url")
     }
@@ -1058,12 +1071,7 @@ const listArticles = async () => {
   if (appmsgid > 0 || props.mode === 'edit') {
     const { wechat_id } = selectedAccount.value
     mp_msgsRef.value = await newlistArticlesByAppMsg(wechat_id, appmsgid).catch((err) => { }).then(response => {
-      response.data.forEach(v=>{
-        if(!v.picture_page_info_list){
-          v.picture_page_info_list=[]
-        }
-        v.picture_page_info_list=toPicPageInfo(v.picture_page_info_list,0)
-      })
+      response.data.forEach(gen_picture_page_info_list)
       return response.data;
     })
     console.log("mp_msgsRef.value=>", mp_msgsRef.value)
@@ -1381,7 +1389,9 @@ const _saveAppMsg = async (push_to_remote) => {
       duration: 2 * 1000
     })
     console.log("saveArticleDraft res=>", res)
+    res.data.data.mp_msgs.forEach(gen_picture_page_info_list)
     mp_msgsRef.value = res.data.data.mp_msgs
+
     const isCreateNewAppMsg = appmsgid <= 0 && res.data.data.appmsgid > 0
     appmsgid = res.data.data.appmsgid
     if (isCreateNewAppMsg) {
@@ -2449,7 +2459,7 @@ const format_video_page_info = (page_info) => {
 
 const parseExtractMpArticleData = (ret) => {
   const { title, nick_name, copyright_stat, cdn_url, item_show_type, video_page_info } = ret
-  let { content_noencode, content_text } = ret
+  let { content_noencode, content_text, picture_page_info_list } = ret
   let guide_words = "", vid = ""
   console.log("item_show_type=>", item_show_type)
   // const { video_page_infos } = msg.data
@@ -2465,6 +2475,40 @@ const parseExtractMpArticleData = (ret) => {
   // if (currentArticleRef.value.item_show_type === 0) {
   //   content_noencode = content_noencode + "<p>" + content_text + "<p>"
   // }
+  if (item_show_type === 8 && currentArticleRef.value.item_show_type != 8) {
+    // 小绿书
+    console.log("小绿书:", ret)
+    ElMessageBox.alert(`当前的素材和导入的是小绿书链接不匹配`, '错误', {
+      confirmButtonText: '确定',
+      type: 'error'
+    }).catch(() => {
+      console.log("publish receive catch")
+    })
+    return
+  }
+  if (item_show_type === 8 && picture_page_info_list) {
+    guide_words = content_noencode
+    //   if (typeof(o.theme_color) === "string") {
+    //   const parts = /^rgb\((\d+),(\d+),(\d+)\)$/.exec(o.theme_color);
+    //   o.theme_color = {
+    //     r: parts[1],
+    //     g: parts[2],
+    //     b: parts[3],
+    //   }
+    //   print("o.theme_color=>", o.theme_color)
+    // }
+    const reg = /^rgb\((\d+),(\d+),(\d+)\)$/
+    picture_page_info_list.forEach(o => {
+      const parts = reg.exec(o.theme_color);
+      o.theme_color = {
+        r: parseInt(parts[1]),
+        g: parseInt(parts[2]),
+        b: parseInt(parts[3]),
+      }
+    })
+    picture_page_info_list = toPicPageInfo(picture_page_info_list, 0)
+    console.log("picture_page_info_list=>", picture_page_info_list)
+  }
 
   content_noencode += '\v'
   content_noencode = format_to_UEditor_html(content_noencode)
@@ -2480,6 +2524,7 @@ const parseExtractMpArticleData = (ret) => {
     cdn_url,
     guide_words,
     vid,
+    picture_page_info_list,
   }
 }
 
