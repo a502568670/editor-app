@@ -2,9 +2,10 @@
   <el-dialog :close-on-click-modal="false" @closed="handleDialogClosed" title="选择公众号创建素材" v-model="dialogVisibleRef"
     width="750px">
     <div class="w-full flex flex-wrap gap-2 ">
+      <el-input v-model="word" placeholder="输入关键词搜索公众号名称" clearable></el-input>
       <div class="w-[230px] cursor-pointer flex border rounded shadow justify-center items-center px-2 py-1 h-[75px]"
         :class="{ 'border-green-500': accountsChoosedRef.findIndex(v => v.id === item.id) !== -1 }"
-        v-for="item in all_accounts.list" :key="item.id" @click="handleSelect(item)">
+        v-for="item in filteredAccounts" :key="item.id" @click="handleSelect(item)">
         <img class="w-10 h-10 rounded-full" :src="item.avatar" />
         <div class="flex-1 pl-2 flex flex-col">
           <div class="flex-1 text-lg font-bold">{{ item.name }}</div>
@@ -21,7 +22,7 @@
   </el-dialog>
 </template>
 <script setup>
-import { onActivated, onMounted, ref, toRefs, watch } from 'vue'
+import { computed, onActivated, onMounted, ref, toRefs, watch } from 'vue'
 import { useStore } from 'vuex'
 import { ElMessage, ElMessageBox, ElLoading } from 'element-plus'
 import { toDeepRaw } from "@/utils/convert"
@@ -34,6 +35,15 @@ const emitEvents = defineEmits(['dialogClosed', 'accountChoose'])
 
 const dialogVisibleRef = ref(false)
 const accountsChoosedRef = ref([])
+var word=ref("")
+var filteredAccounts = computed(() => {
+  if (!word.value) {
+    return all_accounts.value.list
+  }
+  return all_accounts.value.list.filter(account => {
+    return account.name.toLowerCase().includes(word.value.toLowerCase())
+  })
+})
 
 watch(() => [props.dialogVisible], (newVal) => {
   // console.log("choose account props.changed=>", newVal)
