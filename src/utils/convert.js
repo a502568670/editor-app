@@ -56,3 +56,17 @@ export function toPicPageInfo(o,from=0) {
     bg:'#'+`${strHex(v.theme_color.r)}${strHex(v.theme_color.g)}${strHex(v.theme_color.b)}`
   }));
 }
+
+export function gen_picture_page_info_list(v) {
+  if (v.item_show_type === 8) {
+    if (!v.picture_page_info_list_json_str) {
+      v.picture_page_info_list = []
+    } else {
+      v.picture_page_info_list = JSON.parse(v.picture_page_info_list_json_str)
+    }
+    console.log("v.picture_page_info_list=>", v.picture_page_info_list)
+    v.picture_page_info_list = toPicPageInfo(v.picture_page_info_list, 0)
+    v.picture_page_info_list_json_str = undefined
+    console.log("v.picture_page_info_list")
+  }
+}

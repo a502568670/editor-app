@@ -115,7 +115,7 @@ const _postJson = function (protocol, hostname, port, pathname, postData, newhea
         let responseBodyBuffer = Buffer.concat(buffers);
         let ret = JSON.parse(responseBodyBuffer.toString());
         // console.log(`BODY: ${ret}`);
-        verbose_log("JSON数据接收完成", responseBodyBuffer.toString());
+        // verbose_log("JSON数据接收完成", responseBodyBuffer.toString());
 
         clearTimeout(timeoutId);
         isFinished = true;
@@ -130,7 +130,7 @@ const _postJson = function (protocol, hostname, port, pathname, postData, newhea
       });
 
     });
-    console.log("postData:", postData)
+    // console.log("postData:", postData)
     request.write(JSON.stringify(postData));
     request.end();
   });
