@@ -18,7 +18,7 @@
   <div class="img-list">
     <el-popover popper-class="img-list-popover" v-for="(v,idx) in imgs" :key="idx+v.bg" trigger="hover" placement="bottom" :width="100">
       <template #reference>
-        <img class="item" :class="activeIdx==idx&&'active'" :src="v.url" alt="img" @click="activeIdx=idx">
+        <img class="item" :class="activeIdx==idx&&'active'" :src="v.url" alt="img" @click="activeIdx=idx"  draggable="true" @dragstart="(evt)=>onDragStart(evt,idx)" @dragover.prevent="(evt)=>evt.dataTransfer.dropEffect='move'" @drop="(evt)=>onDrop(evt,idx)"/>
       </template>
       <el-button :icon="Crop" @click="onCrop(idx)" text round></el-button>
       <el-button :icon="Delete" @click="onDelete(idx)" text round></el-button>
@@ -26,9 +26,9 @@
     <el-tooltip content="添加图片">
       <slot name="picker" @click="console.log('slot click')"></slot>
     </el-tooltip>
-    </div>
   </div>
   <ImgCrop ref="refImgCrop" @change="url=>imgs[activeIdx].url=url" upload nul/>
+</div>
 </template>
 <script setup>
 import {ref} from 'vue';
@@ -48,6 +48,21 @@ var refImgCrop=ref(null)
 function onCrop(idx) {
   refImgCrop.value.cropWith(imgs.value[idx].url)
   activeIdx.value=idx
+}
+function onDragStart(evt, idx) {
+  evt.dataTransfer.setData('text/uri-list', imgs.value[idx].url);
+  evt.dataTransfer.setData('text/plain', idx);
+  evt.dataTransfer.effectAllowed = 'move';
+}
+function onDrop(evt, idx) {
+  evt.preventDefault();
+  const draggedIdx = evt.dataTransfer.getData('text/plain');
+  if (draggedIdx != idx) {
+    const draggedImg = imgs.value[draggedIdx];
+    imgs.value.splice(draggedIdx, 1);
+    imgs.value.splice(idx, 0, draggedImg);
+    activeIdx.value = idx;
+  }
 }
 </script> 
 <style>
@@ -69,13 +84,13 @@ function onCrop(idx) {
 }
 .img-list-picker .img-list .item{
   display: inline-block;
-  vertical-align: middle;
+  vertical-align: bottom;
   width: 40px;
   height: 40px;
   line-height: 40px;
   border-radius: 4px;
   object-fit: cover;
-  margin-right: 4px;
+  margin: 4px 4px 0 0;
   cursor: pointer;
 }
 .img-list-picker .img-list .item.el-icon{

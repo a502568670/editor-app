@@ -8,7 +8,7 @@
         <span class="mt-1">{{ $attrs.placeholder }}</span>
     </template>
     <el-dialog class="img-picker dialog " v-model="open" title="选择图片" width="850px"  append-to-body>
-      <div class="w-full flex h-[480px]">
+      <div class="w-full flex min-h-[480px]">
         <div class="w-[130px] h-full overflow-y-scroll">
           <el-menu class="min-h-full h-full" :default-active="0" :default-openeds="['material']" @select="onSelect">
             <el-menu-item index="local">从正文选择</el-menu-item>
@@ -19,10 +19,19 @@
                 <el-tag class="ml-1" size="small" round>{{ v.count }}</el-tag>
               </el-menu-item>
             </el-sub-menu>
+            <el-menu-item index="search">图片搜索</el-menu-item>
           </el-menu>
         </div>
-        <div class="w-[700px] h-[480px] flex flex-col">
+        <div class="w-[700px] min-h-[480px] flex flex-col">
+          <div class="ml-2 mb-1">
+            <el-alert v-if="activeMenu==='search'" class="mx-2" title="图片来源于网络，请自行甄别版权问题" type="error">
+            </el-alert>
+          </div>
           <div class="flex justify-end">
+            <div class="flex-1 mx-2" v-if="activeMenu==='search'">
+              <el-input v-model.trim="searchQuery.word" :prefix-icon="Search" placeholder="输入关键字搜索图片" clearable></el-input>
+              <el-tag v-for="(v,idx) in wordHistory" :key="v" class="cursor-pointer mr-1 mt-1" @click="searchQuery.word=v" closable @close="delWordHistory(v)" size="small">{{ v }}</el-tag>
+            </div>
             <ImgCrop ref="refImgCrop" @change="onImageCrop" button/>
           </div>
           <el-checkbox-group v-if="imgs.length" class="flex-1 flex flex-wrap p-2 mt-2" v-model="selected">
@@ -36,6 +45,7 @@
           </el-checkbox-group>
           <div class="p-4 text-center" v-else>暂无图片</div>
           <pagination class="p-4" v-if="activeMenu==='material'" :total="total" :page="pickerQuery.page" :limit="pickerQuery.limit" @pagination="onPagination" layout="total, prev, pager, next,jumper"></pagination>
+          <pagination class="p-4" v-else-if="activeMenu==='search'" :total="searchQuery.word?1500:0" :page="searchQuery.pn+1" :limit="searchQuery.rn" @pagination="onSearchPagination" layout="prev, pager, next,jumper"></pagination>
         </div>
       </div>
       <template #footer>
@@ -46,11 +56,12 @@
   </div>
 </template>
 <script setup>
-import {computed, ref, shallowRef, watchEffect} from 'vue'
-import { UploadFilled, Crop } from '@element-plus/icons-vue'
+import {computed, ref, shallowRef, watchEffect,watch} from 'vue'
+import { UploadFilled, Crop, Search,Bell } from '@element-plus/icons-vue'
 import ImgCrop from '../ImgCrop.vue'
 import pagination from '../Pagination/index.vue'
 import { ElMessageBox } from 'element-plus'
+import debounce from 'lodash-es/debounce'
 
 var {imgSrc,editorInst,pageInfo}=defineProps(['imgSrc','editorInst','pageInfo'])
 var $emit=defineEmits(['change','confirm'])
@@ -58,11 +69,54 @@ var pickerQuery=defineModel()
 var total=computed(()=>groups.value.find(v=>v.id==pickerQuery.value.group_id).count)
 var groups=shallowRef([])
 var open=ref(false)
+watch(open,()=>{
+  if(!open.value){
+    searchQuery.value.word=''
+    searchQuery.value.pn=0
+  }
+})
 var activeMenu=ref(['material', 0])
 var imgs=ref([])
 var refInput=ref(null)
 var selected=ref([])
 var refImgCrop=ref(null)
+var searchQuery=ref({word:'',pn:0,rn:18})
+var _w;
+watch(searchQuery,debounce(async ()=>{
+  if(searchQuery.value.word){
+    if(searchQuery.value.word!==_w){
+      _w=searchQuery.value.word;
+      searchQuery.value.pn=0;
+    }
+    addWordHistory(searchQuery.value.word);
+    selected.value=[]
+    var search=`?${new URLSearchParams(searchQuery.value)}&tn=resultjson_com&ie=utf-8&fp=result&fr=&ala=0&applid=10806652856360252284&nojc=0&gsm=1e&newReq=1`
+    var req=await fetch(`https://image.baidu.com/search/acjson${search}`);
+    var res=await req.json();
+    if(res.errno===0){
+      imgs.value=res.data.images.map(v=>({cdn_url:v.thumburl}));
+    }
+  }
+},300), {deep:true})
+var wordHistory=ref((localStorage.getItem('img-picker-wordHistory')||'').split(',').filter(v=>v).map(v=>v.trim()));
+function addWordHistory(word){
+  if(!word) return;
+  if(wordHistory.value.indexOf(word)<0){
+    wordHistory.value.unshift(word);
+    if(wordHistory.value.length>10){
+      wordHistory.value.pop();
+    }
+    localStorage.setItem('img-picker-wordHistory',wordHistory.value);
+  }
+}
+function delWordHistory(word){
+  if(!word) return;
+  var idx=wordHistory.value.indexOf(word);
+  if(idx>-1){
+    wordHistory.value.splice(idx,1);
+    localStorage.setItem('img-picker-wordHistory',wordHistory.value);
+  }
+}
 
 defineExpose({
   uploadSucc(url){
@@ -79,7 +133,7 @@ watchEffect(()=>{
   if(pageInfo?.file_cnt){
     var {file_cnt,file_group_list:{file_group},file_item}=pageInfo;
     groups.value=file_group;
-    if(activeMenu.value!=='local'){
+    if(activeMenu.value==='material'){
       imgs.value=file_item.map(({name,cdn_url})=>({name,cdn_url}));
     }
   }
@@ -133,14 +187,25 @@ function onSelect(index, indexPath){
   selected.value=[]
   if (index==='local'){
     getEditorImgs()
+  }else if(index==='search'){
+    searchQuery.value.word=''
+    searchQuery.value.pn=0
+    imgs.value=[]
   }
 }
 function onPagination(query){
   pickerQuery.value={...pickerQuery.value,...query}
   selected.value=[]
 }
+function onSearchPagination(query){
+  searchQuery.value.pn=query.page-1
+  selected.value=[]
+}
 </script>
 <style>
+.img-picker{
+  position: relative;
+}
 .img-picker:not(.dialog) {
   display: flex;
   flex-direction: column;
