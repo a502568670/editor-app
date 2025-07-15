@@ -143,6 +143,9 @@ watch(() => imgSrc, () => {
 })
 </script>
 <style>
+.container-img-crop{
+    position: relative;
+}
 .container-img-crop:not(.plain) {
     display: flex;
     flex-direction: column;

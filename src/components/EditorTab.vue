@@ -171,14 +171,6 @@
               </el-row>
             </div>
             <!-- 这里是小绿书的编辑区 -->
-<<<<<<< HEAD
-            <div v-if="msg_idRef !== 0 && currentArticleRef.item_show_type === 8" class="w-full p-2 pb-5 flex-col h-full overflow-auto">
-              <ImgListPicker v-model="currentArticleRef.picture_page_info_list">
-                <template #picker v-if="currentArticleRef.picture_page_info_list?.length <= 20">
-                  <el-icon class="item bg-white" @click="refImgPicker.openDialog(),imgListPicking=true"><Plus/></el-icon>
-                </template>
-              </ImgListPicker>
-=======
             <div v-if="msg_idRef !== 0 && currentArticleRef.item_show_type === 8"
               class="w-full p-2 pb-5 flex-col h-full overflow-auto">
               <el-row :gutter="4" class="mb-1 w-full">
@@ -192,7 +184,6 @@
                   </ImgListPicker>
                 </el-col>
               </el-row>
->>>>>>> 278f747
               <el-row :gutter="4" class="mb-1 w-full">
                 <el-col :span="24">
                   <el-input v-model="currentArticleRef.title" clearable class="w-full" placeholder="请在这里输入标题 (选填)"
