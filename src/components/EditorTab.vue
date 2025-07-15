@@ -176,7 +176,7 @@
               <el-row :gutter="4" class="mb-1 w-full">
                 <el-col :span="24">
                   <ImgListPicker v-model="currentArticleRef.picture_page_info_list">
-                    <template #picker>
+                    <template #picker v-if="(currentArticleRef.picture_page_info_list||[]).length < 20">
                       <el-icon class="item bg-white" @click="refImgPicker.openDialog(), imgListPicking = true">
                         <Plus />
                       </el-icon>
