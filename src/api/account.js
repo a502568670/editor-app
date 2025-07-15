@@ -7,6 +7,25 @@ export function listAccount(data) {
     data
   })
 }
+export async function listOrderedAccount(data) {
+  var res = await request({
+    url: '/platform/accountList',
+    method: 'post',
+    data
+  })
+  withOrderedAccount(res.data.data.list);
+  // console.log(res);
+  return res;
+}
+export function withOrderedAccount(list) {
+  var orders = localStorage.getItem("account_orders");
+  if (orders) {
+    var orderMap = {};
+    orders.split(',').forEach((id,i)=>orderMap[id]=i)
+    list.sort((a,b)=>orderMap[a.id]-orderMap[b.id])
+  }
+}
+
 export function removeAccount(data) {
   return request({
     url: '/platform/removeAccount',
