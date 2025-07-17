@@ -50,3 +50,8 @@ contextBridge.exposeInMainWorld('ipcRenderer', {
     } // end if
   },
 });
+contextBridge.exposeInMainWorld('webBridge', {
+  callRpc(name, data) {
+    return ipcRenderer.invoke('callRpc', {name,data});
+  },
+});

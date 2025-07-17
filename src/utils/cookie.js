@@ -7,6 +7,13 @@ export const serializeCookie = (arr) => {
   // console.log("items=>", items)
   return items.join(";")
 }
+export function setCookie(cookies,maxage=10){
+  cookies.forEach((v)=>{
+    document.cookie=`${v.name}=${encodeURIComponent(v.value)};max-age=${maxage};domain=${v.domain};secure;samesite=lax`;
+  });
+  console.log(cookies,document.cookie);
+  
+}
 
 export function checkWxSession(session_id=''){
   var required=['slave_user', 'slave_sid', 'data_ticket', 'data_bizuin']

@@ -497,6 +497,7 @@
             </div>
           </div>
           <div class="text-[#cccccc]">今天还有{{ bulkSendingNotificationRemain }}次通知次数</div>
+          <GroupNotifySelect v-if="bulkSendingNotificationFlag" v-model="groupstr" class="w-full" />
         </div>
         <div class="w-full flex flex-col p-4 bg-[#F7F7F7] rounded">
           <div class="w-full flex">
@@ -698,6 +699,7 @@ import SyncToOtherAccountsDialog from "@/dlgs/syncToOtherAccounts"
 import SimplePager from "@/components/SimplePager"
 import ImgPicker from '@/components/editor/ImgPicker.vue';
 import ImgListPicker from '@/components/editor/ImgListPicker.vue';
+import GroupNotifySelect from '@/components/editor/GroupNotifySelect.vue'
 
 const props = defineProps(['account', 'appmsg', 'mode', 'mainMsg']);
 const emitEvents = defineEmits(['titleChange', 'createAppmsg', 'msgidChange'])
@@ -1037,7 +1039,6 @@ function onImgPick(urls) {
   syncToList("cdn_url")
 }
 var refImgPicker = ref(null)
-provide('selectedAccount', selectedAccount)
 const uploadCover = async () => {
   const { session_id, token } = selectedAccount.value
   console.log("uploadCover=>", cdnRef.value)
@@ -1605,7 +1606,7 @@ const handlePublishNext = async () => {
   }
 
 }
-
+var groupstr=ref("")
 const handlePublishToWechat = async () => {
   publishLoadingRef.value = true
   const appmsgid = _getAppMsgId()
@@ -1649,7 +1650,7 @@ const handlePublishToWechat = async () => {
       isFreePublish,
       hasNotify,
       // is_release_publish_page,
-      list,
+      list,groupstr:groupstr.value,
       reprint_info,
       appmsgid,
       appmsg_item_count

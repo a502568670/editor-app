@@ -141,7 +141,7 @@
 }
 </style>
 <script setup>
-import { ref, toRefs, useTemplateRef, computed, nextTick, onMounted, onActivated, onDeactivated } from 'vue';
+import { ref, toRefs, useTemplateRef, computed, nextTick, onMounted, onActivated, onDeactivated, provide } from 'vue';
 import { vScroll } from '@vueuse/components'
 import SyncToOtherAccountsDialog from "@/dlgs/syncToOtherAccounts"
 import OperateProgressDialog from "@/dlgs/operateProgress"
@@ -180,6 +180,7 @@ const localAppmsgsRef = ref([])
 const queryRef = ref("")
 
 const selectedAccountRef = ref(null)
+provide('selectedAccount', selectedAccountRef)
 const selectedIndexRef = ref(0)
 const otherAccountsRef = ref([])
 const dataLoadingRef = ref(false)
@@ -372,7 +373,7 @@ const handleRemoveAppmsg = async (appmsg) => {
   })
 }
 
-const handlePublishToWechat = async ({ send_time, isFreePublish, hasNotify, reprint_info, list }) => {
+const handlePublishToWechat = async ({ send_time, isFreePublish, hasNotify, reprint_info, list,groupstr }) => {
   isPublishingRef.value = true
   console.log("current appmsg=>", currentOperateAppMsgRef.value)
   const appmsgid = currentOperateAppMsgRef.value.app_id
@@ -403,7 +404,7 @@ const handlePublishToWechat = async ({ send_time, isFreePublish, hasNotify, repr
       isFreePublish,
       hasNotify,
       // is_release_publish_page,
-      list,
+      list,groupstr,
       reprint_info,
       appmsgid,
       appmsg_item_count

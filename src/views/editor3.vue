@@ -71,7 +71,7 @@
 }
 </style>
 <script setup>
-import { onActivated, onDeactivated, onMounted, ref, toRefs } from 'vue'
+import { onActivated, onDeactivated, onMounted, ref, toRefs,provide } from 'vue'
 import { ElMessage, ElMessageBox, ElLoading } from 'element-plus'
 import EditorTab from "@/components/EditorTab"
 import ChooseAccountDialog from "@/dlgs/chooseAccount"
@@ -92,6 +92,7 @@ const channelSource = 'editor3'
 const { all_accounts } = toRefs(store.getters)
 
 const selectedAccountRef = ref(null)
+provide('selectedAccount', selectedAccountRef)
 const selectedIndexRef = ref(0)
 
 const dialogChooseAccountVisibleRef = ref(false)

@@ -27,7 +27,7 @@ import * as zhCN from '../locales/zh-CN.json'
 const verbose_log = global.utils.verbose_log;
 const verbose_error = global.utils.verbose_error;
 const get_backend_url_old = global.utils.get_backend_url_old;
-var { batchWechatData } = require('./mp_stat-tasks.js');
+var { batchWechatData, getWxGroupList } = require('./mp_stat-tasks.js');
 
 
 let tabbedWin;
@@ -234,6 +234,7 @@ export async function createTabbedWin(stockList) {
   initialiseCustomisedWinListener(tabbedWin)
   // 监听主窗口的事件
   initialiseIpcMainListener(stockList, tabbedWin);
+  initRpc();
 
   return tabbedWin;
 }
@@ -680,6 +681,20 @@ async function reactToIpcObjectData(data, tabbedWin, viewContents) {
   }
 }
 
+function initRpc() {
+  ipcMain.handle('callRpc', async (evt, { name, data }) => {
+    const viewContents = webContents.fromId(evt.sender.id)
+    switch (name) {
+      case 'getWxGroupList': {
+        return getWxGroupList(data.account);
+      }
+      default: {
+        conosle.error(new Error(`Unknown RPC call: ${name}`));
+        return null;
+      }
+    }
+  })
+}
 
 
 // 最大化或恢复窗口大小

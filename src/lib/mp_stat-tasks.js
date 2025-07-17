@@ -72,7 +72,14 @@ async function getWechatPvData(info) {
     ]);
     return data;
 }
+async function getWxGroupList(account) {
+    var cookie = JSON.parse(account.session_id).cookie.map(v => `${v.name}=${v.value}`).join(';')
+    var opts = {headers:{cookie,referer:'https://mp.weixin.qq.com/'}};
+    var res = await netFetch(`https://mp.weixin.qq.com/cgi-bin/masssendpage?t=mass/send&token=${account.token}&lang=zh_CN&f=json`, opts);
+    return JSON.parse(res)
+}
 
+exports.getWxGroupList = getWxGroupList;
 exports.batchWechatData = batchWechatData;
 exports.toReqOpts = toReqOpts;
 exports.netFetch = netFetch;

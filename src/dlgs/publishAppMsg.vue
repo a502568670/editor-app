@@ -17,6 +17,7 @@
             </div>
           </div>
           <div class="text-[#cccccc]">今天还有{{ bulkSendingNotificationRemain }}次通知次数</div>
+          <GroupNotifySelect v-if="bulkSendingNotificationFlag" v-model="groupstr" class="w-full" />
         </div>
         <div class="w-full flex flex-col p-4 bg-[#F7F7F7] rounded">
           <div class="w-full flex">
@@ -99,6 +100,7 @@ import { createDateByDays, parseDate, formatDate } from "@/utils/date"
 import { HOUSRS, MINUTES } from "@/utils/constants"
 import { serializeCookie } from "@/utils/cookie"
 import JSON5 from "json5"
+import GroupNotifySelect from '@/components/editor/GroupNotifySelect.vue';
 
 const props = defineProps(['dialogVisible', 'processing', 'selectedAccount', 'appmsgid']);
 
@@ -286,7 +288,7 @@ const handleNext = async () => {
   }
 
 }
-
+var groupstr=ref('')
 const handlePublish = async () => {
 
   console.log("publishTimeRef.value", publishTimeRef.value, typeof publishTimeRef.value)
@@ -306,7 +308,7 @@ const handlePublish = async () => {
   } : null
   const list = publishCopyright1ListJsonStrRef.value
 
-  emitEvents("publish", { send_time, isFreePublish, hasNotify, reprint_info, list })
+  emitEvents("publish", { send_time, isFreePublish, hasNotify, reprint_info, list,groupstr:groupstr.value })
 }
 
 
