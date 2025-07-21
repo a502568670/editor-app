@@ -30,7 +30,7 @@
           <div class="flex justify-end">
             <div class="flex-1 mx-2" v-if="activeMenu==='search'">
               <el-input v-model.trim="searchQuery.word" :prefix-icon="Search" placeholder="输入关键字搜索图片" clearable></el-input>
-              <el-tag v-for="(v,idx) in wordHistory" :key="v" class="cursor-pointer mr-1 mt-1" @click="searchQuery.word=v" closable @close="delWordHistory(v)" size="small">{{ v }}</el-tag>
+              <el-tag v-for="(v) in wordHistory" :key="v" class="cursor-pointer mr-1 mt-1" @click="searchQuery.word=v" closable @close="delWordHistory(v)" size="small">{{ v }}</el-tag>
             </div>
             <ImgCrop ref="refImgCrop" @change="onImageCrop" button/>
           </div>
