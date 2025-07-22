@@ -27,7 +27,7 @@ global.common = {
   BACKEND_URL: process.env.BACKEND_URL || "http://47.96.22.8:8006",
   JZL_URL: process.env.JZL_URL || "http://47.96.22.8:8091",
   DEV_CHECK_UPDATE: process.env.DEV_CHECK_UPDATE || 'false',
-  DEFAULT_TIMEOUT: 10 * 1000,
+  DEFAULT_TIMEOUT: 60 * 1000,
 }
 
 const yesVals = ['y', 'yes', 'true', true, '1', 1, 'on']

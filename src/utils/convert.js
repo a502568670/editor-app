@@ -43,17 +43,20 @@ function strHex(s){
 export function toPicPageInfo(o,from=0) {
   if(!o?.length) return [];
   if(from){
+    console.log("o=>", o[0], o[0].file_id)
     return o.map(v=>({
       url:v.url,
       cdn_url:v.url,
       width:v.width||300,height:v.height||400,
       theme_color:rgbObj(v.bg),
+      file_id: v.file_id,
     }))
   }
   return o.map(v=>({
     url:v.cdn_url,
     width:v.width,height:v.height,
-    bg:'#'+`${strHex(v.theme_color.r)}${strHex(v.theme_color.g)}${strHex(v.theme_color.b)}`
+    bg:'#'+`${strHex(v.theme_color.r)}${strHex(v.theme_color.g)}${strHex(v.theme_color.b)}`,
+    file_id: v.file_id,
   }));
 }
 
@@ -64,9 +67,9 @@ export function gen_picture_page_info_list(v) {
     } else {
       v.picture_page_info_list = JSON.parse(v.picture_page_info_list_json_str)
     }
-    console.log("v.picture_page_info_list=>", v.picture_page_info_list)
+    // console.log("v.picture_page_info_list=>", v.picture_page_info_list)
     v.picture_page_info_list = toPicPageInfo(v.picture_page_info_list, 0)
-    v.picture_page_info_list_json_str = undefined
-    console.log("v.picture_page_info_list")
+    // v.picture_page_info_list_json_str = undefined
+    console.log("v.picture_page_info_list", v.picture_page_info_list)
   }
 }

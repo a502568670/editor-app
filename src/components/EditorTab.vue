@@ -1102,6 +1102,9 @@ const loadArticle = (mp_msg, before_save) => {
   ad_idRef.value = ad_id
   // mp_msg.content_noencode = format_to_wangEditor_html(formated)
   mp_msg.content_noencode = formated
+  // console.log("mp_msg1=>", mp_msg.picture_page_info_list) 
+  // gen_picture_page_info_list(mp_msg)
+  // console.log("mp_msg2=>", mp_msg.picture_page_info_list)
   // appmsgidRef.value = mp_msg.appmsgid
   currentArticleRef.value = {
     ...mp_msg,
