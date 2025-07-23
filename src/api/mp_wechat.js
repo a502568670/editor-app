@@ -36,6 +36,19 @@ export function listVideos(data) {
     data
   })
 }
+// 改变url
+// {
+//   "cookies": "",
+//   "token": 968734986,
+//   "cdn_url": "https://img2.baidu.com/it/u=1212459758,3079048027&fm=253&fmt=auto&app=138&f=JPEG?w=300&h=300"
+// }
+export function changeImageUrl(data) {
+  return request({
+    url: `/mp_wechat/cdn_url/change`,
+    method: 'post',
+    data
+  })
+}
 
 // 获取发表信息
 export function getMasssendInfo(data) {
