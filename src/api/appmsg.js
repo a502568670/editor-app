@@ -20,9 +20,12 @@ export function listAppMsgs(data) {
 }
 
 export function saveAppMsg(data) {
-  data.material_list.forEach(v=>{
-    if(v.picture_page_info_list?.length){
-      v.picture_page_info_list=toPicPageInfo(v.picture_page_info_list,1)
+  data.material_list.forEach(v => {
+    // 临时修复非小绿书的保存
+    if (v.item_show_type == 8 && v.picture_page_info_list?.length) {
+      v.picture_page_info_list = toPicPageInfo(v.picture_page_info_list, 1)
+    } else {
+      v.picture_page_info_list = []
     }
   })
   return request({
