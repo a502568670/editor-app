@@ -16,7 +16,7 @@
     </el-button-group>
   </div>
   <div class="img-list">
-    <el-popover popper-class="img-list-popover" v-for="(v,idx) in imgs" :key="idx+v.bg" trigger="hover" placement="bottom" :width="100">
+    <el-popover popper-class="img-list-popover" v-for="(v,idx) in imgs" :key="idx+v.url" trigger="hover" placement="bottom" :width="100">
       <template #reference>
         <img class="item" :class="activeIdx==idx&&'active'" :src="v.url" alt="img" @click="activeIdx=idx"  draggable="true" @dragstart="(evt)=>onDragStart(evt,idx)" @dragover.prevent="(evt)=>evt.dataTransfer.dropEffect='move'" @drop="(evt)=>onDrop(evt,idx)"/>
       </template>

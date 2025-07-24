@@ -668,7 +668,7 @@
 }
 </style>
 <script setup>
-import { ref, toRefs, shallowRef, onMounted, onBeforeUnmount, nextTick, onActivated, onDeactivated, onUnmounted, watch, computed, provide } from 'vue';
+import { ref, toRefs, shallowRef, onMounted, onBeforeUnmount, nextTick, onActivated, onDeactivated, onUnmounted, watch, computed, provide, toRaw } from 'vue';
 // import { listAccount } from '@/api/account'
 import store from '@/store'
 import { getToken } from "@/utils/auth";
@@ -1378,7 +1378,7 @@ const _saveAppMsg = async (push_to_remote) => {
     cookies: serializeCookie(JSON.parse(session_id)["cookie"]),
     token: parseInt(token),
     appmsgid,
-    material_list: mp_msgsRef.value,
+    material_list: toRaw(mp_msgsRef.value),
     wechat_id,
     push_to_remote,
   }

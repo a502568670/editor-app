@@ -78,8 +78,20 @@ async function getWxGroupList(account) {
     var res = await netFetch(`https://mp.weixin.qq.com/cgi-bin/masssendpage?t=mass/send&token=${account.token}&lang=zh_CN&f=json`, opts);
     return JSON.parse(res)
 }
-
+async function batchWxUploadImg(account, urls) {
+    var cookie = JSON.parse(account.session_id).cookie.map(v => `${v.name}=${v.value}`).join(';')
+    var opts = {
+        method: 'POST',
+        headers:{cookie,referer:'https://mp.weixin.qq.com/'},
+    };
+    var res = await Promise.all(urls.map(img=>
+        netFetch(`https://mp.weixin.qq.com/cgi-bin/uploadimg2cdn?_=${Date.now()}&f=json&userlang=zh_CN&lang=zh_CN&ajax=1&plugin=mptooler&token=${account.token}`,
+            {...opts,body:`t=ajax-editor-upload-img&imgUrl=${encodeURIComponent(img)}&token=${account.token}`})));
+    
+    return res.map(s => JSON.parse(s));
+}
 exports.getWxGroupList = getWxGroupList;
+exports.batchWxUploadImg = batchWxUploadImg;
 exports.batchWechatData = batchWechatData;
 exports.toReqOpts = toReqOpts;
 exports.netFetch = netFetch;

@@ -27,7 +27,7 @@ import * as zhCN from '../locales/zh-CN.json'
 const verbose_log = global.utils.verbose_log;
 const verbose_error = global.utils.verbose_error;
 const get_backend_url_old = global.utils.get_backend_url_old;
-var { batchWechatData, getWxGroupList } = require('./mp_stat-tasks.js');
+var { batchWechatData, getWxGroupList, batchWxUploadImg } = require('./mp_stat-tasks.js');
 
 
 let tabbedWin;
@@ -688,6 +688,9 @@ function initRpc() {
       case 'getWxGroupList': {
         return getWxGroupList(data.account);
       }
+      case 'batchWxUploadImg': {
+        return batchWxUploadImg(data.account, data.urls);
+      };
       default: {
         conosle.error(new Error(`Unknown RPC call: ${name}`));
         return null;

@@ -45,6 +45,7 @@ export function toPicPageInfo(o,from=0) {
   if(from){
     console.log("o=>", o[0], o[0].file_id)
     return o.map(v=>({
+      ...v,
       url:v.url,
       cdn_url:v.url,
       width:v.width||300,height:v.height||400,

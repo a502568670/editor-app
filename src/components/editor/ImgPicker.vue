@@ -50,18 +50,20 @@
       </div>
       <template #footer>
         <el-button @click="open=false">取消</el-button>
-        <el-button type="primary" :disabled="selected.length===0" @click="onConfirm">确定</el-button>
+        <el-button type="primary" :disabled="selected.length===0" @click="onConfirm" :loading="uploading">确定</el-button>
       </template>
     </el-dialog>
   </div>
 </template>
 <script setup>
-import {computed, ref, shallowRef, watchEffect,watch} from 'vue'
+import {computed, ref, shallowRef, watchEffect,watch,inject, toRaw} from 'vue'
 import { UploadFilled, Crop, Search,Bell } from '@element-plus/icons-vue'
 import ImgCrop from '../ImgCrop.vue'
 import pagination from '../Pagination/index.vue'
 import { ElMessageBox } from 'element-plus'
 import debounce from 'lodash-es/debounce'
+import { uploadImage } from '@/api/img'
+import {serializeCookie} from '@/utils/cookie'
 
 var {imgSrc,editorInst,pageInfo}=defineProps(['imgSrc','editorInst','pageInfo'])
 var $emit=defineEmits(['change','confirm'])
@@ -75,7 +77,7 @@ watch(open,()=>{
     searchQuery.value.pn=0
   }
 })
-var activeMenu=ref(['material', 0])
+var activeMenu=ref('material')
 var imgs=ref([])
 var refInput=ref(null)
 var selected=ref([])
@@ -140,7 +142,22 @@ watchEffect(()=>{
   // console.log(pickerQuery,pageInfo);
   
 })
-
+var selectedAccount=inject('selectedAccount')
+async function toWxCdnUrl(url){
+  var imgReq=await fetch(url);
+  var buff=await imgReq.arrayBuffer();;
+  var base64_image=btoa(new Uint8Array(buff).reduce((s, byte) => s + String.fromCharCode(byte), ''));
+  const { session_id, token } = selectedAccount.value
+  var res=await uploadImage({
+      cookies: serializeCookie(JSON.parse(session_id)["cookie"]),
+      token: parseInt(token),
+      base64_image,
+      filename: `图片-${Date.now()}.png`,
+      content_type:'image/png',
+  });
+  return res.data.cdn_url;
+}
+var uploading=ref(false)
 function onConfirm(){
   var urls=imgs.value.filter((v,idx)=>selected.value.indexOf(idx)>-1).map(v=>v.cdn_url)
   // console.log(selected.value,refImgCrop.value,urls);
@@ -155,6 +172,34 @@ function onConfirm(){
       $emit('confirm',urls)
       open.value=false
     })
+  }else if(activeMenu.value==='search'){
+    uploading.value=true;
+    // Promise.all(urls.map(toWxCdnUrl)).then(res=>{
+    //   console.log(res);
+    //   open.value=false
+    // }).catch(err=>{
+    //   console.error(err);
+    //   ElMessageBox.alert('图片上传失败，请稍后再试','错误',{
+    //     type:'error',
+    //   })
+    // }).finally(()=>{
+    //   uploading.value=false;
+    // })    
+    window.webBridge.callRpc('batchWxUploadImg', {
+      account: toRaw(selectedAccount.value),
+      urls: toRaw(urls),
+    }).then(res => {
+      var wxUrls = res.map(v => v.url).filter(v => v);
+      $emit('confirm', wxUrls);
+      open.value = false;
+    }).catch(err => {
+      console.error(err);
+      ElMessageBox.alert('图片上传失败，请稍后再试', '错误', {
+        type: 'error',
+      });
+    }).finally(() => {
+      uploading.value = false;
+    });
   }else{
     $emit('confirm',urls)
     open.value=false
