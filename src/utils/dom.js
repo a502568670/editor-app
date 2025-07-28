@@ -200,6 +200,35 @@ export function format_to_UEditor_html (html) {
   return formated
 }
 
+export function clearContentUrl(raw_text) {
+  // match a with specific class
+  // const reg = /<a\b[^>]*\bclass\s*=\s*["'][^"']*\bnormal_text_link\b[^"']*["'][^>]*>.*?<\/a>/gi
+
+  // match a not contain class name
+  // const reg = /<a\b[^>]*\bclass\s*=\s*["'][^"']*(?!\bnormal_text_link\b)[^"']*["'][^>]*>.*?<\/a>/gi;
+
+  // match a not contain class name1 or name2
+  // const reg = /<a\b[^>]*\bclass\s*=\s*["'][^"']*(?!.*\b(?:normal_text_link1|normal_text_link2)\b)[^"']*["'][^>]*>.*?<\/a>/gi;
+
+  // match a must not have href prop
+  // const reg = /<a\b(?![^>]*\bhref\s*=\s*["'][^"']*["'])[^>]*>(?:.*?)<\/a>/gi;
+
+  // match a must have href prop
+  const reg = /<a\b(?=[^>]*\bhref\s*=\s*["'][^"']*["'])[^>]*>(?:.*?)<\/a>/gi;
+  // const reg = /<a\b[^>]*>.*?<\/a>/gi 
+  const text = raw_text.replace(reg, "")
+  // console.log("text:", text)
+  return text
+}
+
+export function clearWeApp(raw_text) {
+  const reg = /<a\b[^>]*\bclass\s*=\s*["'][^"']*\bjs_weapp_entry\b[^"']*["'][^>]*>.*?<\/a>/gi
+  const text = raw_text.replace(reg, "")
+  // console.log("text:", text)
+  return text
+}
+
+
 // await navigator.clipboard.write([
       //   new window.ClipboardItem({
       //     'text/html': new Blob([content_noencode], { type: 'text/html' }),
