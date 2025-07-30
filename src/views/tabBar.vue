@@ -12,7 +12,8 @@
           <select-group v-model="listQuery.cate_id"></select-group>
         </el-col> -->
         <el-col :span="24" style="margin-top: 10px">
-          <el-input v-model="listQuery.keyword" clearable style="width: 100%;" :placeholder="`请输入账号关键词(总共${accountTotal}个公众号)`" @input="handleInput" />
+          <el-input v-model="listQuery.keyword" clearable style="width: 100%;"
+            :placeholder="`请输入账号关键词(总共${accountTotal}个公众号)`" @input="handleInput" />
         </el-col>
         <!-- <el-col :span="24" style="padding-top: 10px;">
           <el-button style="width: 100%;background-color: #51ce94;border: none" type="primary"
@@ -22,22 +23,25 @@
 
       <!--      左侧账号展示 账号列表数据 (accounts) 的获取-->
       <div style="flex: 1;overflow-y: auto;">
-        <draggable v-model="accounts" class="list-group" ghost-class="ghost" :disabled="dragDisabled"
-          handle=".handle" @start="handleDragStart" @end="handleDragEnd" item-key="id">
+        <draggable v-model="accounts" class="list-group" ghost-class="ghost" :disabled="dragDisabled" handle=".handle"
+          @start="handleDragStart" @end="handleDragEnd" item-key="id">
           <template #item="{ element }">
-            <div @click="element.expired ? handleAddMPAccount(mp_platform):addNewTab(element)" 
-              style="display: flex;align-items: center;padding: 5px; border-bottom: solid 1px #ccc;">
-              <img style="width: 40px; height: 40px;border-radius: 50%" :src="element.avatar" :class="{'handle cursor-move': !dragDisabled }" />
+            <div @click="element.expired ? handleAddMPAccount(mp_platform) : addNewTab(element)"
+              style="display: flex;align-items: center;padding: 5px; border-bottom: solid 1px #ccc;"
+              :class="{ 'bg-gray-200': selected_account_id === element.id }">
+              <img style="width: 40px; height: 40px;border-radius: 50%" :src="element.avatar"
+                :class="{ 'handle cursor-move': !dragDisabled }" />
               <div style="margin-left: 10px;flex: 1;">
                 <div>{{ element.name }}</div>
-                <div style="color: #51ce94">{{ element.platform_name + "(" + element.name + ")" }}</div>
+                <div style="color: #51ce94">{{ element.platform_name + "(" + element.name + ")" }}{{ element.id }}</div>
               </div>
               <el-tooltip v-if="element.expired" content="登录过期">
                 <el-icon class="mr-1" style="color:red">
                   <WarnTriangleFilled />
                 </el-icon>
               </el-tooltip>
-              <el-popconfirm title="你是否要删除该公众号" @confirm="onDelMPAccount(element.wechat_id)" width="250" placement="top-end">
+              <el-popconfirm title="你是否要删除该公众号" @confirm="onDelMPAccount(element.wechat_id)" width="250"
+                placement="top-end">
                 <template #reference>
                   <el-icon @click.prevent.stop class=" cursor-pointer">
                     <Delete />
@@ -153,6 +157,8 @@ const listQuery = ref({
 const accountTotal = ref(0)
 const accountTotalPage = ref(0)
 const accounts = ref([])
+const selected_account_id = ref(0)
+const accounts_mapping_tabs = ref([])
 // const selectedAccount = ref(null)
 // const selectedAccountLoginStatus = ref({})
 
@@ -323,7 +329,17 @@ const changeTab = (tabId) => {
 
 // 1.添加新tab
 const addNewTab = (account) => {
+  if (selected_account_id.value === account.id) {
+    return
+  }
   console.log("currentTabId.value=>", currentTabId.value)
+  selected_account_id.value = account.id
+  accounts_mapping_tabs.value.push({
+    accountId: account.id,
+    tabId: 0,
+  })
+  console.log("accounts_mapping_tabs=>", accounts_mapping_tabs.value)
+
   let a = Object.assign({ userToken: getToken() }, account)
   console.log("a=>", a)
   // if (selectedAccount.value && selectedAccount.value.id === a.id) {
@@ -470,6 +486,21 @@ onMounted(() => {
           currentTab.value = a
         }
       }
+      console.log("accounts_mapping_tabs=>", accounts_mapping_tabs.value)
+      const new_mapping = accounts_mapping_tabs.value.find(v => v.tabId === 0) 
+      if (new_mapping) {
+        new_mapping.tabId = currentTabId.value
+      }
+      for (let a of accounts_mapping_tabs.value) {
+        console.log("a.tabId => ", a.tabId)
+        console.log("currentTabId.value => ", currentTabId.value)
+        console.log("a.accountId => ", a.accountId)
+        if (a.tabId == currentTabId.value) {
+          selected_account_id.value = a.accountId
+          console.log("selected_account_id => ", selected_account_id.value)
+          break
+        }
+      }
     } else {
       if (typeof msg === 'object' && Object.prototype.hasOwnProperty.call(msg, 'tag')) {
         const tag = msg.tag;
@@ -574,6 +605,7 @@ window.ipcRenderer.send('control-ready')
 ::v-deep .el-tabs--border-card>.el-tabs__content {
   padding: 0px !important;
 }
+
 .ghost {
   opacity: 0.5;
   background: #c8ebfb;
