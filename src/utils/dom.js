@@ -216,14 +216,14 @@ export function clearContentUrl(raw_text) {
   // match a must have href prop
   const reg = /<a\b(?=[^>]*\bhref\s*=\s*["'][^"']*["'])[^>]*>(?:.*?)<\/a>/gi;
   // const reg = /<a\b[^>]*>.*?<\/a>/gi 
-  const text = raw_text.replace(reg, "")
+  const text = raw_text.replaceAll(reg, "")
   // console.log("text:", text)
   return text
 }
 
 export function clearWeApp(raw_text) {
   const reg = /<a\b[^>]*\bclass\s*=\s*["'][^"']*\bjs_weapp_entry\b[^"']*["'][^>]*>.*?<\/a>/gi
-  const text = raw_text.replace(reg, "")
+  const text = raw_text.replaceAll(reg, "")
   // console.log("text:", text)
   return text
 }
