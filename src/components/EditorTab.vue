@@ -668,7 +668,7 @@
 }
 </style>
 <script setup>
-import { ref, toRefs, shallowRef, onMounted, onBeforeUnmount, nextTick, onActivated, onDeactivated, onUnmounted, watch, computed, provide, toRaw } from 'vue';
+import { ref, toRefs, shallowRef, onMounted, onBeforeUnmount, nextTick, onActivated, onDeactivated, onUnmounted, watch, computed, provide, toRaw, unref } from 'vue';
 // import { listAccount } from '@/api/account'
 import store from '@/store'
 import { getToken } from "@/utils/auth";
@@ -1159,7 +1159,7 @@ const swapUp = async (msg_id) => {
   const idx = mp_msgsRef.value.findIndex(v => v.msg_id === msg_id)
   const prev = mp_msgsRef.value[idx - 1].msg_id
   console.log("prev index:", prev)
-  if (props.mode === 'create') {
+  if (props.mode === 'create'||props.mode=='hydrate') {
     var tmp = mp_msgsRef.value[idx];
     mp_msgsRef.value[idx] = mp_msgsRef.value[idx - 1]
     mp_msgsRef.value[idx - 1] = tmp
@@ -1176,7 +1176,7 @@ const swapDown = async (msg_id) => {
   const next = mp_msgsRef.value[idx + 1]?.msg_id
   console.log("next index:", next)
   if (!next) return
-  if (props.mode === 'create') {
+  if (props.mode === 'create'||props.mode=='hydrate') {
     var tmp = mp_msgsRef.value[idx];
     mp_msgsRef.value[idx] = mp_msgsRef.value[idx + 1]
     mp_msgsRef.value[idx + 1] = tmp
@@ -1205,7 +1205,7 @@ const checkHasNotSaveToDB = (msg_id) => {
   return msg_id < 0
 }
 
-const newArticle = async (before_save = true, item_show_type = 0) => {
+const newArticle = async (before_save = true, item_show_type = 0,hydrateMsgIdx=-1) => {
   // if (checkHasNotSave(true)) {
   //   return
   // }
@@ -1242,10 +1242,18 @@ const newArticle = async (before_save = true, item_show_type = 0) => {
     content_noencode: "",
   }
   const new_msg_id = 0 - (+new Date())
+  if(props.mode === 'hydrate' && hydrateMsgIdx>-1){
+    // hydrate模式下，插入到指定位置
+    mp_msgsRef.value[hydrateMsgIdx]= {
+      ...new_mp_msg,
+      ...mp_msgsRef.value[hydrateMsgIdx],
+      msg_id: new_msg_id
+    };
+  }else{
   mp_msgsRef.value.push({
     ...new_mp_msg,
     msg_id: new_msg_id
-  })
+  })}
 
   loadArticleByMsgId(new_msg_id)
 
@@ -2664,6 +2672,13 @@ onMounted(async () => {
   mp_msgsRef.value = props.appmsg.multi_item
   if (props.mode === 'create') {
     loadArticleByMsgId(mp_msgsRef.value[0].msg_id)
+  }else if(props.mode==='hydrate'){
+    if(mp_msgsRef.value[0]?.msg_id) loadArticleByMsgId(mp_msgsRef.value[0].msg_id)
+    mp_msgsRef.value.forEach((item, index) => {
+      if(item.fromExtract){
+        newArticle(true, 0,index)
+      }
+    })
   } else if (props.mode === 'edit') {
     await listArticles()
     if (mp_msgsRef.value.length > 0) {

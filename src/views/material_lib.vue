@@ -23,6 +23,7 @@
           </el-icon>
           <span class="ml-1">返回草稿箱</span>
         </el-button>
+        <Hydrate/>
       </div>
       <div v-if="selectedAccountRef !== null" class="h-10  flex space-x-2 items-center pl-2">
         <div class="text-gray-500">{{ materialTypeRef === 0 ? '草稿箱' : '本地素材' }}</div>
@@ -49,7 +50,7 @@
       </div>
       <div v-scroll="onScroll" class="flex-1 overflow-auto pt-5">
         <VueFlexWaterfall ref="el" align-content="center" col="3" col-spacing="20" :breakByContainer="true">
-          <div v-for="item in list" :key="item.app_id"
+          <div v-for="(item,i) in list" :key="item.app_id"
             class="w-[280px] bg-white border flex flex-col mb-5 rounded shadow relative"
             :style="{ minHeight: item.height + 'px' }">
             <div style="height:50px" class="flex items-center p-4 text-sm text-gray-400">
@@ -62,7 +63,12 @@
               </span>
             </div>
             <div v-for="(subitem, index) in item.multi_item" :key="subitem.msg_index_id"
-              class="flex items-center px-4 py-2 w-full">
+              class="flex items-center px-4 py-2 w-full relative" @click="toggleItemId(`${i}-${index}`)">
+              <div class="material-item-actions" v-if="`${i}-${index}`==currItemId">
+                <el-tooltip content="添加到素材合成器" v-if="subitem.item_show_type!==8&&subitem.share_page_type!==8">
+                  <el-icon class="bg-white rounded-full p-1 mr-1 cursor-pointer" size="24" @click="hydrateAdd(item,index)"><FolderAdd/></el-icon>
+                </el-tooltip>
+              </div>
               <div v-if="index === 0"
                 class='w-full flex h-32 relative justify-between items-end bg-[#e6e6e6]'>
                 <img v-if="subitem.cdn_url" class="w-full h-full  object-cover rounded-sm" :src="subitem.cdn_url" referrerpolicy="no-referrer"  />
@@ -139,15 +145,28 @@
 :deep(.el-input__wrapper .el-input__inner) {
   cursor: default !important;
 }
+.material-item-actions {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 30px;
+  z-index: 1;
+  margin: 0 1rem 0.5rem 1rem;
+  padding-top: 3px;
+  background-color: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(5px);
+  text-align: right;
+} 
 </style>
 <script setup>
-import { ref, toRefs, useTemplateRef, computed, nextTick, onMounted, onActivated, onDeactivated, provide } from 'vue';
+import { ref, toRefs, useTemplateRef, computed, nextTick, onMounted, onActivated, onDeactivated, provide, toRaw } from 'vue';
 import { vScroll } from '@vueuse/components'
 import SyncToOtherAccountsDialog from "@/dlgs/syncToOtherAccounts"
 import OperateProgressDialog from "@/dlgs/operateProgress"
 import PublishAppMsgDialog from "@/dlgs/publishAppMsg"
 import { ElMessage, ElMessageBox, ElLoading } from 'element-plus'
-import { RefreshRight, Search, Select, Plus, Files } from '@element-plus/icons-vue'
+import { RefreshRight, Search, Select, Plus, Files, FolderAdd } from '@element-plus/icons-vue'
 import AccountNav from "@/components/AccountNav"
 import { VueFlexWaterfall } from 'vue-flex-waterfall';
 import { groupAppMsgs, listAppMsgs, saveAppMsg, deleteAppMsg, send_to_other_accounts_events } from "@/api/appmsg"
@@ -163,7 +182,34 @@ import { useRouter } from 'vue-router'
 import { useStore } from 'vuex'
 import JSON5 from "json5"
 import { apperrmsg, wxretmsg } from '@/utils/constants';
+import Hydrate from '@/components/Hydrate.vue';
+import { useHydrateStore } from '@/store/piniaStore';
+import { newlistArticlesByAppMsg } from '@/api/mp_msg';
 
+var hydrateStore = useHydrateStore();
+var hydrateLocalIdx;
+async function hydrateAdd(item,i) {
+  if(materialTypeRef.value){
+    hydrateStore.add(item.multi_item[i]);
+    return;
+  }else if(!checkIsLocal(item.app_id)){
+    currentOperateName.value = "hydrate";
+    hydrateLocalIdx = i;
+    await _getAppmsgInDraftBox(item.app_id);
+    return;
+  }
+  var res = await newlistArticlesByAppMsg(selectedAccountRef.value.wechat_id,item.app_id);
+  // console.log(toRaw(item),i,res);
+  hydrateStore.add(res.data[i]);
+}
+var currItemId=ref();
+function toggleItemId(idx) {
+  if (currItemId.value === idx) {
+    currItemId.value = null;
+  } else {
+    currItemId.value = idx;
+  }
+}
 // 订阅
 const channelCleans = {}
 const channelName = 'fromMain'
@@ -564,6 +610,15 @@ const syncRemoteToLocal = async (appmsg_info) => {
       dialogPublishVisbleRef.value = true
     } else if (currentOperateName.value === "syncToOther") {
       dialogSyncToOtherAccountsVisibleRef.value = true
+    }else if(currentOperateName.value === "hydrate"){
+      if(!res.data.data?.mp_msgs[hydrateLocalIdx]){
+        ElMessage({
+          message: `素材详情获取失败，请先暂存到本地草稿箱`,
+          type: 'error',
+        })
+        return
+      }
+      hydrateStore.add(res.data.data.mp_msgs[hydrateLocalIdx]);
     }
   }).catch((e) => {
     console.log('saveAppMsg catched e:', e)

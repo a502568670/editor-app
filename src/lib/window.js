@@ -28,6 +28,7 @@ const verbose_log = global.utils.verbose_log;
 const verbose_error = global.utils.verbose_error;
 const get_backend_url_old = global.utils.get_backend_url_old;
 var { batchWechatData, getWxGroupList, batchWxUploadImg } = require('./mp_stat-tasks.js');
+var dog=require('debug')('editor')
 
 
 let tabbedWin;
@@ -690,6 +691,32 @@ function initRpc() {
       }
       case 'batchWxUploadImg': {
         return batchWxUploadImg(data.account, data.urls);
+      };
+      case 'batchExtractMpUrls': {
+        return Promise.allSettled(data.urls.map(v=>
+          localExtractMpArticleUrlUseRequest(v)
+            .then(html => postJsonToJZLApi(`/prase_html_to_json?api_key=${encodeURIComponent("du&cgIYuosQcaSm6")}`, { html }))
+            .then(async (res)=>{
+              if(!res.base_resp||res.base_resp.ret!==0){
+                dog("/prase_html_to_json error:", res);
+                var win=new BrowserWindow({show:false});
+                var _i=0;
+                async function extractMpArticle(){
+                  var html=await win.webContents.executeJavaScript(`document.querySelector('#js_content')?.innerHTML`);
+                  if(!html&&_i++<10){
+                    await new Promise(r => setTimeout(r, 1000));
+                    return extractMpArticle();
+                  }
+                  return html||`加载超时<a href="${v}">${v}</a>`;
+                }
+                await win.loadURL(v);
+                var content_noencode=await extractMpArticle();
+                win.close();
+                return {content_noencode,base_resp:{ret:0}};
+              }
+              return res;
+            })
+        ))
       };
       default: {
         conosle.error(new Error(`Unknown RPC call: ${name}`));

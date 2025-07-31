@@ -68,7 +68,7 @@ import {serializeCookie} from '@/utils/cookie'
 var {imgSrc,editorInst,pageInfo}=defineProps(['imgSrc','editorInst','pageInfo'])
 var $emit=defineEmits(['change','confirm'])
 var pickerQuery=defineModel()
-var total=computed(()=>groups.value.find(v=>v.id==pickerQuery.value.group_id).count)
+var total=computed(()=>groups.value.find(v=>v.id==pickerQuery.value.group_id)?.count)
 var groups=shallowRef([])
 var open=ref(false)
 watch(open,()=>{

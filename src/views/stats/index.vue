@@ -46,6 +46,12 @@
 .stats .el-sub-menu.is-active{
   background-color: var(--el-menu-hover-bg-color);
 }
+.stats .el-input+.el-badge{
+  margin-left: 4px;
+}
+.stats .el-table .el-button+.el-button {
+  margin-left: 4px;
+}
 </style>
 <script setup>
 import { ref } from 'vue'
@@ -55,6 +61,7 @@ import ICFire from './ICFire.vue';
 import {TrendCharts,Avatar,Management} from '@element-plus/icons-vue'
 import SubKeywords from './SubKeywords.vue';
 import SubMPList from './SubMPList.vue';
+import Hydrate from '@/components/Hydrate.vue';
 
 const activeName = ref('mp_account')
 

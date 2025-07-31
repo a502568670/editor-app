@@ -71,7 +71,7 @@
 }
 </style>
 <script setup>
-import { onActivated, onDeactivated, onMounted, ref, toRefs,provide } from 'vue'
+import { onActivated, onDeactivated, onMounted, ref, toRefs,provide, toRaw } from 'vue'
 import { ElMessage, ElMessageBox, ElLoading } from 'element-plus'
 import EditorTab from "@/components/EditorTab"
 import ChooseAccountDialog from "@/dlgs/chooseAccount"
@@ -80,6 +80,7 @@ import { toDeepRaw } from "@/utils/convert"
 import { v4 as uuidv4 } from 'uuid';
 import { useRoute } from 'vue-router'
 import { useStore } from 'vuex'
+import { dog } from '@/utils'
 
 const store = useStore()
 const route = useRoute()
@@ -135,6 +136,16 @@ onActivated(async () => {
   } else if (account_id) {
     handleCreateAppMsg({ type: 0, account_id: parseInt(account_id) })
   }
+  if(history.state.from === 'hydrate') {
+    var appmsg={
+      appmsgid: 0 - (+new Date()),
+      title: '合成素材'+(++tabIndex),
+      multi_item: history.state.data,
+    }
+    dog("hydrate data:", history.state.data)
+    addTab(selectedAccountRef.value, appmsg, { icon: selectedAccountRef.value.avatar, mode: 'hydrate' })
+  } 
+// console.log('route:',history.state);
 
 })
 
