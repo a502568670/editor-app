@@ -108,9 +108,9 @@ async function hydrate() {
   } catch (err) {
     console.error(err);
   }
-  router.replace({path:'/editor3',state:{from:'hydrate',data:toRaw(hydrateStore.list)}});
-  visible.value = false;
   loading.value = false;
+  visible.value = false;
+  await router.replace({path:'/editor3',state:{from:'hydrate',data:toRaw(hydrateStore.list)}});
 }
 </script>
 <style>

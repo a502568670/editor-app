@@ -16,6 +16,7 @@
     </el-col>
     <el-col :span="6" style="text-align: right">
       <div class="right">
+        <!-- <Hydrate/> -->
         <!-- <el-button @click="toBuyVip" type="primary" >购买会员</el-button> -->
         <el-button @click="gotoExternal(jzl_assistant_url)" type="primary" >极致了助手</el-button>
         <el-button @click="toKf" type="success" >联系客服</el-button>
@@ -33,6 +34,7 @@ import {
   SwitchButton
 } from '@element-plus/icons-vue'
 import { gotoExternal } from "@/utils/openWindow"
+import Hydrate from '@/components/Hydrate.vue';
 
 const store = useStore()
 const router = useRouter();
@@ -106,7 +108,7 @@ const exit = function () {
   })
 }
 const toUrl = function (url,index) {
-  router.push(url)
+  router.replace({path:url})
 }
 const toBuyVip = function () {
   router.push('/buyVip')
