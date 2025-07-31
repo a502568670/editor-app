@@ -144,6 +144,7 @@ onActivated(async () => {
     }
     dog("hydrate data:", history.state.data)
     addTab(selectedAccountRef.value, appmsg, { icon: selectedAccountRef.value.avatar, mode: 'hydrate' })
+    history.replaceState({}, '')
   } 
 // console.log('route:',history.state);
 
