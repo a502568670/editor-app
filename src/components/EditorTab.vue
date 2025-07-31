@@ -322,7 +322,7 @@
       </el-col>
     </el-row>
   </div>
-  <el-dialog :close-on-click-modal="false" title="提取文章链接内容" v-model="dialogExtractMpAritcleUrlRef" width="600px">
+  <el-dialog :close-on-click-modal="false" title="提取文章链接内容" v-model="dialogExtractMpAritcleUrlRef" width="720px">
     <div class="w-full flex flex-col">
       <el-row :gutter="40" class="w-full">
         <el-col :span="18" class="w-full">
@@ -333,8 +333,25 @@
         </el-col>
       </el-row>
       <el-row :gutter="40" class="w-full">
-        <el-col :span="24" class="w-full">
+        <el-col :span="3" class="w-full">
           <el-checkbox label="仅视频" v-model="import_settings.only_video_flag" />
+        </el-col>
+      </el-row>
+      <el-row :gutter="40" class="w-full">
+        <el-col :span="4" class="w-full">
+          <el-checkbox label="清除链接" v-model="import_settings.clear_content_url" />
+        </el-col>
+        <el-col :span="4" class="w-full">
+          <el-checkbox label="清除摘要" v-model="import_settings.clear_abstract" />
+        </el-col>
+        <el-col :span="4" class="w-full">
+          <el-checkbox label="清除作者" v-model="import_settings.clear_author" />
+        </el-col>
+        <el-col :span="5" class="w-full">
+          <el-checkbox label="清除原文链接" v-model="import_settings.clear_source_url" />
+        </el-col>
+        <el-col :span="5" class="w-full">
+          <el-checkbox label="清除小程序" v-model="import_settings.clear_weapp" />
         </el-col>
       </el-row>
     </div>
@@ -686,7 +703,7 @@ import {
 } from "@/api/mp_msg"
 import { saveAppMsg, send_to_other_accounts_events } from "@/api/appmsg"
 import { getMpUserInfo, getLastPreviewAccounts, sendPreview, listVideos, getMasssendInfo, stat_appmsg_copyright_stat_events } from "@/api/mp_wechat"
-import { format_to_UEditor_html, restore_from_UEditor_html } from "@/utils/dom";
+import { format_to_UEditor_html, clearContentUrl, clearWeApp, restore_from_UEditor_html } from "@/utils/dom";
 import { uploadImage } from "@/api/img"
 import { toDeepRaw, toPicPageInfo, gen_picture_page_info_list } from "@/utils/convert"
 import { fmtImageUrl } from "@/utils/format"
@@ -859,6 +876,11 @@ const timeoutCheckTitle = 60 * 1000; // ms
 // 导入配置
 const import_settings = ref({
   only_video_flag: false,
+  clear_content_url: true,
+  clear_abstract: true,
+  clear_author: true,
+  clear_source_url: true,
+  clear_weapp: true,
 })
 
 // 提取链接
@@ -2485,7 +2507,7 @@ const format_video_page_info = (page_info) => {
 const parseExtractMpArticleData = (ret, opts = {}) => {
 
   const { title, nick_name, copyright_stat, cdn_url, item_show_type, video_page_info } = ret
-  let { content_noencode, content_text, picture_page_info_list } = ret
+  let { author, source_url, content_noencode, content_text, picture_page_info_list } = ret
   let guide_words = "", vid = ""
   console.log("item_show_type=>", item_show_type)
   // const { video_page_infos } = msg.data
@@ -2497,7 +2519,7 @@ const parseExtractMpArticleData = (ret, opts = {}) => {
     vid = video_page_info.video_id
     content_noencode = getVideoFrameHtml(vid, cdn_url) //`<iframe class="edui-video-iframe" data-vidtype="2" data-mpvid="${video_id}" data-cover="${cdn_url}" allowfullscreen="" frameborder="0" data-w="1080" data-ratio="0.5625" style="border-radius: 4px;" src="https://mp.weixin.qq.com/cgi-bin/readtemplate?t=tmpl/video_tmpl&vid=${video_id}" width="420" height="280" frameborder="0" allowfullscreen=""></iframe>`
   }
-  // console.log("content_noencode=>", content_noencode)
+  console.log("content_noencode=>", content_noencode)
   // if (currentArticleRef.value.item_show_type === 0) {
   //   content_noencode = content_noencode + "<p>" + content_text + "<p>"
   // }
@@ -2550,6 +2572,21 @@ const parseExtractMpArticleData = (ret, opts = {}) => {
       }
     }
   }
+  if (opts.import_settings?.clear_content_url) {
+    content_noencode = clearContentUrl(content_noencode)
+  }
+  if (opts.import_settings?.clear_abstract) {
+    guide_words = ""
+  }
+  if (opts.import_settings?.clear_author) {
+    author = ""
+  }
+  if (opts.import_settings?.clear_source_url) {
+    source_url = ""
+  }
+  if (opts.import_settings?.clear_weapp) {
+    content_noencode = clearWeApp(content_noencode)
+  }
 
   return {
     item_show_type,
@@ -2557,12 +2594,13 @@ const parseExtractMpArticleData = (ret, opts = {}) => {
     // content_noencode: "<p>" + format_to_wangEditor_html(content_noencode) + "<p>",
     content_noencode,
     title,
-    author: '',
+    author,
     copyright_type: 0,
     cdn_url,
     guide_words,
     vid,
     picture_page_info_list,
+    sourceurl: source_url,
   }
 }
 
