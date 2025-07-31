@@ -173,6 +173,7 @@ export function restore_from_wangEditor_html (html) {
 }
 
 export function format_to_UEditor_html (html) {
+  
   const reg03 = /data-src/g, reg04 = /&quot;/g
   const  replace03 = "src", replace04 = ""
   // const replaceTag = "div"
@@ -180,9 +181,13 @@ export function format_to_UEditor_html (html) {
   const reg4 = /data-src/g, reg5 = /&quot;/g
   const replace1 = "<p data-p-br>$1<\/p>", replace2 = "<p data-p-br><br\/><\/p>", replace3 = "<p$2 data-p-br>$3<\/p>"
     // const replaceTag = "div"
+  // /prase_html_to_json?api_key 解析接口应该已经将data-src copy src
   let formated = html
-    .replaceAll(reg03, replace03)
-    .replaceAll(reg04, replace04)
+  if (!/src/g.test(formated)){
+    //没找到src
+    formated = formated.replaceAll(reg03, replace03)
+  }
+  formated = formated.replaceAll(reg04, replace04)
     // .replaceAll(reg1, "")
     // .replaceAll(reg2, "")
     // console.log("formated1========>>>>", formated)

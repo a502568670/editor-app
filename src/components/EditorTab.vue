@@ -176,7 +176,7 @@
               <el-row :gutter="4" class="mb-1 w-full">
                 <el-col :span="24">
                   <ImgListPicker v-model="currentArticleRef.picture_page_info_list">
-                    <template #picker v-if="(currentArticleRef.picture_page_info_list||[]).length < 20">
+                    <template #picker v-if="(currentArticleRef.picture_page_info_list || []).length < 20">
                       <el-icon class="item bg-white" @click="refImgPicker.openDialog(), imgListPicking = true">
                         <Plus />
                       </el-icon>
@@ -323,14 +323,21 @@
     </el-row>
   </div>
   <el-dialog :close-on-click-modal="false" title="提取文章链接内容" v-model="dialogExtractMpAritcleUrlRef" width="600px">
-    <el-row :gutter="40" class="w-full">
-      <el-col :span="18" class="w-full">
-        <el-input v-model="extractArticleUrlRef" clearable placeholder="请输入文章提取地址" />
-      </el-col>
-      <el-col :span="6">
-        <el-button @click="handleLocalExtractMpArticleUrl" type="primary">提取链接内容</el-button>
-      </el-col>
-    </el-row>
+    <div class="w-full flex flex-col">
+      <el-row :gutter="40" class="w-full">
+        <el-col :span="18" class="w-full">
+          <el-input v-model="extractArticleUrlRef" clearable placeholder="请输入文章提取地址" />
+        </el-col>
+        <el-col :span="6">
+          <el-button @click="handleLocalExtractMpArticleUrl" type="primary">提取链接内容</el-button>
+        </el-col>
+      </el-row>
+      <el-row :gutter="40" class="w-full">
+        <el-col :span="24" class="w-full">
+          <el-checkbox label="仅视频" v-model="import_settings.only_video_flag" />
+        </el-col>
+      </el-row>
+    </div>
   </el-dialog>
   <el-dialog :close-on-click-modal="false" title="视频素材" v-model="dialogVideoMaterialRef" width="600px">
     <el-row :gutter="40" class="w-full h-[400px]" v-loading="videoLoadingRef">
@@ -685,7 +692,7 @@ import { toDeepRaw, toPicPageInfo, gen_picture_page_info_list } from "@/utils/co
 import { fmtImageUrl } from "@/utils/format"
 import { createDateByDays, parseDate, formatDate } from "@/utils/date"
 import { ad_categorys, adMarkerContentInUEditor, format_ad_content_in_UEditor, restore_ad_content_from_UEditor, has_ad_in_wangEditor, has_ad_in_raw } from "@/utils/ad"
-import { getVideoFrameHtml } from "@/utils/video"
+import { getVideoFrameHtml, extractVideoFrame } from "@/utils/video"
 import { apperrmsg, claim_source_types, HOUSRS, MINUTES, wxretmsg } from "@/utils/constants"
 import { ElMessage, ElMessageBox, ElLoading } from 'element-plus'
 import { ArrowUp, ArrowDown, Delete, CircleCheckFilled, CircleCloseFilled, InfoFilled, Search, Plus } from '@element-plus/icons-vue'
@@ -848,6 +855,11 @@ const timeoutSendToOneAccount = 3 * 60 * 1000; // ms
 // 标题检测
 const checkTitleResults = ref([])
 const timeoutCheckTitle = 60 * 1000; // ms
+
+// 导入配置
+const import_settings = ref({
+  only_video_flag: false,
+})
 
 // 提取链接
 // const extractArticleUrlRef = ref("https://mp.weixin.qq.com/s/G2TYEsgZsTJ1VWj4R2F2hQ?from=kdocs_link")
@@ -1031,8 +1043,8 @@ function onImgPick(urls) {
     if (!currentArticleRef.value.picture_page_info_list) {
       currentArticleRef.value.picture_page_info_list = []
     }
-    currentArticleRef.value.picture_page_info_list.push(...urls.map(v=>({url:v,bg:'#fff'})))
-    currentArticleRef.value.picture_page_info_list=currentArticleRef.value.picture_page_info_list.slice(0, 20)
+    currentArticleRef.value.picture_page_info_list.push(...urls.map(v => ({ url: v, bg: '#fff' })))
+    currentArticleRef.value.picture_page_info_list = currentArticleRef.value.picture_page_info_list.slice(0, 20)
     return
   }
   currentArticleRef.value.cdn_url = urls[0]
@@ -1617,7 +1629,7 @@ const handlePublishNext = async () => {
   }
 
 }
-var groupstr=ref("")
+var groupstr = ref("")
 const handlePublishToWechat = async () => {
   publishLoadingRef.value = true
   const appmsgid = _getAppMsgId()
@@ -1661,7 +1673,7 @@ const handlePublishToWechat = async () => {
       isFreePublish,
       hasNotify,
       // is_release_publish_page,
-      list,groupstr:groupstr.value,
+      list, groupstr: groupstr.value,
       reprint_info,
       appmsgid,
       appmsg_item_count
@@ -2470,7 +2482,8 @@ const format_video_page_info = (page_info) => {
   }
 }
 
-const parseExtractMpArticleData = (ret) => {
+const parseExtractMpArticleData = (ret, opts = {}) => {
+
   const { title, nick_name, copyright_stat, cdn_url, item_show_type, video_page_info } = ret
   let { content_noencode, content_text, picture_page_info_list } = ret
   let guide_words = "", vid = ""
@@ -2526,6 +2539,18 @@ const parseExtractMpArticleData = (ret) => {
   content_noencode += '\v'
   content_noencode = format_to_UEditor_html(content_noencode)
 
+  if (item_show_type === 0 && video_page_info) {
+    if (opts.import_settings?.only_video_flag) {
+      const matches = extractVideoFrame(content_noencode)
+      // console.log("matches=", )
+      if (matches.length > 0){
+        content_noencode = matches.join("")
+      } else {
+        content_noencode = '\v'
+      }
+    }
+  }
+
   return {
     item_show_type,
     // content_noencode: content_noencode.replace(/[\u200B-\u200D\uFEFF]/gim, ''),
@@ -2554,7 +2579,7 @@ watch(() => [props.mainMsg], async (newVal) => {
         ElMessage({ type: 'error', message: ret.msg })
         return
       }
-      let parsed_data = parseExtractMpArticleData(ret)
+      let parsed_data = parseExtractMpArticleData(ret, { import_settings: import_settings.value })
       currentArticleRef.value = {
         ...currentArticleRef.value,
         ...parsed_data,
