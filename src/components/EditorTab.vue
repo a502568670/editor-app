@@ -727,7 +727,7 @@ import GroupNotifySelect from '@/components/editor/GroupNotifySelect.vue'
 
 const props = defineProps(['account', 'appmsg', 'mode', 'mainMsg']);
 const emitEvents = defineEmits(['titleChange', 'createAppmsg', 'msgidChange'])
-const is_xiaolvshu = computed(() => props.appmsg?.multi_item[0]?.item_show_type === 8);
+const is_xiaolvshu = computed(() => (props.appmsg?.multi_item[0]||currentArticleRef.value)?.item_show_type === 8);
 
 const { all_accounts } = toRefs(store.getters)
 // console.log('envVars.backend_url=>', envVars.backend_url)
