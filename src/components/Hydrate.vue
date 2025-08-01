@@ -1,6 +1,6 @@
 <template>
 <el-popover trigger="click" :visible="visible" placement="bottom" width="300" popper-class="hydrate-comp" persistent>
-  <template #reference>
+  <template #reference v-if="false">
     <el-badge :value="hydrateStore.list.length" ref="refButton" :style="$attrs.style">
       <el-button :icon="FolderAdd" @click="visible=!visible" v-click-outside="hide">素材合成器</el-button>
     </el-badge>
