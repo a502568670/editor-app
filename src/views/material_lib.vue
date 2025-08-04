@@ -176,7 +176,8 @@ import { fmtImageUrl } from "@/utils/format"
 import { formatDate } from "@/utils/date"
 import { getVideoFrameHtml } from "@/utils/video"
 import { debounceFn } from "@/utils/index"
-import { toDeepRaw } from "@/utils/convert"
+import { toDeepRaw, toPicPageInfo, gen_picture_page_info_list } from "@/utils/convert"
+import { format_to_UEditor_html } from "@/utils/dom";
 import { Clock, PencilLine, SendHorizonal, Forward, Trash2, MonitorDown } from 'lucide-vue-next';
 import { useRouter } from 'vue-router'
 import { useStore } from 'vuex'
@@ -579,17 +580,28 @@ const syncRemoteToLocal = async (appmsg_info) => {
       claim_source_type: mi.claim_source_type,
     }
     if (material_item.item_show_type === 0) {
-      material_item.content_noencode = mi.content
+      material_item.content_noencode = format_to_UEditor_html(mi.content)
     } else if (material_item.item_show_type === 5) {
       material_item.guide_words = mi.content
       material_item.vid = mi.mp_video_info[0].vid
       material_item.content_noencode = getVideoFrameHtml(material_item.vid, material_item.cdn_url)
-
+    } else if (material_item.item_show_type === 8 && mi.picture_page_info_list) {
+      material_item.guide_words = mi.content
+      const reg = /^rgb\((\d+),(\d+),(\d+)\)$/
+      mi.picture_page_info_list.forEach(o => {
+        const parts = reg.exec(o.theme_color);
+        o.theme_color = {
+          r: parseInt(parts[1]),
+          g: parseInt(parts[2]),
+          b: parseInt(parts[3]),
+        }
+      })
+      material_item.picture_page_info_list = toPicPageInfo(mi.picture_page_info_list, 0)
     }
     return material_item
   })
   console.log("material_list:", material_list)
-
+  
   const postData = {
     cookies: serializeCookie(JSON.parse(session_id)["cookie"]),
     token: parseInt(token),

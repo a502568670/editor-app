@@ -186,6 +186,10 @@ export function format_to_UEditor_html (html) {
   if (!/src/g.test(formated)){
     //没找到src
     formated = formated.replaceAll(reg03, replace03)
+  } else {
+    // 将data-src 复制为 src
+    const reg_copy_data_src = /(<img[^>]*data-src=")([^"]*)("[^>]*>)/g
+    formated = formated.replaceAll(reg_copy_data_src, '$1$2" src="$2$3');
   }
   formated = formated.replaceAll(reg04, replace04)
     // .replaceAll(reg1, "")
