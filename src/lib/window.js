@@ -697,13 +697,16 @@ function initRpc() {
           localExtractMpArticleUrlUseRequest(v)
             .then(html => postJsonToJZLApi(`/prase_html_to_json?api_key=${encodeURIComponent("du&cgIYuosQcaSm6")}`, { html }))
             .then(async (res)=>{
-              if(!res.base_resp||res.base_resp.ret!==0){
+              if(res.code!==0){
                 dog("/prase_html_to_json error:", res);
+                if(res.code===101){ // 文章被删除
+                  return {content_noencode: res.msg, base_resp:{ret:0}};
+                }
                 var win=new BrowserWindow({show:false});
                 var _i=0;
                 async function extractMpArticle(){
                   var html=await win.webContents.executeJavaScript(`document.querySelector('#js_content')?.innerHTML`);
-                  if(!html&&_i++<10){
+                  if(!html&&_i++<9){
                     await new Promise(r => setTimeout(r, 1000));
                     return extractMpArticle();
                   }

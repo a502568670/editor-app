@@ -1275,7 +1275,7 @@ const newArticle = async (before_save = true, item_show_type = 0,hydrateMsgIdx=-
     can_insert_ad: 1,
     content_noencode: "",
   }
-  const new_msg_id = 0 - (+new Date())
+  const new_msg_id = 0 - (+new Date())-hydrateMsgIdx;
   if(props.mode === 'hydrate' && hydrateMsgIdx>-1){
     // hydrate模式下，插入到指定位置
     mp_msgsRef.value[hydrateMsgIdx]= {

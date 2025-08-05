@@ -1,24 +1,25 @@
 <template>
 <el-popover trigger="click" :visible="visible" placement="bottom" width="300" popper-class="hydrate-comp" persistent>
-  <template #reference v-if="false">
+  <template #reference>
     <el-badge :value="hydrateStore.list.length" ref="refButton" :style="$attrs.style">
       <el-button :icon="FolderAdd" @click="visible=!visible" v-click-outside="hide">素材合成器</el-button>
     </el-badge>
   </template>
   <div class="hydrate-comp-body max-h-[60vh] overflow-y-auto" @pointerenter="inside=true" @pointerleave="inside=false">
     <div class="appmsg-list" v-if="hydrateStore.list.length">
-      <div class="item flex items-center mb-2" v-for="(v,idx) in hydrateStore.list" :key="idx+v.title" @dblclick="hydrateStore.remove(idx)" draggable="true" @dragstart="e=>onDragStart(e,idx)" @dragover.prevent="e=>e.dataTransfer.dropEffect='move'" @drop="e=>onDrop(e,idx)" title="双击删除该文章，拖拽可排序">
+      <div class="item flex items-center mb-2 relative" v-for="(v,idx) in hydrateStore.list" :key="idx+v.title" draggable="true" @dragstart="e=>onDragStart(e,idx)" @dragover.prevent="e=>e.dataTransfer.dropEffect='move'" @drop="e=>onDrop(e,idx)" title="拖拽可排序">
         <div class="title flex-1 w-full h-[40px] line-clamp-2">{{ v.title }}</div>
         <el-image :src="v.cover||v.avatar||v.cdn_url" class="size-[56px]" fit="cover"></el-image>
+        <div class="item-actions h-[32px] flex items-center w-full mr-2 justify-end">
+          <el-icon class="bg-white rounded-full p-1 mr-1 cursor-pointer" size="24" @click="hydrateStore.remove(idx)"><Delete/></el-icon>
+        </div>
       </div>
       <div class="mt-6 text-center">
         <el-button-group>
           <el-tooltip content="拖拽可排序">
             <el-button :icon="Edit" @click="hydrate" :loading="loading">合成</el-button>
           </el-tooltip>
-          <el-tooltip content="在文章上双击可从列表中删除该文章">
-            <el-button :icon="Delete" @click="hydrateStore.clear()">清空</el-button>
-          </el-tooltip>
+          <el-button :icon="Delete" @click="hydrateStore.clear()">清空</el-button>
         </el-button-group>
       </div>
     </div>
@@ -132,6 +133,19 @@ async function hydrate() {
       line-height: 32px;
       height: auto;
       z-index: 1;
+    }
+  }
+  .appmsg-list {
+    .item .item-actions{
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      background-color: rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(5px);
+      z-index: 9;
+    }
+    .item:not(:hover) .item-actions {
+      visibility: hidden;
     }
   }
 }

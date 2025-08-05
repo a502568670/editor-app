@@ -63,8 +63,8 @@
               </span>
             </div>
             <div v-for="(subitem, index) in item.multi_item" :key="subitem.msg_index_id"
-              class="flex items-center px-4 py-2 w-full relative" @click="toggleItemId(`${i}-${index}`)">
-              <div class="material-item-actions" v-if="`${i}-${index}`==currItemId">
+              class="flex items-center px-4 py-2 w-full relative material-item" @click="toggleItemId(`${i}-${index}`)">
+              <div class="material-item-actions">
                 <el-tooltip content="添加到素材合成器" v-if="subitem.item_show_type!==8&&subitem.share_page_type!==8">
                   <el-icon class="bg-white rounded-full p-1 mr-1 cursor-pointer" size="24" @click="hydrateAdd(item,index)"><FolderAdd/></el-icon>
                 </el-tooltip>
@@ -145,6 +145,9 @@
 :deep(.el-input__wrapper .el-input__inner) {
   cursor: default !important;
 }
+.material-item:not(:hover) .material-item-actions{
+  visibility: hidden;
+}
 .material-item-actions {
   position: absolute;
   left: 0;
@@ -175,7 +178,7 @@ import { serializeCookie } from "@/utils/cookie"
 import { fmtImageUrl } from "@/utils/format"
 import { formatDate } from "@/utils/date"
 import { getVideoFrameHtml } from "@/utils/video"
-import { debounceFn } from "@/utils/index"
+import { debounceFn, dog } from "@/utils/index"
 import { toDeepRaw } from "@/utils/convert"
 import { Clock, PencilLine, SendHorizonal, Forward, Trash2, MonitorDown } from 'lucide-vue-next';
 import { useRouter } from 'vue-router'
@@ -198,9 +201,16 @@ async function hydrateAdd(item,i) {
     await _getAppmsgInDraftBox(item.app_id);
     return;
   }
+  dog("hydrateAdd", toRaw(item), i)
+  var {title}=item.multi_item[i];
   var res = await newlistArticlesByAppMsg(selectedAccountRef.value.wechat_id,item.app_id);
   // console.log(toRaw(item),i,res);
-  hydrateStore.add(res.data[i]);
+  var hydrateItem=res.data[i]
+  // 修复乱序
+  if(hydrateItem.title!==title){
+    hydrateItem=res.data.find(v=>v.title===title);
+  }
+  hydrateStore.add(hydrateItem);
 }
 var currItemId=ref();
 function toggleItemId(idx) {
