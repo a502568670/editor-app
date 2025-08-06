@@ -207,8 +207,12 @@ async function hydrateAdd(item,i) {
   // console.log(toRaw(item),i,res);
   var hydrateItem=res.data[i]
   // 修复乱序
-  if(hydrateItem.title!==title){
+  if(hydrateItem?.title!==title){
     hydrateItem=res.data.find(v=>v.title===title);
+  }
+  if(!hydrateItem){
+    ElMessage.error("获取素材信息失败");
+    return;
   }
   hydrateStore.add(hydrateItem);
 }

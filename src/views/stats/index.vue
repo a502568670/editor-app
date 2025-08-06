@@ -1,13 +1,13 @@
 <template>
   <el-row class="bg-[#e9f9f1] h-full stats">
-    <el-menu default-active="mp_account" class="min-h-full w-auto" @select="(index)=>activeName=index">
-      <el-menu-item-group title="数据服务">
+    <el-menu :default-active="activeName" class="min-h-full w-auto" @select="(index)=>activeName=index">
+      <el-menu-item-group title="数据服务" v-if="$route.fullPath=='/stats'">
         <el-menu-item index="mp_account">
           <el-icon><TrendCharts/></el-icon>
           <span>微信公众号</span>
         </el-menu-item>
       </el-menu-item-group>
-      <el-menu-item-group title="文章">
+      <el-menu-item-group title="文章" v-if="$route.query.pagetype=='2'">
         <el-menu-item index="posts">
           <el-icon><ICFire/></el-icon>
           <span>最新爆文</span>
@@ -54,7 +54,7 @@
 }
 </style>
 <script setup>
-import { ref } from 'vue'
+import { ref, toRaw, watchEffect } from 'vue'
 import MPAccount from './MPAccount.vue';
 import Posts from './Posts.vue'
 import ICFire from './ICFire.vue';
@@ -62,8 +62,18 @@ import {TrendCharts,Avatar,Management} from '@element-plus/icons-vue'
 import SubKeywords from './SubKeywords.vue';
 import SubMPList from './SubMPList.vue';
 import Hydrate from '@/components/Hydrate.vue';
+import { dog } from '@/utils';
+import { useRoute } from 'vue-router';
 
-const activeName = ref('mp_account')
-
+var route = useRoute();
+const activeName = ref('mp_account');
+watchEffect(()=>{
+  if(route.query.pagetype=='2'){
+    activeName.value='posts';
+  }else{
+    activeName.value='mp_account';
+  }
+})
+// dog(toRaw(useRoute()))
 
 </script>

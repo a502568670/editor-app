@@ -12,6 +12,10 @@
           <img v-else :src="item.icon" />
           <span>{{item.name}}</span>
         </div>
+        <router-link to="/stats?pagetype=2" class="menu" replace :class="{'active':$route.path=='/stats'&&$route.query.pagetype=='2'}">
+          <el-icon :size="20"><Newspaper/></el-icon>
+          <span class="mt-1">文章</span>
+        </router-link>
       </div>
     </el-col>
     <el-col :span="6" style="text-align: right">
@@ -27,18 +31,23 @@
 </template>
 
 <script setup>
-import { ref, reactive, toRefs, computed } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, reactive, toRefs, computed, toRaw } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { useStore } from 'vuex'
+import {Newspaper} from 'lucide-vue-next'
 import {
   SwitchButton
 } from '@element-plus/icons-vue'
 import { gotoExternal } from "@/utils/openWindow"
 import Hydrate from '@/components/Hydrate.vue';
+// console.log(toRaw(useRoute()));
+
 
 const store = useStore()
 const router = useRouter();
 const current = computed(() => {
+  if(router.currentRoute.value.path.startsWith('/stats'))
+    return router.currentRoute.value.fullPath
   return router.currentRoute.value.path
 })
 const menuList = ref([
