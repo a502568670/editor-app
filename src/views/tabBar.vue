@@ -329,9 +329,9 @@ const changeTab = (tabId) => {
 
 // 1.添加新tab
 const addNewTab = (account) => {
-  if (selected_account_id.value === account.id) {
-    return
-  }
+  // if (selected_account_id.value === account.id) {
+  //   return
+  // }
   console.log("currentTabId.value=>", currentTabId.value)
   selected_account_id.value = account.id
   accounts_mapping_tabs.value.push({
