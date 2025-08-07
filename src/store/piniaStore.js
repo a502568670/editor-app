@@ -6,9 +6,9 @@ import { dog } from '@/utils';
 export const useHydrateStore = defineStore('hyration', () => {
   var list=ref([]);
   function add(item) {
-    if(item.item_show_type===8||item.publish_type==='小绿书'){
+    if (item.item_show_type === 8 || item.publish_type === '小绿书' || item.publish_type === '文字'){
       ElMessage({
-        message: '不支持合成小绿书素材',
+        message: '不支持合成小绿书或文字素材',
         type: 'warning',
       });
       return;
