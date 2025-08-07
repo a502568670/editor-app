@@ -7,7 +7,7 @@
  */
 'use strict'
 
-import { app, protocol, BrowserWindow, Menu,session, dialog } from 'electron'
+import { app, protocol, BrowserWindow, Menu,session, dialog, nativeTheme } from 'electron'
 import updater from "./updater"
 import { createProtocol } from 'vue-cli-plugin-electron-builder/lib'
 import installExtension, { VUEJS3_DEVTOOLS } from 'electron-devtools-installer'
@@ -24,6 +24,7 @@ app.commandLine.appendSwitch("disable-site-isolation-trials");
 app.commandLine.appendSwitch("disable-http2");
 
 const is_dev_check_update = global.utils.is_dev_check_update;
+var dog=require('debug')('editor:app')
 
 // dev check update
 if (is_dev_check_update()) {
@@ -142,6 +143,13 @@ app.on('ready', async () => {
       console.error('Vue Devtools failed to install:', e.toString())
     }
   }
+  // fix weixin media load failed
+  var wxpic = { urls: ['*://*.qpic.cn/*'], types: ['image', 'media'] }
+  session.defaultSession.webRequest.onBeforeSendHeaders(wxpic, (details, callback) => {
+    delete details.requestHeaders['Referer'];
+    callback({ requestHeaders: details.requestHeaders })
+  });
+
   tabbedWin = await createTabbedWin()
   var confirmed=false;
   tabbedWin.win.on('close',async (evt)=>{
