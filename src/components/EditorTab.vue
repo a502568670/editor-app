@@ -2558,6 +2558,9 @@ const parseExtractMpArticleData = (ret, opts = {}) => {
     picture_page_info_list = toPicPageInfo(picture_page_info_list, 0)
     console.log("picture_page_info_list=>", picture_page_info_list)
   }
+  if (item_show_type === 10) {
+    guide_words = content_noencode
+  }
 
   content_noencode += '\v'
   content_noencode = format_to_UEditor_html(content_noencode)
