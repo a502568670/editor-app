@@ -1252,7 +1252,7 @@ const newArticle = async (before_save = true, item_show_type = 0,hydrateMsgIdx=-
     }
   }
 
-  if (mp_msgsRef.value.length >= 8) {
+  if (mp_msgsRef.value.length >= 8 && hydrateMsgIdx===-1) {
     ElMessageBox.alert('超出单消息最大文章数8篇', '错误', {
       confirmButtonText: '确定',
       type: 'error'
