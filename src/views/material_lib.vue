@@ -628,6 +628,8 @@ const syncRemoteToLocal = async (appmsg_info) => {
         }
       })
       material_item.picture_page_info_list = toPicPageInfo(mi.picture_page_info_list, 0)
+    } else if (material_item.item_show_type === 10) {
+      material_item.guide_words = mi.content
     }
     return material_item
   })
