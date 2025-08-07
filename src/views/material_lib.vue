@@ -23,6 +23,7 @@
           </el-icon>
           <span class="ml-1">返回草稿箱</span>
         </el-button>
+        <Hydrate />
       </div>
       <div v-if="selectedAccountRef !== null" class="h-10  flex space-x-2 items-center pl-2">
         <div class="text-gray-500">{{ materialTypeRef === 0 ? '草稿箱' : '本地素材' }}</div>
@@ -49,7 +50,7 @@
       </div>
       <div v-scroll="onScroll" class="flex-1 overflow-auto pt-5">
         <VueFlexWaterfall ref="el" align-content="center" col="3" col-spacing="20" :breakByContainer="true">
-          <div v-for="item in list" :key="item.app_id"
+          <div v-for="(item, i) in list" :key="item.app_id"
             class="w-[280px] bg-white border flex flex-col mb-5 rounded shadow relative"
             :style="{ minHeight: item.height + 'px' }">
             <div style="height:50px" class="flex items-center p-4 text-sm text-gray-400">
@@ -62,11 +63,17 @@
               </span>
             </div>
             <div v-for="(subitem, index) in item.multi_item" :key="subitem.msg_index_id"
-              class="flex items-center px-4 py-2 w-full">
-              <div v-if="index === 0"
-                class='w-full flex h-32 relative justify-between items-end bg-[#e6e6e6]'>
-                <img v-if="subitem.cdn_url" class="w-full h-full  object-cover rounded-sm" :src="subitem.cdn_url" referrerpolicy="no-referrer"  />
-                <div class="w-full h-[30px] absolute flex text-white p-1 bg-gray-800 opacity-70 pl-2 truncate">{{ subitem.title }}</div>
+              class="flex items-center px-4 py-2 w-full relative material-item" @click="toggleItemId(`${i}-${index}`)">
+              <div class="material-item-actions">
+                <el-tooltip content="添加到素材合成器" v-if="subitem.item_show_type!==8&&subitem.share_page_type!==8">
+                  <el-icon class="bg-white rounded-full p-1 mr-1 cursor-pointer" size="24" @click="hydrateAdd(item,index)"><FolderAdd/></el-icon>
+                </el-tooltip>
+              </div>
+              <div v-if="index === 0" class='w-full flex h-32 relative justify-between items-end bg-[#e6e6e6]'>
+                <img v-if="subitem.cdn_url" class="w-full h-full  object-cover rounded-sm" :src="subitem.cdn_url"
+                  referrerpolicy="no-referrer" />
+                <div class="w-full h-[30px] absolute flex text-white p-1 bg-gray-800 opacity-70 pl-2 truncate">{{
+                  subitem.title }}</div>
               </div>
               <div class="w-full flex h-[75px] items-center"
                 :class="{ 'border-b': index > 0 && index !== item.multi_item.length - 1 }" v-else>
@@ -80,7 +87,8 @@
                   </div>
                   <!-- <div class=" text-sm flex-0" style="color: #51ce94">{{ item.author }}</div> -->
                 </div>
-                <img v-if="subitem.cdn_url" class="w-16 h-16 rounded-sm" :src="subitem.cdn_url" referrerpolicy="no-referrer"  />
+                <img v-if="subitem.cdn_url" class="w-16 h-16 rounded-sm" :src="subitem.cdn_url"
+                  referrerpolicy="no-referrer" />
               </div>
             </div>
             <div class=" bg-gray-200 h-10 flex justify-around items-center text-gray-500">
@@ -139,15 +147,31 @@
 :deep(.el-input__wrapper .el-input__inner) {
   cursor: default !important;
 }
+.material-item:not(:hover) .material-item-actions{
+  visibility: hidden;
+}
+.material-item-actions {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 30px;
+  z-index: 1;
+  margin: 0 1rem 0.5rem 1rem;
+  padding-top: 3px;
+  background-color: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(5px);
+  text-align: right;
+}
 </style>
 <script setup>
-import { ref, toRefs, useTemplateRef, computed, nextTick, onMounted, onActivated, onDeactivated, provide } from 'vue';
+import { ref, toRefs, useTemplateRef, computed, nextTick, onMounted, onActivated, onDeactivated, provide, toRaw } from 'vue';
 import { vScroll } from '@vueuse/components'
 import SyncToOtherAccountsDialog from "@/dlgs/syncToOtherAccounts"
 import OperateProgressDialog from "@/dlgs/operateProgress"
 import PublishAppMsgDialog from "@/dlgs/publishAppMsg"
 import { ElMessage, ElMessageBox, ElLoading } from 'element-plus'
-import { RefreshRight, Search, Select, Plus, Files } from '@element-plus/icons-vue'
+import { RefreshRight, Search, Select, Plus, Files, FolderAdd } from '@element-plus/icons-vue'
 import AccountNav from "@/components/AccountNav"
 import { VueFlexWaterfall } from 'vue-flex-waterfall';
 import { groupAppMsgs, listAppMsgs, saveAppMsg, deleteAppMsg, send_to_other_accounts_events } from "@/api/appmsg"
@@ -156,14 +180,52 @@ import { serializeCookie } from "@/utils/cookie"
 import { fmtImageUrl } from "@/utils/format"
 import { formatDate } from "@/utils/date"
 import { getVideoFrameHtml } from "@/utils/video"
-import { debounceFn } from "@/utils/index"
+import { debounceFn, dog } from "@/utils/index"
 import { toDeepRaw } from "@/utils/convert"
 import { Clock, PencilLine, SendHorizonal, Forward, Trash2, MonitorDown } from 'lucide-vue-next';
 import { useRouter } from 'vue-router'
 import { useStore } from 'vuex'
 import JSON5 from "json5"
 import { apperrmsg, wxretmsg } from '@/utils/constants';
+import Hydrate from '@/components/Hydrate.vue';
+import { useHydrateStore } from '@/store/piniaStore';
+import { newlistArticlesByAppMsg } from '@/api/mp_msg';
 
+var hydrateStore = useHydrateStore();
+var hydrateLocalIdx;
+async function hydrateAdd(item, i) {
+  if (materialTypeRef.value) {
+    hydrateStore.add(item.multi_item[i]);
+    return;
+  } else if (!checkIsLocal(item.app_id)) {
+    currentOperateName.value = "hydrate";
+    hydrateLocalIdx = i;
+    await _getAppmsgInDraftBox(item.app_id);
+    return;
+  }
+  dog("hydrateAdd", toRaw(item), i)
+  var {title}=item.multi_item[i];
+  var res = await newlistArticlesByAppMsg(selectedAccountRef.value.wechat_id,item.app_id);
+  // console.log(toRaw(item),i,res);
+  var hydrateItem=res.data[i]
+  // 修复乱序
+  if(hydrateItem?.title!==title){
+    hydrateItem=res.data.find(v=>v.title===title);
+  }
+  if(!hydrateItem){
+    ElMessage.error("获取素材信息失败");
+    return;
+  }
+  hydrateStore.add(hydrateItem);
+}
+var currItemId = ref();
+function toggleItemId(idx) {
+  if (currItemId.value === idx) {
+    currItemId.value = null;
+  } else {
+    currItemId.value = idx;
+  }
+}
 // 订阅
 const channelCleans = {}
 const channelName = 'fromMain'
@@ -204,6 +266,8 @@ const isPublishingRef = ref(false)
 
 const listMode = ref(0) // 0-refresh 1-append
 const _listCount = 10
+const max_page_count = ref(1)
+const loaded_page_no = ref(0)
 // const waterfallContainerRef = useTemplateRef('waterfall-container')
 // const { x, y, isScrolling, arrivedState, directions } = useScroll(waterfallContainerRef)
 
@@ -214,20 +278,31 @@ const onScroll = debounceFn((state) => {
   }
 }, 200, false)
 async function loadMore(params) {
-    const begin = list.value.length;
-    console.log('到底了!',begin,file_cnt)
-    var end=materialTypeRef.value === 0
-      ? begin>=file_cnt.draft_count
-      : begin < _listCount
-    if (end) {
-      console.log("未满一页")
-      return
-    }
-    listMode.value = 1
-    // await listAppMsgIds(account.id)
-    materialTypeRef.value === 0 ?
-      _listAppmsgsInDraftBox(begin) :
-      _listAppmsgsInLocal(begin)
+  max_page_count.value = Math.ceil(file_cnt.draft_count / _listCount)
+  if (materialTypeRef.value === 0 && loaded_page_no.value > max_page_count.value) {
+    console.log('当前页有定时发表,按照最大页数控制递归', loaded_page_no.value, max_page_count.value) 
+    return
+  }
+
+  const begin = list.value.length;
+  console.log('到底了!', begin, file_cnt)
+  var end = materialTypeRef.value === 0
+    ? begin >= file_cnt.draft_count
+    : begin < _listCount
+  if (end) {
+    console.log("未满一页")
+    return
+  }
+
+  listMode.value = 1
+  // await listAppMsgIds(account.id)
+  materialTypeRef.value === 0 ?
+    _listAppmsgsInDraftBox(begin) :
+    _listAppmsgsInLocal(begin)
+  
+  if (materialTypeRef.value === 0) {
+    loaded_page_no.value++
+  }
 }
 
 const handleAccountSelect = async ({ account, index }) => {
@@ -238,6 +313,7 @@ const handleAccountSelect = async ({ account, index }) => {
   otherAccountsRef.value = toDeepRaw(all_accounts.value.list.filter(v => v.id !== account.id))
   listMode.value = 0
   if (materialTypeRef.value === 0) {
+    loaded_page_no.value = 0
     await listAppMsgIds(account.id)
     await _listAppmsgsInDraftBox()
   } else {
@@ -252,6 +328,7 @@ const handleAppMsgRefresh = async () => {
   listMode.value = 0
   console.log('materialTypeRef.value=>', materialTypeRef.value)
   if (materialTypeRef.value === 0) {
+    loaded_page_no.value = 0
     await listAppMsgIds(selectedAccountRef.value.id)
     await _listAppmsgsInDraftBox()
   } else {
@@ -373,7 +450,7 @@ const handleRemoveAppmsg = async (appmsg) => {
   })
 }
 
-const handlePublishToWechat = async ({ send_time, isFreePublish, hasNotify, reprint_info, list,groupstr }) => {
+const handlePublishToWechat = async ({ send_time, isFreePublish, hasNotify, reprint_info, list, groupstr }) => {
   isPublishingRef.value = true
   console.log("current appmsg=>", currentOperateAppMsgRef.value)
   const appmsgid = currentOperateAppMsgRef.value.app_id
@@ -404,7 +481,7 @@ const handlePublishToWechat = async ({ send_time, isFreePublish, hasNotify, repr
       isFreePublish,
       hasNotify,
       // is_release_publish_page,
-      list,groupstr,
+      list, groupstr,
       reprint_info,
       appmsgid,
       appmsg_item_count
@@ -533,12 +610,23 @@ const syncRemoteToLocal = async (appmsg_info) => {
       claim_source_type: mi.claim_source_type,
     }
     if (material_item.item_show_type === 0) {
-      material_item.content_noencode = mi.content
+      material_item.content_noencode = format_to_UEditor_html(mi.content)
     } else if (material_item.item_show_type === 5) {
       material_item.guide_words = mi.content
       material_item.vid = mi.mp_video_info[0].vid
       material_item.content_noencode = getVideoFrameHtml(material_item.vid, material_item.cdn_url)
-
+    } else if (material_item.item_show_type === 8 && mi.picture_page_info_list) {
+      material_item.guide_words = mi.content
+      const reg = /^rgb\((\d+),(\d+),(\d+)\)$/
+      mi.picture_page_info_list.forEach(o => {
+        const parts = reg.exec(o.theme_color);
+        o.theme_color = {
+          r: parseInt(parts[1]),
+          g: parseInt(parts[2]),
+          b: parseInt(parts[3]),
+        }
+      })
+      material_item.picture_page_info_list = toPicPageInfo(mi.picture_page_info_list, 0)
     }
     return material_item
   })
@@ -564,6 +652,15 @@ const syncRemoteToLocal = async (appmsg_info) => {
       dialogPublishVisbleRef.value = true
     } else if (currentOperateName.value === "syncToOther") {
       dialogSyncToOtherAccountsVisibleRef.value = true
+    } else if (currentOperateName.value === "hydrate") {
+      if (!res.data.data?.mp_msgs[hydrateLocalIdx]) {
+        ElMessage({
+          message: `素材详情获取失败，请先暂存到本地草稿箱`,
+          type: 'error',
+        })
+        return
+      }
+      hydrateStore.add(res.data.data.mp_msgs[hydrateLocalIdx]);
     }
   }).catch((e) => {
     console.log('saveAppMsg catched e:', e)
@@ -669,7 +766,7 @@ const registerChannels = () => {
           return
         }
 
-        file_cnt=ret.file_cnt
+        file_cnt = ret.file_cnt
         const transformed_items = items.map(it => ({
           ...it,
           height: (50 + (it.multi_item.length === 1 ? 115 : (115 + (it.multi_item.length - 1) * 75)) + 40),
@@ -683,7 +780,7 @@ const registerChannels = () => {
         }
         // elRef.value.updateOrder()
         dataLoadingRef.value = false
-        if(list.value.length < Math.min(_listCount, file_cnt.draft_count)){
+        if (list.value.length < Math.min(_listCount, file_cnt.draft_count)) {
           loadMore()
         }
         nextTick(() => {
@@ -716,7 +813,7 @@ const registerChannels = () => {
         if (source !== channelSource) {
           return
         }
-        const { success, msg: retmsg,code } = ret
+        const { success, msg: retmsg, code } = ret
         if (success) {
           ElMessage({
             message: `发表成功`,
@@ -724,8 +821,8 @@ const registerChannels = () => {
             duration: 2 * 1000
           })
         } else {
-          if(wxretmsg[code]){
-            ElMessage({type:'error',message:wxretmsg[code]})
+          if (wxretmsg[code]) {
+            ElMessage({ type: 'error', message: wxretmsg[code] })
             return
           }
           ElMessageBox.alert(`发表到微信出现错误:${retmsg}`, '错误', {

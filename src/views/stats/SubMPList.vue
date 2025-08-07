@@ -83,7 +83,7 @@
                 </div>
             </div>
         </div>
-        <div class="flex-1 m-2 bg-white overflow-y-scroll">
+        <div class="flex-1 m-2 bg-white w-[0] flex flex-col">
             <div class="filters flex p-2 items-center">
                 <el-select v-model="params.start_time" style="width: 150px;">
                     <el-option v-for="v in optDates" :key="v.value" :label="v.text" :value="v.value"></el-option>
@@ -93,8 +93,9 @@
                     <el-button size="small" :icon="RefreshRight" :loading="loading" @click="getListBy(params)" style="margin: 0 4px 0 auto;" round>刷新</el-button>
                 </el-tooltip>
                 <el-input v-model="keyword" style="width: 200px;" placeholder="输入关键字搜索文章标题" :suffix-icon="Search" clearable></el-input>
+                <Hydrate/>
             </div>
-            <el-table :data="tableData" @sort-change="onSort" v-loading="loading" row-key="aid">
+            <el-table :data="tableData" @sort-change="onSort" class="w-full" v-loading="loading" row-key="aid">
                 <el-table-column prop="" label="标题" width="450">
                     <template #header>
                         <span class="mr-1">文章</span>
@@ -127,10 +128,16 @@
                 <el-table-column prop="read" label="阅读数" width="100" sortable="custom" />
                 <el-table-column prop="zan" label="点赞数" width="100" sortable="custom" />
                 <el-table-column prop="looking" label="在看数" width="100" sortable="custom" />
-                <el-table-column prop="" label="操作">
+                <el-table-column prop="" label="操作" width="120">
                     <template #default="v">
+                        <el-tooltip effect="dark" content="添加到素材合成器" placement="top">
+                            <el-button :icon="FolderAdd" size="large" link @click="hydrateStore.add(v.row)"></el-button>
+                        </el-tooltip>
                         <el-tooltip effect="dark" content="相似文章" placement="top">
                             <el-button :icon="Memo" size="large"  link @click="showSim(v.row)"></el-button>
+                        </el-tooltip>
+                        <el-tooltip effect="dark" content="复制链接" placement="top">
+                            <el-button :icon="CopyDocument" @click="copyLink(v.row.url)" size="large" link></el-button>
                         </el-tooltip>
                     </template>
                 </el-table-column>
@@ -181,13 +188,17 @@
 </template>
 <script setup>
 import {ref,watch,computed, onMounted, toRef} from 'vue'
-import {Plus,Delete,Search,RefreshRight,Memo,Edit,CaretRight} from '@element-plus/icons-vue'
+import {Plus,Delete,Search,RefreshRight,Memo,Edit,CaretRight, FolderAdd, CopyDocument} from '@element-plus/icons-vue'
 import dayjs from 'dayjs'
 import Pagination from '@/components/Pagination'
 import { addMpFavAccounts, delMpFavAccounts, getMpFavAccounts, getMpFavPosts, searchMpAccounts,openUrl, getMpSimilarPosts, getMpGroups, delMpGroup, editMpGroup, addMpGroup } from '@/api/posts'
 import debounce from 'lodash-es/debounce'
 import {ElMessage,ClickOutside as vClickOutside} from 'element-plus'
 import DialogSimilarPosts from './components/DialogSimilarPosts.vue'
+import Hydrate from '@/components/Hydrate.vue'
+import { useHydrateStore } from '@/store/piniaStore'
+import { copyLink } from '@/utils'
+var hydrateStore = useHydrateStore()
 
 var optDates=[
     {text:'最近24小时',value:dayjs().subtract(1,'day').format('YYYY-MM-DD')},

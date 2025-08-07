@@ -95,6 +95,7 @@ module.exports = {
           extendInfo: "app"
         },
       },
+      mainProcessWatch: ['src/lib'],
       preload: './src/preload.js'
     },
   }, // Reference: https://www.electron.build/configuration/configuration

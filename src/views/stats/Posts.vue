@@ -1,5 +1,5 @@
 <template>
-    <el-row class="h-full">
+    <el-row class="h-full posts">
         <el-col :span="3" class="h-full overflow-y-scroll">
             <el-menu :default-active="categories[0][0]+''">
                 <el-menu-item-group title="类别">
@@ -7,8 +7,8 @@
                 </el-menu-item-group>
             </el-menu>
         </el-col>
-        <el-col :span="21" class="h-full overflow-y-scroll p-2">
-            <div class="filters bg-white p-2">
+        <el-col :span="21" class="h-full overflow-y-scroll p-2" style="display: flex;flex-direction: column;">
+            <div class="filters bg-white flex p-2 items-center">
                 <!-- <el-date-picker type="daterange" start-placeholder="开始时间" end-placeholder="结束时间" v-model="dateRange"></el-date-picker> -->
                 <el-date-picker v-model="params.end_time" :shortcuts="shortcuts" placeholder="请选择日期"></el-date-picker>
                 <el-divider direction="vertical"></el-divider>
@@ -17,7 +17,8 @@
                     <el-radio :value="0" size="small">非原创</el-radio>
                     <el-radio :value="-1" size="small">全部</el-radio>
                 </el-radio-group>
-                <el-input style="width: 200px;float:right" v-model="key_words" :suffix-icon="Search" placeholder="输入关键字搜索文章标题" clearable></el-input>
+                <el-input style="width: 180px;margin-left: auto;" v-model="key_words" :suffix-icon="Search" placeholder="输入关键字搜索文章标题" clearable></el-input>
+                <Hydrate/>
             </div>
             <el-table v-loading="loading" :data="tableData" class="posts w-full overflow-scroll">
                 <el-table-column prop="title" label="文章" width="450">
@@ -65,13 +66,16 @@
                 </el-table-column>
                 <el-table-column prop="zan_num" label="点赞数" />
                 <el-table-column prop="fans" label="预估粉丝数" width="100" />
-                <!-- <el-table-column label="操作">
+                <el-table-column label="操作">
                     <template #default="v">
-                        <el-tooltip effect="dark" content="收藏" placement="top">
-                            <el-button :icon="StarFilled" style="padding: 0 2px;font-size: 24px;"></el-button>
+                        <el-tooltip effect="dark" content="添加到素材合成器" placement="top">
+                            <el-button :icon="FolderAdd" @click="hydrateStore.add(v.row)" size="large" link></el-button>
+                        </el-tooltip>
+                        <el-tooltip effect="dark" content="复制链接" placement="top">
+                            <el-button :icon="CopyDocument" @click="copyLink(v.row.url)" size="large" link></el-button>
                         </el-tooltip>
                     </template>
-                </el-table-column> -->
+                </el-table-column>
             </el-table>
             <pagination class="flex-1 p-2" :total="total" @pagination="onPagination" :page="params.page" :limit="params.limit" layout="total, prev, pager, next, jumper" />
         </el-col>
@@ -97,16 +101,24 @@
 .posts .thead.active::after {
     border-top-color: var(--el-color-primary);
 }
+.posts .el-radio {
+    margin-right: 6px;
+}
 </style>
 <script setup>
 import {ref,onMounted,watch, onActivated, nextTick} from 'vue'
-import {StarFilled,Search,QuestionFilled} from '@element-plus/icons-vue'
+import {StarFilled,Search,QuestionFilled,FolderAdd, CopyDocument} from '@element-plus/icons-vue'
 import dayjs from 'dayjs';
 import debounce from 'lodash/debounce'
 import { getDetailPosts } from '@/api/posts';
 import Pagination from '@/components/Pagination'
 import ICFire from './ICFire.vue';
+import Hydrate from '@/components/Hydrate.vue';
+import { useHydrateStore } from '@/store/piniaStore';
+import { ElMessage } from 'element-plus';
+import { copyLink } from '@/utils';
 
+var hydrateStore = useHydrateStore();
 var categories=[
     [-1,'总榜'],
     [1,'国际'],

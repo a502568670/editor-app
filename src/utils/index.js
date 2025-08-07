@@ -2,6 +2,9 @@
  * Created by jiachenpan on 16/11/18.
  */
 
+import { ElMessage } from "element-plus"
+import debug from "debug"
+
 export function parseTime(time, cFormat) {
   if (arguments.length === 0) {
     return null
@@ -533,3 +536,10 @@ export function sortByOrder(sortArray, orderArray) {
   
   return { result, missingIds };
 }
+
+export async function copyLink(url) {
+  await navigator.clipboard.writeText(url);
+  ElMessage({ type: 'success', message: '链接已复制到剪贴板' });
+}
+debug.enable('*')
+export var dog=debug('editor:app')
