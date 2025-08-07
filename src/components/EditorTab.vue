@@ -2741,7 +2741,8 @@ onMounted(async () => {
     mp_msgsRef.value.forEach((item, index) => {
       if(item.fromExtract){
         newArticle(true, 0,index)
-      }else if(item.msg_id>0){
+      }
+      if(!item.msg_id||item.msg_id>0){
         // fix hydrate msg
         item.msg_id=0-Date.now()-index;
       }
