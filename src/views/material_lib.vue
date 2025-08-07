@@ -190,6 +190,7 @@ import { apperrmsg, wxretmsg } from '@/utils/constants';
 import Hydrate from '@/components/Hydrate.vue';
 import { useHydrateStore } from '@/store/piniaStore';
 import { newlistArticlesByAppMsg } from '@/api/mp_msg';
+import { format_to_UEditor_html } from "@/utils/dom";
 
 var hydrateStore = useHydrateStore();
 var hydrateLocalIdx;
