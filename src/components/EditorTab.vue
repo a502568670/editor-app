@@ -47,8 +47,8 @@
       <!-- <el-button @click="handleSyncToWechatDraftBox" type="danger">同步到微信草稿箱</el-button>
       <el-button @click="openSendArticleDialog" type="danger">同步到其他账号</el-button> -->
     </div>
-    <el-row :gutter="0" class="flex-1">
-      <el-col :span="6" class="h-full overflow-scroll bg-white">
+    <el-row :gutter="0" class="flex-1 items-stretch h-0">
+      <el-col :span="6" class="overflow-scroll bg-white">
         <div class="bg-white  shadow-xl">
           <div v-if="mp_msgsRef">
             <div class="flex w-full items-center pl-2 pt-2">
@@ -138,10 +138,10 @@
           </div>
         </div>
       </el-col>
-      <el-col :span="12" class="h-full" v-loading="globalLoadingRef">
+      <el-col :span="12" class="h-full overflow-auto" v-loading="globalLoadingRef">
         <div class="h-full flex flex-col">
-          <div ref="ueditor_wrapper" style="height:calc(100vh - 140px)">
-            <vue-ueditor-wrap v-if="msg_idRef !== 0 && currentArticleRef.item_show_type === 0"
+          <div ref="ueditor_wrapper" class="h-full">
+            <vue-ueditor-wrap class="h-full flex items-stretch" v-if="msg_idRef !== 0 && currentArticleRef.item_show_type === 0"
               v-model="currentArticleRef.content_noencode" :editor-id="editorIdRef" @ready="ready"
               :config="editorConfigRef" :editorDependencies="['ueditor.config.js', 'ueditor.all.js']" />
             <!-- 这里是视频的编辑区 -->
@@ -201,7 +201,7 @@
           </div>
         </div>
       </el-col>
-      <el-col :span="1" class="h-full overflow-scroll bg-white">
+      <el-col :span="1" class="overflow-scroll bg-white">
         <div
           class="grid-content flex flex-col h-full justify-start items-center border  space-y-2 p-2 bg-slate-100 text-blue-500">
           <el-icon :size="20" class="cursor-pointer flex justify-center" @click="openExtractMpArticleUrlDialog"
@@ -236,7 +236,9 @@
           </el-icon>
         </div>
       </el-col>
-      <el-col :span="5" class="h-full p-1">
+      <el-col :span="5" class="h-full">
+        <el-tabs type="border-card" class="editor-inner-tabs">
+        <el-tab-pane label="发布设置">
         <el-row :gutter="4" class="mb-1" v-if="![5, 8].includes(currentArticleRef.item_show_type)">
           <el-col :span="24">
             <el-input v-model="currentArticleRef.title" clearable class="grid-content-control" placeholder="请输入文章标题"
@@ -303,7 +305,7 @@
           </el-col>
         </el-row>
 
-        <el-row :gutter="4" class="my-2">
+        <!-- <el-row :gutter="4" class="my-2">
           <el-col :span="24">
             <hr />
           </el-col>
@@ -318,7 +320,12 @@
         </el-row>
         <el-row :gutter="4" class="h-8 mb-1">
           <el-col :span="24"></el-col>
-        </el-row>
+        </el-row> -->
+        </el-tab-pane>
+        <el-tab-pane label="自定义模板" class="h-full">
+          <UserTempl v-model="currentArticleRef.content_noencode" :visible="currentArticleRef.item_show_type===0" />
+        </el-tab-pane>
+        </el-tabs>
       </el-col>
     </el-row>
   </div>
@@ -630,6 +637,23 @@
   </el-dialog>
 </template>
 <style>
+.edui-editor{
+  @apply flex flex-col h-full;
+  .edui-editor-iframeholder{
+    @apply flex-1;
+  }
+}
+.editor-inner-tabs{
+  height: calc(100vh - 60px - 3rem - var(--el-tabs-header-height));
+  .el-tabs__content{
+    @apply p-1 flex-1 overflow-y-auto;
+  }
+  .el-tabs__item{
+    /* font-size: 12px; */
+    padding: 0 10px !important;
+    --el-tabs-header-height: 32px;
+  }
+}
 .grid-content {
   border-radius: 4px;
   /* min-height: 36px;   */
@@ -724,6 +748,9 @@ import SimplePager from "@/components/SimplePager"
 import ImgPicker from '@/components/editor/ImgPicker.vue';
 import ImgListPicker from '@/components/editor/ImgListPicker.vue';
 import GroupNotifySelect from '@/components/editor/GroupNotifySelect.vue'
+import UserTempl from './editor/UserTempl.vue';
+import debounce from 'lodash-es/debounce'
+import { dog } from '@/utils';
 
 const props = defineProps(['account', 'appmsg', 'mode', 'mainMsg']);
 const emitEvents = defineEmits(['titleChange', 'createAppmsg', 'msgidChange'])
@@ -961,7 +988,7 @@ function ready(editorInstance) {
   // const conatinerHeight = document.querySelector("#edui1").clientHeight
   // console.log("toolbarHeight:", toolbarHeight)
   // console.log("conatinerHeight:", conatinerHeight)
-  editorInstance.setHeight(wrapprHeight - toolbarHeight - 40 + 1)
+  // editorInstance.setHeight(wrapprHeight - toolbarHeight - 40 + 1)
   // listHeightRef.value = `${wrapprHeight-120}px`
   // elListMsgsRef.value.style.height = `${wrapprHeight - 120}px`
 

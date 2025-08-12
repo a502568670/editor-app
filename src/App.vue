@@ -14,10 +14,30 @@
       <component :is="Component" />
     </transition>
   </router-view>
+  <account-picker />
 </template>
 
 <script setup>
-
+import { ref, onMounted, watch } from 'vue'
+import AccountPicker from './components/AccountPicker.vue'
+import { useAccountStore } from './store/piniaStore';
+import { dog } from './utils'
+import { getToken } from './utils/auth';
+import { useStore } from 'vuex';
+var account=useAccountStore()
+var store=useStore()
+onMounted(async ()=>{
+  if(getToken()){
+    var {list}=store.state.accounts
+    if(list.length){
+      account.update(list)
+    }else{
+      var res=await account.fetch()
+      store.commit('SET_ACCOUNTS', res)
+    }
+    dog('App account', account.list)
+  }
+})
 import { IButtonMenu, IDomEditor } from '@wangeditor/editor';
 import { Boot } from '@wangeditor/editor';
 
@@ -67,8 +87,8 @@ const menu1Conf = {
     return new MyButtonMenu(); // 把 `YourMenuClass` 替换为你菜单的 class
   },
 };
-console.log("Boot.registerMenu", menu1Conf)
-Boot.registerMenu(menu1Conf);
+// console.log("Boot.registerMenu", menu1Conf)
+// Boot.registerMenu(menu1Conf);
 
 </script>
 <style>

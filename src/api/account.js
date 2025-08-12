@@ -1,3 +1,4 @@
+import { checkWxSession } from '@/utils/cookie';
 import request from '@/utils/request'
 
 export function listAccount(data) {
@@ -13,6 +14,7 @@ export async function listOrderedAccount(data) {
     method: 'post',
     data
   })
+  res.data.data.list?.forEach(v => v.expired = checkWxSession(v.session_id))
   withOrderedAccount(res.data.data.list);
   // console.log(res);
   return res;

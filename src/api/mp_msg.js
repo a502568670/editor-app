@@ -97,3 +97,13 @@ export function previewQRCode(url) {
     url: `/mp_msg/preview_qr_code?url=${url}`,
   })
 }
+
+export function getUserTempl(data){
+  return request({ url:'/style/customize_list',data})
+}
+export function saveUserTempl(data={template_name:'',content:''}){
+  return request({ url:'/style/customize', method:'post', data})
+}
+export function delUserTempl(data={style_ids:[0]}){
+  return request({ url:'/style/delete', method:'post', data})
+}

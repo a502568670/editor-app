@@ -2,7 +2,7 @@
   <div class="flex w-ful h-full bg-[#e9f9f1] pt-1">
     <el-tabs v-show="editableTabs.length > 0" v-model="editableTabsValue" type="card" class="editor-tabs w-full h-full"
       closable @tab-remove="handleCloseTab">
-      <el-tab-pane v-for="(item, idx) in editableTabs" :key="idx" :name="item.name">
+      <el-tab-pane v-for="(item, idx) in editableTabs" :key="idx" :name="item.name" class="h-full">
         <template #label><i><img class="w-6 h-6 rounded-full mr-2" :src="item.icon" /></i> {{ item.title }}</template>
         <!-- <EditorTab :key="appmsgRef.appmsgid+''" :account="selectedAccountRef" :appmsg="appmsgRef" /> -->
         <component :key="item.tabKey" :is="EditorTab" :account="item.account" :appmsg="item.appmsg" :mode="item.mode"
@@ -80,6 +80,9 @@ import { toDeepRaw } from "@/utils/convert"
 import { v4 as uuidv4 } from 'uuid';
 import { useRoute } from 'vue-router'
 import { useStore } from 'vuex'
+import ImgPicker from '@/components/editor/ImgPicker.vue'
+import GroupNotifySelect from '@/components/editor/GroupNotifySelect.vue'
+import { useHydrateStore } from '@/store/piniaStore'
 import { dog } from '@/utils'
 
 const store = useStore()
@@ -136,14 +139,23 @@ onActivated(async () => {
   } else if (account_id) {
     handleCreateAppMsg({ type: 0, account_id: parseInt(account_id) })
   }
-  if(history.state.from === 'hydrate') {
-    var appmsg={
-      appmsgid: 0 - (+new Date()),
-      title: '合成素材'+(++tabIndex),
-      multi_item: history.state.data,
-    }
+  if(history.state.dataFrom === 'hydrate') {
     dog("hydrate data:", history.state.data)
+    var deepStr = JSON.stringify(history.state.data.list)
+    for(var id of history.state.data.accounts) {
+      tabIndex++
+      var appmsg={
+        appmsgid: -tabIndex-Date.now(),
+        title: '合成素材'+tabIndex,
+        multi_item: JSON.parse(deepStr),
+      }
+      var i = all_accounts.value.list.findIndex(a => a.id === id)
+      if (i>-1) {
+        selectedAccountRef.value = all_accounts.value.list[i]
+        selectedIndexRef.value = i
     addTab(selectedAccountRef.value, appmsg, { icon: selectedAccountRef.value.avatar, mode: 'hydrate' })
+      }
+    }
     history.replaceState({}, '')
   } 
 // console.log('route:',history.state);

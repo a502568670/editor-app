@@ -138,6 +138,7 @@ import { listPlatform } from '@/api/platform'
 import { toDeepRaw } from "@/utils/convert"
 import selectPlatform from "../components/selectPlatform";
 import selectUser from "../components/selectUser";
+import { useAccountStore } from '@/store/piniaStore';
 // import selectGroup from "../components/selectGroup";
 const { all_accounts, account_orders } = toRefs(store.getters)
 
@@ -290,8 +291,10 @@ const handleAddAccount = (item, index) => {
     })
   }
 }
+var account=useAccountStore()
 async function onDelMPAccount(id) {
   await store.dispatch('DelAccount', id)
+  account.update(account.list.filter(item => item.id !== id))
   getList()
   ElMessage({ type: 'success', message: '删除成功' })
 }
@@ -508,8 +511,9 @@ onMounted(() => {
       }
       if (data === "login-success") {
         console.log("==login-success==")
-        store.dispatch('ListAccounts').then(() => {
+        store.dispatch('ListAccounts').then((data) => {
           handleFilter();
+          account.update(data.list)
           // const selectAccountItem = accounts.value.find(v => v.id === selectedAccount.value?.id)
           // if (selectAccountItem) {
           //   console.log("selectAccountItem.token=>", selectAccountItem.token)

@@ -149,8 +149,11 @@ import { useStore } from 'vuex'
 import { useRouter } from 'vue-router'
 import axios from "axios";
 import UsrAgree from './UsrAgree'
+import { useAccountStore } from '@/store/piniaStore';
+import { dog } from '@/utils';
 let store;
 let router;
+var account=useAccountStore()
 export default {
   name: 'Login',
   components:{UsrAgree},
@@ -249,10 +252,12 @@ export default {
             }
             this.loading = false
 
-            store.dispatch('ListAccounts').then(() => {
+            store.dispatch('ListAccounts').then((data) => {
               // router.push({ path: '/editor4', replace: true });
               // router.push({ path: '/material_lib', replace: true });
               router.push({ path: '/tabbar', replace: true });
+              // dog('Login success, account list:', data)
+              account.update(data.list)
             })
             // router.push({ path: '/home' })
 

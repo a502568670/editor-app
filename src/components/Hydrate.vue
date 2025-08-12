@@ -29,15 +29,16 @@
 </template>
 <script setup>
 import { getCurrentInstance, onDeactivated, onUnmounted, ref, toRaw } from 'vue';
-import { useHydrateStore } from '@/store/piniaStore';
+import { useAotPickerStore, useHydrateStore } from '@/store/piniaStore';
 import {Delete, Edit, FolderAdd} from '@element-plus/icons-vue';
-import { ClickOutside as vClickOutside } from 'element-plus'
+import { ElMessage, ClickOutside as vClickOutside } from 'element-plus'
 import { watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { dog } from '@/utils';
 
 var refButton = ref(null);
 const hydrateStore = useHydrateStore();
+var aotPickerStore = useAotPickerStore();
 var visible = ref(false);
 var inst=getCurrentInstance();
 function checkDeactivated(node) {
@@ -82,6 +83,14 @@ var router = useRouter();
 async function hydrate() {
   loading.value = true;
   // console.log(toRaw(hydrateStore.list));
+  var accounts=await aotPickerStore.select();
+  if(!accounts.length){
+    ElMessage.warning('请选择公众号');
+    loading.value = false;
+    visible.value = true
+    return
+  }
+  dog('hydrate selected accounts:', toRaw(accounts));
   try {    
     var urls={};
     hydrateStore.list.forEach((v, i) => {
@@ -111,7 +120,7 @@ async function hydrate() {
   }
   loading.value = false;
   visible.value = false;
-  await router.replace({path:'/editor3',state:{from:'hydrate',data:toRaw(hydrateStore.list)}});
+  await router.replace({path:'/editor3',state:{dataFrom:'hydrate',data:{list:toRaw(hydrateStore.list),accounts:toRaw(accounts)}}});
 }
 </script>
 <style>

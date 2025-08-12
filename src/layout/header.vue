@@ -14,7 +14,7 @@
         </div>
         <router-link to="/stats?pagetype=2" class="menu" replace :class="{'active':$route.path=='/stats'&&$route.query.pagetype=='2'}">
           <el-icon :size="20"><Newspaper/></el-icon>
-          <span class="mt-1">文章</span>
+          <span class="mt-1">监控和爆文</span>
         </router-link>
       </div>
     </el-col>
@@ -40,6 +40,7 @@ import {
 } from '@element-plus/icons-vue'
 import { gotoExternal } from "@/utils/openWindow"
 import Hydrate from '@/components/Hydrate.vue';
+import { useAccountStore } from '@/store/piniaStore'
 // console.log(toRaw(useRoute()));
 
 
@@ -110,9 +111,10 @@ const menuList = ref([
 //   icon_active:require('@/assets/image/hot_active.png')
 // }
 ])
-
+var account=useAccountStore()
 const exit = function () {
   store.dispatch('FedLogOut').then(() => {
+    account.update([])
     router.push('/login')
   })
 }
@@ -140,7 +142,8 @@ const jzl_assistant_url = store.state.config?.jzl_assistant_url
 }
 
 .menu{
-  width: 60px;
+  /* width: 60px; */
+  padding: 0 20px;
   height:60px;
   display: flex;
   flex-direction: column;
@@ -148,7 +151,7 @@ const jzl_assistant_url = store.state.config?.jzl_assistant_url
   justify-content: center;
   font-size: 12px;
   cursor: pointer;
-  margin-right: 10px;
+  /* margin-right: 10px; */
 }
 .menu img{
   width: 25px;

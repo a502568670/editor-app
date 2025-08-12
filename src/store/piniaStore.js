@@ -2,6 +2,8 @@ import {ref, shallowRef, toRaw} from 'vue';
 import { acceptHMRUpdate, defineStore } from "pinia";
 import { ElMessage } from 'element-plus';
 import { dog } from '@/utils';
+import { listOrderedAccount } from '@/api/account';
+import { checkWxSession } from '@/utils/cookie';
 
 export const useHydrateStore = defineStore('hyration', () => {
   var list=ref([]);
@@ -41,8 +43,55 @@ export const useHydrateStore = defineStore('hyration', () => {
     add,remove,clear,insert,
   };
 });
-
+export const useAccountStore = defineStore('account', () => {
+  var list = shallowRef([]);
+  var actIndex = ref(0);
+  function update(accounts) {
+    list.value = accounts;
+  }
+  function select(idx){
+    actIndex.value = idx;
+  }
+  async function fetch(params={page:1,num:500}) {
+    const res = await listOrderedAccount(params)
+    if(res.data.data?.list.length){
+      list.value = res.data.data.list;
+    }
+    update(list.value);
+    return res.data.data;
+  }
+  return {
+    list, update,select, actIndex,fetch,
+  };
+});
+export const useAotPickerStore = defineStore('AccountPicker', () => {
+  var account=useAccountStore();
+  var visible = ref(false);
+  var list=ref([]);
+  function show() {
+    visible.value = true;
+  }
+  function hide(confirm=false) {
+    visible.value = false;
+    cb(confirm?list.value:[]);
+  }
+  function update(data){
+    list.value = data;
+  }
+  var cb;
+  function select(){
+    return new Promise((resolve)=>{
+      cb=resolve;
+      show();
+    })
+  }
+  return {
+    visible, show, hide,account,list,update,select};
+});
 // webpack HMR
 if (import.meta.webpackHot) {
+  // dog('piniaStore HMR', import.meta.webpackHot, acceptHMRUpdate(useHydrateStore, import.meta.webpackHot));
   import.meta.webpackHot.accept(acceptHMRUpdate(useHydrateStore, import.meta.webpackHot));
+  import.meta.webpackHot.accept(acceptHMRUpdate(useAccountStore, import.meta.webpackHot));
+  import.meta.webpackHot.accept(acceptHMRUpdate(useAotPickerStore, import.meta.webpackHot));
 }

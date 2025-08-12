@@ -98,6 +98,7 @@ export default createStore({
           commit('SET_ACCOUNT_ORDERS', account_orders.split(",").map(id => parseInt(id)))
         }
       }
+      return response.data.data
     },
     async DelAccount({ commit, state }, wechat_id = 0) {
       await removeAccount({ wechat_id })
