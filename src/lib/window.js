@@ -427,7 +427,7 @@ async function reactToIpcObjectData(data, tabbedWin, viewContents) {
       view.setAlwaysOnTop(true);
       companyMap.login_success = false
       view.on('close', function (e) {
-        const viewUrl = e.sender.webContents.getURL()
+        const viewUrl = view.webContents.getURL()
         verbose_log("viewUrl:", viewUrl)
         if (viewUrl === 'https://mp.weixin.qq.com/') {
           return

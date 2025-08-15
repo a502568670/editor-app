@@ -123,11 +123,11 @@
 </template>
 
 <script setup>
-import { nextTick, onMounted, onActivated, onUnmounted, ref, toRefs, onDeactivated, computed } from 'vue'
+import { nextTick, onMounted, onActivated, onUnmounted, ref, toRefs, onDeactivated, computed, toRaw, onBeforeUnmount } from 'vue'
 import { ElMessage, ElNotification } from 'element-plus'
 import { Delete, WarnTriangleFilled } from '@element-plus/icons-vue'
 import { getToken } from "@/utils/auth";
-import { debounceFn, sortByOrder } from "@/utils/index"
+import { debounceFn, dog, sortByOrder } from "@/utils/index"
 import store from '@/store'
 import {
   listAccount, createAccount, updateAccount, deleteAccount,
@@ -392,9 +392,10 @@ const throttleFunc = throttle(() => {
     })
   }
 }, 200);
+var cleanups=[]
 onMounted(() => {
 
-  window.ipcRenderer.receive('account_check_login', async (isLoggedIn) => {
+  var c1=window.ipcRenderer.receive('account_check_login', async (isLoggedIn) => {
     console.log("account_check_login isLoggedIn => ", isLoggedIn)
     // selectedAccountLoginStatus.value = { ...selectedAccountLoginStatus.value, [selectedAccount.value.id]: isLoggedIn }
     // console.log("selectedAccountLoginStatus.value  => ", selectedAccountLoginStatus.value)
@@ -408,7 +409,7 @@ onMounted(() => {
     }
   })
 
-  window.ipcRenderer.receive('remove-account-session', async (account_session_id) => {
+  var c2=window.ipcRenderer.receive('remove-account-session', async (account_session_id) => {
     // console.log("account_session_id => ", account_session_id)
     if (account_session_id) {
       console.log("== remove-account-session ==")
@@ -420,7 +421,7 @@ onMounted(() => {
     }
   })
 
-  window.ipcRenderer.receive('refresh-account-session', async (wechat_id, session_id) => {
+  var c3=window.ipcRenderer.receive('refresh-account-session', async (wechat_id, session_id) => {
     console.log("== refresh-account-session ==")
     console.log("param => ", wechat_id, session_id)
     if (wechat_id && session_id) {
@@ -429,10 +430,10 @@ onMounted(() => {
     }
   })
   // 1.标签页数据 (tabs) 的获取
-  window.ipcRenderer.receive(// 获取右侧账号列表数据
+  var c4=window.ipcRenderer.receive(// 获取右侧账号列表数据
     'tabs-update',// 监听的事件名称，监听来自主进程的 tabs-update 消息，更新标签页数据
     (tabOptions) => {// 回调函数，参数为接收到的消息内容 // 参数：tabOptions，包含标签页配置信息。
-      console.log(tabOptions) //打印tabOptions 的内容，用于调试。
+      console.log('tabs-update',tabOptions) //打印tabOptions 的内容，用于调试。
       // 处理逻辑
       const time = new Date().valueOf()// 获取当前时间戳，用于标识标签页的创建时间。
       let oldlength = tabs.value.length;// 记录更新前 tabs 数组的长度，用于后续判断数组长度是否发生变化。
@@ -480,7 +481,7 @@ onMounted(() => {
 
 
   // 用户切换标签页时，主进程会发送 fromMain 消息，通知当前选中的标签页 ID。
-  window.ipcRenderer.receive('fromMain', (data) => {
+  var c5=window.ipcRenderer.receive('fromMain', (data) => {
     console.log("tabBar receive fromMain:", data)
     if (typeof data === 'object' && Object.prototype.hasOwnProperty.call(data, 'currentTabId')) {
       currentTabId.value = parseInt(data.currentTabId)
@@ -526,7 +527,7 @@ onMounted(() => {
   })
 
   // 获取web的尺寸位置
-  window.ipcRenderer.receive('getWebBounds', (data) => {
+  var c6=window.ipcRenderer.receive('getWebBounds', (data) => {
     nextTick(() => {
       if (webRef.value) {
         const width = webRef.value.offsetWidth;
@@ -539,19 +540,25 @@ onMounted(() => {
       }
     })
   })
-
+  cleanups.push(c1,c2,c3,c4,c5,c6)
   // 获取browserview内部
 
 })
 
 onActivated(() => {
   handleFilter();
+  nextTick(()=>changeTab(currentTabId.value))
 })
-
-onDeactivated(() => {
-  console.log('组件卸载');
+onBeforeUnmount(()=>{
   window.ipcRenderer.send('close-tab')
-  tabs.value = []
+  while(cleanups.length){
+    cleanups.pop()?.()
+  }
+})
+onDeactivated(() => {
+  // console.log('组件卸载',toRaw(tabs.value));
+  window.ipcRenderer.send('remove-tab')
+  // tabs.value = []
 });
 window.ipcRenderer.send('control-ready')
 </script>

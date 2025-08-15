@@ -14,7 +14,7 @@ import EventEmitter from "events";
 import global from './global'
 const verbose_log = global.utils.verbose_log;
 const verbose_error = global.utils.verbose_error;
-
+var dog=require('debug')('editor:tabbed-window')
 
 const path = require("path");
 
@@ -481,6 +481,13 @@ export class TabbedWindow extends EventEmitter {
 
     const channels = Object.entries({
       act: (e, actName) => webContentsAct(actName),
+      'remove-tab': async (e, id) => {
+        dog('remove-tab', id, this.currentViewId);
+        var view=this.views[id || this.currentViewId];
+        if(view) {
+          this.win.removeBrowserView(view);
+        }
+      },
       "close-tab": async (e, id) => {
         verbose_log('== channel listened close-tab===', id, this.currentViewId)
         if (id) {
@@ -620,7 +627,7 @@ export class TabbedWindow extends EventEmitter {
    * @ignore
    */
   setCurrentView(viewId) {
-    if (!viewId) {
+    if (!this.views[viewId]) {
       return;
     } // end if
     if (this.currentView) this.win.removeBrowserView(this.currentView);

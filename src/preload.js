@@ -13,7 +13,7 @@ import { contextBridge, ipcRenderer } from "electron";
 
 contextBridge.exposeInMainWorld('envVars', {
   backend_url: process.env.BACKEND_URL || "http://47.96.22.8:8006",
-  is_debug: (process.env.DEBUG || 'false').toLowerCase() === 'true'
+  is_debug: (process.env.DEBUG || 'false').includes('True'),
 });
 
 // Expose protected methods that allow the renderer process to use the ipcRenderer without exposing the entire object. Reference: https://nklayman.github.io/vue-cli-plugin-electron-builder/guide/security.html#node-integration
@@ -36,6 +36,7 @@ contextBridge.exposeInMainWorld('ipcRenderer', {
     if (
       [
         'close-tab',
+        'remove-tab',
         'toMain',
         'new-tab',
         'switch-tab',
