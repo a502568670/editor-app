@@ -144,7 +144,7 @@ app.on('ready', async () => {
     }
   }
   // fix weixin media load failed
-  var wxpic = { urls: ['*://*.qpic.cn/*'], types: ['image', 'media'] }
+  var wxpic = { urls: ['*://*.qpic.cn/*','*://*.qlogo.cn/*'], types: ['image', 'media'] }
   session.defaultSession.webRequest.onBeforeSendHeaders(wxpic, (details, callback) => {
     delete details.requestHeaders['Referer'];
     callback({ requestHeaders: details.requestHeaders })

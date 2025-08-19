@@ -322,6 +322,9 @@
           <el-col :span="24"></el-col>
         </el-row> -->
         </el-tab-pane>
+        <el-tab-pane label="样式中心" class="h-full">
+          <SysTempl :editorInst="editorRef"/>
+        </el-tab-pane>
         <el-tab-pane label="自定义模板" class="h-full">
           <UserTempl v-model="currentArticleRef.content_noencode" :visible="currentArticleRef.item_show_type===0" />
         </el-tab-pane>
@@ -751,6 +754,7 @@ import GroupNotifySelect from '@/components/editor/GroupNotifySelect.vue'
 import UserTempl from './editor/UserTempl.vue';
 import debounce from 'lodash-es/debounce'
 import { dog } from '@/utils';
+import SysTempl from './editor/SysTempl.vue';
 
 const props = defineProps(['account', 'appmsg', 'mode', 'mainMsg']);
 const emitEvents = defineEmits(['titleChange', 'createAppmsg', 'msgidChange'])

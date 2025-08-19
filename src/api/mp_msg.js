@@ -107,3 +107,23 @@ export function saveUserTempl(data={template_name:'',content:''}){
 export function delUserTempl(data={style_ids:[0]}){
   return request({ url:'/style/delete', method:'post', data})
 }
+export function getSysTempl(params){
+  return request({ url:'/style/categories', params})
+}
+export async function getNiceSysTempl(params){
+  var res=await request({ url:'/style/categories', params})
+  var CAG_ROOT_ID=1;
+  var list=[];
+  res.data.data.forEach(v=>{
+    if(v.parent_id===CAG_ROOT_ID){
+      v.children=res.data.data.filter(c=>c.parent_id===v.id).sort((a,b)=>a.sort_no-b.sort_no);
+      list.push(v);
+    }
+  })
+  list.sort((a,b)=>a.sort_no-b.sort_no);
+  res.data.data=list;
+  return res;
+}
+export function getSysTemplByCat(id,params={offset:0,limit:5000}){
+  return request({ url:`/style/category/${id}/styles`, params})
+}
