@@ -9,7 +9,7 @@ import { TabbedWindow } from "./tabbed-window.js";
 import { nativeTheme, screen, dialog, Notification, app, ipcMain, webContents, net, BrowserWindow } from 'electron'
 import { localExtractMpArticleUrlUseRequest } from "./mp_account-tasks.js"
 import {
-  publishAppmsg, listAppmsgsInDraftBox, getAppmsgInDraftBox,
+  publishAppmsg, deleteAppmsg, listAppmsgsInDraftBox, getAppmsgInDraftBox,
   searchAppmsgsInPublishForQuerys
 } from "./mp_appmsg-tasks.js"
 import { listFiles, listVideos } from "./mp_file-tasks.js"
@@ -607,6 +607,16 @@ async function reactToIpcObjectData(data, tabbedWin, viewContents) {
       }
 
       viewContents.send('fromMain', { tag: 'appmsg-ret:publishToWechat', data: { source, ret } })
+      break;
+    }
+    case 'appmsg:deleteDraft': {
+      verbose_log("===== listen deleteDraft in main ====", data)
+      const { token, source, deleteData } = data
+      const ret = await deleteAppmsg(deleteData)
+      if (ret.success) {
+        verbose_log("===== 删除草稿箱素材成功 ====", data)
+      }
+      viewContents.send('fromMain', { tag: 'appmsg-ret:deleteDraft', data: { source, ret } })
       break;
     }
     case 'appmsg:searchAppmsgsInPublishForQuerys': {
