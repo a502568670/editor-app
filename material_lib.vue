@@ -202,6 +202,7 @@ import Hydrate from '@/components/Hydrate.vue';
 import { useHydrateStore } from '@/store/piniaStore';
 import { newlistArticlesByAppMsg } from '@/api/mp_msg';
 import { format_to_UEditor_html } from "@/utils/dom";
+import { listAppmsgsInDraftBox } from '../lib/mp_appmsg-tasks';
 
 var hydrateStore = useHydrateStore();
 var hydrateLocalIdx;
@@ -358,7 +359,7 @@ const handleAppMsgDelete = async () => {
   const { token, id, session_id } = selectedAccountRef.value
   
   let list_count = list.value.length
-  let max_count = _listCount
+  let max_count = 2
   let delete_count = Math.min(list_count, max_count)
   let appmsgids = list.value.map(v => v.app_id).slice(0, delete_count)
   console.log("appmsgids=>", appmsgids);
@@ -898,7 +899,7 @@ const registerChannels = () => {
         if (source !== channelSource) {
           return
         }
-        const { success, msg: retmsg, code } = ret
+         const { success, msg: retmsg, code } = ret
         if (success) {
           _listAppmsgsInDraftBox()
           ElMessage({
