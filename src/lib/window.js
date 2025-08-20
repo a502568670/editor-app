@@ -612,6 +612,7 @@ async function reactToIpcObjectData(data, tabbedWin, viewContents) {
     case 'appmsg:deleteDraft': {
       verbose_log("===== listen deleteDraft in main ====", data)
       const { token, source, deleteData } = data
+      console.log("deleteData=>", deleteData)
       const ret = await deleteAppmsg(deleteData)
       if (ret.success) {
         verbose_log("===== 删除草稿箱素材成功 ====", data)
