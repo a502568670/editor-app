@@ -43,6 +43,14 @@ export function deleteAppMsg(data) {
   })
 }
 
+export function batchDeleteLocalAppMsg(data) {
+  return request({
+    url: '/appmsg/batch_delete_local',
+    method: 'post',
+    data
+  })
+}
+
 export async function send_to_other_accounts_events(data, cb) {
   const url = window.envVars.backend_url + '/appmsg/send_to_other_accounts/events'
   const token = getToken()

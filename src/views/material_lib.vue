@@ -185,7 +185,7 @@ import { ElMessage, ElMessageBox, ElLoading } from 'element-plus'
 import { RefreshRight, Delete, Search, Select, Plus, Files, FolderAdd } from '@element-plus/icons-vue'
 import AccountNav from "@/components/AccountNav"
 import { VueFlexWaterfall } from 'vue-flex-waterfall';
-import { groupAppMsgs, listAppMsgs, saveAppMsg, deleteAppMsg, send_to_other_accounts_events } from "@/api/appmsg"
+import { groupAppMsgs, listAppMsgs, saveAppMsg, deleteAppMsg, batchDeleteLocalAppMsg, send_to_other_accounts_events } from "@/api/appmsg"
 import { getToken } from "@/utils/auth";
 import { serializeCookie } from "@/utils/cookie"
 import { fmtImageUrl } from "@/utils/format"
@@ -356,7 +356,7 @@ const handleAppMsgDelete = async () => {
     return
   }
   const { token, id, session_id } = selectedAccountRef.value
-  
+
   let list_count = list.value.length
   let max_count = _listCount
   let delete_count = Math.min(list_count, max_count)
@@ -376,16 +376,16 @@ const handleAppMsgDelete = async () => {
     dataLoadingRef.value = true
 
     window.ipcRenderer.send('toMain', {
-    tag: 'appmsg:deleteDraft',
-    source: channelSource,
-    token: getToken(),
-    wechat_id: id,
-    deleteData: {
-      cookies: serializeCookie(JSON.parse(session_id)["cookie"]),
-      token: parseInt(token),
-      appmsgids,
-    }
-  })
+      tag: 'appmsg:deleteDraft',
+      source: channelSource,
+      token: getToken(),
+      wechat_id: id,
+      deleteData: {
+        cookies: serializeCookie(JSON.parse(session_id)["cookie"]),
+        token: parseInt(token),
+        appmsgids,
+      }
+    })
     // dataLoadingRef.value = false
   }).catch(() => {
     console.log('取消removeAppMsg')
@@ -898,13 +898,19 @@ const registerChannels = () => {
         if (source !== channelSource) {
           return
         }
-        const { success, msg: retmsg, code } = ret
+        const { success, items, msg: retmsg, code } = ret
         if (success) {
-          _listAppmsgsInDraftBox()
-          ElMessage({
-            message: `批量删除成功`,
-            type: 'success',
-            duration: 2 * 1000
+          const postData = {
+            appmsgids: items.map(it => it.appmsgid),
+          }
+          console.log("delete appmsg locally postData=>", postData)
+          batchDeleteLocalAppMsg(postData).then(() => {
+            _listAppmsgsInDraftBox()
+            ElMessage({
+              message: `批量删除成功`,
+              type: 'success',
+              duration: 2 * 1000
+            })
           })
         } else {
           if (wxretmsg[code]) {
