@@ -26,6 +26,9 @@ const api = {
   // 发布
   operation_seq: tk => `${baseUrl}/misc/safeassistant?1=1&token=${tk}&lang=zh_CN`,
 
+  // 删除
+  delete_appmsg: () => `${baseUrl}/cgi-bin/operate_appmsg?sub=del&t=ajax-response`,
+
   // 有通知又是定时，必须加&action=time_send， 其他可以不加
   timing_publish: (tk, hasNotify) => `${baseUrl}/cgi-bin/masssend?t=ajax-response&token=${tk}&lang=zh_CN` + (hasNotify ? "&action=time_send" : "&is_release_publish_page=1"),
   instant_push: (tk, hasNotify) => `${baseUrl}/cgi-bin/masssend?t=ajax-response&token=${tk}&lang=zh_CN` + (hasNotify ? '&is_release_publish_page=0' : '&is_release_publish_page=1'),
@@ -41,12 +44,12 @@ const api = {
 
 /// is_release_publish_page 1-没通知 0-有通知
 /// isFreePublish=true 不通知 isFreePublish=false 通知
-const publishAppmsg = async ({ cookies, token, send_time, hasNotify, isFreePublish, list,groupstr='', reprint_info, appmsgid, appmsg_item_count }) => {
+const publishAppmsg = async ({ cookies, token, send_time, hasNotify, isFreePublish, list, groupstr = '', reprint_info, appmsgid, appmsg_item_count }) => {
   const opts = {
     method: "POST",
     headers: { ...getDefaultHeader(), cookie: cookies }
   };
-  let formdata = `token=${token}&lang=zh_CN&f=json&ajax=1&random=${Math.random()}&action=get_ticket`+groupstr
+  let formdata = `token=${token}&lang=zh_CN&f=json&ajax=1&random=${Math.random()}&action=get_ticket` + groupstr
   let res = (await netFetch(api.operation_seq(token), { ...opts, body: formdata }))
   verbose_log("operation_seq res:", typeof res, res)
   res = JSON.parse(res)
@@ -114,6 +117,39 @@ const publishAppmsg = async ({ cookies, token, send_time, hasNotify, isFreePubli
 
   return {
     success: true
+  }
+}
+
+const deleteAppmsg = async ({ cookies, token, appmsgids }) => {
+  const opts = {
+    method: "POST",
+    headers: { ...getDefaultHeader(), cookie: cookies }
+  };
+
+  const fingerprint = "190e3b4bc1fc444f11c88f37a73536e6"
+  const urls = appmsgids.map(_ => api.delete_appmsg())
+  const formdatas = appmsgids.map(appmsgid => `token=${token}&lang=zh_CN&f=json&ajax=1&fingerprint=${fingerprint}&AppMsgId=${appmsgid}`)
+  const netFetchs = urls.map((url, idx) => netFetch(url, { ...opts, body: formdatas[idx] }))
+
+  const data = await Promise.allSettled(netFetchs);
+  const items = data.map((ret, idx) => {
+    // verbose_log("ret:", ret)
+    if (ret.status === "fulfilled") {
+      const { base_resp, appMsgId } = JSON.parse(ret.value)
+      if (base_resp.ret === 0) {
+        return { success: true, appmsgid: appMsgId, value: publish_page_o }
+      } else {
+        return { success: false, reason: ret.err_msg }
+      }
+    } else {
+      return { success: false, reason: ret.reason }
+    }
+  })
+  verbose_log("items=>", items)
+
+  return {
+    success: true,
+    items: items,
   }
 }
 
@@ -236,6 +272,7 @@ const searchAppmsgsInPublishForQuerys = async ({ cookies, token, querys, begin, 
 }
 
 exports.publishAppmsg = publishAppmsg;
+exports.deleteAppmsg = deleteAppmsg;
 exports.listAppmsgsInDraftBox = listAppmsgsInDraftBox;
 exports.getAppmsgInDraftBox = getAppmsgInDraftBox;
 exports.listAppmsgsInPublishForQuerys = listAppmsgsInPublishForQuerys
