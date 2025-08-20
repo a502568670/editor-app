@@ -129,6 +129,8 @@ const deleteAppmsg = async ({ cookies, token, appmsgids }) => {
   const fingerprint = "190e3b4bc1fc444f11c88f37a73536e6"
   const urls = appmsgids.map(_ => api.delete_appmsg())
   const formdatas = appmsgids.map(appmsgid => `token=${token}&lang=zh_CN&f=json&ajax=1&fingerprint=${fingerprint}&AppMsgId=${appmsgid}`)
+  verbose_log("urls=>", urls)
+  verbose_log("formdatas=>", formdatas)
   const netFetchs = urls.map((url, idx) => netFetch(url, { ...opts, body: formdatas[idx] }))
 
   const data = await Promise.allSettled(netFetchs);
@@ -137,7 +139,7 @@ const deleteAppmsg = async ({ cookies, token, appmsgids }) => {
     if (ret.status === "fulfilled") {
       const { base_resp, appMsgId } = JSON.parse(ret.value)
       if (base_resp.ret === 0) {
-        return { success: true, appmsgid: appMsgId, value: publish_page_o }
+        return { success: true, appmsgid: appMsgId }
       } else {
         return { success: false, reason: ret.err_msg }
       }

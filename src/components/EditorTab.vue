@@ -198,6 +198,23 @@
                 </el-col>
               </el-row>
             </div>
+            <!-- 纯文字的编辑区，不排除其他类型 -->
+             <div v-if="msg_idRef !== 0 && currentArticleRef.item_show_type === 10"
+              class="w-full p-2 pb-5 flex-col h-full overflow-auto">
+              <el-row :gutter="4" class="mb-1 w-full">
+                <el-col :span="24">
+                  <el-input v-model="currentArticleRef.title" clearable class="w-full" placeholder="请在这里输入标题 (选填)"
+                    @input="syncToList('title')" />
+                </el-col>
+              </el-row>
+              <el-row :gutter="4" class="mb-1 w-full ">
+                <el-col :span="24" class="flex w-full">
+                  <!-- <el-input v-model="currentArticleRef.author" clearable class="w-full" placeholder="请输入视频介绍,可以不填" /> -->
+                  <el-mention v-model="currentArticleRef.guide_words" type="textarea" class="w-full h-96"
+                    placeholder="填写描述信息，让大家了解更多内容" />
+                </el-col>
+              </el-row>
+            </div>
           </div>
         </div>
       </el-col>
@@ -260,7 +277,7 @@
               class="cursor-pointer border h-16 w-[180px] flex justify-center items-center bg-[#8c8c8c]">设置封面图</div>
             <input class="invisible" ref="cdnFileInputRef" @change="handleImage" type="file" accept="image/*">
           </el-col>
-          <ImgPicker ref="refImgPicker" v-model="pickerQuery" :pageInfo="pickerPageInfo"
+          <ImgPicker v-show="currentArticleRef.item_show_type !== 10" ref="refImgPicker" v-model="pickerQuery" :pageInfo="pickerPageInfo"
             :imgSrc="currentArticleRef.cdn_url" placeholder="设置封面图" @change="handleImageUpload" @confirm="onImgPick"
             :editorInst="editorRef" />
           <!-- <ImgCrop :imgSrc="currentArticleRef.cdn_url" placeholder="设置封面图" @change="handleImageUpload"></ImgCrop> -->
@@ -2538,8 +2555,8 @@ const format_video_page_info = (page_info) => {
 
 const parseExtractMpArticleData = (ret, opts = {}) => {
 
-  const { title, nick_name, copyright_stat, cdn_url, item_show_type, video_page_info } = ret
-  let { author, source_url, content_noencode, content_text, picture_page_info_list } = ret
+  let { nick_name, copyright_stat, cdn_url, item_show_type, video_page_info } = ret
+  let { title, author, source_url, content_noencode, content_text, picture_page_info_list } = ret
   let guide_words = "", vid = ""
   console.log("item_show_type=>", item_show_type)
   // const { video_page_infos } = msg.data
@@ -2591,6 +2608,9 @@ const parseExtractMpArticleData = (ret, opts = {}) => {
   }
   if (item_show_type === 10) {
     guide_words = content_noencode
+    if (title.replaceAll("\\n", "")=== content_noencode.replaceAll("\n", "")) {
+      title = ""
+    }
   }
 
   content_noencode += '\v'
@@ -2610,7 +2630,7 @@ const parseExtractMpArticleData = (ret, opts = {}) => {
   if (opts.import_settings?.clear_content_url) {
     content_noencode = clearContentUrl(content_noencode)
   }
-  if (opts.import_settings?.clear_abstract) {
+  if (opts.import_settings?.clear_abstract && item_show_type !== 10) {
     guide_words = ""
   }
   if (opts.import_settings?.clear_author) {
