@@ -6,7 +6,7 @@
       <el-input v-model="search" placeholder="搜索公众号名称" clearable="" class="ml-4"></el-input>
     </div>
     <el-checkbox-group v-model="aotPicker.list" class="flex flex-wrap">
-      <el-checkbox v-for="(item, index) in filterList" :key="item.id" :value="item.id" :label="item.name" border="true" class="mb-2 checkbox" :disabled="item.expired">
+      <el-checkbox v-for="(item) in filterList" :key="item.id" :value="item.id" :label="item.name" border="true" class="mb-2 checkbox" :disabled="item.expired">
         <img :src="item.avatar" class="size-[24px] rounded-full mr-1 inline-block" alt="">
         {{ item.name }}
       </el-checkbox>
