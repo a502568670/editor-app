@@ -541,5 +541,5 @@ export async function copyLink(url) {
   await navigator.clipboard.writeText(url);
   ElMessage({ type: 'success', message: '链接已复制到剪贴板' });
 }
-debug.enable('*')
+
 export var dog=debug('editor:app')

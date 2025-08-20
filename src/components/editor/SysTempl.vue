@@ -9,8 +9,11 @@
         </el-tabs>
       </el-tab-pane>
     </el-tabs>
-    <section class="flex-1 overflow-y-auto overflow-x-hidden" v-if="templ.length">
+    <section class="flex-1 overflow-y-auto overflow-x-hidden -mr-1" ref="refList" v-if="templ.length" @scrollend="onScroll">
       <div class="templ p-2 my-2 cursor-pointer" v-for="item in templ" :key="item.id" v-html="item.content" :title="item.name" @click="insert(item)"></div>
+      <div class="text-center my-2" v-if="more">
+        <el-button @click="params.offset+=params.limit" :loading="loading">加载更多</el-button>
+      </div>
     </section>
     <el-empty v-else description="暂无样式"></el-empty>
   </div>
@@ -21,10 +24,19 @@ import {computed, onMounted, ref, shallowRef, toRaw, watch, watchEffect} from 'v
 import {getNiceSysTempl, getSysTempl, getSysTemplByCat} from '@/api/mp_msg'
 import { dog } from '@/utils'
 import { ElMessage } from 'element-plus'
+import throttle from 'lodash-es/throttle'
 var list=shallowRef([])
 var actId=ref(2)
 var subId=ref(-1)
 var {editorInst}=defineProps(['editorInst'])
+var refList=ref(null)
+function onScroll() {
+  if(refList.value.scrollTop+refList.value.clientHeight>=refList.value.scrollHeight-100){
+    if(more.value && !loading.value){
+      params.value.offset+=params.value.limit
+    }
+  }
+}
 onMounted(async()=>{
   // let res=await getSysTempl()
   var res=await getNiceSysTempl()
@@ -36,16 +48,36 @@ onMounted(async()=>{
     subId.value=data[0].children?.[0]?.id || -1
   }
 })
+var initParams={offset:0,limit:30}
+var params=ref({...initParams})
 var templ=shallowRef([])
+var loading=ref(false)
+var more=ref(true)
+var id;
 watchEffect(async ()=>{
-  var id=subId.value;
+  id=subId.value;
   if(id==-1){
     id=actId.value
   }
-  let res=await getSysTemplByCat(id)
-  var {data}=res.data;
-  dog('sys templ by categoryId', data)
-  templ.value=data
+  let res=await getSysTemplByCat(id, initParams)
+  var {items,total}=res.data.data;
+  dog('sys templ by categoryId', items, total)
+  templ.value=items
+  more.value=total>initParams.limit
+  params.value={...initParams}
+  if(refList.value){
+    refList.value.scrollTop=0
+  }
+})
+watchEffect(async ()=>{
+  if(params.value.offset==0) return;
+  loading.value=true
+  let res=await getSysTemplByCat(id, params.value)
+  var {items,total}=res.data.data;
+  dog('sys templ by categoryId more', items, total)
+  templ.value=[...templ.value,...items]
+  loading.value=false
+  more.value=total>params.value.limit+params.value.offset
 })
 function insert(item){
   // dog(editorInst,item)
