@@ -1,7 +1,30 @@
 import axios from 'axios'
-import { ElMessage,ElMessageBox } from 'element-plus'
-import {getToken} from "./auth";
+import { ElMessage, ElMessageBox } from 'element-plus'
+import { getToken } from "./auth";
 import Qs from 'qs'
+
+
+export async function fetchStream(url, method, data) {
+  try {
+    const response = await axios.request(url, {
+      method,
+      data,
+      responseType: 'blob' // Important: request the response as a Blob
+    });
+    // return a URL from the Blob
+    const meta = JSON.parse(response.headers.get("X-Image-Metadata"))
+    const objectUrl = URL.createObjectURL(response.data)
+    console.log("meta:", meta)
+    console.log("objectUrl:", objectUrl)
+    return {
+      url: objectUrl,
+      meta
+    }
+  } catch (error) {
+    console.error("Error fetching or displaying image:", error);
+  }
+}
+
 // console.log("window.envVars", window.envVars.backend_url, envVars)
 // create an axios instance
 const service = axios.create({
@@ -15,7 +38,7 @@ const service = axios.create({
 service.interceptors.request.use(
   config => {
     const token = getToken()
-    config.headers.Authorization =  `Bearer ${token}`;
+    config.headers.Authorization = `Bearer ${token}`;
     // 下面的是之前的token用法，找时间去除
     if (config.url.indexOf('storage/add') > -1 || config.url.indexOf('storage/update') > -1) {
       config.headers['Content-Type'] = 'multipart/form-data'
@@ -98,7 +121,7 @@ service.interceptors.response.use(
   }, error => {
     console.log('err', error.response)// for debug
     const code = error.response.status
-    
+
     if (code === 500) {
       const err = error.response.data.detail
       ElMessageBox.alert(err, '服务器错误', {

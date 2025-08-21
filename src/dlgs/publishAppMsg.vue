@@ -10,7 +10,8 @@
       <div v-if="publishStepRef == 0" class="w-full flex flex-col space-y-2" v-loading="publishLoadingRef">
         <div class="w-full flex flex-col p-4 bg-[#F7F7F7] rounded">
           <div class="w-full flex">
-            <div class="basis-1/2 flex justify-start items-center text-lg">群发通知</div>
+            <div class="basis-1/2 flex justify-start items-center text-lg">群发通知<span
+                class="text-red-400 font-bold text-sm" v-if="needScanQrcodeRef">（需要扫描二维码）</span></div>
             <div class="basis-1/2 flex justify-end items-center">
               <el-switch v-model="bulkSendingNotificationFlag" class="ml-2"
                 :disabled="bulkSendingNotificationRemain == 0 ? true : false" style="--el-switch-on-color: #13ce66;" />
@@ -91,15 +92,32 @@
       </div>
     </template>
   </el-dialog>
+  <el-dialog :close-on-click-modal="false" title="手机扫码验证" v-model="dialogMobileValidateVisibleRef" width="330px">
+    <el-row :gutter="40" class="h-[300px]">
+      <el-col :span="24">
+        <img v-if="qrcodeMobileValidateRef" class="w-full h-full" :src="qrcodeMobileValidateRef" />
+      </el-col>
+      <el-col :span="24">
+        <div class="w-full h-4 flex justify-center items-center">
+          {{ qrcodeStatusRef }}
+        </div>
+      </el-col>
+    </el-row>
+  </el-dialog>
 </template>
 <script setup>
 import { onActivated, onMounted, ref, toRefs, watch } from 'vue'
 import { toDeepRaw } from "@/utils/convert"
-import { getMpUserInfo, getLastPreviewAccounts, sendPreview, listVideos, getMasssendInfo, stat_appmsg_copyright_stat_events } from "@/api/mp_wechat"
+import {
+  getMpUserInfo, getLastPreviewAccounts, sendPreview, listVideos,
+  getMasssendInfo, stat_appmsg_copyright_stat_events,
+  query_appmsg_publish_qrcode_validate_events
+} from "@/api/mp_wechat"
 import { createDateByDays, parseDate, formatDate } from "@/utils/date"
 import { HOUSRS, MINUTES } from "@/utils/constants"
 import { serializeCookie } from "@/utils/cookie"
 import JSON5 from "json5"
+import { getQrcodeMobileValidate } from "@/api/mp_wechat"
 import GroupNotifySelect from '@/components/editor/GroupNotifySelect.vue';
 
 const props = defineProps(['dialogVisible', 'processing', 'selectedAccount', 'appmsgid']);
@@ -123,6 +141,12 @@ const publishCopyright1ListJsonStrRef = ref("")
 const publishCopyright1ListRef = ref([])
 const publishGuideWordsRef = ref([])
 const instantPublishRef = ref(false)
+
+const needScanQrcodeRef = ref(0)
+const dialogMobileValidateVisibleRef = ref(false)
+const operationSeqRef = ref("")
+const qrcodeMobileValidateRef = ref(null)
+const qrcodeStatusRef = ref("")
 
 watch(() => [props.dialogVisible, props.processing], (newVal) => {
   console.log("publishAppMsg props.changed=>", newVal)
@@ -152,7 +176,15 @@ const handleDialogOpen = async () => {
   publishGuideWordsRef.value = []
   publishStepRef.value = 0
   instantPublishRef.value = false
+
+  needScanQrcodeRef.value = 0
+  dialogMobileValidateVisibleRef.value = false
+  operationSeqRef.value = ""
+  qrcodeMobileValidateRef.value = null
+  qrcodeStatusRef.value = ""
+
   const ret = await getMasssendInfo({
+    appmsgid: props.appmsgid,
     cookies: serializeCookie(JSON.parse(session_id)["cookie"]),
     token: parseInt(token),
   }).catch((e) => {
@@ -161,11 +193,14 @@ const handleDialogOpen = async () => {
   }).finally(() => {
     publishLoadingRef.value = false
   })
-  const item_kQuotaTypeMassSendNormal = ret.data.find(v => v.quota_type === 'kQuotaTypeMassSendNormal')
+
+  const item_kQuotaTypeMassSendNormal = ret.data.quota_detail_list.find(v => v.quota_type === 'kQuotaTypeMassSendNormal')
   if (!item_kQuotaTypeMassSendNormal) {
     return
   }
   publishQuotaItemListRef.value = item_kQuotaTypeMassSendNormal.quota_item_list
+  needScanQrcodeRef.value = ret.data.need_scan_qrcode
+  operationSeqRef.value = ret.data.operation_seq
 
   // 检测发文限额
   checkQuota(today)
@@ -211,28 +246,28 @@ const disableMinutes = (role, comparingDate) => {
 
 const handleChangeForPublishTimingDate = async (val) => {
 
-console.log("emitChangeForPublishTimingDate val=>", val)
+  console.log("emitChangeForPublishTimingDate val=>", val)
 
-selectedPublishTimingDateRef.value = val
-const todayStr = new Date().toISOString().split('T')[0]
-if (todayStr === val.id) {
-  // check 5 minutes
-  publishTimeRef.value = +new Date() + 5 * 60 * 1000;
-} else {
-  publishTimeRef.value = +new Date(val.id + "T00:00");
-}
-// let currentDate = new Date(val.id)
-checkQuota(new Date(val.id))
-// publishTimingDatesRef.value = Array.from({ length: 7 }, (_, i) => {
-//   if (i === 0) {
-//     return { name: "今天", id: today.toISOString().split('T')[0] }
-//   } else if (i === 1) {
-//     return { name: "明天", id: createDateByDays(today, 1).toISOString().split('T')[0] }
-//   } else {
-//     let theDate = createDateByDays(today, i)
-//     return { name: `${theDate.getMonth() + 1}月${theDate.getDate()}日`, id: theDate.toISOString().split('T')[0] }
-//   }
-// });
+  selectedPublishTimingDateRef.value = val
+  const todayStr = new Date().toISOString().split('T')[0]
+  if (todayStr === val.id) {
+    // check 5 minutes
+    publishTimeRef.value = +new Date() + 5 * 60 * 1000;
+  } else {
+    publishTimeRef.value = +new Date(val.id + "T00:00");
+  }
+  // let currentDate = new Date(val.id)
+  checkQuota(new Date(val.id))
+  // publishTimingDatesRef.value = Array.from({ length: 7 }, (_, i) => {
+  //   if (i === 0) {
+  //     return { name: "今天", id: today.toISOString().split('T')[0] }
+  //   } else if (i === 1) {
+  //     return { name: "明天", id: createDateByDays(today, 1).toISOString().split('T')[0] }
+  //   } else {
+  //     let theDate = createDateByDays(today, i)
+  //     return { name: `${theDate.getMonth() + 1}月${theDate.getDate()}日`, id: theDate.toISOString().split('T')[0] }
+  //   }
+  // });
 }
 
 const handleNext = async () => {
@@ -288,9 +323,8 @@ const handleNext = async () => {
   }
 
 }
-var groupstr=ref('')
+var groupstr = ref('')
 const handlePublish = async () => {
-
   console.log("publishTimeRef.value", publishTimeRef.value, typeof publishTimeRef.value)
   const publishTime = new Date(publishTimeRef.value)
   const join_date_str = `${selectedPublishTimingDateRef.value.id} ${publishTime.getHours()}:${publishTime.getMinutes()}`
@@ -307,8 +341,60 @@ const handlePublish = async () => {
     }))
   } : null
   const list = publishCopyright1ListJsonStrRef.value
+  const need_scan_qrcode = needScanQrcodeRef.value
+  let canPublish = false
+  if (need_scan_qrcode) {
+    //请求qrcode
+    const { token, session_id, name } = props.selectedAccount
+    const cookies = serializeCookie(JSON.parse(session_id)["cookie"])
+    dialogMobileValidateVisibleRef.value = true
 
-  emitEvents("publish", { send_time, isFreePublish, hasNotify, reprint_info, list,groupstr:groupstr.value })
+    const meta = await getQrcodeMobileValidate({
+      category: "appmsg_publish_with_notify",
+      operation_seq: operationSeqRef.value,
+      appmsgid: props.appmsgid,
+      token,
+      cookies,
+    }).then(({url, meta}) => {
+      console.log("data=>", typeof url)
+      console.log("meta=>", meta)
+      qrcodeMobileValidateRef.value = url;
+      qrcodeStatusRef.value = "请扫描二维码发布文章"
+      return meta
+    })
+
+    let stepRet
+    await query_appmsg_publish_qrcode_validate_events({
+      uuid: meta.uuid,
+      appmsgid: props.appmsgid,
+      token: parseInt(token),
+      cookies,
+    }, (data) => {
+      console.log("step raw=>", data)
+      try {
+        const v = data.replaceAll(/data: /gi, "")
+        stepRet = JSON5.parse(v)
+        qrcodeStatusRef.value = stepRet.msg
+      } catch {
+        console.error("查询二维码状态失败")
+      }
+    })
+    if (stepRet.is_validate === 1) {
+      canPublish = true
+    }
+    dialogMobileValidateVisibleRef.value = false
+    // 发送请求获取状态
+  } else {
+    canPublish = true
+  }
+  //
+  if (canPublish) {
+    emitEvents("publish", { 
+      send_time, isFreePublish, hasNotify, 
+      reprint_info, list, groupstr: groupstr.value,
+      operation_seq_val: operationSeqRef.value,
+    })
+  }
 }
 
 
