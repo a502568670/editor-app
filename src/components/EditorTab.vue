@@ -656,7 +656,7 @@
     </template>
   </el-dialog>
 </template>
-<style>
+<style >
 .edui-editor{
   @apply flex flex-col h-full;
   .edui-editor-iframeholder{
@@ -1608,7 +1608,7 @@ const openPublishToWechatDialog = async () => {
   }).finally(() => {
     publishLoadingRef.value = false
   })
-  const item_kQuotaTypeMassSendNormal = ret.data.find(v => v.quota_type === 'kQuotaTypeMassSendNormal')
+  const item_kQuotaTypeMassSendNormal = ret.data.quota_detail_list.find(v => v.quota_type === 'kQuotaTypeMassSendNormal')
   if (!item_kQuotaTypeMassSendNormal) {
     return
   }

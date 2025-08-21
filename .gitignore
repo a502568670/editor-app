@@ -130,3 +130,4 @@ jsconfig.json
 .vs*/
 extensions/
 accounts.txt
+.vscode/
