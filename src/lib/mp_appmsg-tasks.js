@@ -44,7 +44,7 @@ const api = {
 
 /// is_release_publish_page 1-没通知 0-有通知
 /// isFreePublish=true 不通知 isFreePublish=false 通知
-const publishAppmsg = async ({ cookies, token, send_time, hasNotify, isFreePublish, list, groupstr = '', reprint_info, appmsgid, appmsg_item_count, operation_seq_val }) => {
+const publishAppmsg = async ({ cookies, token, send_time, hasNotify, isFreePublish, list, groupstr = '', reprint_info, appmsgid, appmsg_item_count, operation_seq_val, code }) => {
   const opts = {
     method: "POST",
     headers: { ...getDefaultHeader(), cookie: cookies }
@@ -86,8 +86,11 @@ const publishAppmsg = async ({ cookies, token, send_time, hasNotify, isFreePubli
     list = encodeURIComponent(list)
   }
   // formdata = `token=${token}&lang=zh_CN&f=json&ajax=1&fingerprint=aa8c8d5bea554e6e4c9ea1ed0dbb354e&random=${Math.random()}&ack=&code=&reprint_info=${reprint_info_json_str}&reprint_confirm=${reprint_confirm}&list=${list}&groupid=&sex=0&country=&province=&city=&send_time=${send_time}&type=10&share_page=1&synctxweibo=0&operation_seq=${operation_seq}&req_id=${req_id}&req_time=${req_time}&sync_version=1&isFreePublish=${isFreePublish}&appmsgid=${appmsgid}&isMulti=${isMulti}&direct_send=1&title=123update`
-  formdata = `token=${token}&lang=zh_CN&f=json&ajax=1&random=${Math.random()}&ack=&code=&reprint_info=${reprint_info_json_str}&reprint_confirm=${reprint_confirm}&list=${list}${groupstr}&send_time=${send_time}&type=10&share_page=1&synctxweibo=0&operation_seq=${operation_seq}&req_id=${req_id}&req_time=${req_time}&sync_version=1&isFreePublish=${isFreePublish}&appmsgid=${appmsgid}&isMulti=${isMulti}&direct_send=1`
-  // formdata = `token=${token}&lang=zh_CN&f=json&ajax=1&random=${Math.random()}&ack=&code=&reprint_info=${reprint_info_json_str}&reprint_confirm=${reprint_confirm}&list=${list}${groupstr}&send_time=${send_time}&type=10&share_page=1&synctxweibo=0&req_id=${req_id}&req_time=${req_time}&sync_version=1&isFreePublish=${isFreePublish}&appmsgid=${appmsgid}&isMulti=${isMulti}&direct_send=1`
+  formdata = `token=${token}&lang=zh_CN&f=json&ajax=1&random=${Math.random()}&ack=&reprint_info=${reprint_info_json_str}&reprint_confirm=${reprint_confirm}&list=${list}${groupstr}&send_time=${send_time}&type=10&share_page=1&synctxweibo=0&operation_seq=${operation_seq}&req_id=${req_id}&req_time=${req_time}&sync_version=1&isFreePublish=${isFreePublish}&appmsgid=${appmsgid}&isMulti=${isMulti}&direct_send=1`
+  if (code) {
+    formdata += `&isNeedCode=true&code=${code}`
+  }
+  // formdata = `token=${token}&lang=zh_CN&f=json&ajax=1&random=${Math.random()}&ack=&reprint_info=${reprint_info_json_str}&reprint_confirm=${reprint_confirm}&list=${list}${groupstr}&send_time=${send_time}&type=10&share_page=1&synctxweibo=0&req_id=${req_id}&req_time=${req_time}&sync_version=1&isFreePublish=${isFreePublish}&appmsgid=${appmsgid}&isMulti=${isMulti}&direct_send=1`
   verbose_log('api opts:', opts)
   verbose_log('api formdata:', formdata)
   let url;

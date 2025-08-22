@@ -507,7 +507,7 @@ const handleRemoveAppmsg = async (appmsg) => {
   })
 }
 
-const handlePublishToWechat = async ({ send_time, isFreePublish, hasNotify, reprint_info, list, groupstr, operation_seq_val }) => {
+const handlePublishToWechat = async ({ send_time, isFreePublish, hasNotify, reprint_info, list, groupstr, operation_seq_val, code }) => {
   isPublishingRef.value = true
   console.log("current appmsg=>", currentOperateAppMsgRef.value)
   const appmsgid = currentOperateAppMsgRef.value.app_id
@@ -544,6 +544,7 @@ const handlePublishToWechat = async ({ send_time, isFreePublish, hasNotify, repr
       appmsgid,
       appmsg_item_count,
       operation_seq_val,
+      code,
     }
   })
 

@@ -343,18 +343,19 @@ const handlePublish = async () => {
   const list = publishCopyright1ListJsonStrRef.value
   const need_scan_qrcode = needScanQrcodeRef.value
   let canPublish = false
+  let code = null
   if (need_scan_qrcode) {
     //请求qrcode
     const { token, session_id, name } = props.selectedAccount
     const cookies = serializeCookie(JSON.parse(session_id)["cookie"])
     dialogMobileValidateVisibleRef.value = true
-
     const meta = await getQrcodeMobileValidate({
       category: "appmsg_publish_with_notify",
       operation_seq: operationSeqRef.value,
       appmsgid: props.appmsgid,
       token,
       cookies,
+      publish_type: bulkSendingNotificationFlag.value ? "1" : undefined
     }).then(({url, meta}) => {
       console.log("data=>", typeof url)
       console.log("meta=>", meta)
@@ -362,7 +363,7 @@ const handlePublish = async () => {
       qrcodeStatusRef.value = "请扫描二维码发布文章"
       return meta
     })
-
+    code = meta.uuid
     let stepRet
     await query_appmsg_publish_qrcode_validate_events({
       uuid: meta.uuid,
@@ -393,6 +394,7 @@ const handlePublish = async () => {
       send_time, isFreePublish, hasNotify, 
       reprint_info, list, groupstr: groupstr.value,
       operation_seq_val: operationSeqRef.value,
+      code,
     })
   }
 }
