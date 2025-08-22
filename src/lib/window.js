@@ -13,6 +13,7 @@ import {
   searchAppmsgsInPublishForQuerys
 } from "./mp_appmsg-tasks.js"
 import { listFiles, listVideos } from "./mp_file-tasks.js"
+import { searchMiniApp } from "./mpa-tasks.js"
 import { postJsonToJZLApi, postJsonToEditorApi } from "./request.js"
 const path = require('path')
 const fs = require('fs')
@@ -660,6 +661,20 @@ async function reactToIpcObjectData(data, tabbedWin, viewContents) {
         verbose_log("===== 获取视频素材成功 ====", ret.page_info.item.length)
       }
       viewContents.send('fromMain', { tag: 'video-ret:listVideos', data: { source, ret } })
+      break
+    }
+    case 'mpa:searchMiniApp': {
+      verbose_log("===== listen searchMiniApp in main ====", data)
+      const { source, token, searchData } = data
+      // token => userToken
+      console.log("searchData=>", searchData)
+      const ret = await searchMiniApp(searchData)
+      if (!ret.success) {
+        verbose_log("===== 搜索小程序失败 ====", ret.err_msg)
+      } else {
+        verbose_log("===== 搜索小程序成功 ====", ret.data)
+      }
+      viewContents.send('fromMain', { tag: 'mpa-ret:searchMiniApp', data: { source, ret } })
       break
     }
     case 'stat:getPvData': {
