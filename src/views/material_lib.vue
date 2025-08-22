@@ -882,6 +882,7 @@ const registerChannels = () => {
             type: 'success',
             duration: 2 * 1000
           })
+          _listAppmsgsInDraftBox()
         } else {
           if (wxretmsg[code]) {
             ElMessage({ type: 'error', message: wxretmsg[code] })

@@ -93,13 +93,20 @@
     </template>
   </el-dialog>
   <el-dialog :close-on-click-modal="false" title="手机扫码验证" v-model="dialogMobileValidateVisibleRef" width="330px">
-    <el-row :gutter="40" class="h-[300px]">
+    <el-row :gutter="40" class="h-[330px]">
       <el-col :span="24">
         <img v-if="qrcodeMobileValidateRef" class="w-full h-full" :src="qrcodeMobileValidateRef" />
       </el-col>
       <el-col :span="24">
-        <div class="w-full h-4 flex justify-center items-center">
-          {{ qrcodeStatusRef }}
+        <div class="w-full flex justify-center items-center space-x-4">
+          <div class="flex justify-center items-center">
+            {{ qrcodeStatusRef }}
+          </div>
+          <el-button v-if="showRefreshButtonRef" @click="handlePublish">
+            <el-icon>
+            <RefreshRight />
+            </el-icon>
+          </el-button>
         </div>
       </el-col>
     </el-row>
@@ -119,6 +126,7 @@ import { serializeCookie } from "@/utils/cookie"
 import JSON5 from "json5"
 import { getQrcodeMobileValidate } from "@/api/mp_wechat"
 import GroupNotifySelect from '@/components/editor/GroupNotifySelect.vue';
+import { RefreshRight } from '@element-plus/icons-vue'
 
 const props = defineProps(['dialogVisible', 'processing', 'selectedAccount', 'appmsgid']);
 
@@ -147,6 +155,7 @@ const dialogMobileValidateVisibleRef = ref(false)
 const operationSeqRef = ref("")
 const qrcodeMobileValidateRef = ref(null)
 const qrcodeStatusRef = ref("")
+const showRefreshButtonRef = ref(false)
 
 watch(() => [props.dialogVisible, props.processing], (newVal) => {
   console.log("publishAppMsg props.changed=>", newVal)
@@ -182,6 +191,7 @@ const handleDialogOpen = async () => {
   operationSeqRef.value = ""
   qrcodeMobileValidateRef.value = null
   qrcodeStatusRef.value = ""
+  showRefreshButtonRef.value = false
 
   const ret = await getMasssendInfo({
     appmsgid: props.appmsgid,
@@ -342,6 +352,7 @@ const handlePublish = async () => {
   } : null
   const list = publishCopyright1ListJsonStrRef.value
   const need_scan_qrcode = needScanQrcodeRef.value
+  showRefreshButtonRef.value = false
   let canPublish = false
   let code = null
   if (need_scan_qrcode) {
@@ -360,12 +371,12 @@ const handlePublish = async () => {
       console.log("data=>", typeof url)
       console.log("meta=>", meta)
       qrcodeMobileValidateRef.value = url;
-      qrcodeStatusRef.value = "请扫描二维码发布文章"
+      qrcodeStatusRef.value = "未扫码"
       return meta
     })
     code = meta.uuid
-    let stepRet
-    await query_appmsg_publish_qrcode_validate_events({
+    let stepRet, abortFn
+    abortFn = await query_appmsg_publish_qrcode_validate_events({
       uuid: meta.uuid,
       appmsgid: props.appmsgid,
       token: parseInt(token),
@@ -378,11 +389,19 @@ const handlePublish = async () => {
         qrcodeStatusRef.value = stepRet.msg
       } catch {
         console.error("查询二维码状态失败")
+        abortFn && abortFn()
+        return
       }
     })
+    if (stepRet.msg.includes("超时")) {
+      abortFn()
+      showRefreshButtonRef.value = true
+      return
+    }
     if (stepRet.is_validate === 1) {
       canPublish = true
     }
+    // 正常走到这里
     dialogMobileValidateVisibleRef.value = false
     // 发送请求获取状态
   } else {

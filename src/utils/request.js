@@ -3,6 +3,86 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { getToken } from "./auth";
 import Qs from 'qs'
 
+const sseControllers = new Map()
+
+export async function createSSEConnection(url, data, cb) {
+  const token = getToken()
+  
+  // 创建 AbortController
+  const controller = new AbortController()
+  const signal = controller.signal
+  
+  // 存储控制器以便后续取消
+  const requestId = Date.now() + Math.random().toString(36).substring(2, 11)
+  sseControllers.set(requestId, controller)
+  
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify(data),
+      signal: signal // 添加信号控制
+    })
+    
+    const reader = response.body.pipeThrough(new TextDecoderStream()).getReader()
+    
+    while (true) {
+      // 检查是否已取消
+      if (signal.aborted) {
+        console.log("SSE connection aborted by user")
+        break
+      }
+      
+      const { value, done } = await reader.read();
+      console.log("SSE recv value:", value)
+      console.log("SSE recv done:", done)
+      
+      if (done) {
+        break;
+      }
+      
+      // 传递数据给回调函数，同时传递requestId用于后续控制
+      cb(value, requestId)
+    }
+  } catch (error) {
+    if (error.name === 'AbortError') {
+      console.log('SSE request was aborted')
+    } else {
+      console.error('SSE request failed:', error)
+    }
+  } finally {
+    // 清理控制器
+    sseControllers.delete(requestId)
+  }
+  
+  return requestId // 返回请求ID用于后续控制
+}
+
+// 主动断开连接的函数
+export function abortSSEConnection(requestId) {
+  const controller = sseControllers.get(requestId)
+  if (controller) {
+    controller.abort()
+    sseControllers.delete(requestId)
+    console.log(`SSE connection ${requestId} aborted successfully`)
+    return true
+  }
+  console.warn(`No SSE connection found with ID: ${requestId}`)
+  return false
+}
+
+// 断开所有SSE连接
+export function abortAllSSEConnections() {
+  sseControllers.forEach((controller, requestId) => {
+    controller.abort()
+    console.log(`SSE connection ${requestId} aborted`)
+  })
+  sseControllers.clear()
+}
+
 
 export async function fetchStream(url, method, data) {
   try {
