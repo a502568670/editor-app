@@ -235,6 +235,9 @@
             title="插入小程序">
             <WechatMiniAppIcon />
           </el-icon>
+          <el-icon :size="20" class="cursor-pointer flex justify-center" @click="openMPDialog" title="插入公众号">
+            <WechatMPIcon />
+          </el-icon>
           <Minus class="text-gray-200" />
           <!-- <div class="flex-1"></div> -->
           <el-icon :size="20" class="cursor-pointer flex justify-center" @click="handlePreview" title="文章预览">
@@ -787,6 +790,7 @@ import { ElMessage, ElMessageBox, ElLoading } from 'element-plus'
 import { ArrowUp, ArrowDown, Delete, CircleCheckFilled, CircleCloseFilled, InfoFilled, Search, Plus } from '@element-plus/icons-vue'
 import { Link, Link2, RadioTower, DollarSign, SquareTerminal, Eye, ScanEye, Minus, Smartphone, Video } from 'lucide-vue-next';
 import WechatMiniAppIcon from "@/components/icons/WechatMiniAppIcon"
+import WechatMPIcon from "@/components/icons/WechatMPIcon"
 import { RefreshRight } from '@element-plus/icons-vue'
 import { serializeCookie } from "@/utils/cookie"
 import axios from 'axios'
@@ -2326,6 +2330,24 @@ const openMiniAppDialog = () => {
   const cookies = serializeCookie(JSON.parse(session_id)["cookie"])
   window.ipcRenderer.send('toMain', {
       tag: 'mpa:searchMiniApp',
+      source: `${props.appmsg.appmsgid}`,
+      token: getToken(),
+      wechat_id,
+      searchData: {
+        // mp_msgs: toDeepRaw(mp_msgsRef.value),
+        cookies,
+        token: parseInt(token),
+        // pattern: "#小程序://问卷星/DAfnLzsZZn17Ibu",
+        pattern: "麦当劳",
+      }
+    })
+}
+
+const openMPDialog = () => {
+  const { token, session_id, wechat_id } = selectedAccount.value
+  const cookies = serializeCookie(JSON.parse(session_id)["cookie"])
+  window.ipcRenderer.send('toMain', {
+      tag: 'mp:searchBiz',
       source: `${props.appmsg.appmsgid}`,
       token: getToken(),
       wechat_id,
