@@ -622,6 +622,25 @@
       </div>
     </template>
   </el-dialog>
+  <el-dialog :close-on-click-modal="false" @closed="handleMobileValidateDialogClosed" title="手机扫码验证" v-model="dialogMobileValidateVisibleRef" width="330px">
+    <el-row :gutter="40" class="h-[330px]">
+      <el-col :span="24">
+        <img v-if="qrcodeMobileValidateRef" class="w-full h-full" :src="qrcodeMobileValidateRef" />
+      </el-col>
+      <el-col :span="24">
+        <div class="w-full flex justify-center items-center space-x-4">
+          <div class="flex justify-center items-center">
+            {{ qrcodeStatusRef }}
+          </div>
+          <el-button v-if="showRefreshButtonRef" @click="handlePublish">
+            <el-icon>
+            <RefreshRight />
+            </el-icon>
+          </el-button>
+        </div>
+      </el-col>
+    </el-row>
+  </el-dialog>
   <el-dialog :close-on-click-modal="false" title="调试信息" v-model="dialogDebugVisibleRef" width="600px">
     <div class="w-full h-[300px] bg-gray-900 text-green-500 flex flex-col space-y-4">
       <el-row :gutter="40" class="p-1 flex-none">
@@ -746,7 +765,10 @@ import {
   deleteArticleDraft, removeMpMsg, genArticleDraftPreviewUrl, previewQRCode,
 } from "@/api/mp_msg"
 import { saveAppMsg, send_to_other_accounts_events } from "@/api/appmsg"
-import { getMpUserInfo, getLastPreviewAccounts, sendPreview, listVideos, getMasssendInfo, stat_appmsg_copyright_stat_events } from "@/api/mp_wechat"
+import { getMpUserInfo, getLastPreviewAccounts, sendPreview, 
+  listVideos, getMasssendInfo, stat_appmsg_copyright_stat_events,
+  query_appmsg_publish_qrcode_validate_events, getQrcodeMobileValidate
+ } from "@/api/mp_wechat"
 import { format_to_UEditor_html, clearContentUrl, clearWeApp, restore_from_UEditor_html } from "@/utils/dom";
 import { uploadImage } from "@/api/img"
 import { toDeepRaw, toPicPageInfo, gen_picture_page_info_list } from "@/utils/convert"
@@ -758,6 +780,7 @@ import { apperrmsg, claim_source_types, HOUSRS, MINUTES, wxretmsg } from "@/util
 import { ElMessage, ElMessageBox, ElLoading } from 'element-plus'
 import { ArrowUp, ArrowDown, Delete, CircleCheckFilled, CircleCloseFilled, InfoFilled, Search, Plus } from '@element-plus/icons-vue'
 import { Link, Link2, RadioTower, DollarSign, SquareTerminal, Eye, ScanEye, Minus, Smartphone, Video } from 'lucide-vue-next';
+import { RefreshRight } from '@element-plus/icons-vue'
 import { serializeCookie } from "@/utils/cookie"
 import axios from 'axios'
 import JSON5 from "json5"
@@ -968,6 +991,13 @@ const publishCopyright1ListJsonStrRef = ref("")
 const publishCopyright1ListRef = ref([])
 const publishGuideWordsRef = ref([])
 const instantPublishRef = ref(false)
+
+const needScanQrcodeRef = ref(0)
+const dialogMobileValidateVisibleRef = ref(false)
+const operationSeqRef = ref("")
+const qrcodeMobileValidateRef = ref(null)
+const qrcodeStatusRef = ref("")
+const showRefreshButtonRef = ref(false)
 
 // 订阅
 const channelCleans = {}
@@ -1599,7 +1629,9 @@ const openPublishToWechatDialog = async () => {
   publishGuideWordsRef.value = []
   publishStepRef.value = 0
   instantPublishRef.value = false
+  const appmsgid = _getAppMsgId()
   const ret = await getMasssendInfo({
+    appmsgid,
     cookies: serializeCookie(JSON.parse(session_id)["cookie"]),
     token: parseInt(token),
   }).catch((e) => {
@@ -1613,6 +1645,8 @@ const openPublishToWechatDialog = async () => {
     return
   }
   publishQuotaItemListRef.value = item_kQuotaTypeMassSendNormal.quota_item_list
+  needScanQrcodeRef.value = ret.data.need_scan_qrcode
+  operationSeqRef.value = ret.data.operation_seq
 
   // 检测发文限额
   checkQuota(today)
@@ -1702,7 +1736,6 @@ const handlePublishNext = async () => {
 }
 var groupstr = ref("")
 const handlePublishToWechat = async () => {
-  publishLoadingRef.value = true
   const appmsgid = _getAppMsgId()
   const appmsg_item_count = mp_msgsRef.value.length
   // console.log("publishTimeRef.value", publishTimeRef.value, typeof publishTimeRef.value)
@@ -1721,42 +1754,96 @@ const handlePublishToWechat = async () => {
     }))
   } : null
   const list = publishCopyright1ListJsonStrRef.value
-
-  console.log("hasNotify=>", hasNotify)
-  console.log("isFreePublish=>", isFreePublish)
-  // console.log('is_release_publish_page=>', is_release_publish_page)
-  console.log('send_time=>', send_time)
-  console.log("reprint_info=>", reprint_info)
-  console.log("list=>", list)
-  console.log('appmsgid=>', appmsgid)
-  console.log("appmsg_item_count=>", appmsg_item_count)
+  const need_scan_qrcode = needScanQrcodeRef.value
+  showRefreshButtonRef.value = false
+  let canPublish = false, code = null
   const { token, session_id, wechat_id } = selectedAccount.value
-  window.ipcRenderer.send('toMain', {
-    tag: 'appmsg:publishToWechat',
-    source: `${props.appmsg.appmsgid}`,
-    token: getToken(),
-    wechat_id,
-    publishData: {
-      // mp_msgs: toDeepRaw(mp_msgsRef.value),
-      cookies: serializeCookie(JSON.parse(session_id)["cookie"]),
-      token: parseInt(token),
-      send_time,
-      isFreePublish,
-      hasNotify,
-      // is_release_publish_page,
-      list, groupstr: groupstr.value,
-      reprint_info,
+  const cookies = serializeCookie(JSON.parse(session_id)["cookie"])
+  if (need_scan_qrcode) {
+    //请求qrcode
+    dialogMobileValidateVisibleRef.value = true
+    const meta = await getQrcodeMobileValidate({
+      category: "appmsg_publish_with_notify",
+      operation_seq: operationSeqRef.value,
       appmsgid,
-      appmsg_item_count
+      token,
+      cookies,
+      publish_type: bulkSendingNotificationFlag.value ? "1" : undefined
+    }).then(({url, meta}) => {
+      console.log("data=>", typeof url)
+      console.log("meta=>", meta)
+      qrcodeMobileValidateRef.value = url;
+      qrcodeStatusRef.value = "未扫码"
+      return meta
+    })
+    code = meta.uuid
+    let stepRet, abortFn
+    abortFn = await query_appmsg_publish_qrcode_validate_events({
+      uuid: meta.uuid,
+      appmsgid,
+      token: parseInt(token),
+      cookies,
+    }, (data) => {
+      console.log("step raw=>", data)
+      try {
+        const v = data.replaceAll(/data: /gi, "")
+        stepRet = JSON5.parse(v)
+        qrcodeStatusRef.value = stepRet.msg
+      } catch {
+        console.error("查询二维码状态失败")
+        abortFn && abortFn()
+        return
+      }
+    })
+    if (stepRet.msg.includes("超时")) {
+      abortFn()
+      showRefreshButtonRef.value = true
+      return
     }
-  })
-
-  setTimeout(() => {
-    publishLoadingRef.value = false
-    dialogExtractMpAritcleUrlRef.value = false
-  }, timeoutPublish)
+    if (stepRet.is_validate === 1) {
+      canPublish = true
+    }
+    // 正常走到这里
+    dialogMobileValidateVisibleRef.value = false
+    // 发送请求获取状态
+  } else {
+    canPublish = true
+  }
+  if (canPublish) {
+    publishLoadingRef.value = true
+    window.ipcRenderer.send('toMain', {
+      tag: 'appmsg:publishToWechat',
+      source: `${props.appmsg.appmsgid}`,
+      token: getToken(),
+      wechat_id,
+      publishData: {
+        // mp_msgs: toDeepRaw(mp_msgsRef.value),
+        cookies,
+        token: parseInt(token),
+        send_time,
+        isFreePublish,
+        hasNotify,
+        // is_release_publish_page,
+        list, groupstr: groupstr.value,
+        reprint_info,
+        appmsgid,
+        appmsg_item_count,
+        operation_seq_val: operationSeqRef.value,
+        code,
+      }
+    })
+    setTimeout(() => {
+      publishLoadingRef.value = false
+      dialogExtractMpAritcleUrlRef.value = false
+    }, timeoutPublish)
+  }
 }
 
+const handleMobileValidateDialogClosed = () => {
+  if (qrcodeStatusRef.value != "扫码并确认") {
+    publishLoadingRef.value = false
+  }
+}
 
 
 const removeArticle = async (msg_id) => {
@@ -2708,10 +2795,13 @@ watch(() => [props.mainMsg], async (newVal) => {
       }
 
     } else if (tag === "appmsg-ret:publishToWechat") {
+      console.log("publishToWechatResult msg=>", msg)
       console.log("publishToWechatResult msg.data=>", msg.data)
       const { ret } = msg.data
+      console.log("----recv---- ret", ret)
       const { success, msg: retmsg, code } = ret
       if (success) {
+        console.log("-----发布成功-----")
         dialogPublishArticleVisibleRef.value = false
         ElMessage({
           message: `发布成功`,

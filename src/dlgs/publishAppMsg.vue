@@ -118,13 +118,12 @@ import { toDeepRaw } from "@/utils/convert"
 import {
   getMpUserInfo, getLastPreviewAccounts, sendPreview, listVideos,
   getMasssendInfo, stat_appmsg_copyright_stat_events,
-  query_appmsg_publish_qrcode_validate_events
+  query_appmsg_publish_qrcode_validate_events, getQrcodeMobileValidate
 } from "@/api/mp_wechat"
 import { createDateByDays, parseDate, formatDate } from "@/utils/date"
 import { HOUSRS, MINUTES } from "@/utils/constants"
 import { serializeCookie } from "@/utils/cookie"
 import JSON5 from "json5"
-import { getQrcodeMobileValidate } from "@/api/mp_wechat"
 import GroupNotifySelect from '@/components/editor/GroupNotifySelect.vue';
 import { RefreshRight } from '@element-plus/icons-vue'
 
@@ -353,8 +352,7 @@ const handlePublish = async () => {
   const list = publishCopyright1ListJsonStrRef.value
   const need_scan_qrcode = needScanQrcodeRef.value
   showRefreshButtonRef.value = false
-  let canPublish = false
-  let code = null
+  let canPublish = false, code = null
   if (need_scan_qrcode) {
     //请求qrcode
     const { token, session_id, name } = props.selectedAccount

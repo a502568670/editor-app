@@ -315,7 +315,7 @@ const registerChannels = () => {
       // tab内的消息处理
       const idx = editableTabs.value.findIndex(v => v.name == source)
       if (idx !== -1) {
-        // console.log("idx=>", idx, msg)
+        console.log("idx=>", idx, msg)
         editableTabs.value[idx].mainMsg = msg
       }
     }
