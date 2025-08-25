@@ -29,7 +29,8 @@
                     <el-radio value="1">横图(16:7)</el-radio>
                     <el-radio value="2">竖图(3:4)</el-radio>
                     <el-radio value="3">正方形(1:1)</el-radio>
-                    <el-radio value="4">自由比例</el-radio>
+                    <el-radio value="4">横图2(5:4)</el-radio>
+                    <el-radio value="5">自由比例</el-radio>
                 </el-radio-group>
                 <div class="w-full h-[50vh]">
                     <VueCropper ref="cropper" :img="cropperSrc" :fixed="fixed" :fixed-number="fixedNumber" v-bind="opt"></VueCropper>
@@ -66,11 +67,12 @@ var opt = {
 }
 var refCropper = useTemplateRef('cropper');
 var fixVal=ref('1');
-var fixed=computed(() => fixVal.value!=='4')
+var fixed=computed(() => fixVal.value!=='5')
 var fixedRatio={
     1:[1,0.425],
     2:[3,4],
     3:[1,1],
+    4: [5, 4]
 }
 var fixedNumber=computed(()=>fixedRatio[fixVal.value])
 watch(fixedNumber,()=>nextTick(()=>refCropper.value.goAutoCrop()))
@@ -79,10 +81,11 @@ defineExpose({
     click(){
         refInput.click()
     },
-    cropWith(url){
+    cropWith(url, {radio}){
         open.value=true
         cropperSrc.value=url
         opt.extraData={name:'图片-'+Date.now()+'.png',type:'image/png'}
+        fixVal.value=radio
     },
 })
 // var imgSrc=defineModel()

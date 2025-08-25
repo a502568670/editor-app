@@ -65,10 +65,11 @@ import debounce from 'lodash-es/debounce'
 import { uploadImage } from '@/api/img'
 import {serializeCookie} from '@/utils/cookie'
 
-var {imgSrc,editorInst,pageInfo}=defineProps(['imgSrc','editorInst','pageInfo'])
+var {imgSrc,editorInst,pageInfo,h}=defineProps(['imgSrc','editorInst','pageInfo', 'h'])
 var $emit=defineEmits(['change','confirm'])
 var pickerQuery=defineModel()
 var total=computed(()=>groups.value.find(v=>v.id==pickerQuery.value.group_id)?.count)
+var imgPickerHeight = computed(()=> h ?  h+'px' : '80px')
 var groups=shallowRef([])
 var open=ref(false)
 watch(open,()=>{
@@ -258,7 +259,7 @@ function onSearchPagination(query){
   justify-content: center;
   position: relative;
   width: 100%;
-  height: 80px;
+  height: v-bind('imgPickerHeight');
   border: 1px dashed var(--el-border-color);
   cursor: pointer;
 }

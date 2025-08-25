@@ -44,10 +44,11 @@ const searchMiniApp = async ({ cookies, token, pattern }) => {
     }
   }
   const weapp = pattern.includes('#小程序') ? res.weapp : res.items.find((_, idx) => idx === 0)
-
+  const weapp_path = res.weapp_path || weapp.main_page
   return {
     success: true,
     weapp,
+    weapp_path,
   }
 }
 

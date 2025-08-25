@@ -141,7 +141,8 @@
       <el-col :span="12" class="h-full overflow-auto" v-loading="globalLoadingRef">
         <div class="h-full flex flex-col">
           <div ref="ueditor_wrapper" class="h-full">
-            <vue-ueditor-wrap class="h-full flex items-stretch" v-if="msg_idRef !== 0 && currentArticleRef.item_show_type === 0"
+            <vue-ueditor-wrap class="h-full flex items-stretch"
+              v-if="msg_idRef !== 0 && currentArticleRef.item_show_type === 0"
               v-model="currentArticleRef.content_noencode" :editor-id="editorIdRef" @ready="ready"
               :config="editorConfigRef" :editorDependencies="['ueditor.config.js', 'ueditor.all.js']" />
             <!-- 这里是视频的编辑区 -->
@@ -199,7 +200,7 @@
               </el-row>
             </div>
             <!-- 纯文字的编辑区，不排除其他类型 -->
-             <div v-if="msg_idRef !== 0 && currentArticleRef.item_show_type === 10"
+            <div v-if="msg_idRef !== 0 && currentArticleRef.item_show_type === 10"
               class="w-full p-2 pb-5 flex-col h-full overflow-auto">
               <el-row :gutter="4" class="mb-1 w-full">
                 <el-col :span="24">
@@ -229,8 +230,7 @@
           <el-icon :size="20" class="cursor-pointer flex justify-center" @click="openAdDialog" title="设置广告">
             <DollarSign />
           </el-icon>
-          <el-icon :size="20" class="cursor-pointer flex justify-center" @click="openMiniAppDialog"
-            title="插入小程序">
+          <el-icon :size="20" class="cursor-pointer flex justify-center" @click="openMiniAppDialog" title="插入小程序">
             <WechatMiniAppIcon />
           </el-icon>
           <el-icon :size="20" class="cursor-pointer flex justify-center" @click="openMPDialog" title="插入公众号">
@@ -262,74 +262,77 @@
       </el-col>
       <el-col :span="5" class="h-full">
         <el-tabs type="border-card" class="editor-inner-tabs">
-        <el-tab-pane label="发布设置">
-        <el-row :gutter="4" class="mb-1" v-if="![5, 8].includes(currentArticleRef.item_show_type)">
-          <el-col :span="24">
-            <el-input v-model="currentArticleRef.title" clearable class="grid-content-control" placeholder="请输入文章标题"
-              @input="syncToList('title')" />
-          </el-col>
-        </el-row>
-        <el-row :gutter="4" class="mb-1" v-if="![8].includes(currentArticleRef.item_show_type)">
-          <el-col :span="24">
-            <el-input v-model="currentArticleRef.author" clearable class="grid-content-control" placeholder="请输入文章作者" />
-          </el-col>
-        </el-row>
-        <el-row :gutter="4" class="mb-1 w-full">
-          <el-col :span="24" class="h-20 py-2 w-full flex justify-center items-center" style="display: none;">
-            <img class="cursor-pointer max-h-16 block" @click="triggerFileInput" v-if="selectedCdnImageRef"
-              :src="selectedCdnImageRef" alt="封面预览">
-            <img class="cursor-pointer max-h-16 block" @click="triggerFileInput" v-else-if="currentArticleRef.cdn_url"
-              :src="currentArticleRef.cdn_url" referrerpolicy="no-referrer" alt="封面图" />
-            <div v-else @click="triggerFileInput"
-              class="cursor-pointer border h-16 w-[180px] flex justify-center items-center bg-[#8c8c8c]">设置封面图</div>
-            <input class="invisible" ref="cdnFileInputRef" @change="handleImage" type="file" accept="image/*">
-          </el-col>
-          <ImgPicker v-show="currentArticleRef.item_show_type !== 10" ref="refImgPicker" v-model="pickerQuery" :pageInfo="pickerPageInfo"
-            :imgSrc="currentArticleRef.cdn_url" placeholder="设置封面图" @change="handleImageUpload" @confirm="onImgPick"
-            :editorInst="editorRef" />
-          <!-- <ImgCrop :imgSrc="currentArticleRef.cdn_url" placeholder="设置封面图" @change="handleImageUpload"></ImgCrop> -->
-        </el-row>
-        <!-- <el-row :gutter="4" class="mb-1 invisible">
+          <el-tab-pane label="发布设置">
+            <el-row :gutter="4" class="mb-1" v-if="![5, 8].includes(currentArticleRef.item_show_type)">
+              <el-col :span="24">
+                <el-input v-model="currentArticleRef.title" clearable class="grid-content-control" placeholder="请输入文章标题"
+                  @input="syncToList('title')" />
+              </el-col>
+            </el-row>
+            <el-row :gutter="4" class="mb-1" v-if="![8].includes(currentArticleRef.item_show_type)">
+              <el-col :span="24">
+                <el-input v-model="currentArticleRef.author" clearable class="grid-content-control"
+                  placeholder="请输入文章作者" />
+              </el-col>
+            </el-row>
+            <el-row :gutter="4" class="mb-1 w-full">
+              <el-col :span="24" class="h-20 py-2 w-full flex justify-center items-center" style="display: none;">
+                <img class="cursor-pointer max-h-16 block" @click="triggerFileInput" v-if="selectedCdnImageRef"
+                  :src="selectedCdnImageRef" alt="封面预览">
+                <img class="cursor-pointer max-h-16 block" @click="triggerFileInput"
+                  v-else-if="currentArticleRef.cdn_url" :src="currentArticleRef.cdn_url" referrerpolicy="no-referrer"
+                  alt="封面图" />
+                <div v-else @click="triggerFileInput"
+                  class="cursor-pointer border h-16 w-[180px] flex justify-center items-center bg-[#8c8c8c]">设置封面图</div>
+                <input class="invisible" ref="cdnFileInputRef" @change="handleImage" type="file" accept="image/*">
+              </el-col>
+              <ImgPicker v-show="currentArticleRef.item_show_type !== 10" ref="refImgPicker" v-model="pickerQuery"
+                :pageInfo="pickerPageInfo" :imgSrc="currentArticleRef.cdn_url" placeholder="设置封面图"
+                @change="handleImageUpload" @confirm="onImgPick" :editorInst="editorRef" />
+              <!-- <ImgCrop :imgSrc="currentArticleRef.cdn_url" placeholder="设置封面图" @change="handleImageUpload"></ImgCrop> -->
+            </el-row>
+            <!-- <el-row :gutter="4" class="mb-1 invisible">
         <el-col :span="24">
           
         </el-col>
       </el-row> -->
-        <el-row :gutter="4" class="my-2">
-          <el-col :span="24">
-            <hr />
-          </el-col>
-        </el-row>
-        <el-row :gutter="4" class="mb-1">
-          <el-col :span="24">
-            <!-- 创作来源 -->
-            <el-select v-model="selected_claim_source_typeRef" value-key="id" filterable placeholder="创作来源">
-              <el-option v-for="(item) in claim_source_typesRef" :key="item.id" :label="item.name" :value="item" />
-            </el-select>
-          </el-col>
-        </el-row>
-        <el-row :gutter="4" class="mb-1">
-          <el-col :span="24">
-            <el-checkbox label="声明原创" v-model="copyrightRef" />
-          </el-col>
-        </el-row>
-        <el-row :gutter="4" class="h-8 mb-1">
-          <el-col :span="24">
-            <el-input v-model="currentArticleRef.sourceurl" clearable class="grid-content-control" placeholder="原文链接" />
-          </el-col>
-        </el-row>
-        <el-row :gutter="4" class="mb-1">
-          <el-col :span="24">
-            <el-checkbox label="打开留言" v-model="needOpenCommentRef" />
-            <el-radio-group :disabled="!needOpenCommentRef" v-model="commentTypeRef">
-              <!-- works when >=2.6.0, recommended ✔️ not work when <2.6.0 ❌ -->
-              <el-radio value="0">所有人可留言</el-radio>
-              <!-- works when <2.6.0, deprecated act as value when >=3.0.0 -->
-              <el-radio label="1">仅关注后可留言</el-radio>
-            </el-radio-group>
-          </el-col>
-        </el-row>
+            <el-row :gutter="4" class="my-2">
+              <el-col :span="24">
+                <hr />
+              </el-col>
+            </el-row>
+            <el-row :gutter="4" class="mb-1">
+              <el-col :span="24">
+                <!-- 创作来源 -->
+                <el-select v-model="selected_claim_source_typeRef" value-key="id" filterable placeholder="创作来源">
+                  <el-option v-for="(item) in claim_source_typesRef" :key="item.id" :label="item.name" :value="item" />
+                </el-select>
+              </el-col>
+            </el-row>
+            <el-row :gutter="4" class="mb-1">
+              <el-col :span="24">
+                <el-checkbox label="声明原创" v-model="copyrightRef" />
+              </el-col>
+            </el-row>
+            <el-row :gutter="4" class="h-8 mb-1">
+              <el-col :span="24">
+                <el-input v-model="currentArticleRef.sourceurl" clearable class="grid-content-control"
+                  placeholder="原文链接" />
+              </el-col>
+            </el-row>
+            <el-row :gutter="4" class="mb-1">
+              <el-col :span="24">
+                <el-checkbox label="打开留言" v-model="needOpenCommentRef" />
+                <el-radio-group :disabled="!needOpenCommentRef" v-model="commentTypeRef">
+                  <!-- works when >=2.6.0, recommended ✔️ not work when <2.6.0 ❌ -->
+                  <el-radio value="0">所有人可留言</el-radio>
+                  <!-- works when <2.6.0, deprecated act as value when >=3.0.0 -->
+                  <el-radio label="1">仅关注后可留言</el-radio>
+                </el-radio-group>
+              </el-col>
+            </el-row>
 
-        <!-- <el-row :gutter="4" class="my-2">
+            <!-- <el-row :gutter="4" class="my-2">
           <el-col :span="24">
             <hr />
           </el-col>
@@ -345,13 +348,13 @@
         <el-row :gutter="4" class="h-8 mb-1">
           <el-col :span="24"></el-col>
         </el-row> -->
-        </el-tab-pane>
-        <el-tab-pane label="样式中心" class="h-full">
-          <SysTempl :editorInst="editorRef"/>
-        </el-tab-pane>
-        <el-tab-pane label="自定义模板" class="h-full">
-          <UserTempl v-model="currentArticleRef.content_noencode" :visible="currentArticleRef.item_show_type===0" />
-        </el-tab-pane>
+          </el-tab-pane>
+          <el-tab-pane label="样式中心" class="h-full">
+            <SysTempl :editorInst="editorRef" />
+          </el-tab-pane>
+          <el-tab-pane label="自定义模板" class="h-full">
+            <UserTempl v-model="currentArticleRef.content_noencode" :visible="currentArticleRef.item_show_type === 0" />
+          </el-tab-pane>
         </el-tabs>
       </el-col>
     </el-row>
@@ -462,6 +465,7 @@
       </div>
     </template>
   </el-dialog>
+  <SetMiniApp ref="setMiniAppRef" :pickerPageInfo="pickerPageInfo" v-model="pickerQuery" @search-mini-app="searchMiniApp" />
   <el-dialog :close-on-click-modal="false" title="手机扫码预览" v-model="dialogMobilePreviewVisibleRef" width="330px">
     <el-row :gutter="40" class="h-[300px]">
       <el-col :span="24">
@@ -629,7 +633,8 @@
       </div>
     </template>
   </el-dialog>
-  <el-dialog :close-on-click-modal="false" @closed="handleMobileValidateDialogClosed" title="手机扫码验证" v-model="dialogMobileValidateVisibleRef" width="330px">
+  <el-dialog :close-on-click-modal="false" @closed="handleMobileValidateDialogClosed" title="手机扫码验证"
+    v-model="dialogMobileValidateVisibleRef" width="330px">
     <el-row :gutter="40" class="h-[330px]">
       <el-col :span="24">
         <img v-if="qrcodeMobileValidateRef" class="w-full h-full" :src="qrcodeMobileValidateRef" />
@@ -641,7 +646,7 @@
           </div>
           <el-button v-if="showRefreshButtonRef" @click="handlePublish">
             <el-icon>
-            <RefreshRight />
+              <RefreshRight />
             </el-icon>
           </el-button>
         </div>
@@ -682,24 +687,29 @@
     </template>
   </el-dialog>
 </template>
-<style >
-.edui-editor{
+<style>
+.edui-editor {
   @apply flex flex-col h-full;
-  .edui-editor-iframeholder{
+
+  .edui-editor-iframeholder {
     @apply flex-1;
   }
 }
-.editor-inner-tabs{
+
+.editor-inner-tabs {
   height: calc(100vh - 60px - 3rem - var(--el-tabs-header-height));
-  .el-tabs__content{
+
+  .el-tabs__content {
     @apply p-1 flex-1 overflow-y-auto;
   }
-  .el-tabs__item{
+
+  .el-tabs__item {
     /* font-size: 12px; */
     padding: 0 10px !important;
     --el-tabs-header-height: 32px;
   }
 }
+
 .grid-content {
   border-radius: 4px;
   /* min-height: 36px;   */
@@ -772,10 +782,11 @@ import {
   deleteArticleDraft, removeMpMsg, genArticleDraftPreviewUrl, previewQRCode,
 } from "@/api/mp_msg"
 import { saveAppMsg, send_to_other_accounts_events } from "@/api/appmsg"
-import { getMpUserInfo, getLastPreviewAccounts, sendPreview, 
+import {
+  getMpUserInfo, getLastPreviewAccounts, sendPreview,
   listVideos, getMasssendInfo, stat_appmsg_copyright_stat_events,
   query_appmsg_publish_qrcode_validate_events, getQrcodeMobileValidate
- } from "@/api/mp_wechat"
+} from "@/api/mp_wechat"
 import { format_to_UEditor_html, clearContentUrl, clearWeApp, restore_from_UEditor_html } from "@/utils/dom";
 import { uploadImage } from "@/api/img"
 import { toDeepRaw, toPicPageInfo, gen_picture_page_info_list } from "@/utils/convert"
@@ -784,6 +795,7 @@ import { createDateByDays, parseDate, formatDate } from "@/utils/date"
 import { ad_categorys, adMarkerContentInUEditor, format_ad_content_in_UEditor, restore_ad_content_from_UEditor, has_ad_in_wangEditor, has_ad_in_raw } from "@/utils/ad"
 import { getVideoFrameHtml, extractVideoFrame } from "@/utils/video"
 import { apperrmsg, claim_source_types, HOUSRS, MINUTES, wxretmsg } from "@/utils/constants"
+import { tplWithAppLinkAndText, tplWithAppLinkAndImage, tplWithAppLinkAndCard } from "@/utils/miniapp"
 import { ElMessage, ElMessageBox, ElLoading } from 'element-plus'
 import { ArrowUp, ArrowDown, Delete, CircleCheckFilled, CircleCloseFilled, InfoFilled, Search, Plus } from '@element-plus/icons-vue'
 import { Link, Link2, RadioTower, DollarSign, SquareTerminal, Eye, ScanEye, Minus, Smartphone, Video } from 'lucide-vue-next';
@@ -804,10 +816,11 @@ import UserTempl from './editor/UserTempl.vue';
 import debounce from 'lodash-es/debounce'
 import { dog } from '@/utils';
 import SysTempl from './editor/SysTempl.vue';
+import SetMiniApp from "@/components/editor/SetMiniApp.vue"
 
 const props = defineProps(['account', 'appmsg', 'mode', 'mainMsg']);
 const emitEvents = defineEmits(['titleChange', 'createAppmsg', 'msgidChange'])
-const is_xiaolvshu = computed(() => (props.appmsg?.multi_item[0]||currentArticleRef.value)?.item_show_type === 8);
+const is_xiaolvshu = computed(() => (props.appmsg?.multi_item[0] || currentArticleRef.value)?.item_show_type === 8);
 
 const { all_accounts } = toRefs(store.getters)
 // console.log('envVars.backend_url=>', envVars.backend_url)
@@ -969,6 +982,8 @@ const import_settings = ref({
 const extractArticleUrlRef = ref("")
 const dialogExtractMpAritcleUrlRef = ref(false)
 const timeoutExtract = 60 * 1000; // ms
+
+const setMiniAppRef = ref(null)
 
 // 视频素材
 const dialogVideoMaterialRef = ref(false)
@@ -1280,7 +1295,7 @@ const swapUp = async (msg_id) => {
   const idx = mp_msgsRef.value.findIndex(v => v.msg_id === msg_id)
   const prev = mp_msgsRef.value[idx - 1].msg_id
   console.log("prev index:", prev)
-  if (props.mode === 'create'||props.mode=='hydrate') {
+  if (props.mode === 'create' || props.mode == 'hydrate') {
     var tmp = mp_msgsRef.value[idx];
     mp_msgsRef.value[idx] = mp_msgsRef.value[idx - 1]
     mp_msgsRef.value[idx - 1] = tmp
@@ -1297,7 +1312,7 @@ const swapDown = async (msg_id) => {
   const next = mp_msgsRef.value[idx + 1]?.msg_id
   console.log("next index:", next)
   if (!next) return
-  if (props.mode === 'create'||props.mode=='hydrate') {
+  if (props.mode === 'create' || props.mode == 'hydrate') {
     var tmp = mp_msgsRef.value[idx];
     mp_msgsRef.value[idx] = mp_msgsRef.value[idx + 1]
     mp_msgsRef.value[idx + 1] = tmp
@@ -1326,7 +1341,7 @@ const checkHasNotSaveToDB = (msg_id) => {
   return msg_id < 0
 }
 
-const newArticle = async (before_save = true, item_show_type = 0,hydrateMsgIdx=-1) => {
+const newArticle = async (before_save = true, item_show_type = 0, hydrateMsgIdx = -1) => {
   // if (checkHasNotSave(true)) {
   //   return
   // }
@@ -1340,7 +1355,7 @@ const newArticle = async (before_save = true, item_show_type = 0,hydrateMsgIdx=-
   }
 
   if (mp_msgsRef.value.length >= 8) {
-    if(props.mode==='hydrate') return;
+    if (props.mode === 'hydrate') return;
     ElMessageBox.alert('超出单消息最大文章数8篇', '错误', {
       confirmButtonText: '确定',
       type: 'error'
@@ -1363,19 +1378,20 @@ const newArticle = async (before_save = true, item_show_type = 0,hydrateMsgIdx=-
     can_insert_ad: 1,
     content_noencode: "",
   }
-  const new_msg_id = 0 - (+new Date())-hydrateMsgIdx;
-  if(props.mode === 'hydrate' && hydrateMsgIdx>-1){
+  const new_msg_id = 0 - (+new Date()) - hydrateMsgIdx;
+  if (props.mode === 'hydrate' && hydrateMsgIdx > -1) {
     // hydrate模式下，插入到指定位置
-    mp_msgsRef.value[hydrateMsgIdx]= {
+    mp_msgsRef.value[hydrateMsgIdx] = {
       ...new_mp_msg,
       ...mp_msgsRef.value[hydrateMsgIdx],
       msg_id: new_msg_id
     };
-  }else{
-  mp_msgsRef.value.push({
-    ...new_mp_msg,
-    msg_id: new_msg_id
-  })}
+  } else {
+    mp_msgsRef.value.push({
+      ...new_mp_msg,
+      msg_id: new_msg_id
+    })
+  }
 
   loadArticleByMsgId(new_msg_id)
 
@@ -1778,7 +1794,7 @@ const handlePublishToWechat = async () => {
       token,
       cookies,
       publish_type: bulkSendingNotificationFlag.value ? "1" : undefined
-    }).then(({url, meta}) => {
+    }).then(({ url, meta }) => {
       console.log("data=>", typeof url)
       console.log("meta=>", meta)
       qrcodeMobileValidateRef.value = url;
@@ -2324,39 +2340,53 @@ const insertAd = () => {
 
 const openMiniAppDialog = () => {
   // dialogMiniAppVisibleRef.value = true
+  setMiniAppRef.value.openDialog()
+}
+const searchMiniApp = (val) => {
+  const { type, formData } = val
+  console.log("formData=>", formData)
+  let pattern;
+  if (type == "byAppLink") {
+    const { miniAppLink } = formData
+    pattern = miniAppLink
+  } else if (type == "byAppName") {
+    const { miniAppName } = formData
+    pattern = miniAppName
+  }
   const { token, session_id, wechat_id } = selectedAccount.value
   const cookies = serializeCookie(JSON.parse(session_id)["cookie"])
   window.ipcRenderer.send('toMain', {
-      tag: 'mpa:searchMiniApp',
-      source: `${props.appmsg.appmsgid}`,
-      token: getToken(),
-      wechat_id,
-      searchData: {
-        // mp_msgs: toDeepRaw(mp_msgsRef.value),
-        cookies,
-        token: parseInt(token),
-        // pattern: "#小程序://问卷星/DAfnLzsZZn17Ibu",
-        pattern: "麦当劳",
-      }
-    })
+    tag: 'mpa:searchMiniApp',
+    source: `${props.appmsg.appmsgid}`,
+    token: getToken(),
+    wechat_id,
+    searchData: {
+      // mp_msgs: toDeepRaw(mp_msgsRef.value),
+      cookies,
+      token: parseInt(token),
+      // pattern: "#小程序://问卷星/DAfnLzsZZn17Ibu",
+      pattern,
+    },
+    ...val,
+  })
 }
 
 const openMPDialog = () => {
   const { token, session_id, wechat_id } = selectedAccount.value
   const cookies = serializeCookie(JSON.parse(session_id)["cookie"])
   window.ipcRenderer.send('toMain', {
-      tag: 'mp:searchBiz',
-      source: `${props.appmsg.appmsgid}`,
-      token: getToken(),
-      wechat_id,
-      searchData: {
-        // mp_msgs: toDeepRaw(mp_msgsRef.value),
-        cookies,
-        token: parseInt(token),
-        // pattern: "#小程序://问卷星/DAfnLzsZZn17Ibu",
-        pattern: "麦当劳",
-      }
-    })
+    tag: 'mp:searchBiz',
+    source: `${props.appmsg.appmsgid}`,
+    token: getToken(),
+    wechat_id,
+    searchData: {
+      // mp_msgs: toDeepRaw(mp_msgsRef.value),
+      cookies,
+      token: parseInt(token),
+      // pattern: "#小程序://问卷星/DAfnLzsZZn17Ibu",
+      pattern: "麦当劳",
+    }
+  })
 }
 
 const validatePreview = () => {
@@ -2741,7 +2771,7 @@ const parseExtractMpArticleData = (ret, opts = {}) => {
   }
   if (item_show_type === 10) {
     guide_words = content_noencode
-    if (title.replaceAll("\\n", "")=== content_noencode.replaceAll("\n", "")) {
+    if (title.replaceAll("\\n", "") === content_noencode.replaceAll("\n", "")) {
       title = ""
     }
   }
@@ -2753,7 +2783,7 @@ const parseExtractMpArticleData = (ret, opts = {}) => {
     if (opts.import_settings?.only_video_flag) {
       const matches = extractVideoFrame(content_noencode)
       // console.log("matches=", )
-      if (matches.length > 0){
+      if (matches.length > 0) {
         content_noencode = matches.join("")
       } else {
         content_noencode = '\v'
@@ -2905,11 +2935,33 @@ watch(() => [props.mainMsg], async (newVal) => {
         videoLoadingRef.value = false
       }
     } else if (tag === "mpa-ret:searchMiniApp") {
-      const { ret } = msg.data
-      // console.log("ret=>", ret)
-      const { success, weapp } = ret
+      const { ret, type, formData } = msg.data
+      console.log("type=>", type)
+      const { success, weapp, weapp_path } = ret
       if (success) {
-        console.log("weapp=>", weapp)
+        setMiniAppRef.value.closeDialog()
+        let html = ""
+        if (type === "byAppLink") {
+          if (formData.miniAppText) {
+            html = tplWithAppLinkAndText({
+              app_link: formData.miniAppLink, app_title: formData.miniAppText,
+              weapp_path, ...weapp
+            })
+          } else if (formData.miniAppImg) {
+            html = tplWithAppLinkAndImage({
+              app_link: formData.miniAppLink, img_link: formData.miniAppImg,
+              weapp_path, ...weapp
+            })
+          } else if (formData.miniAppCardTitle && formData.miniAppCardImg) {
+            html = tplWithAppLinkAndCard({
+              app_link: formData.miniAppLink, 
+              img_link: formData.miniAppImg,
+              app_title: formData.miniAppCardTitle,
+              weapp_path, ...weapp
+            })
+          }
+        }
+        editorRef.value.execCommand('inserthtml', html);
       }
     } else if (tag === "mp-ret:searchBiz") {
       const { ret } = msg.data
@@ -2940,15 +2992,15 @@ onMounted(async () => {
   mp_msgsRef.value = props.appmsg.multi_item
   if (props.mode === 'create') {
     loadArticleByMsgId(mp_msgsRef.value[0].msg_id)
-  }else if(props.mode==='hydrate'){
-    if(mp_msgsRef.value[0]?.msg_id) loadArticleByMsgId(mp_msgsRef.value[0].msg_id)
+  } else if (props.mode === 'hydrate') {
+    if (mp_msgsRef.value[0]?.msg_id) loadArticleByMsgId(mp_msgsRef.value[0].msg_id)
     mp_msgsRef.value.forEach((item, index) => {
-      if(item.fromExtract){
-        newArticle(true, 0,index)
+      if (item.fromExtract) {
+        newArticle(true, 0, index)
       }
-      if(!item.msg_id||item.msg_id>0){
+      if (!item.msg_id || item.msg_id > 0) {
         // fix hydrate msg
-        item.msg_id=0-Date.now()-index;
+        item.msg_id = 0 - Date.now() - index;
       }
     })
   } else if (props.mode === 'edit') {
