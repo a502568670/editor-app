@@ -666,7 +666,7 @@ async function reactToIpcObjectData(data, tabbedWin, viewContents) {
     }
     case 'mpa:searchMiniApp': {
       verbose_log("===== listen searchMiniApp in main ====", data)
-      const { source, token, searchData } = data
+      const { source, token, searchData, ...others } = data
       // token => userToken
       console.log("searchData=>", searchData)
       const ret = await searchMiniApp(searchData)
@@ -675,12 +675,13 @@ async function reactToIpcObjectData(data, tabbedWin, viewContents) {
       } else {
         verbose_log("===== 搜索小程序成功 ====", ret.weapp)
       }
-      viewContents.send('fromMain', { tag: 'mpa-ret:searchMiniApp', data: { source, ret } })
+      verbose_log("===== others ====", others)
+      viewContents.send('fromMain', { tag: 'mpa-ret:searchMiniApp', data: { source, ret, ...others } })
       break
     }
     case 'mp:searchBiz': {
       verbose_log("===== listen searchBiz in main ====", data)
-      const { source, token, searchData } = data
+      const { source, token, searchData, ...others } = data
       // token => userToken
       console.log("searchData=>", searchData)
       const ret = await searchBiz(searchData)
@@ -689,7 +690,7 @@ async function reactToIpcObjectData(data, tabbedWin, viewContents) {
       } else {
         verbose_log("===== 搜索公众号成功 ====", ret.data)
       }
-      viewContents.send('fromMain', { tag: 'mp-ret:searchBiz', data: { source, ret } })
+      viewContents.send('fromMain', { tag: 'mp-ret:searchBiz', data: { source, ret, ...others } })
       break
     }
     case 'stat:getPvData': {
