@@ -47,7 +47,7 @@ const searchMiniApp = async ({ cookies, token, pattern }) => {
 
   return {
     success: true,
-    data: weapp,
+    weapp,
   }
 }
 

@@ -2904,6 +2904,20 @@ watch(() => [props.mainMsg], async (newVal) => {
         video_total_cntRef.value = total_cnt
         videoLoadingRef.value = false
       }
+    } else if (tag === "mpa-ret:searchMiniApp") {
+      const { ret } = msg.data
+      // console.log("ret=>", ret)
+      const { success, weapp } = ret
+      if (success) {
+        console.log("weapp=>", weapp)
+      }
+    } else if (tag === "mp-ret:searchBiz") {
+      const { ret } = msg.data
+      // console.log("ret=>", ret)
+      const { success, mps } = ret
+      if (success) {
+        console.log("mps=>", mps)
+      }
     }
 
     if (globalLoadingRef.value) {
