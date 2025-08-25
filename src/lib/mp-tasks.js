@@ -51,7 +51,7 @@ const searchBiz = async ({ cookies, token, pattern }) => {
   }
   return {
     success: true,
-    data: res.list || [],
+    mps: res.list || [],
   }
 }
 exports.searchBiz = searchBiz

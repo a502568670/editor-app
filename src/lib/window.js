@@ -673,7 +673,7 @@ async function reactToIpcObjectData(data, tabbedWin, viewContents) {
       if (!ret.success) {
         verbose_log("===== 搜索小程序失败 ====", ret.err_msg)
       } else {
-        verbose_log("===== 搜索小程序成功 ====", ret.data)
+        verbose_log("===== 搜索小程序成功 ====", ret.weapp)
       }
       viewContents.send('fromMain', { tag: 'mpa-ret:searchMiniApp', data: { source, ret } })
       break
