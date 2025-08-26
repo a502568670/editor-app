@@ -72,16 +72,13 @@
               {{ displayTypeLabel }}
             </template>
             <el-input v-if="displayTypeRef == '0'" v-model="dataForm.miniAppText" placeholder="点击文字会打开小程序指定路径的页面" />
-            <div v-else-if="displayTypeRef == '1'" >
+            <div v-else-if="displayTypeRef == '1'">
               <div class="flex flex-col space-y-2">
                 <div>点击图片会打开小程序指定路径的页面。图片规格不限，图片大小限制10M</div>
                 <div v-if="!dataForm.miniAppImg"><el-button @click="handleChooseAppMiniImg">选择图片</el-button></div>
-                 <div v-show="dataForm.miniAppImg" class="flex-1 w-[200px]">
-                  <ImgPicker ref="refMiniAppImgPicker" h="198" placeholder="设置小程序图片"
-                  :imgSrc="dataForm.miniAppImg"
-                  v-model="pickerQuery"
-                  :pageInfo="pickerPageInfo"
-                   @confirm="onImgPick" />
+                <div v-show="dataForm.miniAppImg" class="flex-1 w-[200px]">
+                  <ImgPicker ref="refMiniAppImgPicker" h="198" placeholder="设置小程序图片" :imgSrc="dataForm.miniAppImg"
+                    v-model="pickerQuery" :pageInfo="pickerPageInfo" @confirm="onImgPick" />
                 </div>
               </div>
             </div>
@@ -97,11 +94,9 @@
                 <div></div>
                 <div class="flex-1">
                   <ImgPicker ref="refMiniAppCardImgPicker" h="198" placeholder="设置小程序卡片图片"
-                  :imgSrc="dataForm.miniAppCardImg"
-                  v-model="pickerQuery"
-                  :pageInfo="pickerPageInfo"
-                   @confirm="onImgPick" />
-                   <ImgCrop ref="refImgCrop" @change="onImageCrop" nul />
+                    :imgSrc="dataForm.miniAppCardImg" v-model="pickerQuery" :pageInfo="pickerPageInfo"
+                    @confirm="onImgPick" @change="onImageUpload" forbidCrop upload />
+                  <ImgCrop ref="refImgCrop"  @change="onImageCrop" nul />
                 </div>
                 <div class="flex items-center justify-start text-sm">
                   <el-icon :size="16" class="cursor-pointer flex justify-center" @click="openMiniAppDialog" title="小程序">
@@ -146,7 +141,11 @@ import { ElMessage } from 'element-plus'
 import { QuestionFilled } from '@element-plus/icons-vue'
 
 const pickerQuery = defineModel()
-const {pickerPageInfo}=defineProps(['pickerPageInfo'])
+const cropSize = ref({
+  width: 0,
+  height: 0,
+})
+const { pickerPageInfo } = defineProps(['pickerPageInfo'])
 
 const $emits = defineEmits(['searchMiniApp'])
 const refMiniAppImgPicker = ref(null)
@@ -170,6 +169,7 @@ const dataForm = ref({
   miniAppImg: '',
   miniAppCardTitle: '',
   miniAppCardImg: '',
+  miniAppCardImgCrop: null,
 })
 const isDisplayCardCss = computed(() => displayTypeRef.value == '2')
 
@@ -187,6 +187,7 @@ function openDialog(formData) {
       miniAppImg: '',
       miniAppCardTitle: '',
       miniAppCardImg: '',
+      miniAppCardImgCrop: null,
     }
   }
 }
@@ -197,10 +198,13 @@ function closeDialog() {
 function handleChooseAppMiniImg() {
   refMiniAppImgPicker.value.openDialog()
 }
-
-function onImageCrop(data){
+function onImageUpload(url) {
+  refMiniAppCardImgPicker.value.uploadSucc(url)
+}
+function onImageCrop(data) {
   console.log("data=>", data)
-  dataForm.value.miniAppCardImg = `data:image/png;base64,${data.data}`
+  dataForm.value.miniAppCardImg = data.raw_img
+  dataForm.value.miniAppCardImgCrop = data.crop
 }
 
 function onImgPick(urls) {
@@ -210,7 +214,8 @@ function onImgPick(urls) {
   } else if (displayTypeRef.value == '2') {
     // refMiniAppCardImgPicker.cropRef.value.cropWith(urls[0], {radio:'4'})
     console.log("refImgCrop=>", refImgCrop)
-    refImgCrop.value.cropWith(urls[0], {radio:'4'})
+    refImgCrop.value.cropWith(urls[0], { radio: '4' })
+    
   }
 }
 
@@ -236,7 +241,7 @@ function insertMiniApp() {
       ElMessage.error('请选择/上传卡片图片')
       return
     }
-    $emits("searchMiniApp", { type: "byAppLink", "formData": { miniAppLink: dataForm.value.miniAppLink, miniAppCardTitle: dataForm.value.miniAppCardTitle, miniAppCardImg: dataForm.value.miniAppCardImg } })
+    $emits("searchMiniApp", { type: "byAppLink", "formData": { miniAppLink: dataForm.value.miniAppLink, miniAppCardTitle: dataForm.value.miniAppCardTitle, miniAppCardImg: dataForm.value.miniAppCardImg, miniAppCardImgCrop: toRaw(dataForm.value.miniAppCardImgCrop) } })
   }
 }
 
