@@ -2955,9 +2955,11 @@ watch(() => [props.mainMsg], async (newVal) => {
               weapp_path, ...weapp
             })
           } else if (formData.miniAppCardTitle && formData.miniAppCardImg) {
+            console.log("formData.miniAppCardImg=>", formData.miniAppCardImg.length)
             html = tplWithAppLinkAndCard({
               app_link: formData.miniAppLink, 
-              img_link: formData.miniAppImg,
+              img_link: formData.miniAppCardImg,
+              crop: formData.miniAppCardImgCrop,
               app_title: formData.miniAppCardTitle,
               weapp_path, ...weapp
             })

@@ -32,7 +32,7 @@
               <el-input v-model.trim="searchQuery.word" :prefix-icon="Search" placeholder="输入关键字搜索图片" clearable></el-input>
               <el-tag v-for="(v) in wordHistory" :key="v" class="cursor-pointer mr-1 mt-1" @click="searchQuery.word=v" closable @close="delWordHistory(v)" size="small">{{ v }}</el-tag>
             </div>
-            <ImgCrop ref="refImgCrop" @change="onImageCrop" button/>
+            <ImgCrop ref="refImgCrop" @change="onImageCrop" button :forbidCrop="forbidCrop" :upload="upload"/>
           </div>
           <el-checkbox-group v-if="imgs.length" class="flex-1 flex flex-wrap p-2 mt-2" v-model="selected">
             <div class="item ml-3 mb-3" v-for="(v,idx) in imgs" :key="idx">
@@ -65,7 +65,7 @@ import debounce from 'lodash-es/debounce'
 import { uploadImage } from '@/api/img'
 import {serializeCookie} from '@/utils/cookie'
 
-var {imgSrc,editorInst,pageInfo,h}=defineProps(['imgSrc','editorInst','pageInfo', 'h'])
+var {imgSrc,editorInst,pageInfo,h, forbidCrop, upload}=defineProps(['imgSrc','editorInst','pageInfo', 'h', 'forbidCrop', 'upload'])
 var $emit=defineEmits(['change','confirm'])
 var pickerQuery=defineModel()
 var total=computed(()=>groups.value.find(v=>v.id==pickerQuery.value.group_id)?.count)
@@ -124,7 +124,8 @@ function delWordHistory(word){
 defineExpose({
   uploadSucc(url){
     if(activeMenu.value==='material'){
-      imgs.value.shift();
+      // imgs.value.shift();
+      imgs.value.pop();
       imgs.value.unshift({cdn_url:url});
     }else{
       open.value=false
