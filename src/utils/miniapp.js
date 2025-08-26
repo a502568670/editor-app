@@ -16,16 +16,18 @@ export function tplWithAppLinkAndImage ({ app_link, img_link, weapp_path, appid,
 }
 
 export function tplWithAppLinkAndCard ({ app_link, img_link, crop, app_title, weapp_path, appid, nickname, headimg_url, service_type }){
+
   const json_str = JSON.stringify({
     "c": {
-      "x": crop.x,
-      "y": crop.y,
+      "x": crop.x1,
+      "y": crop.y1,
       "x2": crop.x2,
       "y2": crop.y2,
-      "w": crop.x2 - crop.x,
-      "h": crop.y2 - crop.y,
+      "w": crop.x2 - crop.x1,
+      "h": crop.y2 - crop.y1,
     }
   });
+  console.log("json_str=>", json_str)
   const encodedCrop = encodeURIComponent(json_str);
   console.log("encodedCrop=>", encodedCrop)
   return `<section nodeleaf=""><mp-common-miniprogram class="js_uneditagle custom_select_card mp_miniprogram_iframe" data-pluginname="insertminiprogram" data-miniprogram-path="${weapp_path}" data-miniprogram-nickname="${nickname}" data-miniprogram-avatar="${headimg_url}" data-miniprogram-title="${app_title}" data-miniprogram-imageurl="${img_link}" data-miniprogram-type="card" data-miniprogram-servicetype="${service_type}" data-miniprogram-applink="${app_link}" data-miniprogram-appid="${appid}" data-miniprogram-imageurlback="${img_link}" data-miniprogram-cropperinfo="${encodedCrop}"></mp-common-miniprogram></section>`
