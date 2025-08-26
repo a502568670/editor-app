@@ -43,8 +43,9 @@ const searchMiniApp = async ({ cookies, token, pattern }) => {
       err_msg: base_resp.err_msg
     }
   }
-  const weapp = pattern.includes('#小程序') ? res.weapp : res.items.find((_, idx) => idx === 0)
-  const weapp_path = res.weapp_path || weapp.main_page
+  const ret = pattern.includes('#小程序') ? res : res.items.find((_, idx) => idx === 0)
+  const weapp = ret.weapp
+  const weapp_path = ret.weapp_path || ret.weapp.main_page
   return {
     success: true,
     weapp,

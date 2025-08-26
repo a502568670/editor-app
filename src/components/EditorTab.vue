@@ -2350,8 +2350,8 @@ const searchMiniApp = (val) => {
     const { miniAppLink } = formData
     pattern = miniAppLink
   } else if (type == "byAppName") {
-    const { miniAppName } = formData
-    pattern = miniAppName
+    const { query } = formData
+    pattern = query
   }
   const { token, session_id, wechat_id } = selectedAccount.value
   const cookies = serializeCookie(JSON.parse(session_id)["cookie"])
@@ -2939,9 +2939,9 @@ watch(() => [props.mainMsg], async (newVal) => {
       console.log("type=>", type)
       const { success, weapp, weapp_path } = ret
       if (success) {
-        setMiniAppRef.value.closeDialog()
-        let html = ""
         if (type === "byAppLink") {
+          setMiniAppRef.value.closeDialog()
+          let html = ""
           if (formData.miniAppText) {
             html = tplWithAppLinkAndText({
               app_link: formData.miniAppLink, app_title: formData.miniAppText,
@@ -2962,8 +2962,10 @@ watch(() => [props.mainMsg], async (newVal) => {
               weapp_path, ...weapp
             })
           }
+          editorRef.value.execCommand('inserthtml', html);
+        } else {
+          setMiniAppRef.value.setMiniApp(weapp, weapp_path)
         }
-        editorRef.value.execCommand('inserthtml', html);
       }
     } else if (tag === "mp-ret:searchBiz") {
       const { ret } = msg.data
