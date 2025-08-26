@@ -1,16 +1,45 @@
 <template>
   <el-dialog :close-on-click-modal="false" :title="dialogTitle" v-model="dialogVisibleRef" width="800px">
-    <ChooseMiniApp ref="chooseMiniAppRef" v-if="dialogMode === 'choose'" @setQuery="handleSetQuery"
-      v-model="choosed_weapp_info.weapp" />
-    <el-form v-if="dialogMode === 'set'" class="w-full h-[480px]" :model="dataForm" status-icon label-position="top"
+    <!-- <ChooseMiniApp ref="chooseMiniAppRef" v-if="dialogMode === 'choose'" @setQuery="handleSetQuery"
+      v-model="choosed_weapp_info.weapp" /> -->
+    <div v-if="showStep" class="w-full h-[480px] flex flex-col items-center justify-center">
+      <el-steps  class="w-full h-[80px]" :space="300" :active="curStep" finish-status="success" align-center>
+        <el-step title="1、选择小程序" />
+        <el-step title="2、填写详细信息" />
+      </el-steps>
+      <div v-if="(dialogMode === 'choose' && curStep === 0)" class="w-full h-[400px] flex flex-col items-center justify-center">
+        <div class="basis-1/5"></div>
+        <div class="w-1/2 basis-1/5">
+          <div class="bg-white px-2 py-0.5 flex items-center border rounded-sm"><el-input class="bg-white searchbox"
+              v-model="queryRef" style="width: 100%;" placeholder="请输入要搜索的小程序名称/AppID/账号原始ID"
+                @keypress.enter="handleSetQuery" />
+            <el-icon style="cursor: pointer;" @click="handleSetQuery">
+              <Search />
+            </el-icon>
+          </div>
+        </div>
+        <div class="basis-3/5">
+          <ul class="w-[400px]">
+            <li class="selected" v-if="choosed_weapp_info.weapp">
+              <div class="border border-green-400 rounded">
+                <div class="relative p-5 min-h-[50px] flex items-center justify-start space-x-2">
+                  <img :src="choosed_weapp_info.weapp.headimg_url" class="w-[50px] h-[50px] rounded"> 
+                  <strong :title="choosed_weapp_info.weapp.nickname">{{ choosed_weapp_info.weapp.nickname }}</strong></div>
+                </div>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <el-form v-if="dialogMode === 'set' || (dialogMode === 'choose' && curStep === 1)" class="w-full h-[480px]" :model="dataForm" status-icon label-position="top"
       label-width="120px">
       <el-row :gutter="40">
         <el-col :span="24">
           <el-form-item label="小程序链接" label-position="right">
             <template #label>
               <div class="flex justify-center items-center">
-                小程序链接
-                <el-popover :width="360"
+                {{dialogMode === 'set'?"小程序链接":"小程序名称"}}
+                <el-popover v-if="dialogMode === 'set'" :width="360"
                   popper-style="box-shadow: rgb(14 18 22 / 35%) 0px 10px 38px -10px, rgb(14 18 22 / 20%) 0px 10px 20px -15px; padding: 20px;">
                   <template #reference>
                     <el-icon :size="16" class="cursor-pointer flex justify-center items-center ml-1" title="小程序">
@@ -31,11 +60,25 @@
                 </el-popover>
               </div>
             </template>
-            <div>
+            <div v-if="dialogMode === 'set'">
               <el-input v-model="dataForm.miniAppLink" clearable placeholder="请输入小程序链接" />
               <p class=" text-wrap text-gray-400">无法复制链接时，可搜索小程序，通过给指定微信用户开启复制路径入口的方式来修改小程序路径。</p>
               <a class="text-blue-500" @click="handleChooseMiniApp" href="javascript:;">去搜索</a>
             </div>
+            <div v-else>
+              {{ choosed_weapp_info.weapp.nickname }}
+            </div>
+          </el-form-item>
+        </el-col>
+      </el-row>
+      <el-row :gutter="40" v-if="dialogMode === 'choose'">
+        <el-col :span="24">
+          <el-form-item label="小程序路径" label-position="right">
+            <div class="bg-white px-2 py-0.5 flex items-center border rounded-sm"><el-input class="bg-white searchbox"
+              v-model="choosed_weapp_info.weapp_path" style="width: 100%;" clearable />
+             <span class="text-gray-400">{{choosed_weapp_info.weapp_path.length}}/1024</span>
+          </div>
+          支持输入小程序路径和链接。默认显示小程序首页路径，可更改。
           </el-form-item>
         </el-col>
       </el-row>
@@ -114,16 +157,17 @@
     </el-form>
     <template #footer>
       <div v-if="dialogMode === 'choose'" class="dialog-footer">
-        <el-button v-if="chooseMiniAppRef && chooseMiniAppRef.getCurStep() === 0"
+        <el-button v-if="curStep === 0"
           @click="dialogVisibleRef = false">取消</el-button>
-        <el-button v-if="chooseMiniAppRef && chooseMiniAppRef.getCurStep() === 1"
-          @click="chooseMiniAppRef.changeStep(0)" type="primary">上一步</el-button>
-        <el-button v-if="chooseMiniAppRef && chooseMiniAppRef.getCurStep() === 0"
-          @click="chooseMiniAppRef.changeStep(1)" type="primary">下一步</el-button>
+        <el-button v-if="curStep === 1"
+          @click="curStep=0;showStep=true">上一步</el-button>
+        <el-button v-if="curStep === 0" :disabled="choosed_weapp_info.weapp == null"
+          @click="curStep=1;showStep=false" type="primary">下一步</el-button>
+        <el-button v-if="curStep === 1" @click="insertMiniApp" type="success">确定</el-button>
       </div>
       <div v-if="dialogMode === 'set'" class="dialog-footer">
         <el-button @click="dialogVisibleRef = false">取消</el-button>
-        <el-button @click="insertMiniApp" type="primary">确定</el-button>
+        <el-button @click="insertMiniApp" type="success">确定</el-button>
       </div>
     </template>
   </el-dialog>
@@ -133,14 +177,20 @@
   width: 320px;
   max-width: 320px;
 }
-
 .mini-app-card {
   width: 240px;
   max-width: 240px;
 }
-
 .el-card {
   --el-card-footer-padding: 0px 0px;
+}
+.searchbox :deep(.el-input__wrapper) {
+  box-shadow: 0 0 0 0px var(--el-input-border-color, var(--el-border-color)) inset;
+  background: transparent;
+  cursor: default;
+}
+.searchbox :deep(.el-input__wrapper .el-input__inner) {
+  cursor: default !important;
 }
 </style>
 <script setup>
@@ -150,7 +200,7 @@ import ImgCrop from '@/components/ImgCrop.vue'
 import WechatMiniAppIcon from "@/components/icons/WechatMiniAppIcon"
 import ChooseMiniApp from "@/components/editor/ChooseMiniApp.vue"
 import { ElMessage } from 'element-plus'
-import { QuestionFilled } from '@element-plus/icons-vue'
+import { QuestionFilled, Search } from '@element-plus/icons-vue'
 
 const dialogTitle = ref("插入小程序")
 const dialogMode = ref("set") // set choose
@@ -164,7 +214,9 @@ const refMiniAppImgPicker = ref(null)
 const refMiniAppCardImgPicker = ref(null)
 const refImgCrop = ref(null)
 
-
+const showStep = ref(false)
+const curStep = ref(0)
+const queryRef = ref("")
 const dialogVisibleRef = ref(false)
 const displayTypeRef = ref('0')
 const displayTypeLabel = computed(() => {
@@ -194,7 +246,13 @@ function openDialog(formData) {
       ...formData
     }
   } else {
+    dialogTitle.value = "插入小程序"
+    dialogMode.value = "set"
     displayTypeRef.value = "0"
+    showStep.value = false
+    curStep.value = 0
+    queryRef.value = ""
+    choosed_weapp_info.value = { weapp: null, weapp_path: '' }
     dataForm.value = {
       miniAppLink: '#小程序://问卷星/DAfnLzsZZn17Ibu',
       miniAppText: '疯狂星期五',
@@ -212,6 +270,7 @@ function closeDialog() {
 function handleChooseMiniApp() {
   dialogTitle.value = "选择小程序"
   dialogMode.value = "choose"
+  showStep.value = true
 }
 
 function handleChooseAppMiniImg() {
@@ -238,7 +297,7 @@ function onImgPick(urls) {
 }
 
 function handleSetQuery(query) {
-  $emits("searchMiniApp", { type: "byAppName", "formData": { query: query } })
+  $emits("searchMiniApp", { type: "byAppName", "formData": { query: queryRef.value } })
 }
 
 function setMiniApp(weapp, weapp_path) {
@@ -246,18 +305,27 @@ function setMiniApp(weapp, weapp_path) {
 }
 
 function insertMiniApp() {
+  const type = dialogMode.value == 'set' ? 'byAppLink' : 'byAppInfo'
+  if (dialogMode.value == 'set') {
+    if (!dataForm.value.miniAppLink) {
+      ElMessage.error('请输入小程序链接')
+      return
+    }
+  }
+  const miniAppLink = dialogMode.value == 'set' ? dataForm.value.miniAppLink : toRaw(choosed_weapp_info.value)
   if (displayTypeRef.value == '0') {
     if (!dataForm.value.miniAppText) {
       ElMessage.error('请输入文字内容')
       return
     }
-    $emits("searchMiniApp", { type: "byAppLink", "formData": { miniAppLink: dataForm.value.miniAppLink, miniAppText: dataForm.value.miniAppText } })
+    
+    $emits("searchMiniApp", { type: type, "formData": { miniAppLink: miniAppLink, miniAppText: dataForm.value.miniAppText } })
   } else if (displayTypeRef.value == '1') {
     if (!dataForm.value.miniAppImg) {
       ElMessage.error('请选择/上传图片')
       return
     }
-    $emits("searchMiniApp", { type: "byAppLink", "formData": { miniAppLink: dataForm.value.miniAppLink, miniAppImg: dataForm.value.miniAppImg } })
+    $emits("searchMiniApp", { type: type, "formData": { miniAppLink: miniAppLink, miniAppImg: dataForm.value.miniAppImg } })
   } else if (displayTypeRef.value == '2') {
     if (!dataForm.value.miniAppCardTitle) {
       ElMessage.error('请输入卡片标题')
@@ -267,7 +335,7 @@ function insertMiniApp() {
       ElMessage.error('请选择/上传卡片图片')
       return
     }
-    $emits("searchMiniApp", { type: "byAppLink", "formData": { miniAppLink: dataForm.value.miniAppLink, miniAppCardTitle: dataForm.value.miniAppCardTitle, miniAppCardImg: dataForm.value.miniAppCardImg, miniAppCardImgCrop: toRaw(dataForm.value.miniAppCardImgCrop) } })
+    $emits("searchMiniApp", { type: type, "formData": { miniAppLink: miniAppLink, miniAppCardTitle: dataForm.value.miniAppCardTitle, miniAppCardImg: dataForm.value.miniAppCardImg, miniAppCardImgCrop: toRaw(dataForm.value.miniAppCardImgCrop) } })
   }
 }
 

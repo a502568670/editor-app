@@ -467,7 +467,8 @@
       </div>
     </template>
   </el-dialog>
-  <SetMiniApp ref="setMiniAppRef" :pickerPageInfo="pickerPageInfo" v-model="pickerQuery" @search-mini-app="searchMiniApp" />
+  <SetMiniApp ref="setMiniAppRef" :pickerPageInfo="pickerPageInfo" v-model="pickerQuery"
+    @search-mini-app="searchMiniApp" />
   <el-dialog :close-on-click-modal="false" title="手机扫码预览" v-model="dialogMobilePreviewVisibleRef" width="330px">
     <el-row :gutter="40" class="h-[300px]">
       <el-col :span="24">
@@ -2348,7 +2349,35 @@ const searchMiniApp = (val) => {
   const { type, formData } = val
   console.log("formData=>", formData)
   let pattern;
-  if (type == "byAppLink") {
+  if (type === "byAppInfo") {
+    // 直接插入
+    const { miniAppLink } = formData
+    setMiniAppRef.value.closeDialog()
+    let html = ""
+    if (formData.miniAppText) {
+      html = tplWithAppLinkAndText({
+        app_link: "", 
+        app_title: formData.miniAppText,
+        weapp_path: miniAppLink.weapp_path, ...miniAppLink.weapp
+      })
+    } else if (formData.miniAppImg) {
+      html = tplWithAppLinkAndImage({
+        app_link: "", img_link: formData.miniAppImg,
+        weapp_path: miniAppLink.weapp_path, ...miniAppLink.weapp
+      })
+    } else if (formData.miniAppCardTitle && formData.miniAppCardImg) {
+      console.log("formData.miniAppCardImg=>", formData.miniAppCardImg.length)
+      html = tplWithAppLinkAndCard({
+        app_link: formData.miniAppLink,
+        img_link: formData.miniAppCardImg,
+        crop: formData.miniAppCardImgCrop,
+        app_title: formData.miniAppCardTitle,
+        weapp_path: miniAppLink.weapp_path, ...miniAppLink.weapp
+      })
+    }
+    editorRef.value.execCommand('inserthtml', html);
+    return
+  } else if (type == "byAppLink") {
     const { miniAppLink } = formData
     pattern = miniAppLink
   } else if (type == "byAppName") {
@@ -2957,7 +2986,7 @@ watch(() => [props.mainMsg], async (newVal) => {
           } else if (formData.miniAppCardTitle && formData.miniAppCardImg) {
             console.log("formData.miniAppCardImg=>", formData.miniAppCardImg.length)
             html = tplWithAppLinkAndCard({
-              app_link: formData.miniAppLink, 
+              app_link: formData.miniAppLink,
               img_link: formData.miniAppCardImg,
               crop: formData.miniAppCardImgCrop,
               app_title: formData.miniAppCardTitle,
