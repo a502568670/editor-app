@@ -1,6 +1,9 @@
 <template>
-  <el-dialog :close-on-click-modal="false" title="插入小程序" v-model="dialogVisibleRef" width="800px">
-    <el-form class="w-full h-[480px]" :model="dataForm" status-icon label-position="top" label-width="120px">
+  <el-dialog :close-on-click-modal="false" :title="dialogTitle" v-model="dialogVisibleRef" width="800px">
+    <ChooseMiniApp ref="chooseMiniAppRef" v-if="dialogMode === 'choose'" @setQuery="handleSetQuery"
+      v-model="choosed_weapp_info.weapp" />
+    <el-form v-if="dialogMode === 'set'" class="w-full h-[480px]" :model="dataForm" status-icon label-position="top"
+      label-width="120px">
       <el-row :gutter="40">
         <el-col :span="24">
           <el-form-item label="小程序链接" label-position="right">
@@ -31,7 +34,7 @@
             <div>
               <el-input v-model="dataForm.miniAppLink" clearable placeholder="请输入小程序链接" />
               <p class=" text-wrap text-gray-400">无法复制链接时，可搜索小程序，通过给指定微信用户开启复制路径入口的方式来修改小程序路径。</p>
-              <a class="text-blue-500" @click="doSearchMiniApp" href="javascript:;">去搜索</a>
+              <a class="text-blue-500" @click="handleChooseMiniApp" href="javascript:;">去搜索</a>
             </div>
           </el-form-item>
         </el-col>
@@ -96,7 +99,7 @@
                   <ImgPicker ref="refMiniAppCardImgPicker" h="198" placeholder="设置小程序卡片图片"
                     :imgSrc="dataForm.miniAppCardImg" v-model="pickerQuery" :pageInfo="pickerPageInfo"
                     @confirm="onImgPick" @change="onImageUpload" forbidCrop upload />
-                  <ImgCrop ref="refImgCrop"  @change="onImageCrop" nul />
+                  <ImgCrop ref="refImgCrop" @change="onImageCrop" nul />
                 </div>
                 <div class="flex items-center justify-start text-sm">
                   <el-icon :size="16" class="cursor-pointer flex justify-center" @click="openMiniAppDialog" title="小程序">
@@ -110,7 +113,15 @@
       </el-row>
     </el-form>
     <template #footer>
-      <div class="dialog-footer">
+      <div v-if="dialogMode === 'choose'" class="dialog-footer">
+        <el-button v-if="chooseMiniAppRef && chooseMiniAppRef.getCurStep() === 0"
+          @click="dialogVisibleRef = false">取消</el-button>
+        <el-button v-if="chooseMiniAppRef && chooseMiniAppRef.getCurStep() === 1"
+          @click="chooseMiniAppRef.changeStep(0)" type="primary">上一步</el-button>
+        <el-button v-if="chooseMiniAppRef && chooseMiniAppRef.getCurStep() === 0"
+          @click="chooseMiniAppRef.changeStep(1)" type="primary">下一步</el-button>
+      </div>
+      <div v-if="dialogMode === 'set'" class="dialog-footer">
         <el-button @click="dialogVisibleRef = false">取消</el-button>
         <el-button @click="insertMiniApp" type="primary">确定</el-button>
       </div>
@@ -137,20 +148,23 @@ import { ref, computed, defineExpose, toRaw } from 'vue'
 import ImgPicker from '@/components/editor/ImgPicker.vue';
 import ImgCrop from '@/components/ImgCrop.vue'
 import WechatMiniAppIcon from "@/components/icons/WechatMiniAppIcon"
+import ChooseMiniApp from "@/components/editor/ChooseMiniApp.vue"
 import { ElMessage } from 'element-plus'
 import { QuestionFilled } from '@element-plus/icons-vue'
 
+const dialogTitle = ref("插入小程序")
+const dialogMode = ref("set") // set choose
 const pickerQuery = defineModel()
-const cropSize = ref({
-  width: 0,
-  height: 0,
-})
 const { pickerPageInfo } = defineProps(['pickerPageInfo'])
 
 const $emits = defineEmits(['searchMiniApp'])
+const chooseMiniAppRef = ref(null)
+const choosed_weapp_info = ref({ weapp: null, weapp_path: '' })
 const refMiniAppImgPicker = ref(null)
 const refMiniAppCardImgPicker = ref(null)
 const refImgCrop = ref(null)
+
+
 const dialogVisibleRef = ref(false)
 const displayTypeRef = ref('0')
 const displayTypeLabel = computed(() => {
@@ -195,6 +209,11 @@ function closeDialog() {
   dialogVisibleRef.value = false
 }
 
+function handleChooseMiniApp() {
+  dialogTitle.value = "选择小程序"
+  dialogMode.value = "choose"
+}
+
 function handleChooseAppMiniImg() {
   refMiniAppImgPicker.value.openDialog()
 }
@@ -215,8 +234,15 @@ function onImgPick(urls) {
     // refMiniAppCardImgPicker.cropRef.value.cropWith(urls[0], {radio:'4'})
     console.log("refImgCrop=>", refImgCrop)
     refImgCrop.value.cropWith(urls[0], { radio: '4' })
-    
   }
+}
+
+function handleSetQuery(query) {
+  $emits("searchMiniApp", { type: "byAppName", "formData": { query: query } })
+}
+
+function setMiniApp(weapp, weapp_path) {
+  choosed_weapp_info.value = { weapp, weapp_path }
 }
 
 function insertMiniApp() {
@@ -248,6 +274,7 @@ function insertMiniApp() {
 defineExpose({
   openDialog,
   closeDialog,
+  setMiniApp,
 });
 
 </script>
