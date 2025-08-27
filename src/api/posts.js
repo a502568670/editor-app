@@ -1,6 +1,7 @@
 import {ElMessage} from 'element-plus'
 import dayjs from 'dayjs'
 import request from '@/utils/request'
+import requestJson from '@/utils/requestJson'
 
 export async function getPosts(params) {
     var req = await fetch(`https://www.dajiala.com/fbmain/main/v1/today_hot?${new URLSearchParams(params)}`);
@@ -32,7 +33,8 @@ export async function getDetailPosts(params) {
     if(category===-1){
         searchParams.delete('category')
     }
-    var req = await fetch(`http://47.96.22.8:5057/api/get_burst_articles?api_key=sRqGF0Tet701kiTpJsdhfdardfdf123&${searchParams}`,{method:'POST'});
+    var body=`{"accesstoken":"${accesstoken}"}`
+    var req = await fetch(`http://47.96.22.8:5057/api/get_burst_articles?api_key=sRqGF0Tet701kiTpJsdhfdardfdf123&${searchParams}`,{method:'POST',body});
     var res = await req.json();
     if(res.code!==0){
         ElMessage({type:'error',message:res.msg})
@@ -209,4 +211,19 @@ export async function getUserKeyPosts(params) {
     showErrorMsg(res)
     return res.data
 }
-
+export async function getGossips(data) {
+    var res=await requestJson({
+        url:'/mapi/hot_topic',
+        method:'post',
+        data
+    });
+    return res.data;
+}
+export async function getHotPosts(params={}) {
+    var searchParams=new URLSearchParams(params)
+    if(!params.data_time)searchParams.delete('data_time')
+    var req=await fetch(`https://www.dajiala.com/fbmain/main/v1/today_hot?${searchParams}`,{headers:{accesstoken}})
+    var res=await req.json();
+    showErrorMsg(res)
+    return res.data;
+}

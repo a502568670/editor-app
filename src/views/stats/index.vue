@@ -12,6 +12,10 @@
           <el-icon><ICFire/></el-icon>
           <span>最新爆文</span>
         </el-menu-item>
+        <el-menu-item index="hot">
+          <el-icon><ICFire/></el-icon>
+          <span>今日热文</span>
+        </el-menu-item>
         <el-menu-item index="sub_keywords">
           <el-icon><Management/></el-icon>
           <span>关键词订阅</span>
@@ -21,12 +25,15 @@
           <span>关注的公众号</span>
         </el-menu-item>
       </el-menu-item-group>
+      <el-menu-item index="gossip" v-if="$route.query.pagetype=='2'">热点话题</el-menu-item>
     </el-menu>
     <div class="h-full overflow-y-scroll flex-1">
       <MPAccount v-if="activeName==='mp_account'" class="aaa w-full flex-1 p-2"></MPAccount>
       <Posts v-else-if="activeName==='posts'"/>
       <SubKeywords v-else-if="activeName==='sub_keywords'"/>
       <SubMPList v-else-if="activeName==='sub_mplist'"/>
+      <Gossip v-else-if="activeName==='gossip'"/>
+      <Hot v-else-if="activeName==='hot'"/>
     </div>
   </el-row>
 </template>
@@ -64,6 +71,8 @@ import SubMPList from './SubMPList.vue';
 import Hydrate from '@/components/Hydrate.vue';
 import { dog } from '@/utils';
 import { useRoute } from 'vue-router';
+import Gossip from './Gossip.vue';
+import Hot from './Hot.vue';
 
 var route = useRoute();
 const activeName = ref('mp_account');

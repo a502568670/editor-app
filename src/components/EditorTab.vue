@@ -140,7 +140,9 @@
       </el-col>
       <el-col :span="12" class="h-full overflow-auto" v-loading="globalLoadingRef">
         <div class="h-full flex flex-col">
-          <div ref="ueditor_wrapper" class="h-full">
+          <el-input v-model="currentArticleRef.title" style="--el-input-text-color:#000" clearable placeholder="请输入文章标题"
+            @input="syncToList('title')" v-if="![5, 8].includes(currentArticleRef.item_show_type)" />
+          <div ref="ueditor_wrapper" class="h-full flex-1">
             <vue-ueditor-wrap class="h-full flex items-stretch" v-if="msg_idRef !== 0 && currentArticleRef.item_show_type === 0"
               v-model="currentArticleRef.content_noencode" :editor-id="editorIdRef" @ready="ready"
               :config="editorConfigRef" :editorDependencies="['ueditor.config.js', 'ueditor.all.js']" />
@@ -256,7 +258,7 @@
       <el-col :span="5" class="h-full">
         <el-tabs type="border-card" class="editor-inner-tabs">
         <el-tab-pane label="发布设置">
-        <el-row :gutter="4" class="mb-1" v-if="![5, 8].includes(currentArticleRef.item_show_type)">
+        <el-row :gutter="4" class="mb-1" v-if="false&&![5, 8].includes(currentArticleRef.item_show_type)">
           <el-col :span="24">
             <el-input v-model="currentArticleRef.title" clearable class="grid-content-control" placeholder="请输入文章标题"
               @input="syncToList('title')" />
