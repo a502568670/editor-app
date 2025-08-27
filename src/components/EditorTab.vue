@@ -233,7 +233,7 @@
           <el-icon :size="20" class="cursor-pointer flex justify-center" @click="openMiniAppDialog" title="插入小程序">
             <WechatMiniAppIcon />
           </el-icon>
-          <el-icon :size="20" class="cursor-pointer flex justify-center" @click="openMPDialog" title="插入公众号">
+          <el-icon :size="20" class="cursor-pointer flex justify-center" @click="openMPDialog" title="插入公众号名片">
             <WechatMPIcon />
           </el-icon>
           <Minus class="text-gray-200" />
@@ -467,6 +467,7 @@
   </el-dialog>
   <SetMiniApp ref="setMiniAppRef" :pickerPageInfo="pickerPageInfo" v-model="pickerQuery"
     @search-mini-app="searchMiniApp" />
+  <SetMPCard ref="setMPCardRef" @search-mp="searchMP" />
   <el-dialog :close-on-click-modal="false" title="手机扫码预览" v-model="dialogMobilePreviewVisibleRef" width="330px">
     <el-row :gutter="40" class="h-[300px]">
       <el-col :span="24">
@@ -818,6 +819,7 @@ import debounce from 'lodash-es/debounce'
 import { dog } from '@/utils';
 import SysTempl from './editor/SysTempl.vue';
 import SetMiniApp from "@/components/editor/SetMiniApp.vue"
+import SetMPCard from "@/components/editor/SetMPCard.vue"
 
 const props = defineProps(['account', 'appmsg', 'mode', 'mainMsg']);
 const emitEvents = defineEmits(['titleChange', 'createAppmsg', 'msgidChange'])
@@ -985,6 +987,9 @@ const dialogExtractMpAritcleUrlRef = ref(false)
 const timeoutExtract = 60 * 1000; // ms
 
 const setMiniAppRef = ref(null)
+
+// 账号名片
+const setMPCardRef = ref(null)
 
 // 视频素材
 const dialogVideoMaterialRef = ref(false)
@@ -2401,6 +2406,11 @@ const searchMiniApp = (val) => {
 }
 
 const openMPDialog = () => {
+  setMPCardRef.value.openDialog()
+}
+
+const searchMP = (val) => {
+  const { query, ...others } = val
   const { token, session_id, wechat_id } = selectedAccount.value
   const cookies = serializeCookie(JSON.parse(session_id)["cookie"])
   window.ipcRenderer.send('toMain', {
@@ -2409,12 +2419,11 @@ const openMPDialog = () => {
     token: getToken(),
     wechat_id,
     searchData: {
-      // mp_msgs: toDeepRaw(mp_msgsRef.value),
       cookies,
       token: parseInt(token),
-      // pattern: "#小程序://问卷星/DAfnLzsZZn17Ibu",
-      pattern: "麦当劳",
-    }
+      pattern: query,
+    },
+    ...others,
   })
 }
 
@@ -3001,7 +3010,7 @@ watch(() => [props.mainMsg], async (newVal) => {
       // console.log("ret=>", ret)
       const { success, mps } = ret
       if (success) {
-        console.log("mps=>", mps)
+        setMPCardRef.value.setMPs(mps)
       }
     }
 
