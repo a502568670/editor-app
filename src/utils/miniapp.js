@@ -1,11 +1,12 @@
-function getid(e) {
-  for (var t = "", i = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789", n = 0; e > n; n++)t += i.charAt(Math.floor(Math.random() * i.length));
-  return t;
-}
+import {gen_unique_id} from './msic'
+// function getid(e) {
+//   for (var t = "", i = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789", n = 0; e > n; n++)t += i.charAt(Math.floor(Math.random() * i.length));
+//   return t;
+// }
 
-function gen_unique_id() {
-  return `${getid(8)}-${getid(6)}`
-}
+// function gen_unique_id() {
+//   return `${getid(8)}-${getid(6)}`
+// }
 
 export function tplWithAppLinkAndText ({ app_link, app_title, weapp_path, appid, nickname, service_type }){
   return `<section><span leaf=""><a class="weapp_text_link js_weapp_entry" style="" data-unique-id="${gen_unique_id()}" data-miniprogram-type="text" data-miniprogram-appid="${appid}" data-miniprogram-path="${weapp_path}" data-miniprogram-nickname="${nickname}" data-miniprogram-servicetype="${service_type}" data-miniprogram-applink="${app_link}">${app_title}</a></span></section>`
