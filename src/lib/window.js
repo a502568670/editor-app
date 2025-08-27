@@ -688,7 +688,7 @@ async function reactToIpcObjectData(data, tabbedWin, viewContents) {
       if (!ret.success) {
         verbose_log("===== 搜索公众号失败 ====", ret.err_msg)
       } else {
-        verbose_log("===== 搜索公众号成功 ====", ret.data)
+        verbose_log("===== 搜索公众号成功 ====", ret.mps)
       }
       viewContents.send('fromMain', { tag: 'mp-ret:searchBiz', data: { source, ret, ...others } })
       break

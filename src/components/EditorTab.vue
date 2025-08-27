@@ -467,7 +467,7 @@
   </el-dialog>
   <SetMiniApp ref="setMiniAppRef" :pickerPageInfo="pickerPageInfo" v-model="pickerQuery"
     @search-mini-app="searchMiniApp" />
-  <SetMPCard ref="setMPCardRef" @search-mp="searchMP" />
+  <SetMPCard ref="setMPCardRef" @search-mp="searchMP" @insert-mp-card="insertMPCard" />
   <el-dialog :close-on-click-modal="false" title="手机扫码预览" v-model="dialogMobilePreviewVisibleRef" width="330px">
     <el-row :gutter="40" class="h-[300px]">
       <el-col :span="24">
@@ -798,6 +798,7 @@ import { ad_categorys, adMarkerContentInUEditor, format_ad_content_in_UEditor, r
 import { getVideoFrameHtml, extractVideoFrame } from "@/utils/video"
 import { apperrmsg, claim_source_types, HOUSRS, MINUTES, wxretmsg } from "@/utils/constants"
 import { tplWithAppLinkAndText, tplWithAppLinkAndImage, tplWithAppLinkAndCard } from "@/utils/miniapp"
+import {tplWithMPCard} from "@/utils/mpcard"
 import { ElMessage, ElMessageBox, ElLoading } from 'element-plus'
 import { ArrowUp, ArrowDown, Delete, CircleCheckFilled, CircleCloseFilled, InfoFilled, Search, Plus } from '@element-plus/icons-vue'
 import { Link, Link2, RadioTower, DollarSign, SquareTerminal, Eye, ScanEye, Minus, Smartphone, Video } from 'lucide-vue-next';
@@ -1488,7 +1489,6 @@ const saveCurrentToList = (msg_id) => {
 
   const category_id_list = adCategoryChoosedRef.value.join("|")
   console.log("category_id_list:", category_id_list)
-
   const vhtml = restore_ad_content_from_UEditor(to_save_content_noencode, category_id_list, ad_idRef.value)
   console.log("ad vhtml=>", vhtml)
   currentArticleRef.value.content_noencode = vhtml
@@ -2425,6 +2425,14 @@ const searchMP = (val) => {
     },
     ...others,
   })
+}
+
+const insertMPCard = (val) => {
+  const editor = editorRef.value; // 获取 editor ，必须等待它渲染完之后
+  if (editor == null) return;
+  const html = tplWithMPCard(val)
+  editor.execCommand('inserthtml', html);
+  setMPCardRef.value.closeDialog()
 }
 
 const validatePreview = () => {

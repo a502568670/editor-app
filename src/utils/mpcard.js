@@ -1,0 +1,3 @@
+export function tplWithMPCard ({ fakeid, nickname, alias, round_head_img, signature, service_type, verify_status }){
+  return `<section class="mp_profile_iframe_wrp custom_select_card_wrp" nodeleaf=""><mp-common-profile class="js_uneditable custom_select_card mp_profile_iframe" data-pluginname="mpprofile" data-nickname="${nickname}" data-alias="${alias}" data-from="0" data-headimg="${round_head_img}" data-signature="${signature}" data-id="${fakeid}" data-is_biz_ban="0" data-service_type="${service_type}" data-verify_status="${verify_status}"></mp-common-profile></section>`
+}
