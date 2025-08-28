@@ -6,9 +6,9 @@
                 <div class="flex-1 ml-4">
                     <p class="text-black text-base font-bold ">{{ sim.title }}</p>
                     <div class="flex text-sm mt-2">
-                        <div class="mr-4">阅读数：<br>{{ sim.read }}</div>
-                        <div class="mr-4">在看数：<br>{{ sim.looking }}</div>
-                        <div class="mr-4">发布时间：<br>{{ sim.pub_time }}</div>
+                        <div class="mr-4">阅读数：<br>{{ sim.read??sim.read_num }}</div>
+                        <div class="mr-4">在看数：<br>{{ sim.looking??sim.look_num }}</div>
+                        <div class="mr-4">发布时间：<br>{{ sim.pub_time||sim.publish_time }}</div>
                         <div class="mr-4" v-if="sim.update_time">更新时间：<br>{{ sim.update_time }}</div>
                     </div>
                 </div>

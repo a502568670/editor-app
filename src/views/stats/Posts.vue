@@ -1,11 +1,9 @@
 <template>
     <el-row class="h-full posts">
         <el-col :span="3" class="h-full overflow-y-scroll">
-            <el-menu :default-active="categories[0][0]+''">
-                <el-menu-item-group title="类别">
-                    <el-menu-item v-for="v in categories" :index="v[0]+''" :key="v[0]+''" @click="params.category=v[0]">{{ v[1] }}</el-menu-item>
-                </el-menu-item-group>
-            </el-menu>
+            <Categories v-model="params.category" default-active="-1">
+                <el-menu-item index="-1">总榜</el-menu-item>
+            </Categories>
         </el-col>
         <el-col :span="21" class="h-full overflow-y-scroll p-2" style="display: flex;flex-direction: column;">
             <div class="filters bg-white flex p-2 items-center">
@@ -117,6 +115,7 @@ import Hydrate from '@/components/Hydrate.vue';
 import { useHydrateStore } from '@/store/piniaStore';
 import { ElMessage } from 'element-plus';
 import { copyLink } from '@/utils';
+import Categories from './components/Categories.vue';
 
 var hydrateStore = useHydrateStore();
 var categories=[
