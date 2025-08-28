@@ -798,7 +798,10 @@ import { createDateByDays, parseDate, formatDate } from "@/utils/date"
 import { ad_categorys, adMarkerContentInUEditor, format_ad_content_in_UEditor, restore_ad_content_from_UEditor, has_ad_in_wangEditor, has_ad_in_raw } from "@/utils/ad"
 import { getVideoFrameHtml, extractVideoFrame } from "@/utils/video"
 import { apperrmsg, claim_source_types, HOUSRS, MINUTES, wxretmsg } from "@/utils/constants"
-import { tplWithAppLinkAndText, tplWithAppLinkAndImage, tplWithAppLinkAndCard } from "@/utils/miniapp"
+import { 
+  tplWithAppLinkAndText, tplWithAppLinkAndImage, tplWithAppLinkAndCard, tplMiniAppCardInEditor,
+  hasMiniAppCardInEditor, replaceMiniAppCardToWechat, replaceMiniAppCardFromWechat
+ } from "@/utils/miniapp"
 import {hasMPCardInEditor, replaceMPCardToWechat, tplMPCardInEditor, replaceMPCardFromWechat} from "@/utils/mpcard"
 import { ElMessage, ElMessageBox, ElLoading } from 'element-plus'
 import { ArrowUp, ArrowDown, Delete, CircleCheckFilled, CircleCloseFilled, InfoFilled, Search, Plus } from '@element-plus/icons-vue'
@@ -922,9 +925,8 @@ const DeleteRef = shallowRef(Delete);
 const msg_idRef = ref(0)
 const mp_msgsRef = ref([])
 const mpExsRef = ref({
-  weapp: null,
-  weapp_path: '',
   mps_obj: {},
+  miniappcard_obj: {},
 })
 const mp_msg_groupsRef = ref([])
 const currentAppmsgRef = ref(null)
@@ -1254,6 +1256,9 @@ const loadArticle = (mp_msg, before_save) => {
   // 公众号卡片
   const mps_obj = toDeepRaw(mpExsRef.value.mps_obj)
   vhtml = replaceMPCardFromWechat(vhtml, mps_obj)
+  // 小程序卡片
+  const miniappcard_obj = toDeepRaw(mpExsRef.value.miniappcard_obj)
+  vhtml = replaceMiniAppCardFromWechat(vhtml, miniappcard_obj)
   mp_msg.content_noencode = vhtml
   // console.log("mp_msg1=>", mp_msg.picture_page_info_list) 
   // gen_picture_page_info_list(mp_msg)
@@ -1264,6 +1269,7 @@ const loadArticle = (mp_msg, before_save) => {
   }
   mpExsRef.value = {
     mps_obj: mps_obj,
+    miniappcard_obj: miniappcard_obj,
   }
   console.log("mpExsRef=>", mpExsRef.value)
 
@@ -1511,6 +1517,7 @@ const saveCurrentToList = (msg_id) => {
 
   // replace custom-tag
   vhtml = replaceMPCardToWechat(vhtml, mpExsRef.value.mps_obj)
+  vhtml = replaceMiniAppCardToWechat(vhtml, mpExsRef.value.miniappcard_obj)
 
   currentArticleRef.value.content_noencode = vhtml
 
@@ -1523,12 +1530,19 @@ const saveCurrentToList = (msg_id) => {
 }
 
 const saveOthersToListForCustomTag = (msg_id) => {
-  const targetItems = mp_msgsRef.value.filter(v => v.msg_id !== msg_id && hasMPCardInEditor(v.content_noencode))
+  const targetItems = mp_msgsRef.value.filter(v => v.msg_id !== msg_id)
   const mps_obj = toDeepRaw(mpExsRef.value.mps_obj)
+  const miniappcard_obj = toDeepRaw(mpExsRef.value.miniappcard_obj)
   console.log('targetItems:', targetItems.length)
   console.log('targetItems mps_obj:', mps_obj)
+  console.log('targetItems miniappcard_obj:', miniappcard_obj)
   targetItems.forEach(v => {
-    v.content_noencode = replaceMPCardToWechat(v.content_noencode, mps_obj)
+    if (hasMPCardInEditor(v.content_noencode)) {
+      v.content_noencode = replaceMPCardToWechat(v.content_noencode, mps_obj)
+    }
+    if (hasMiniAppCardInEditor(v.content_noencode)) {
+      v.content_noencode = replaceMiniAppCardToWechat(v.content_noencode, miniappcard_obj)
+    }
   })
 }
 
@@ -2394,8 +2408,6 @@ const searchMiniApp = (val) => {
     // 直接插入
     const { miniAppLink } = formData
     setMiniAppRef.value.closeDialog()
-    mpExsRef.value.weapp = miniAppLink.weapp
-    mpExsRef.value.weapp_path = miniAppLink.weapp_path
     let html = ""
     if (formData.miniAppText) {
       html = tplWithAppLinkAndText({
@@ -2409,14 +2421,16 @@ const searchMiniApp = (val) => {
         weapp_path: miniAppLink.weapp_path, ...miniAppLink.weapp
       })
     } else if (formData.miniAppCardTitle && formData.miniAppCardImg) {
-      console.log("formData.miniAppCardImg=>", formData.miniAppCardImg.length)
-      html = tplWithAppLinkAndCard({
+      const uniqid = gen_unique_id()
+      const dep = {
         app_link: formData.miniAppLink,
         img_link: formData.miniAppCardImg,
         crop: formData.miniAppCardImgCrop,
         app_title: formData.miniAppCardTitle,
         weapp_path: miniAppLink.weapp_path, ...miniAppLink.weapp
-      })
+      }
+      mpExsRef.value.miniappcard_obj = {...mpExsRef.value.miniappcard_obj, [uniqid]: dep} 
+      html = tplMiniAppCardInEditor(uniqid, dep, {br: true})
     }
     editorRef.value.execCommand('inserthtml', html);
     return
@@ -2925,13 +2939,18 @@ watch(() => [props.mainMsg], async (newVal) => {
       }
       let parsed_data = parseExtractMpArticleData(ret, { import_settings: import_settings.value })
       
+      // 公众号卡片
       const mps_obj = toDeepRaw(mpExsRef.value.mps_obj)
       parsed_data.content_noencode = replaceMPCardFromWechat(parsed_data.content_noencode, mps_obj)
+      // 小程序卡片
+      const miniappcard_obj = toDeepRaw(mpExsRef.value.miniappcard_obj)
+      parsed_data.content_noencode = replaceMiniAppCardFromWechat(parsed_data.content_noencode, miniappcard_obj)
       console.log("parsed_data.content_noencode=>", parsed_data.content_noencode)
       console.log("mps_obj=>", mps_obj)
+      console.log("miniappcard_obj=>", miniappcard_obj)
       mpExsRef.value = {
-        ...mpExsRef.value,
         mps_obj: mps_obj,
+        miniappcard_obj: miniappcard_obj,
       }
 
       currentArticleRef.value = {
@@ -3055,13 +3074,24 @@ watch(() => [props.mainMsg], async (newVal) => {
             })
           } else if (formData.miniAppCardTitle && formData.miniAppCardImg) {
             console.log("formData.miniAppCardImg=>", formData.miniAppCardImg.length)
-            html = tplWithAppLinkAndCard({
+            // html = tplWithAppLinkAndCard({
+            //   app_link: formData.miniAppLink,
+            //   img_link: formData.miniAppCardImg,
+            //   crop: formData.miniAppCardImgCrop,
+            //   app_title: formData.miniAppCardTitle,
+            //   weapp_path, ...weapp
+            // })
+
+            const uniqid = gen_unique_id()
+            const dep = {
               app_link: formData.miniAppLink,
               img_link: formData.miniAppCardImg,
               crop: formData.miniAppCardImgCrop,
               app_title: formData.miniAppCardTitle,
               weapp_path, ...weapp
-            })
+            }
+            mpExsRef.value.miniappcard_obj = {...mpExsRef.value.miniappcard_obj, [uniqid]: dep} 
+            html = tplMiniAppCardInEditor(uniqid, dep, {br: true})
           }
           editorRef.value.execCommand('inserthtml', html);
         } else {

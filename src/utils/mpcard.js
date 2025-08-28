@@ -83,5 +83,4 @@ export function replaceMPCardFromWechat(html, deps) {
     })
 
     return tempDiv.innerHTML;
-
 }
