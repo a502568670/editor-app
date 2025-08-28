@@ -106,7 +106,7 @@
             <el-radio-group v-model="displayTypeRef">
               <el-radio value="0">文字</el-radio>
               <el-radio value="1">图片</el-radio>
-              <el-radio value="2">小程序卡片</el-radio>
+              <el-radio v-if="false" value="2">小程序卡片</el-radio>
             </el-radio-group>
           </el-form-item>
         </el-col>
@@ -254,8 +254,8 @@ function openDialog(formData) {
     queryRef.value = ""
     choosed_weapp_info.value = { weapp: null, weapp_path: '' }
     dataForm.value = {
-      miniAppLink: '#小程序://问卷星/DAfnLzsZZn17Ibu',
-      miniAppText: '疯狂星期五',
+      miniAppLink: '',
+      miniAppText: '',
       miniAppImg: '',
       miniAppCardTitle: '',
       miniAppCardImg: '',

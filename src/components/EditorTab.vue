@@ -233,7 +233,7 @@
           <el-icon :size="20" class="cursor-pointer flex justify-center" @click="openMiniAppDialog" title="插入小程序">
             <WechatMiniAppIcon />
           </el-icon>
-          <el-icon :size="20" class="cursor-pointer flex justify-center" @click="openMPDialog" title="插入公众号">
+          <el-icon v-if="false" :size="20" class="cursor-pointer flex justify-center" @click="openMPDialog" title="插入公众号">
             <WechatMPIcon />
           </el-icon>
           <Minus class="text-gray-200" />
