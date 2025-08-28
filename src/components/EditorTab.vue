@@ -386,11 +386,16 @@
         <el-col :span="4" class="w-full">
           <el-checkbox label="清除作者" v-model="import_settings.clear_author" />
         </el-col>
-        <el-col :span="5" class="w-full">
+        <el-col :span="4" class="w-full">
           <el-checkbox label="清除原文链接" v-model="import_settings.clear_source_url" />
         </el-col>
-        <el-col :span="5" class="w-full">
+      </el-row>
+      <el-row>
+        <el-col :span="4" class="w-full">
           <el-checkbox label="清除小程序" v-model="import_settings.clear_weapp" />
+        </el-col>
+        <el-col :span="4" class="w-full">
+          <el-checkbox label="清除广告" v-model="import_settings.clear_ad" />
         </el-col>
       </el-row>
     </div>
@@ -797,7 +802,7 @@ import {gen_unique_id} from "@/utils/msic"
 import { toDeepRaw, toPicPageInfo, gen_picture_page_info_list } from "@/utils/convert"
 import { fmtImageUrl } from "@/utils/format"
 import { createDateByDays, parseDate, formatDate } from "@/utils/date"
-import { ad_categorys, adMarkerContentInUEditor, format_ad_content_in_UEditor, restore_ad_content_from_UEditor, has_ad_in_wangEditor, has_ad_in_raw } from "@/utils/ad"
+import { ad_categorys, adMarkerContentInUEditor, format_ad_content_in_UEditor, restore_ad_content_from_UEditor, has_ad_in_wangEditor, removeAd, has_ad_in_raw } from "@/utils/ad"
 import { getVideoFrameHtml, extractVideoFrame } from "@/utils/video"
 import { apperrmsg, claim_source_types, HOUSRS, MINUTES, wxretmsg } from "@/utils/constants"
 import { 
@@ -988,6 +993,7 @@ const import_settings = ref({
   clear_author: true,
   clear_source_url: true,
   clear_weapp: true,
+  clear_ad: true,
 })
 
 // 提取链接
@@ -2908,6 +2914,9 @@ const parseExtractMpArticleData = (ret, opts = {}) => {
   }
   if (opts.import_settings?.clear_weapp) {
     content_noencode = clearWeApp(content_noencode)
+  }
+  if (opts.import_settings?.clear_ad) {
+    content_noencode = removeAd(content_noencode)
   }
 
   return {
