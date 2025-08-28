@@ -1,22 +1,20 @@
 <template>
   <el-dialog :close-on-click-modal="false" @open="handleDialogOpen" @closed="handleDialogClosed" title="发送到其他账号"
     v-model="dialogVisibleRef" width="600px">
-    <el-row :gutter="40" class="w-full">
-      <el-col :span="18">
+    <div class="w-full">
+      <div class="flex items-center mb-2">
         <el-checkbox label="全部" :indeterminate="otherAccountsChoosedRef.length>0&&otherAccountsChoosedRef.length<props.accounts.length" @change="clickAllOtherAccounts"></el-checkbox>
-        <el-input v-model="input" placeholder="搜索公众号" size="small" style="margin-left: 10px;width: 200px;vertical-align: text-bottom;" clearable/>
-        <el-checkbox-group v-model="otherAccountsChoosedRef">
-          <el-checkbox v-for="(item) in filterAccounts" :key="item.id" :label="item.name" :value="item.id">
-            {{ item.name }}
-          </el-checkbox>
-          <!-- <el-checkbox label="Option 2 & Value 2" /> -->
-        </el-checkbox-group>
-        <div v-if="filterAccounts.length===0">无搜索结果</div>
-      </el-col>
-      <el-col :span="6">
+        <el-input v-model="input" placeholder="搜索公众号" size="small" style="margin-left: 10px;width: 200px;margin-right: auto;" clearable/>
         <el-button @click="handleSend" type="primary">立即发送</el-button>
-      </el-col>
-    </el-row>
+      </div>
+      <el-checkbox-group v-model="otherAccountsChoosedRef" class="grid grid-cols-3 gap-0 mr-10">
+        <el-checkbox class="bg-white" v-for="(item) in filterAccounts" :key="item.id" :label="item.name" :value="item.id">
+          {{ item.name }}
+        </el-checkbox>
+        <!-- <el-checkbox label="Option 2 & Value 2" /> -->
+      </el-checkbox-group>
+      <div v-if="filterAccounts.length===0">无搜索结果</div>
+    </div>
   </el-dialog>
 </template>
 <script setup>
