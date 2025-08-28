@@ -264,34 +264,36 @@
       </el-col>
       <el-col :span="5" class="h-full">
         <el-tabs type="border-card" class="editor-inner-tabs">
-        <el-tab-pane label="发布设置">
-        <el-row :gutter="4" class="mb-1" v-if="![5, 8].includes(currentArticleRef.item_show_type)">
-          <el-col :span="24">
-            <el-input v-model="currentArticleRef.title" clearable class="grid-content-control" placeholder="请输入文章标题"
-              @input="syncToList('title')" />
-          </el-col>
-        </el-row>
-        <el-row :gutter="4" class="mb-1" v-if="![8].includes(currentArticleRef.item_show_type)">
-          <el-col :span="24">
-            <el-input v-model="currentArticleRef.author" clearable class="grid-content-control" placeholder="请输入文章作者" />
-          </el-col>
-        </el-row>
-        <el-row :gutter="4" class="mb-1 w-full">
-          <el-col :span="24" class="h-20 py-2 w-full flex justify-center items-center" style="display: none;">
-            <img class="cursor-pointer max-h-16 block" @click="triggerFileInput" v-if="selectedCdnImageRef"
-              :src="selectedCdnImageRef" alt="封面预览">
-            <img class="cursor-pointer max-h-16 block" @click="triggerFileInput" v-else-if="currentArticleRef.cdn_url"
-              :src="currentArticleRef.cdn_url" referrerpolicy="no-referrer" alt="封面图" />
-            <div v-else @click="triggerFileInput"
-              class="cursor-pointer border h-16 w-[180px] flex justify-center items-center bg-[#8c8c8c]">设置封面图</div>
-            <input class="invisible" ref="cdnFileInputRef" @change="handleImage" type="file" accept="image/*">
-          </el-col>
-          <ImgPicker v-show="currentArticleRef.item_show_type !== 10" ref="refImgPicker" v-model="pickerQuery" :pageInfo="pickerPageInfo"
-            :imgSrc="currentArticleRef.cdn_url" placeholder="设置封面图" @change="handleImageUpload" @confirm="onImgPick"
-            :editorInst="editorRef" />
-          <!-- <ImgCrop :imgSrc="currentArticleRef.cdn_url" placeholder="设置封面图" @change="handleImageUpload"></ImgCrop> -->
-        </el-row>
-        <!-- <el-row :gutter="4" class="mb-1 invisible">
+          <el-tab-pane label="发布设置">
+            <el-row :gutter="4" class="mb-1" v-if="false&&![5, 8].includes(currentArticleRef.item_show_type)">
+              <el-col :span="24">
+                <el-input v-model="currentArticleRef.title" clearable class="grid-content-control" placeholder="请输入文章标题"
+                  @input="syncToList('title')" />
+              </el-col>
+            </el-row>
+            <el-row :gutter="4" class="mb-1" v-if="![8].includes(currentArticleRef.item_show_type)">
+              <el-col :span="24">
+                <el-input v-model="currentArticleRef.author" clearable class="grid-content-control"
+                  placeholder="请输入文章作者" />
+              </el-col>
+            </el-row>
+            <el-row :gutter="4" class="mb-1 w-full">
+              <el-col :span="24" class="h-20 py-2 w-full flex justify-center items-center" style="display: none;">
+                <img class="cursor-pointer max-h-16 block" @click="triggerFileInput" v-if="selectedCdnImageRef"
+                  :src="selectedCdnImageRef" alt="封面预览">
+                <img class="cursor-pointer max-h-16 block" @click="triggerFileInput"
+                  v-else-if="currentArticleRef.cdn_url" :src="currentArticleRef.cdn_url" referrerpolicy="no-referrer"
+                  alt="封面图" />
+                <div v-else @click="triggerFileInput"
+                  class="cursor-pointer border h-16 w-[180px] flex justify-center items-center bg-[#8c8c8c]">设置封面图</div>
+                <input class="invisible" ref="cdnFileInputRef" @change="handleImage" type="file" accept="image/*">
+              </el-col>
+              <ImgPicker v-show="currentArticleRef.item_show_type !== 10" ref="refImgPicker" v-model="pickerQuery"
+                :pageInfo="pickerPageInfo" :imgSrc="currentArticleRef.cdn_url" placeholder="设置封面图"
+                @change="handleImageUpload" @confirm="onImgPick" :editorInst="editorRef" />
+              <!-- <ImgCrop :imgSrc="currentArticleRef.cdn_url" placeholder="设置封面图" @change="handleImageUpload"></ImgCrop> -->
+            </el-row>
+            <!-- <el-row :gutter="4" class="mb-1 invisible">
         <el-col :span="24">
           
         </el-col>
