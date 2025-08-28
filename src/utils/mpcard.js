@@ -53,19 +53,24 @@ export function replaceMPCardFromWechat(html, deps) {
     tempDiv.innerHTML = html;
     
     // 查找所有 role="gqs-mpcard" 的 section 元素
-    const wechatMPCardSections = tempDiv.querySelectorAll('section[class*="mp_profile_iframe_wrp"]');
-    
-    if (wechatMPCardSections.length === 0) {
+    // mp-common-profile
+    const wechatMPCardCustTags = tempDiv.querySelectorAll('section > mp-common-profile');
+    if (wechatMPCardCustTags.length === 0) {
       return html
     }
+    // const wechatMPCardSections = tempDiv.querySelectorAll('section[class*="mp_profile_iframe_wrp"]');
+    
+    // if (wechatMPCardSections.length === 0) {
+    //   return html
+    // }
 
-    wechatMPCardSections.forEach(section => {
+    wechatMPCardCustTags.forEach(ct => {
+      const section = ct.parentNode
       const uniqid = gen_unique_id()
       const replacement = document.createElement('section');
       replacement.setAttribute('id', uniqid)
       replacement.setAttribute('role', 'gqs-mpcard')
-      // fakeid, nickname, alias, round_head_img, signature, service_type, verify_status
-      const customElem = section.childNodes[0]
+      const customElem = ct
       const dataAttrs = {
         fakeid: customElem.getAttribute('data-id'),
         nickname: customElem.getAttribute('data-nickname'),
@@ -78,7 +83,6 @@ export function replaceMPCardFromWechat(html, deps) {
 
       replacement.innerHTML = _tplMPCardInEditor(dataAttrs);
       section.parentNode.replaceChild(replacement, section);
-      // deps = {...deps, [uniqid]: dataAttrs} 改变了传入对象
       deps[uniqid] = dataAttrs
     })
 

@@ -64,7 +64,6 @@ export function replaceMiniAppCardToWechat(html, deps) {
     replacement.innerHTML = _tplWithMiniAppCard(dep);
     section.parentNode.replaceChild(replacement, section);
   });
-  console.log("tempDiv.innerHTML:", tempDiv.innerHTML)
   return tempDiv.innerHTML;
 }
 
@@ -73,15 +72,12 @@ export function replaceMiniAppCardFromWechat(html, deps) {
   const tempDiv = document.createElement('div');
   tempDiv.innerHTML = html;
 
-  // 查找所有 role="gqs-mpcard" 的 section 元素
   const wechatMiniAppCardCustTags = tempDiv.querySelectorAll('section > mp-common-miniprogram');
-
   if (wechatMiniAppCardCustTags.length === 0) {
     return html
   }
   
   wechatMiniAppCardCustTags.forEach(ct => {
-    console.log("ct:", ct)
     const section = ct.parentNode
     const uniqid = gen_unique_id()
     const replacement = document.createElement('section');
