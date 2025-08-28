@@ -227,3 +227,19 @@ export function restore_ad_content(html, category_id_list, ad_id) {
   let replaced = html.replaceAll(regAdMarkerInWangEditor, ad_content_template)
   return replaced
 }
+
+export function removeAd(html) {
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = html;
+    
+    const mpcpcs = tempDiv.querySelectorAll('mpcpc');
+    
+    if (mpcpcs.length === 0) {
+      return html
+    }
+    // 替换每个匹配的 section
+    mpcpcs.forEach(ct => {
+        ct.parentNode.removeChild(ct);
+    });
+    return tempDiv.innerHTML;
+}
