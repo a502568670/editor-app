@@ -18,9 +18,8 @@ function _tplMPCardInEditor(data) {
 }
 
 export function hasMPCardInEditor(html) {
-  const reg = /<section\s+role="gqs-mpcard"[^>]*>/gi
-  const matches = html.matchAll(reg)
-  return matches.length > 0
+  const reg = /gqs-mpcard/gm
+  return reg.test(html)
 }
 
 export function replaceMPCardToWechat(html, deps) {

@@ -921,7 +921,11 @@ const DeleteRef = shallowRef(Delete);
 // mp_msgs
 const msg_idRef = ref(0)
 const mp_msgsRef = ref([])
-const mp_msg_exsRef = ref([])
+const mpExsRef = ref({
+  weapp: null,
+  weapp_path: '',
+  mps_obj: {},
+})
 const mp_msg_groupsRef = ref([])
 const currentAppmsgRef = ref(null)
 const elListMsgsRef = ref(null)
@@ -1056,12 +1060,6 @@ const currentArticleRef = ref({
   // content_noencode: "<section>hello</section>",
   content_noencode: "",
   picture_page_info_list: [],
-})
-const currentExsRef = ref({
-  msg_id: -1,
-  weapp: null,
-  weapp_path: '',
-  mps_obj: {},
 })
 
 
@@ -1227,12 +1225,10 @@ const listArticles = async () => {
       response.data.forEach(gen_picture_page_info_list)
       return response.data;
     })
-    mp_msg_exsRef.value = []
     console.log("mp_msgsRef.value=>", mp_msgsRef.value)
   } else {
     console.log("is in create mode")
     mp_msgsRef.value = []
-    mp_msg_exsRef.value = []
   }
 }
 
@@ -1245,7 +1241,6 @@ const loadArticle = (mp_msg, before_save) => {
     if (preIdx !== -1) {
       console.log("preIdx=>", preIdx, mp_msgsRef.value[preIdx])
       mp_msgsRef.value[preIdx] = { ...mp_msgsRef.value[preIdx], ...currentArticleRef.value }
-      mp_msg_exsRef.value[preIdx] = {...mp_msg_exsRef.value[preIdx], ...currentExsRef.value}
     }
   }
 
@@ -1257,7 +1252,7 @@ const loadArticle = (mp_msg, before_save) => {
   ad_idRef.value = ad_id
   // mp_msg.content_noencode = format_to_wangEditor_html(formated)
   // 公众号卡片
-  const mps_obj = toDeepRaw(currentExsRef.value.mps_obj)
+  const mps_obj = toDeepRaw(mpExsRef.value.mps_obj)
   vhtml = replaceMPCardFromWechat(vhtml, mps_obj)
   mp_msg.content_noencode = vhtml
   // console.log("mp_msg1=>", mp_msg.picture_page_info_list) 
@@ -1267,11 +1262,10 @@ const loadArticle = (mp_msg, before_save) => {
   currentArticleRef.value = {
     ...mp_msg,
   }
-  currentExsRef.value = {
-    msg_id: mp_msg.msg_id,
+  mpExsRef.value = {
     mps_obj: mps_obj,
   }
-  console.log("currentExsRef=>", currentExsRef.value)
+  console.log("mpExsRef=>", mpExsRef.value)
 
   selectedCdnImageRef.value = null
   cdnFileInputRef.value.value = ""
@@ -1327,9 +1321,6 @@ const swapUp = async (msg_id) => {
     mp_msgsRef.value[idx] = mp_msgsRef.value[idx - 1]
     mp_msgsRef.value[idx - 1] = tmp
 
-    var tmp_exs = mp_msg_exsRef.value[idx];
-    mp_msg_exsRef.value[idx] = mp_msg_exsRef.value[idx - 1]
-    mp_msg_exsRef.value[idx - 1] = tmp_exs
     return;
   }
   await swapArticles(prev, msg_id).catch((err) => { })
@@ -1348,9 +1339,6 @@ const swapDown = async (msg_id) => {
     mp_msgsRef.value[idx] = mp_msgsRef.value[idx + 1]
     mp_msgsRef.value[idx + 1] = tmp
 
-    var tmp_exs = mp_msg_exsRef.value[idx];
-    mp_msg_exsRef.value[idx] = mp_msg_exsRef.value[idx + 1]
-    mp_msg_exsRef.value[idx + 1] = tmp_exs
     return;
   }
   await swapArticles(msg_id, next)
@@ -1386,7 +1374,6 @@ const newArticle = async (before_save = true, item_show_type = 0, hydrateMsgIdx 
     if (preIdx !== -1) {
       console.log("preIdx=>", preIdx, mp_msgsRef.value[preIdx])
       mp_msgsRef.value[preIdx] = { ...mp_msgsRef.value[preIdx], ...currentArticleRef.value }
-      mp_msg_exsRef.value[preIdx] = {...mp_msg_exsRef.value[preIdx], ...currentExsRef.value}
     }
   }
 
@@ -1423,18 +1410,9 @@ const newArticle = async (before_save = true, item_show_type = 0, hydrateMsgIdx 
       ...mp_msgsRef.value[hydrateMsgIdx],
       msg_id: new_msg_id
     };
-    mp_msg_exsRef.value[hydrateMsgIdx] = {
-      ...new_exs,
-      ...mp_msg_exsRef.value[hydrateMsgIdx],
-      msg_id: new_msg_id
-    }
   } else {
     mp_msgsRef.value.push({
       ...new_mp_msg,
-      msg_id: new_msg_id
-    })
-    mp_msg_exsRef.value.push({
-      ...new_exs,
       msg_id: new_msg_id
     })
   }
@@ -1520,26 +1498,25 @@ const saveCurrentToList = (msg_id) => {
   currentArticleRef.value.claim_source_type = selected_claim_source_typeRef.value.id
 
 
-  console.log("adCategoryChoosedRef=>", adCategoryChoosedRef.value)
+  // console.log("adCategoryChoosedRef=>", adCategoryChoosedRef.value)
 
 
   const to_save_content_noencode = currentArticleRef.value.content_noencode;
   // console.log("to_save_content_noencode:", to_save_content_noencode)
 
   const category_id_list = adCategoryChoosedRef.value.join("|")
-  console.log("category_id_list:", category_id_list)
+  // console.log("category_id_list:", category_id_list)
   let vhtml = restore_ad_content_from_UEditor(to_save_content_noencode, category_id_list, ad_idRef.value)
-  console.log("ad vhtml=>", vhtml)
+  // console.log("ad vhtml=>", vhtml)
 
   // replace custom-tag
-  vhtml = replaceMPCardToWechat(vhtml, currentExsRef.value.mps_obj)
+  vhtml = replaceMPCardToWechat(vhtml, mpExsRef.value.mps_obj)
 
   currentArticleRef.value.content_noencode = vhtml
 
   const idx = mp_msgsRef.value.findIndex(v => v.msg_id === msg_id)
   if (idx !== -1) {
     mp_msgsRef.value[idx] = currentArticleRef.value
-    mp_msg_exsRef.value[idx] = currentExsRef.value
   }
 
   return idx
@@ -1547,7 +1524,7 @@ const saveCurrentToList = (msg_id) => {
 
 const saveOthersToListForCustomTag = (msg_id) => {
   const targetItems = mp_msgsRef.value.filter(v => v.msg_id !== msg_id && hasMPCardInEditor(v.content_noencode))
-  const mps_obj = toDeepRaw(currentExsRef.value.mps_obj)
+  const mps_obj = toDeepRaw(mpExsRef.value.mps_obj)
   console.log('targetItems:', targetItems.length)
   console.log('targetItems mps_obj:', mps_obj)
   targetItems.forEach(v => {
@@ -1574,8 +1551,11 @@ const _saveAppMsg = async (push_to_remote) => {
   }
 
   const msg_id = msg_idRef.value
+  // console.log("mp_msgsRef before saveCurrentToList=>", mp_msgsRef.value[0].content_noencode)
   let selected_idx = saveCurrentToList(msg_id)
+  // console.log("mp_msgsRef after saveCurrentToList=>", mp_msgsRef.value[0].content_noencode)
   saveOthersToListForCustomTag(msg_id)
+  // console.log("mp_msgsRef after saveOthersToListForCustomTag=>", mp_msgsRef.value[0].content_noencode)
   // console.log("save all mp_msgsRef.value=>", mp_msgsRef.value)
   // const appmsgid =  appmsgidRef.value 
   let appmsgid = _getAppMsgId()
@@ -1589,7 +1569,8 @@ const _saveAppMsg = async (push_to_remote) => {
     push_to_remote,
   }
 
-  console.log("save appmsg postData=>", postData)
+  // console.log("save appmsg postData=>", postData)
+  // return
   const loader = ElLoading.service({
     target: '.main'
   })
@@ -1620,7 +1601,6 @@ const _saveAppMsg = async (push_to_remote) => {
     }
     if (isCreateNewAppMsg) {
       mp_msgsRef.value[selected_idx].appmsgid = appmsgid
-      mp_msg_exsRef.value[selected_idx].appmsgid = appmsgid
     }
     loadArticle(mp_msgsRef.value[selected_idx])
   }).catch((e) => {
@@ -1953,9 +1933,6 @@ const removeArticle = async (msg_id) => {
       const mp_msgs = mp_msgsRef.value
       mp_msgs.splice(not_save_idx, 1)
       mp_msgsRef.value = mp_msgs
-      const mp_msg_exs = mp_msg_exsRef.value
-      mp_msg_exs.splice(not_save_idx, 1)
-      mp_msg_exsRef.value = mp_msg_exs
       // 没选中就是
       msg_idRef.value = 0
       return
@@ -2367,7 +2344,6 @@ const handleImportVideo = () => {
   const idx = mp_msgsRef.value.findIndex(v => v.msg_id === currentArticleRef.value.msg_id)
   if (idx !== -1) {
     mp_msgsRef.value[idx] = currentArticleRef.value
-    mp_msg_exsRef.value[idx] = currentExsRef.value
   }
   dialogVideoMaterialRef.value = false
 }
@@ -2418,8 +2394,8 @@ const searchMiniApp = (val) => {
     // 直接插入
     const { miniAppLink } = formData
     setMiniAppRef.value.closeDialog()
-    currentExsRef.value.weapp = miniAppLink.weapp
-    currentExsRef.value.weapp_path = miniAppLink.weapp_path
+    mpExsRef.value.weapp = miniAppLink.weapp
+    mpExsRef.value.weapp_path = miniAppLink.weapp_path
     let html = ""
     if (formData.miniAppText) {
       html = tplWithAppLinkAndText({
@@ -2495,7 +2471,7 @@ const insertMPCard = (val) => {
   const editor = editorRef.value; // 获取 editor ，必须等待它渲染完之后
   if (editor == null) return;
   const uniqid = gen_unique_id()
-  currentExsRef.value.mps_obj = {...currentExsRef.value.mps_obj, [uniqid]: val}
+  mpExsRef.value.mps_obj = {...mpExsRef.value.mps_obj, [uniqid]: val}
   const html = tplMPCardInEditor(uniqid, val)
   editor.execCommand('inserthtml', html);
   setMPCardRef.value.closeDialog()
@@ -2949,12 +2925,12 @@ watch(() => [props.mainMsg], async (newVal) => {
       }
       let parsed_data = parseExtractMpArticleData(ret, { import_settings: import_settings.value })
       
-      const mps_obj = toDeepRaw(currentExsRef.value.mps_obj)
+      const mps_obj = toDeepRaw(mpExsRef.value.mps_obj)
       parsed_data.content_noencode = replaceMPCardFromWechat(parsed_data.content_noencode, mps_obj)
       console.log("parsed_data.content_noencode=>", parsed_data.content_noencode)
       console.log("mps_obj=>", mps_obj)
-      currentExsRef.value = {
-        ...currentExsRef.value,
+      mpExsRef.value = {
+        ...mpExsRef.value,
         mps_obj: mps_obj,
       }
 
@@ -2966,10 +2942,6 @@ watch(() => [props.mainMsg], async (newVal) => {
       const idx = mp_msgsRef.value.findIndex(v => v.msg_id === currentArticleRef.value.msg_id)
       if (idx !== -1) {
         mp_msgsRef.value[idx] = currentArticleRef.value
-      }
-      const idx_exs = mp_msg_exsRef.value.findIndex(v => v.msg_id === currentExsRef.value.msg_id)
-      if (idx_exs !== -1) {
-        mp_msg_exsRef.value[idx_exs] = currentExsRef.value
       }
 
       extractArticleUrlRef.value = ""
@@ -3123,7 +3095,6 @@ onMounted(async () => {
   currentAppmsgRef.value = props.appmsg
   editorIdRef.value = `editor-${props.appmsg.appmsgid}`
   mp_msgsRef.value = props.appmsg.multi_item
-  mp_msg_exsRef.value = props.appmsg.multi_item.map(v => ({appmsgid: v.msg_id}))
   if (props.mode === 'create') {
     loadArticleByMsgId(mp_msgsRef.value[0].msg_id)
   } else if (props.mode === 'hydrate') {
@@ -3137,10 +3108,6 @@ onMounted(async () => {
         item.msg_id = 0 - Date.now() - index;
       }
     })
-    for (let i = 0; i < mp_msgsRef.value.length; i++) {
-      const item = mp_msgsRef.value[i]
-      mp_msg_exsRef.value[i].msg_id = item.msg_id
-    }
   } else if (props.mode === 'edit') {
     await listArticles()
     if (mp_msgsRef.value.length > 0) {
