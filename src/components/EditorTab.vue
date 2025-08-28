@@ -799,7 +799,7 @@ import { ad_categorys, adMarkerContentInUEditor, format_ad_content_in_UEditor, r
 import { getVideoFrameHtml, extractVideoFrame } from "@/utils/video"
 import { apperrmsg, claim_source_types, HOUSRS, MINUTES, wxretmsg } from "@/utils/constants"
 import { 
-  tplWithAppLinkAndText, tplWithAppLinkAndImage, tplWithAppLinkAndCard, tplMiniAppCardInEditor,
+  tplWithAppLinkAndText, tplWithAppLinkAndImage, tplMiniAppCardInEditor,
   hasMiniAppCardInEditor, replaceMiniAppCardToWechat, replaceMiniAppCardFromWechat
  } from "@/utils/miniapp"
 import {hasMPCardInEditor, replaceMPCardToWechat, tplMPCardInEditor, replaceMPCardFromWechat} from "@/utils/mpcard"
@@ -3073,15 +3073,7 @@ watch(() => [props.mainMsg], async (newVal) => {
               weapp_path, ...weapp
             })
           } else if (formData.miniAppCardTitle && formData.miniAppCardImg) {
-            console.log("formData.miniAppCardImg=>", formData.miniAppCardImg.length)
-            // html = tplWithAppLinkAndCard({
-            //   app_link: formData.miniAppLink,
-            //   img_link: formData.miniAppCardImg,
-            //   crop: formData.miniAppCardImgCrop,
-            //   app_title: formData.miniAppCardTitle,
-            //   weapp_path, ...weapp
-            // })
-
+            // console.log("formData.miniAppCardImg=>", formData.miniAppCardImg.length)
             const uniqid = gen_unique_id()
             const dep = {
               app_link: formData.miniAppLink,
