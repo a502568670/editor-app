@@ -140,7 +140,7 @@
       </el-col>
       <el-col :span="12" class="h-full overflow-auto" v-loading="globalLoadingRef">
         <div class="h-full flex flex-col">
-          <el-input v-model="currentArticleRef.title" style="--el-input-text-color:#000" clearable placeholder="请输入文章标题"
+          <el-input v-model="currentArticleRef.title" style="--el-input-text-color:#000;--el-input-height:52px;font-size:24px" clearable placeholder="请输入文章标题"
             @input="syncToList('title')" v-if="![5, 8].includes(currentArticleRef.item_show_type)" />
           <div ref="ueditor_wrapper" class="h-full flex-1">
             <vue-ueditor-wrap class="h-full flex items-stretch"
