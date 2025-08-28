@@ -1,5 +1,5 @@
 <template>
-    <div class="container-img-crop" :class="{plain:button||nul}">
+    <div class="container-img-crop" :class="{ plain: button || nul }">
         <img v-if="imgSrc" :src="previewSrc || imgSrc" class="max-h-full" alt="">
         <el-button v-else-if="button" type="primary" :icon="UploadFilled" @click="refInput.click()">本地上传</el-button>
         <i v-else-if="nul"></i>
@@ -29,10 +29,12 @@
                     <el-radio value="1">横图(16:7)</el-radio>
                     <el-radio value="2">竖图(3:4)</el-radio>
                     <el-radio value="3">正方形(1:1)</el-radio>
-                    <el-radio value="4">自由比例</el-radio>
+                    <el-radio value="4">横图2(5:4)</el-radio>
+                    <el-radio value="5">自由比例</el-radio>
                 </el-radio-group>
                 <div class="w-full h-[50vh]">
-                    <VueCropper ref="cropper" :img="cropperSrc" :fixed="fixed" :fixed-number="fixedNumber" v-bind="opt"></VueCropper>
+                    <VueCropper ref="cropper" :img="cropperSrc" :fixed="fixed" :fixed-number="fixedNumber" v-bind="opt">
+                    </VueCropper>
                 </div>
             </div>
             <template #footer>
@@ -52,11 +54,12 @@ import { ElMessage } from 'element-plus'
 import { uploadImage } from '@/api/img';
 import { serializeCookie } from '@/utils/cookie';
 
-var { imgSrc, button,upload,nul } = defineProps({
+var { imgSrc, button, upload, nul, forbidCrop } = defineProps({
     imgSrc: String,
     button: Boolean,
     upload: Boolean,
     nul: Boolean,
+    forbidCrop: Boolean,
 })
 var opt = {
     centerBox: true, mode: 'contain', outputType: 'png', outputSize: 1,
@@ -65,25 +68,27 @@ var opt = {
     full: true,
 }
 var refCropper = useTemplateRef('cropper');
-var fixVal=ref('1');
-var fixed=computed(() => fixVal.value!=='4')
-var fixedRatio={
-    1:[1,0.425],
-    2:[3,4],
-    3:[1,1],
+var fixVal = ref('1');
+var fixed = computed(() => fixVal.value !== '5')
+var fixedRatio = {
+    1: [1, 0.425],
+    2: [3, 4],
+    3: [1, 1],
+    4: [5, 4]
 }
-var fixedNumber=computed(()=>fixedRatio[fixVal.value])
-watch(fixedNumber,()=>nextTick(()=>refCropper.value.goAutoCrop()))
+var fixedNumber = computed(() => fixedRatio[fixVal.value])
+watch(fixedNumber, () => nextTick(() => refCropper.value.goAutoCrop()))
 var open = ref(false)
 defineExpose({
-    click(){
+    click() {
         refInput.click()
     },
-    cropWith(url){
-        open.value=true
-        cropperSrc.value=url
-        opt.extraData={name:'图片-'+Date.now()+'.png',type:'image/png'}
-    },
+    cropWith(url, { radio }) {
+        open.value = true
+        cropperSrc.value = url
+        opt.extraData = { name: '图片-' + Date.now() + '.png', type: 'image/png' }
+        fixVal.value = radio
+    }
 })
 // var imgSrc=defineModel()
 var $emit = defineEmits(['change'])
@@ -96,9 +101,28 @@ function onFileChange(e) {
         if (type.startsWith('image/')) {
             var reader = new FileReader()
             reader.onload = () => {
-                open.value = true
-                cropperSrc.value = reader.result
-                opt.extraData = { name: `${name}.png`, type: 'image/png' }
+                console.log("forbidCrop=>", forbidCrop)
+                if (!forbidCrop) {
+                    open.value = true
+                    cropperSrc.value = reader.result
+                    opt.extraData = { name: `${name}.png`, type: 'image/png' }
+                } else {
+                    if (upload) {
+                        try {
+                            const { session_id, token } = selectedAccount.value
+                            const cookies = serializeCookie(JSON.parse(session_id)["cookie"])
+                            uploadImage({
+                                cookies: cookies,
+                                token: parseInt(token),
+                                base64_image: reader.result.substring(22),
+                                filename: `${name}.png`,
+                                content_type: 'image/png',
+                            }).then(res => $emit('change', res.data.cdn_url))
+                        } catch (err) {
+                            console.error(err)
+                        }
+                    }
+                }
             }
             reader.readAsDataURL(file)
         } else {
@@ -108,32 +132,34 @@ function onFileChange(e) {
     e.target.value = ''
 }
 function onImageCrop() {
-    open.value = true
+    if (!forbidCrop) {
+        open.value = true
+    }
     cropperSrc.value = imgSrc
 }
 var refInput = useTemplateRef('input')
-var selectedAccount=inject('selectedAccount')
+var selectedAccount = inject('selectedAccount')
 function onConfirm() {
     open.value = false;
     refCropper.value.getCropData((data) => {
         previewSrc.value = data;
         opt.extraData.data = data.substring(22)
-        if(upload){
+        if (upload) {
             try {
                 const { session_id, token } = selectedAccount.value
+                const cookies = serializeCookie(JSON.parse(session_id)["cookie"])
                 uploadImage({
-                    cookies: serializeCookie(JSON.parse(session_id)["cookie"]),
+                    cookies: cookies,
                     token: parseInt(token),
-                    base64_image:opt.extraData.data,
-                    filename:opt.extraData.name,
-                    content_type:opt.extraData.type,
-                }).then(res=>$emit('change',res.data.cdn_url))
+                    base64_image: opt.extraData.data,
+                    filename: opt.extraData.name,
+                    content_type: opt.extraData.type,
+                }).then(res => $emit('change', res.data.cdn_url))
             } catch (err) {
                 console.error(err)
             }
-        } else $emit('change', opt.extraData)
+        } else $emit('change', { ...opt.extraData, raw_img: cropperSrc.value, crop: refCropper.value.getCropAxis() })
     })
-
 }
 // onMounted(()=>{
 //     store.dispatch('ListAccounts')
@@ -143,9 +169,10 @@ watch(() => imgSrc, () => {
 })
 </script>
 <style>
-.container-img-crop{
+.container-img-crop {
     position: relative;
 }
+
 .container-img-crop:not(.plain) {
     display: flex;
     flex-direction: column;
@@ -175,6 +202,7 @@ watch(() => imgSrc, () => {
     visibility: hidden;
     transition: .3s;
 }
+
 .container-img-crop .el-radio {
     /* margin-right: 10px; */
 }

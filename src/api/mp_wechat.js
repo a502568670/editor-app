@@ -1,4 +1,5 @@
 import request from '@/utils/requestJson'
+import { createSSEConnection, abortSSEConnection, fetchStream } from '@/utils/request'
 import { getToken } from "@/utils/auth";
 
 // 获取公众号用户
@@ -81,5 +82,40 @@ export async function stat_appmsg_copyright_stat_events(data, cb) {
       break;
     }
     cb(value)
+  }
+}
+
+
+// 获取手机验证QR
+export async function getQrcodeMobileValidate(data) {
+  return fetchStream(window.envVars.backend_url + '/mp_wechat/create_qr_code', 'post', data)
+}
+
+// 查询手机验证码扫码状态
+export async function query_appmsg_publish_qrcode_validate_events(data, cb) {
+  const url = window.envVars.backend_url + '/mp_wechat/appmsg_publish_qrcode_validate/events'
+  // const token = getToken()
+  // // 'application/json'
+  // const response = await fetch(url, {
+  //   method: 'POST',
+  //   headers: {
+  //     'Content-Type': 'application/json',
+  //     'Authorization': `Bearer ${token}`,
+  //   },
+  //   body: JSON.stringify(data)
+  // })
+  // const reader = response.body.pipeThrough(new TextDecoderStream()).getReader()
+  // while (true) {
+  //   const { value, done } = await reader.read();
+  //   console.log("query_appmsg_publish_qrcode_validate_events value:", value)
+  //   console.log("query_appmsg_publish_qrcode_validate_events done:", done)
+  //   if (done) {
+  //     break;
+  //   }
+  //   cb(value)
+  // }
+  const requestId = await createSSEConnection(url, data, cb)
+  return () => {
+    abortSSEConnection(requestId)
   }
 }
