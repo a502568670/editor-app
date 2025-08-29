@@ -33,8 +33,9 @@ export async function getDetailPosts(params) {
     if(category===-1){
         searchParams.delete('category')
     }
+    // searchParams.append('accesstoken',accesstoken)
     var body=`{"accesstoken":"${accesstoken}"}`
-    var req = await fetch(`http://47.96.22.8:5057/api/get_burst_articles?api_key=sRqGF0Tet701kiTpJsdhfdardfdf123&${searchParams}`,{method:'POST',body});
+    var req = await fetch(`http://47.96.22.8:5057/api/get_burst_articles?api_key=sRqGF0Tet701kiTpJsdhfdardfdf123&${searchParams}`,{method:'POST',body,headers:{'content-type':'application/json'}});
     var res = await req.json();
     if(res.code!==0){
         ElMessage({type:'error',message:res.msg})

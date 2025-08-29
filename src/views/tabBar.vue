@@ -33,7 +33,7 @@
                 :class="{ 'handle cursor-move': !dragDisabled }" />
               <div style="margin-left: 10px;flex: 1;">
                 <div>{{ element.name }}</div>
-                <div style="color: #51ce94">{{ element.platform_name + "(" + element.name + ")" }}{{ element.id }}</div>
+                <div style="color: #51ce94">{{ element.platform_name + "(" + element.name + ")" }}</div>
               </div>
               <el-tooltip v-if="element.expired" content="登录过期">
                 <el-icon class="mr-1" style="color:red">
