@@ -238,6 +238,9 @@
           <el-icon v-if="false" :size="20" class="cursor-pointer flex justify-center" @click="openMPDialog" title="插入公众号名片">
             <WechatMPIcon />
           </el-icon>
+          <el-icon :size="20" class="cursor-pointer flex justify-center" @click="openMPVDialog" title="插入视频">
+            <WechatVideoIcon />
+          </el-icon>
           <Minus class="text-gray-200" />
           <!-- <div class="flex-1"></div> -->
           <el-icon :size="20" class="cursor-pointer flex justify-center" @click="handlePreview" title="文章预览">
@@ -475,6 +478,7 @@
   <SetMiniApp ref="setMiniAppRef" :pickerPageInfo="pickerPageInfo" v-model="pickerQuery"
     @search-mini-app="searchMiniApp" />
   <SetMPCard ref="setMPCardRef" @search-mp="searchMP" @insert-mp-card="insertMPCard" />
+  <SetMPV ref="setMPVRef" @search-mpv="searchMPV" />
   <el-dialog :close-on-click-modal="false" title="手机扫码预览" v-model="dialogMobilePreviewVisibleRef" width="330px">
     <el-row :gutter="40" class="h-[300px]">
       <el-col :span="24">
@@ -815,6 +819,7 @@ import { ArrowUp, ArrowDown, Delete, CircleCheckFilled, CircleCloseFilled, InfoF
 import { Link, Link2, RadioTower, DollarSign, SquareTerminal, Eye, ScanEye, Minus, Smartphone, Video } from 'lucide-vue-next';
 import WechatMiniAppIcon from "@/components/icons/WechatMiniAppIcon"
 import WechatMPIcon from "@/components/icons/WechatMPIcon"
+import WechatVideoIcon from "@/components/icons/WechatVideoIcon"
 import { RefreshRight } from '@element-plus/icons-vue'
 import { serializeCookie } from "@/utils/cookie"
 import axios from 'axios'
@@ -832,6 +837,7 @@ import { dog } from '@/utils';
 import SysTempl from './editor/SysTempl.vue';
 import SetMiniApp from "@/components/editor/SetMiniApp.vue"
 import SetMPCard from "@/components/editor/SetMPCard.vue"
+import SetMPV from './editor/SetMPV.vue';
 
 const props = defineProps(['account', 'appmsg', 'mode', 'mainMsg']);
 const emitEvents = defineEmits(['titleChange', 'createAppmsg', 'msgidChange'])
@@ -1007,6 +1013,9 @@ const setMiniAppRef = ref(null)
 
 // 账号名片
 const setMPCardRef = ref(null)
+
+// 视频号
+const setMPVRef = ref(null)
 
 // 视频素材
 const dialogVideoMaterialRef = ref(false)
@@ -2499,6 +2508,39 @@ const insertMPCard = (val) => {
   setMPCardRef.value.closeDialog()
 }
 
+const openMPVDialog = () => {
+  setMPVRef.value.openDialog()
+}
+
+const searchMPV = (val) => {
+  const { type, query, ...others } = val
+  const { token, session_id, wechat_id } = selectedAccount.value
+  const cookies = serializeCookie(JSON.parse(session_id)["cookie"])
+  let tag
+  if (type == "account") {
+    tag = 'mpv:searchMpvAccount'
+  } else if (type == "video") {
+    tag = 'mpv:searchMpvVideo'
+  } else if (type == "live") {
+    tag = 'mpv:searchMpvLive'
+  }
+  console.log("tag=>", tag)
+  if (!tag) return
+  window.ipcRenderer.send('toMain', {
+      tag: tag,
+      source: `${props.appmsg.appmsgid}`,
+      token: getToken(),
+      wechat_id,
+      searchData: {
+        cookies,
+        token: parseInt(token),
+        pattern: query,
+        count: 10,
+      },
+      ...others,
+    })
+}
+
 const validatePreview = () => {
   if (msg_idRef.value <= 0) {
     ElMessageBox.alert('请把文章先保存到公众号草稿箱，再预览', '警告', {
@@ -3107,6 +3149,27 @@ watch(() => [props.mainMsg], async (newVal) => {
       const { success, mps } = ret
       if (success) {
         setMPCardRef.value.setMPs(mps)
+      }
+    } else if (tag==="mpv-ret:searchMpvAccount") {
+      const { ret } = msg.data
+      console.log("ret=>", ret)
+      const { success, mpvs } = ret
+      if (success) {
+        setMPVRef.value.setMPVs('account', mpvs)
+      }
+    } else if (tag === "mpv-ret:searchMpvVideo") {
+      const { ret } = msg.data
+      console.log("ret=>", ret)
+      const { success, mpv_videos } = ret
+      if (success) {
+        setMPVRef.value.setMPVs('video', mpv_videos)
+      }
+    } else if (tag === "mpv-ret:searchMpvLive") {
+      const { ret } = msg.data
+      console.log("ret=>", ret)
+      const { success, mpv_lives } = ret
+      if (success) {
+        setMPVRef.value.setMPVs('live', mpv_lives)
       }
     }
 
