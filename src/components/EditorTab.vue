@@ -235,7 +235,7 @@
           <el-icon :size="20" class="cursor-pointer flex justify-center" @click="openMiniAppDialog" title="插入小程序">
             <WechatMiniAppIcon />
           </el-icon>
-          <el-icon v-if="false" :size="20" class="cursor-pointer flex justify-center" @click="openMPDialog" title="插入公众号名片">
+          <el-icon :size="20" class="cursor-pointer flex justify-center" @click="openMPDialog" title="插入公众号名片">
             <WechatMPIcon />
           </el-icon>
           <Minus class="text-gray-200" />
@@ -830,7 +830,8 @@ import UserTempl from './editor/UserTempl.vue';
 import debounce from 'lodash-es/debounce'
 import { dog } from '@/utils';
 import SysTempl from './editor/SysTempl.vue';
-import SetMiniApp from "@/components/editor/SetMiniApp.vue"
+// import SetMiniApp from "@/components/editor/SetMiniApp.vue"
+import SetMiniApp from "@/components/editor/SetMiniAppWeiYu.vue"
 import SetMPCard from "@/components/editor/SetMPCard.vue"
 
 const props = defineProps(['account', 'appmsg', 'mode', 'mainMsg']);
@@ -1554,8 +1555,34 @@ const saveOthersToListForCustomTag = (msg_id) => {
   })
 }
 
+const validateMsgData = () => {
+  return mp_msgsRef.value.every(v => {
+    if (!v.title) {
+      ElMessage({
+        message: `请输入标题`,
+        type: 'error',
+        duration: 2 * 1000
+      })
+      return false
+    }
+    if (!v.cdn_url) {
+      ElMessage({
+        message: `请设置封面图`,
+        type: 'error',
+        duration: 2 * 1000
+      })
+      return false
+    }
+    return true
+  })
+}
+
 const _saveAppMsg = async (push_to_remote) => {
   if (!validateAccount()) {
+    return
+  }
+
+  if (!validateMsgData()) {
     return
   }
 
@@ -3100,6 +3127,8 @@ watch(() => [props.mainMsg], async (newVal) => {
         } else {
           setMiniAppRef.value.setMiniApp(weapp, weapp_path)
         }
+      } else {
+        ElMessage({ type: 'error', message: ret.err_msg })
       }
     } else if (tag === "mp-ret:searchBiz") {
       const { ret } = msg.data
@@ -3107,6 +3136,8 @@ watch(() => [props.mainMsg], async (newVal) => {
       const { success, mps } = ret
       if (success) {
         setMPCardRef.value.setMPs(mps)
+      } else {
+        ElMessage({ type: 'error', message: ret.err_msg })
       }
     }
 

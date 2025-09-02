@@ -44,6 +44,13 @@ const searchMiniApp = async ({ cookies, token, pattern }) => {
     }
   }
   const ret = pattern.includes('#小程序') ? res : res.items.find((_, idx) => idx === 0)
+  console.log("ret=>", ret)
+  if (!ret) {
+    return {
+      success: false,
+      err_msg: "未找到小程序"
+    }
+  }
   const weapp = ret.weapp
   const weapp_path = ret.weapp_path || ret.weapp.main_page
   return {
