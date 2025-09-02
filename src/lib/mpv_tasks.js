@@ -57,7 +57,7 @@ const searchMpvAccount = async ({ cookies, token, pattern, count }) => {
   }
 }
 
-const searchMpvVideo = async ({ cookies, token, pattern, count }) => {
+const searchMpvVideo = async ({ cookies, token, username, pattern, count }) => {
   const opts = {
     headers: { ...getDefaultHeader(), cookie: cookies }
   };
@@ -65,7 +65,7 @@ const searchMpvVideo = async ({ cookies, token, pattern, count }) => {
   verbose_log('api url:', url)
   const params = {
     "action": "get_feed_list",
-    "username": pattern,
+    "username": username,
     'buffer': '',
     "count": count,
     "scene": "0",
@@ -74,6 +74,10 @@ const searchMpvVideo = async ({ cookies, token, pattern, count }) => {
     "lang": "zh_CN",
     "f": "json",
     "ajax": "1"
+  }
+  if (pattern) {
+    params.action = "search_feeds"
+    params.query = pattern
   }
 
   verbose_log('api params:', params)
@@ -100,7 +104,7 @@ const searchMpvVideo = async ({ cookies, token, pattern, count }) => {
   }
 }
 
-const searchMpvLive = async ({ cookies, token, pattern, count }) => {
+const searchMpvLive = async ({ cookies, token, username, pattern, count }) => {
   const opts = {
     headers: { ...getDefaultHeader(), cookie: cookies }
   };
@@ -108,7 +112,7 @@ const searchMpvLive = async ({ cookies, token, pattern, count }) => {
   verbose_log('api url:', url)
   const params = {
     "action": "get_live_list",
-    "username": pattern,
+    "username": username,
     'buffer': '',
     "count": count,
     "scene": "0",
@@ -117,6 +121,10 @@ const searchMpvLive = async ({ cookies, token, pattern, count }) => {
     "lang": "zh_CN",
     "f": "json",
     "ajax": "1"
+  }
+  if (pattern) {
+    params.action = "search_lives"
+    params.query = pattern
   }
 
   verbose_log('api params:', params)
@@ -136,7 +144,7 @@ const searchMpvLive = async ({ cookies, token, pattern, count }) => {
     }
   }
   const mpv_lives = res.list || []
-  console.log("mpv_lives=>", mpv_lives)
+  // console.log("mpv_lives=>", mpv_lives)
   return {
     success: true,
     mpv_lives,

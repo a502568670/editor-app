@@ -478,7 +478,7 @@
   <SetMiniApp ref="setMiniAppRef" :pickerPageInfo="pickerPageInfo" v-model="pickerQuery"
     @search-mini-app="searchMiniApp" />
   <SetMPCard ref="setMPCardRef" @search-mp="searchMP" @insert-mp-card="insertMPCard" />
-  <SetMPV ref="setMPVRef" @search-mpv="searchMPV" />
+  <SetMPV ref="setMPVRef" @search-mpv="searchMPV" @insert-mpv-content="insertMPVContent" />
   <el-dialog :close-on-click-modal="false" title="手机扫码预览" v-model="dialogMobilePreviewVisibleRef" width="330px">
     <el-row :gutter="40" class="h-[300px]">
       <el-col :span="24">
@@ -814,6 +814,7 @@ import {
   hasMiniAppCardInEditor, replaceMiniAppCardToWechat, replaceMiniAppCardFromWechat
  } from "@/utils/miniapp"
 import {hasMPCardInEditor, replaceMPCardToWechat, tplMPCardInEditor, replaceMPCardFromWechat} from "@/utils/mpcard"
+import {hasMPVContentInEditor, replaceMPVContentToWechat, tplMPVContentInEditor, replaceMPVContentFromWechat} from "@/utils/mpvcontent"
 import { ElMessage, ElMessageBox, ElLoading } from 'element-plus'
 import { ArrowUp, ArrowDown, Delete, CircleCheckFilled, CircleCloseFilled, InfoFilled, Search, Plus } from '@element-plus/icons-vue'
 import { Link, Link2, RadioTower, DollarSign, SquareTerminal, Eye, ScanEye, Minus, Smartphone, Video } from 'lucide-vue-next';
@@ -940,6 +941,7 @@ const mp_msgsRef = ref([])
 const mpExsRef = ref({
   mps_obj: {},
   miniappcard_obj: {},
+  mpvcontent_obj: {},
 })
 const mp_msg_groupsRef = ref([])
 const currentAppmsgRef = ref(null)
@@ -1276,7 +1278,12 @@ const loadArticle = (mp_msg, before_save) => {
   // 小程序卡片
   const miniappcard_obj = toDeepRaw(mpExsRef.value.miniappcard_obj)
   vhtml = replaceMiniAppCardFromWechat(vhtml, miniappcard_obj)
+  // 视频号内容
+  const mpvcontent_obj = toDeepRaw(mpExsRef.value.mpvcontent_obj)
+  vhtml = replaceMPVContentFromWechat(vhtml, mpvcontent_obj)
+  
   mp_msg.content_noencode = vhtml
+
   // console.log("mp_msg1=>", mp_msg.picture_page_info_list) 
   // gen_picture_page_info_list(mp_msg)
   // console.log("mp_msg2=>", mp_msg.picture_page_info_list)
@@ -1287,6 +1294,7 @@ const loadArticle = (mp_msg, before_save) => {
   mpExsRef.value = {
     mps_obj: mps_obj,
     miniappcard_obj: miniappcard_obj,
+    mpvcontent_obj: mpvcontent_obj,
   }
   console.log("mpExsRef=>", mpExsRef.value)
 
@@ -1535,9 +1543,12 @@ const saveCurrentToList = (msg_id) => {
   // replace custom-tag
   vhtml = replaceMPCardToWechat(vhtml, mpExsRef.value.mps_obj)
   vhtml = replaceMiniAppCardToWechat(vhtml, mpExsRef.value.miniappcard_obj)
+  vhtml = replaceMPVContentToWechat(vhtml, mpExsRef.value.mpvcontent_obj)
 
+  // console.log("vhtml=>", vhtml)
   currentArticleRef.value.content_noencode = vhtml
-
+  
+  console.log("abc")
   const idx = mp_msgsRef.value.findIndex(v => v.msg_id === msg_id)
   if (idx !== -1) {
     mp_msgsRef.value[idx] = currentArticleRef.value
@@ -1550,15 +1561,16 @@ const saveOthersToListForCustomTag = (msg_id) => {
   const targetItems = mp_msgsRef.value.filter(v => v.msg_id !== msg_id)
   const mps_obj = toDeepRaw(mpExsRef.value.mps_obj)
   const miniappcard_obj = toDeepRaw(mpExsRef.value.miniappcard_obj)
-  console.log('targetItems:', targetItems.length)
-  console.log('targetItems mps_obj:', mps_obj)
-  console.log('targetItems miniappcard_obj:', miniappcard_obj)
+  const mpvcontent_obj = toDeepRaw(mpExsRef.value.mpvcontent_obj)
   targetItems.forEach(v => {
     if (hasMPCardInEditor(v.content_noencode)) {
       v.content_noencode = replaceMPCardToWechat(v.content_noencode, mps_obj)
     }
     if (hasMiniAppCardInEditor(v.content_noencode)) {
       v.content_noencode = replaceMiniAppCardToWechat(v.content_noencode, miniappcard_obj)
+    }
+    if (hasMPVContentInEditor(v.content_noencode)) {
+      v.content_noencode = replaceMPVContentToWechat(v.content_noencode, mpvcontent_obj)
     }
   })
 }
@@ -1584,8 +1596,9 @@ const _saveAppMsg = async (push_to_remote) => {
   const msg_id = msg_idRef.value
   // console.log("mp_msgsRef before saveCurrentToList=>", mp_msgsRef.value[0].content_noencode)
   let selected_idx = saveCurrentToList(msg_id)
-  // console.log("mp_msgsRef after saveCurrentToList=>", mp_msgsRef.value[0].content_noencode)
+  console.log("mp_msgsRef after saveCurrentToList=>", mp_msgsRef.value[0].content_noencode)
   saveOthersToListForCustomTag(msg_id)
+  
   // console.log("mp_msgsRef after saveOthersToListForCustomTag=>", mp_msgsRef.value[0].content_noencode)
   // console.log("save all mp_msgsRef.value=>", mp_msgsRef.value)
   // const appmsgid =  appmsgidRef.value 
@@ -1599,12 +1612,12 @@ const _saveAppMsg = async (push_to_remote) => {
     wechat_id,
     push_to_remote,
   }
-
   // console.log("save appmsg postData=>", postData)
   // return
   const loader = ElLoading.service({
     target: '.main'
   })
+  
   await saveAppMsg(postData).then(async (res) => {
     ElMessage({
       message: `消息${push_to_remote === 0 ? "暂存" : "同步"}成功`,
@@ -2513,7 +2526,7 @@ const openMPVDialog = () => {
 }
 
 const searchMPV = (val) => {
-  const { type, query, ...others } = val
+  const { type, username, query, ...others } = val
   const { token, session_id, wechat_id } = selectedAccount.value
   const cookies = serializeCookie(JSON.parse(session_id)["cookie"])
   let tag
@@ -2535,10 +2548,29 @@ const searchMPV = (val) => {
         cookies,
         token: parseInt(token),
         pattern: query,
+        username: username,
         count: 10,
       },
       ...others,
     })
+}
+
+const insertMPVContent = (val) => {
+  const editor = editorRef.value; // 获取 editor ，必须等待它渲染完之后
+  if (editor == null) return;
+  // val is array
+  const htmls = []
+  const insert_mpvcontent_obj = {}
+  val.forEach((v) => {
+    const uniqid = gen_unique_id()
+    console.log("v=>", v)
+    insert_mpvcontent_obj[uniqid] = v
+    htmls.push(tplMPVContentInEditor(uniqid, v))
+  })
+  console.log("insert_mpvcontent_obj=>", insert_mpvcontent_obj)
+  mpExsRef.value.mpvcontent_obj = {...mpExsRef.value.mpvcontent_obj, ...insert_mpvcontent_obj}  
+  editor.execCommand('inserthtml', htmls.join(''));
+  setMPVRef.value.closeDialog()
 }
 
 const validatePreview = () => {
@@ -2998,12 +3030,18 @@ watch(() => [props.mainMsg], async (newVal) => {
       // 小程序卡片
       const miniappcard_obj = toDeepRaw(mpExsRef.value.miniappcard_obj)
       parsed_data.content_noencode = replaceMiniAppCardFromWechat(parsed_data.content_noencode, miniappcard_obj)
+      // 视频号内容
+      const mpvcontent_obj = toDeepRaw(mpExsRef.value.mpvcontent_obj)
+      parsed_data.content_noencode = replaceMPVContentFromWechat(parsed_data.content_noencode, mpvcontent_obj)
+
       console.log("parsed_data.content_noencode=>", parsed_data.content_noencode)
       console.log("mps_obj=>", mps_obj)
       console.log("miniappcard_obj=>", miniappcard_obj)
+      console.log("mpvcontent_obj=>", mpvcontent_obj)
       mpExsRef.value = {
         mps_obj: mps_obj,
         miniappcard_obj: miniappcard_obj,
+        mpvcontent_obj: mpvcontent_obj,
       }
 
       currentArticleRef.value = {

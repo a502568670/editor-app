@@ -40,7 +40,7 @@
             <el-radio v-if="false" value="event">活动</el-radio>
           </el-radio-group>
         </div>
-        <div class="bg-white px-2 py-0.5 flex items-center border rounded-sm"><el-input class="bg-white searchbox"
+        <div v-if="displayTypeRef == 'video'" class="bg-white px-2 py-0.5 flex items-center border rounded-sm"><el-input class="bg-white searchbox"
             v-model="queryContentRef" style="width: 100%;" clearable placeholder="输入视频号内容"
             @keypress.enter="handleSetQueryContent" />
           <el-icon style="cursor: pointer;" @click="handleSetQueryContent">
@@ -56,7 +56,7 @@
               <el-card class="mini-tip-card rounded-[4px]">
                 <div class="flex flex-col space-y-2">
                   <div v-if="video.media_num > 0" class="relative">
-                    <img class="rounded-[4px] block w-full" :src="video.media[0].cover_url">
+                    <img class="rounded-[4px] block w-full max-h-[224px] object-contain" :src="video.media[0].cover_url">
                     <i class="play-btn_primary"></i>
                     <el-checkbox v-if="sel_video_keys.includes(video.nonce_id)" label="" class="top-1 left-3 absolute w-8 h-8"
                       :value="video.nonce_id" />
@@ -97,6 +97,8 @@
                   <div class="text-[12px] text-[#999] w-[260px] text-ellipsis whitespace-nowrap overflow-hidden">{{
                     unixToymdhm(live.start_time)
                   }}</div>
+                  <el-checkbox v-if="sel_live_keys.includes(live.notice_id)" label="" class="top-1 left-3 absolute w-8 h-8"
+                      :value="live.notice_id" />
                 </div>
               </div>
               <div class="px-5 text-[12px] text-[#999] h-12 w-full">{{
@@ -113,7 +115,7 @@
               <el-card class="mini-tip-card rounded-[4px]">
                 <div class="flex flex-col space-y-2">
                   <div v-if="v.media_num > 0" class="relative">
-                    <img class="rounded-[4px] block w-full" :src="v.media[0].cover_url">
+                    <img class="rounded-[4px] block w-full max-h-[224px] object-contain" :src="v.media[0].cover_url">
                     <i class="play-btn_primary"></i>
                     <el-checkbox label="" class="top-1 left-3 absolute w-8 h-8"
                       :value="k" />
@@ -134,8 +136,8 @@
           <div v-if="displayTypeRef == 'selected'" class="text-blue-500 cursor-pointer" @click="displayTypeRef = displayTypeContentRef">返回全部</div>
         </div>
         <div class="flex-1 flex items-center justify-start">
-          <el-button @click="displayTypeRef = 'account'; sel_idx = -1">上一步</el-button>
-          <el-button @click="insertMPVContent" type="success">插入</el-button>
+          <el-button @click="displayTypeRef = 'account'; sel_idx = -1; queryContentRef = ''">上一步</el-button>
+          <el-button @click="insertMPVContent" type="success" :disabled="sel_content_map.size === 0">插入</el-button>
         </div>
       </div>
     </template>
@@ -183,7 +185,7 @@ import { ref, computed, defineExpose, toRaw } from 'vue'
 import { ElMessage } from 'element-plus'
 import { QuestionFilled, Search } from '@element-plus/icons-vue'
 import {unixToymdhm} from '@/utils/format'
-const $emits = defineEmits(['search-mpv', 'insert-mpv-video', 'insert-mpv-live'])
+const $emits = defineEmits(['search-mpv', 'insert-mpv-content'])
 const dialogVisibleRef = ref(false)
 const dialogTitle = ref("插入视频号内容")
 const displayTypeRef = ref('account') // account, video, live, event, selected
@@ -229,8 +231,11 @@ function handleSetQuery() {
   $emits('search-mpv', { type: displayTypeRef.value, query: queryRef.value })
 }
 function changeDisplayType(val) {
-  console.log("bc:",val)
   chooseMPV(sel_idx.value)
+  sel_video_keys.value = []
+  sel_live_keys.value = []
+  sel_content_keys.value = []
+  sel_content_map.value.clear()
   // $emits('search-mpv', { type: displayTypeRef.value, query: queryContentRef.value })
 }
 function setMPVs(type, val) {
@@ -252,10 +257,10 @@ function chooseMPV(idx) {
     }
     displayTypeRef.value = displayTypeContentRef.value
   }
-  $emits('search-mpv', { type: displayTypeRef.value, query: mpvs.value[sel_idx.value].username })
+  $emits('search-mpv', { type: displayTypeRef.value, username: mpvs.value[sel_idx.value].username, query: queryContentRef.value })
 }
 function handleSetQueryContent() {
-  $emits('search-mpv', { type: displayTypeRef.value, query: queryContentRef.value })
+  $emits('search-mpv', { type: displayTypeRef.value, username: mpvs.value[sel_idx.value].username, query: queryContentRef.value })
 }
 function chooseMPVContent(key) {
   const keys = displayTypeRef.value === 'video' ? sel_video_keys.value : sel_live_keys.value
@@ -265,6 +270,7 @@ function chooseMPVContent(key) {
     } else {
       sel_live_keys.value = sel_live_keys.value.filter(item => item !== key)
     }
+    
     // keys.value = keys.value.filter(item => item.nonce_id !== key)
     sel_content_keys.value = [...sel_content_keys.value.filter(k => k !== key)]
     sel_content_map.value.delete(key)
@@ -272,9 +278,11 @@ function chooseMPVContent(key) {
     keys.push(key)
     sel_content_keys.value.push(key)
     if (displayTypeRef.value === 'video') {
+      // sel_video_keys.value.push(key)
       sel_content_map.value.set(key, mpv_videos.value.find(item => item.nonce_id === key))
     } else {
-      sel_content_map.value.set(key, mpv_lives.value.find(item => item.nonce_id === key))
+      // sel_live_keys.value.push(key)
+      sel_content_map.value.set(key, mpv_lives.value.find(item => item.notice_id === key))
     }
   }
 }
@@ -284,6 +292,29 @@ function unChooseMPVContent(key) {
   sel_video_keys.value = sel_video_keys.value.filter(k => k !== key)
   sel_live_keys.value = sel_live_keys.value.filter(k => k !== key)
 }
+
+function insertMPVContent() {
+  if (sel_content_map.value.size === 0) {
+    ElMessage.error('请选择要插入的视频号内容')
+    return
+  }
+  console.log("sel_content_map.value=>", sel_content_map.value)
+  const content = []
+  sel_content_map.value.forEach(item => {
+    
+    content.push({
+      type: displayTypeRef.value,
+      desc: displayTypeRef.value === 'live' ? `将在${unixToymdhm(item.start_time)}直播` : undefined,
+      cover_url: displayTypeRef.value === 'video' ? item.media?.[0]?.cover_url : undefined,
+      width: displayTypeRef.value === 'video' ? item.media?.[0]?.width : undefined,
+      height: displayTypeRef.value === 'video' ? item.media?.[0]?.height : undefined,
+      ...toRaw(item),
+    })
+  })
+  console.log("content=>", content)
+  $emits('insert-mpv-content', content)
+}
+
 defineExpose({
   openDialog,
   closeDialog,

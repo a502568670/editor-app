@@ -717,7 +717,7 @@ async function reactToIpcObjectData(data, tabbedWin, viewContents) {
       if (!ret.success) {
         verbose_log("===== 搜索视频号视频失败 ====", ret.err_msg)
       } else {
-        verbose_log("===== 搜索视频号视频成功 ====", ret.mpv_videos)
+        verbose_log("===== 搜索视频号视频成功 ====", ret.mpv_videos.length)
       }
       viewContents.send('fromMain', { tag: 'mpv-ret:searchMpvVideo', data: { source, ret, ...others } })
       break
@@ -731,7 +731,7 @@ async function reactToIpcObjectData(data, tabbedWin, viewContents) {
       if (!ret.success) {
         verbose_log("===== 搜索视频号直播失败 ====", ret.err_msg)
       } else {
-        verbose_log("===== 搜索视频号直播成功 ====", ret.mpv_lives)
+        verbose_log("===== 搜索视频号直播成功 ====", ret.mpv_lives.length)
       }
       viewContents.send('fromMain', { tag: 'mpv-ret:searchMpvLive', data: { source, ret, ...others } })
       break
