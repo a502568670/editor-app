@@ -6,9 +6,10 @@ export function tplWithMPVContent (data){
 
 function _tplWithMPVContent (data){
   if (data.type === 'video') {
-    return `<mp-common-videosnap class="js_uneditable custom_select_card channels_iframe videosnap_video_iframe mp_common_widget" data-pluginname="mpvideosnap" data-url="${data.cover_url}" data-headimgurl="${data.head_url}" data-username="${data.username}" data-nickname="${data.nickname}" data-desc="${data.desc}" data-nonceid="${data.nonceid}" data-width="${data.width}" data-height="${data.height}" data-type="${data.type}" data-id="${data.id}" contenteditable="false"></<mp-common-videosnap>`
+    console.log("video data=>", data)
+    return `<mp-common-videosnap class="js_uneditable custom_select_card channels_iframe videosnap_video_iframe mp_common_widget" data-pluginname="mpvideosnap" data-url="${data.cover_url}" data-headimgurl="${data.head_url}" data-username="${data.username}" data-nickname="${data.nickname}" data-desc="${data.desc}" data-nonceid="${data.nonce_id}" data-width="${data.width}" data-height="${data.height}" data-type="${data.type}" data-id="${data.export_id}" contenteditable="false"></mp-common-videosnap>`
   } else if (data.type === 'live') {
-    return `<mp-common-videosnap class="js_uneditable custom_select_card channels_iframe videosnap_video_iframe mp_common_widget" data-pluginname="mpvideosnap"  data-headimgurl="${data.head_url}" data-username="${data.username}" data-nickname="${data.nickname}" data-desc="${data.desc}" data-intro="${data.introduction}" data-noticeid="${data.notice_id}" data-status="${data.status}" data-type="${data.type}"  contenteditable="false"></<mp-common-videosnap>`
+    return `<mp-common-videosnap class="js_uneditable custom_select_card channels_iframe videosnap_video_iframe mp_common_widget" data-pluginname="mpvideosnap"  data-headimgurl="${data.head_url}" data-username="${data.username}" data-nickname="${data.nickname}" data-desc="${data.desc}" data-intro="${data.introduction}" data-noticeid="${data.notice_id}" data-status="${data.status}" data-type="${data.type}"  contenteditable="false"></mp-common-videosnap>`
   }
   return ''
   
@@ -85,9 +86,9 @@ export function replaceMPVContentFromWechat(html, deps) {
         type: customElem.getAttribute('data-type'),
       }
       if (type === 'video') {
-        dataAttrs.exportid = customElem.getAttribute('data-id'),
+        dataAttrs.export_id = customElem.getAttribute('data-id'),
         dataAttrs.cover_url = customElem.getAttribute('data-url')
-        dataAttrs.nonceid = customElem.getAttribute('data-nonceid'),
+        dataAttrs.nonce_id = customElem.getAttribute('data-nonceid'),
         dataAttrs.width = customElem.getAttribute('data-width')
         dataAttrs.height = customElem.getAttribute('data-height')
       } else if (type === 'live') {
