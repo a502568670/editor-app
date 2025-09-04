@@ -30,7 +30,7 @@
           <el-button :icon="SetUp" @click="onPublish(-1)" text plain></el-button>
         </el-tooltip>
         <el-tooltip content="删除">
-          <el-button :icon="Delete" @click="onDelete(-1)" text plain></el-button>
+          <el-button :icon="Delete" :disabled="loading" @click="onDelete(-1)" text plain></el-button>
         </el-tooltip>
       </div>
       <div class="flex-1 overflow-y-auto m-2" v-loading="loading">
@@ -271,6 +271,7 @@ async function onDelete(idx=-1){
   var cookies=serializeCookie(JSON.parse(account.value.session_id)["cookie"])
   var token= +account.value.token;
   var group_id=query.value.group_id
+  loading.value=true
   var res=await window.webBridge.callRpc('wxDelImgs',{cookies,token,fileid,group_id})
   // dog('delete imgs',idx,res)
   if(res?.base_resp?.ret===0){
