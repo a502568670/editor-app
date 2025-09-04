@@ -76,7 +76,7 @@
           <el-form-item label="小程序路径" label-position="right">
             <div class="bg-white px-2 py-0.5 flex items-center border rounded-sm"><el-input class="bg-white searchbox"
               v-model="choosed_weapp_info.weapp_path" style="width: 100%;" clearable />
-             <span class="text-gray-400">{{choosed_weapp_info.weapp_path.length}}/1024</span>
+             <span class="text-gray-400">{{choosed_weapp_info.weapp_path?.length??0}}/1024</span>
           </div>
           支持输入小程序路径和链接。默认显示小程序首页路径，可更改。
           </el-form-item>
