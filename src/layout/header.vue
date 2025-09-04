@@ -16,6 +16,10 @@
           <el-icon :size="20"><Newspaper/></el-icon>
           <span class="mt-1">监控和爆文</span>
         </router-link>
+        <router-link class="menu" to="/file" active-class="active" replace>
+          <el-icon :size="20"><ImagePlay/></el-icon>
+          <span class="mt-1">素材库</span>
+        </router-link>
       </div>
     </el-col>
     <el-col :span="6" style="text-align: right">
@@ -34,7 +38,7 @@
 import { ref, reactive, toRefs, computed, toRaw } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useStore } from 'vuex'
-import {Newspaper} from 'lucide-vue-next'
+import {ImagePlay, Newspaper} from 'lucide-vue-next'
 import {
   SwitchButton
 } from '@element-plus/icons-vue'

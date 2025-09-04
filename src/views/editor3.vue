@@ -157,7 +157,15 @@ onActivated(async () => {
       }
     }
     history.replaceState({}, '')
-  } 
+  } else if(history.state.dataFrom === 'publishImg') {
+    dog("publishImg data:", history.state.data)
+    for (var id of history.state.data.accounts) {
+      await new Promise(r=>setTimeout(r,10))
+      handleCreateAppMsg({ type: 0, account_id: id,item_show_type:8,cdnUrls:history.state.data.cdnUrls })
+    }
+    history.replaceState({}, '')
+  }
+  // dog('editor3 history.state data:', history.state.data)
 // console.log('route:',history.state);
 
 })
@@ -178,7 +186,7 @@ const handleAccountSelect = async ({ account, index }) => {
 // const formatTitleSuffix = (account_name) => {
 //   return account_name ? `-<${account_name}>` : ""
 // }
-const handleCreateAppMsg = ({ type, account_id, item_show_type = 0 }) => {
+const handleCreateAppMsg = ({ type, account_id, item_show_type = 0,cdnUrls=[] }) => {
 
   if (type === 0) {
     const new_appmsgid = 0 - (+new Date())
@@ -197,6 +205,7 @@ const handleCreateAppMsg = ({ type, account_id, item_show_type = 0 }) => {
       insert_ad_mode: 2,
       can_insert_ad: 1,
       content_noencode: "",
+      picture_page_info_list: cdnUrls.map(url=>({url,bg:'#fff'})),
     }
     const newAppMsg = {
       appmsgid: new_appmsgid,

@@ -141,6 +141,11 @@ const router = createRouter({
           path: '/tabbar',
           name: 'tabBar',
           component: () => import('./views/tabBar')
+        },
+        {
+          path: '/file',
+          name: 'file',
+          component: () => import('./views/file')
         }
       ]
     }
