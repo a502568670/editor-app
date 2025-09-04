@@ -235,7 +235,7 @@
           <el-icon :size="20" class="cursor-pointer flex justify-center" @click="openMiniAppDialog" title="插入小程序">
             <WechatMiniAppIcon />
           </el-icon>
-          <el-icon v-if="false" :size="20" class="cursor-pointer flex justify-center" @click="openMPDialog" title="插入公众号名片">
+          <el-icon :size="20" class="cursor-pointer flex justify-center" @click="openMPDialog" title="插入公众号名片">
             <WechatMPIcon />
           </el-icon>
           <Minus class="text-gray-200" />
@@ -386,11 +386,16 @@
         <el-col :span="4" class="w-full">
           <el-checkbox label="清除作者" v-model="import_settings.clear_author" />
         </el-col>
-        <el-col :span="5" class="w-full">
+        <el-col :span="4" class="w-full">
           <el-checkbox label="清除原文链接" v-model="import_settings.clear_source_url" />
         </el-col>
-        <el-col :span="5" class="w-full">
+      </el-row>
+      <el-row>
+        <el-col :span="4" class="w-full">
           <el-checkbox label="清除小程序" v-model="import_settings.clear_weapp" />
+        </el-col>
+        <el-col :span="4" class="w-full">
+          <el-checkbox label="清除广告" v-model="import_settings.clear_ad" />
         </el-col>
       </el-row>
     </div>
@@ -469,6 +474,7 @@
   </el-dialog>
   <SetMiniApp ref="setMiniAppRef" :pickerPageInfo="pickerPageInfo" v-model="pickerQuery"
     @search-mini-app="searchMiniApp" />
+  <SetMPCard ref="setMPCardRef" @search-mp="searchMP" @insert-mp-card="insertMPCard" />
   <el-dialog :close-on-click-modal="false" title="手机扫码预览" v-model="dialogMobilePreviewVisibleRef" width="330px">
     <el-row :gutter="40" class="h-[300px]">
       <el-col :span="24">
@@ -792,13 +798,18 @@ import {
 } from "@/api/mp_wechat"
 import { format_to_UEditor_html, clearContentUrl, clearWeApp, restore_from_UEditor_html } from "@/utils/dom";
 import { uploadImage } from "@/api/img"
+import {gen_unique_id} from "@/utils/msic"
 import { toDeepRaw, toPicPageInfo, gen_picture_page_info_list } from "@/utils/convert"
 import { fmtImageUrl } from "@/utils/format"
 import { createDateByDays, parseDate, formatDate } from "@/utils/date"
-import { ad_categorys, adMarkerContentInUEditor, format_ad_content_in_UEditor, restore_ad_content_from_UEditor, has_ad_in_wangEditor, has_ad_in_raw } from "@/utils/ad"
+import { ad_categorys, adMarkerContentInUEditor, format_ad_content_in_UEditor, restore_ad_content_from_UEditor, has_ad_in_wangEditor, removeAd, has_ad_in_raw } from "@/utils/ad"
 import { getVideoFrameHtml, extractVideoFrame } from "@/utils/video"
 import { apperrmsg, claim_source_types, HOUSRS, MINUTES, wxretmsg } from "@/utils/constants"
-import { tplWithAppLinkAndText, tplWithAppLinkAndImage, tplWithAppLinkAndCard } from "@/utils/miniapp"
+import { 
+  tplWithAppLinkAndText, tplWithAppLinkAndImage, tplMiniAppCardInEditor,
+  hasMiniAppCardInEditor, replaceMiniAppCardToWechat, replaceMiniAppCardFromWechat
+ } from "@/utils/miniapp"
+import {hasMPCardInEditor, replaceMPCardToWechat, tplMPCardInEditor, replaceMPCardFromWechat} from "@/utils/mpcard"
 import { ElMessage, ElMessageBox, ElLoading } from 'element-plus'
 import { ArrowUp, ArrowDown, Delete, CircleCheckFilled, CircleCloseFilled, InfoFilled, Search, Plus } from '@element-plus/icons-vue'
 import { Link, Link2, RadioTower, DollarSign, SquareTerminal, Eye, ScanEye, Minus, Smartphone, Video } from 'lucide-vue-next';
@@ -819,7 +830,9 @@ import UserTempl from './editor/UserTempl.vue';
 import debounce from 'lodash-es/debounce'
 import { dog } from '@/utils';
 import SysTempl from './editor/SysTempl.vue';
-import SetMiniApp from "@/components/editor/SetMiniApp.vue"
+// import SetMiniApp from "@/components/editor/SetMiniApp.vue"
+import SetMiniApp from "@/components/editor/SetMiniAppWeiYu.vue"
+import SetMPCard from "@/components/editor/SetMPCard.vue"
 
 const props = defineProps(['account', 'appmsg', 'mode', 'mainMsg']);
 const emitEvents = defineEmits(['titleChange', 'createAppmsg', 'msgidChange'])
@@ -919,6 +932,10 @@ const DeleteRef = shallowRef(Delete);
 // mp_msgs
 const msg_idRef = ref(0)
 const mp_msgsRef = ref([])
+const mpExsRef = ref({
+  mps_obj: {},
+  miniappcard_obj: {},
+})
 const mp_msg_groupsRef = ref([])
 const currentAppmsgRef = ref(null)
 const elListMsgsRef = ref(null)
@@ -977,6 +994,7 @@ const import_settings = ref({
   clear_author: true,
   clear_source_url: true,
   clear_weapp: true,
+  clear_ad: true,
 })
 
 // 提取链接
@@ -987,6 +1005,9 @@ const dialogExtractMpAritcleUrlRef = ref(false)
 const timeoutExtract = 60 * 1000; // ms
 
 const setMiniAppRef = ref(null)
+
+// 账号名片
+const setMPCardRef = ref(null)
 
 // 视频素材
 const dialogVideoMaterialRef = ref(false)
@@ -1236,11 +1257,18 @@ const loadArticle = (mp_msg, before_save) => {
 
   msg_idRef.value = mp_msg.msg_id
   const { formated, category_id_list, ad_id } = format_ad_content_in_UEditor(mp_msg.content_noencode)
-  console.log("category_id_list=>", category_id_list)
-  console.log("ad_id=>", ad_id)
+  // console.log("category_id_list=>", category_id_list)
+  // console.log("ad_id=>", ad_id)
+  let vhtml = formated
   ad_idRef.value = ad_id
   // mp_msg.content_noencode = format_to_wangEditor_html(formated)
-  mp_msg.content_noencode = formated
+  // 公众号卡片
+  const mps_obj = toDeepRaw(mpExsRef.value.mps_obj)
+  vhtml = replaceMPCardFromWechat(vhtml, mps_obj)
+  // 小程序卡片
+  const miniappcard_obj = toDeepRaw(mpExsRef.value.miniappcard_obj)
+  vhtml = replaceMiniAppCardFromWechat(vhtml, miniappcard_obj)
+  mp_msg.content_noencode = vhtml
   // console.log("mp_msg1=>", mp_msg.picture_page_info_list) 
   // gen_picture_page_info_list(mp_msg)
   // console.log("mp_msg2=>", mp_msg.picture_page_info_list)
@@ -1248,6 +1276,11 @@ const loadArticle = (mp_msg, before_save) => {
   currentArticleRef.value = {
     ...mp_msg,
   }
+  mpExsRef.value = {
+    mps_obj: mps_obj,
+    miniappcard_obj: miniappcard_obj,
+  }
+  console.log("mpExsRef=>", mpExsRef.value)
 
   selectedCdnImageRef.value = null
   cdnFileInputRef.value.value = ""
@@ -1302,6 +1335,7 @@ const swapUp = async (msg_id) => {
     var tmp = mp_msgsRef.value[idx];
     mp_msgsRef.value[idx] = mp_msgsRef.value[idx - 1]
     mp_msgsRef.value[idx - 1] = tmp
+
     return;
   }
   await swapArticles(prev, msg_id).catch((err) => { })
@@ -1319,6 +1353,7 @@ const swapDown = async (msg_id) => {
     var tmp = mp_msgsRef.value[idx];
     mp_msgsRef.value[idx] = mp_msgsRef.value[idx + 1]
     mp_msgsRef.value[idx + 1] = tmp
+
     return;
   }
   await swapArticles(msg_id, next)
@@ -1381,6 +1416,7 @@ const newArticle = async (before_save = true, item_show_type = 0, hydrateMsgIdx 
     can_insert_ad: 1,
     content_noencode: "",
   }
+  const new_exs = {}
   const new_msg_id = 0 - (+new Date()) - hydrateMsgIdx;
   if (props.mode === 'hydrate' && hydrateMsgIdx > -1) {
     // hydrate模式下，插入到指定位置
@@ -1477,17 +1513,21 @@ const saveCurrentToList = (msg_id) => {
   currentArticleRef.value.claim_source_type = selected_claim_source_typeRef.value.id
 
 
-  console.log("adCategoryChoosedRef=>", adCategoryChoosedRef.value)
+  // console.log("adCategoryChoosedRef=>", adCategoryChoosedRef.value)
 
 
   const to_save_content_noencode = currentArticleRef.value.content_noencode;
   // console.log("to_save_content_noencode:", to_save_content_noencode)
 
   const category_id_list = adCategoryChoosedRef.value.join("|")
-  console.log("category_id_list:", category_id_list)
+  // console.log("category_id_list:", category_id_list)
+  let vhtml = restore_ad_content_from_UEditor(to_save_content_noencode, category_id_list, ad_idRef.value)
+  // console.log("ad vhtml=>", vhtml)
 
-  const vhtml = restore_ad_content_from_UEditor(to_save_content_noencode, category_id_list, ad_idRef.value)
-  console.log("ad vhtml=>", vhtml)
+  // replace custom-tag
+  vhtml = replaceMPCardToWechat(vhtml, mpExsRef.value.mps_obj)
+  vhtml = replaceMiniAppCardToWechat(vhtml, mpExsRef.value.miniappcard_obj)
+
   currentArticleRef.value.content_noencode = vhtml
 
   const idx = mp_msgsRef.value.findIndex(v => v.msg_id === msg_id)
@@ -1496,11 +1536,53 @@ const saveCurrentToList = (msg_id) => {
   }
 
   return idx
+}
 
+const saveOthersToListForCustomTag = (msg_id) => {
+  const targetItems = mp_msgsRef.value.filter(v => v.msg_id !== msg_id)
+  const mps_obj = toDeepRaw(mpExsRef.value.mps_obj)
+  const miniappcard_obj = toDeepRaw(mpExsRef.value.miniappcard_obj)
+  console.log('targetItems:', targetItems.length)
+  console.log('targetItems mps_obj:', mps_obj)
+  console.log('targetItems miniappcard_obj:', miniappcard_obj)
+  targetItems.forEach(v => {
+    if (hasMPCardInEditor(v.content_noencode)) {
+      v.content_noencode = replaceMPCardToWechat(v.content_noencode, mps_obj)
+    }
+    if (hasMiniAppCardInEditor(v.content_noencode)) {
+      v.content_noencode = replaceMiniAppCardToWechat(v.content_noencode, miniappcard_obj)
+    }
+  })
+}
+
+const validateMsgData = () => {
+  return mp_msgsRef.value.every(v => {
+    if (!v.title) {
+      ElMessage({
+        message: `请输入标题`,
+        type: 'error',
+        duration: 2 * 1000
+      })
+      return false
+    }
+    if (!v.cdn_url) {
+      ElMessage({
+        message: `请设置封面图`,
+        type: 'error',
+        duration: 2 * 1000
+      })
+      return false
+    }
+    return true
+  })
 }
 
 const _saveAppMsg = async (push_to_remote) => {
   if (!validateAccount()) {
+    return
+  }
+
+  if (!validateMsgData()) {
     return
   }
 
@@ -1518,8 +1600,12 @@ const _saveAppMsg = async (push_to_remote) => {
   }
 
   const msg_id = msg_idRef.value
+  // console.log("mp_msgsRef before saveCurrentToList=>", mp_msgsRef.value[0].content_noencode)
   let selected_idx = saveCurrentToList(msg_id)
-  console.log("save all mp_msgsRef.value=>", mp_msgsRef.value)
+  // console.log("mp_msgsRef after saveCurrentToList=>", mp_msgsRef.value[0].content_noencode)
+  saveOthersToListForCustomTag(msg_id)
+  // console.log("mp_msgsRef after saveOthersToListForCustomTag=>", mp_msgsRef.value[0].content_noencode)
+  // console.log("save all mp_msgsRef.value=>", mp_msgsRef.value)
   // const appmsgid =  appmsgidRef.value 
   let appmsgid = _getAppMsgId()
 
@@ -1532,7 +1618,8 @@ const _saveAppMsg = async (push_to_remote) => {
     push_to_remote,
   }
 
-  console.log("save appmsg postData=>", postData)
+  // console.log("save appmsg postData=>", postData)
+  // return
   const loader = ElLoading.service({
     target: '.main'
   })
@@ -1545,6 +1632,7 @@ const _saveAppMsg = async (push_to_remote) => {
     console.log("saveArticleDraft res=>", res)
     res.data.data.mp_msgs.forEach(gen_picture_page_info_list)
     mp_msgsRef.value = res.data.data.mp_msgs
+    // ### todo: mp_msg_exs 
 
     const isCreateNewAppMsg = appmsgid <= 0 && res.data.data.appmsgid > 0
     appmsgid = res.data.data.appmsgid
@@ -1560,7 +1648,9 @@ const _saveAppMsg = async (push_to_remote) => {
     if (selected_idx === -1) {
       selected_idx = 0
     }
-    if (isCreateNewAppMsg) mp_msgsRef.value[selected_idx].appmsgid = appmsgid
+    if (isCreateNewAppMsg) {
+      mp_msgsRef.value[selected_idx].appmsgid = appmsgid
+    }
     loadArticle(mp_msgsRef.value[selected_idx])
   }).catch((e) => {
     console.log('saveAppMsg catched e:', e)
@@ -2366,14 +2456,16 @@ const searchMiniApp = (val) => {
         weapp_path: miniAppLink.weapp_path, ...miniAppLink.weapp
       })
     } else if (formData.miniAppCardTitle && formData.miniAppCardImg) {
-      console.log("formData.miniAppCardImg=>", formData.miniAppCardImg.length)
-      html = tplWithAppLinkAndCard({
+      const uniqid = gen_unique_id()
+      const dep = {
         app_link: formData.miniAppLink,
         img_link: formData.miniAppCardImg,
         crop: formData.miniAppCardImgCrop,
         app_title: formData.miniAppCardTitle,
         weapp_path: miniAppLink.weapp_path, ...miniAppLink.weapp
-      })
+      }
+      mpExsRef.value.miniappcard_obj = {...mpExsRef.value.miniappcard_obj, [uniqid]: dep} 
+      html = tplMiniAppCardInEditor(uniqid, dep, {br: true})
     }
     editorRef.value.execCommand('inserthtml', html);
     return
@@ -2403,6 +2495,11 @@ const searchMiniApp = (val) => {
 }
 
 const openMPDialog = () => {
+  setMPCardRef.value.openDialog()
+}
+
+const searchMP = (val) => {
+  const { query, ...others } = val
   const { token, session_id, wechat_id } = selectedAccount.value
   const cookies = serializeCookie(JSON.parse(session_id)["cookie"])
   window.ipcRenderer.send('toMain', {
@@ -2411,13 +2508,22 @@ const openMPDialog = () => {
     token: getToken(),
     wechat_id,
     searchData: {
-      // mp_msgs: toDeepRaw(mp_msgsRef.value),
       cookies,
       token: parseInt(token),
-      // pattern: "#小程序://问卷星/DAfnLzsZZn17Ibu",
-      pattern: "麦当劳",
-    }
+      pattern: query,
+    },
+    ...others,
   })
+}
+
+const insertMPCard = (val) => {
+  const editor = editorRef.value; // 获取 editor ，必须等待它渲染完之后
+  if (editor == null) return;
+  const uniqid = gen_unique_id()
+  mpExsRef.value.mps_obj = {...mpExsRef.value.mps_obj, [uniqid]: val}
+  const html = tplMPCardInEditor(uniqid, val)
+  editor.execCommand('inserthtml', html);
+  setMPCardRef.value.closeDialog()
 }
 
 const validatePreview = () => {
@@ -2836,6 +2942,9 @@ const parseExtractMpArticleData = (ret, opts = {}) => {
   if (opts.import_settings?.clear_weapp) {
     content_noencode = clearWeApp(content_noencode)
   }
+  if (opts.import_settings?.clear_ad) {
+    content_noencode = removeAd(content_noencode)
+  }
 
   return {
     item_show_type,
@@ -2867,10 +2976,26 @@ watch(() => [props.mainMsg], async (newVal) => {
         return
       }
       let parsed_data = parseExtractMpArticleData(ret, { import_settings: import_settings.value })
+      
+      // 公众号卡片
+      const mps_obj = toDeepRaw(mpExsRef.value.mps_obj)
+      parsed_data.content_noencode = replaceMPCardFromWechat(parsed_data.content_noencode, mps_obj)
+      // 小程序卡片
+      const miniappcard_obj = toDeepRaw(mpExsRef.value.miniappcard_obj)
+      parsed_data.content_noencode = replaceMiniAppCardFromWechat(parsed_data.content_noencode, miniappcard_obj)
+      console.log("parsed_data.content_noencode=>", parsed_data.content_noencode)
+      console.log("mps_obj=>", mps_obj)
+      console.log("miniappcard_obj=>", miniappcard_obj)
+      mpExsRef.value = {
+        mps_obj: mps_obj,
+        miniappcard_obj: miniappcard_obj,
+      }
+
       currentArticleRef.value = {
         ...currentArticleRef.value,
         ...parsed_data,
       }
+      console.log("currentArticleRef.value.content_noencode=>", currentArticleRef.value.content_noencode)
       const idx = mp_msgsRef.value.findIndex(v => v.msg_id === currentArticleRef.value.msg_id)
       if (idx !== -1) {
         mp_msgsRef.value[idx] = currentArticleRef.value
@@ -2899,6 +3024,8 @@ watch(() => [props.mainMsg], async (newVal) => {
         if (idx !== -1) {
           mp_msgsRef.value[idx] = currentArticleRef.value
         }
+
+        // ### todo mp_msg_exs
       }
 
     } else if (tag === "appmsg-ret:publishToWechat") {
@@ -2984,26 +3111,33 @@ watch(() => [props.mainMsg], async (newVal) => {
               weapp_path, ...weapp
             })
           } else if (formData.miniAppCardTitle && formData.miniAppCardImg) {
-            console.log("formData.miniAppCardImg=>", formData.miniAppCardImg.length)
-            html = tplWithAppLinkAndCard({
+            // console.log("formData.miniAppCardImg=>", formData.miniAppCardImg.length)
+            const uniqid = gen_unique_id()
+            const dep = {
               app_link: formData.miniAppLink,
               img_link: formData.miniAppCardImg,
               crop: formData.miniAppCardImgCrop,
               app_title: formData.miniAppCardTitle,
               weapp_path, ...weapp
-            })
+            }
+            mpExsRef.value.miniappcard_obj = {...mpExsRef.value.miniappcard_obj, [uniqid]: dep} 
+            html = tplMiniAppCardInEditor(uniqid, dep, {br: true})
           }
           editorRef.value.execCommand('inserthtml', html);
         } else {
           setMiniAppRef.value.setMiniApp(weapp, weapp_path)
         }
+      } else {
+        ElMessage({ type: 'error', message: ret.err_msg })
       }
     } else if (tag === "mp-ret:searchBiz") {
       const { ret } = msg.data
       // console.log("ret=>", ret)
       const { success, mps } = ret
       if (success) {
-        console.log("mps=>", mps)
+        setMPCardRef.value.setMPs(mps)
+      } else {
+        ElMessage({ type: 'error', message: ret.err_msg })
       }
     }
 
