@@ -1,5 +1,6 @@
 const global = require("./global")
 const { netFetch, getDefaultHeader } = require('./request')
+var dog = require('debug')('editor:mp_file-tasks')
 
 const verbose_log = global.default.utils.verbose_log;
 const verbose_error = global.default.utils.verbose_error;
@@ -57,4 +58,36 @@ export const listVideos = async ({ cookies, token, query, begin, count }) => {
     success: true,
     page_info: res.app_msg_info,
   }
+}
+
+export async function deleteFile({ cookies, token, fileid, group_id }) {
+  var body=new URLSearchParams({
+    oper:'batchdel',token,
+    fileid,group_id:Array(fileid.length).fill(group_id),copyright_status:Array(fileid.length).fill(0),
+    lang:'zh_CN',f:'json',ajax:'1',
+  });
+  const opts = {
+    headers: { ...getDefaultHeader(), cookie: cookies },
+    method: 'POST',
+    body:body.toString(),
+  };
+  let url = `${baseUrl}/cgi-bin/modifyfile?t=ajax-response`
+  dog('deleteFile url:', url, opts)
+  var res=await netFetch(url,opts)
+  return JSON.parse(res);
+}
+export async function deleteVideo({ cookies, token, AppMsgId }) {
+  var body=new URLSearchParams({
+    token,AppMsgId,
+    lang:'zh_CN',f:'json',ajax:'1',
+  });
+  const opts = {
+    headers: { ...getDefaultHeader(), cookie: cookies },
+    method: 'POST',
+    body:body.toString(),
+  };
+  let url = `${baseUrl}/cgi-bin/operate_appmsg?sub=del&t=ajax-response`
+  dog('deleteVideo url:', url, opts)
+  var res=await netFetch(url,opts)
+  return JSON.parse(res);
 }

@@ -12,7 +12,7 @@ import {
   publishAppmsg, deleteAppmsg, listAppmsgsInDraftBox, getAppmsgInDraftBox,
   searchAppmsgsInPublishForQuerys
 } from "./mp_appmsg-tasks.js"
-import { listFiles, listVideos } from "./mp_file-tasks.js"
+import { deleteFile, deleteVideo, listFiles, listVideos } from "./mp_file-tasks.js"
 import { searchMiniApp } from "./mpa-tasks.js"
 import { searchBiz } from "./mp-tasks.js"
 import { postJsonToJZLApi, postJsonToEditorApi } from "./request.js"
@@ -26,6 +26,7 @@ import iconv from 'iconv-lite';
 
 const shell = require('electron').shell;
 import * as zhCN from '../locales/zh-CN.json'
+import { serializeCookie } from "@/utils/cookie.js";
 const verbose_log = global.utils.verbose_log;
 const verbose_error = global.utils.verbose_error;
 const get_backend_url_old = global.utils.get_backend_url_old;
@@ -762,6 +763,22 @@ function initRpc() {
               return res;
             })
         ))
+      };
+      case 'wxListImages': {
+        var {account,group_id,page,limit}=data;
+        var cookies= serializeCookie(JSON.parse(account.session_id)["cookie"])
+        var token= +account.token;
+        var begin= (page-1)*limit;
+        return listFiles({ count: 12, cookies,token,begin,group_id, type: 2 })
+      };
+      case 'wxDelImgs': {
+        return deleteFile(data)
+      };
+      case 'wxListVideos': {
+        return listVideos(data)
+      };
+      case 'wxDelVideos': {
+        return deleteVideo(data)
       };
       default: {
         conosle.error(new Error(`Unknown RPC call: ${name}`));

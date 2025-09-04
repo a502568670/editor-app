@@ -541,5 +541,21 @@ export async function copyLink(url) {
   await navigator.clipboard.writeText(url);
   ElMessage({ type: 'success', message: '链接已复制到剪贴板' });
 }
+/**
+ * @param {File} file 
+ * @returns {Promise<String>} base64
+ */
+export async function fileToBase64(file){
+  var reader = new FileReader();
+  return new Promise((resolve,reject)=>{ 
+    reader.readAsDataURL(file);
+    reader.onload = function(){
+      resolve(reader.result.split(',')[1])
+    }
+    reader.onerror = function(error){
+      reject(error)
+    }
+  })
+}
 
 export var dog=debug('editor:app')
