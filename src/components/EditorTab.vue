@@ -224,6 +224,10 @@
       <el-col :span="1" class="overflow-scroll bg-white">
         <div
           class="grid-content flex flex-col h-full justify-start items-center border  space-y-2 p-2 bg-slate-100 text-blue-500">
+          <el-icon :size="20" class="cursor-pointer flex justify-center" @click="runEditorCMD('cleardoc')"
+            title="清空当前编辑器内容">
+            <BrushFilled />
+          </el-icon>
           <el-icon :size="20" class="cursor-pointer flex justify-center" @click="openExtractMpArticleUrlDialog"
             title="提取链接内容">
             <Link />
@@ -816,7 +820,7 @@ import {
 import {hasMPCardInEditor, replaceMPCardToWechat, tplMPCardInEditor, replaceMPCardFromWechat} from "@/utils/mpcard"
 import {hasMPVContentInEditor, replaceMPVContentToWechat, tplMPVContentInEditor, replaceMPVContentFromWechat} from "@/utils/mpvcontent"
 import { ElMessage, ElMessageBox, ElLoading } from 'element-plus'
-import { ArrowUp, ArrowDown, Delete, CircleCheckFilled, CircleCloseFilled, InfoFilled, Search, Plus } from '@element-plus/icons-vue'
+import { ArrowUp, ArrowDown, Delete, CircleCheckFilled, CircleCloseFilled, InfoFilled, Search, Plus, BrushFilled } from '@element-plus/icons-vue'
 import { Link, Link2, RadioTower, DollarSign, SquareTerminal, Eye, ScanEye, Minus, Smartphone, Video } from 'lucide-vue-next';
 import WechatMiniAppIcon from "@/components/icons/WechatMiniAppIcon"
 import WechatMPIcon from "@/components/icons/WechatMPIcon"
@@ -2233,6 +2237,13 @@ const getTitleMessage = (title, prev_days = 30) => {
     }
   }
   return ret.reason || ""
+}
+
+const runEditorCMD = (cmd) => {
+  if (!['cleardoc'].includes(cmd)) return
+  const editor = editorRef.value; // 获取 editor ，必须等待它渲染完之后
+  if (editor == null) return;
+  editor.execCommand(cmd)
 }
 
 const openExtractMpArticleUrlDialog = () => {
