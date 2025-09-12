@@ -15,6 +15,7 @@ import {
 import { deleteFile, deleteVideo, listFiles, listVideos } from "./mp_file-tasks.js"
 import { searchMiniApp } from "./mpa-tasks.js"
 import { searchBiz } from "./mp-tasks.js"
+import { searchMpvAccount, searchMpvVideo,searchMpvLive } from "./mpv_tasks.js"
 import { postJsonToJZLApi, postJsonToEditorApi } from "./request.js"
 const path = require('path')
 const fs = require('fs')
@@ -692,6 +693,48 @@ async function reactToIpcObjectData(data, tabbedWin, viewContents) {
         verbose_log("===== 搜索公众号成功 ====", ret.mps)
       }
       viewContents.send('fromMain', { tag: 'mp-ret:searchBiz', data: { source, ret, ...others } })
+      break
+    }
+    case 'mpv:searchMpvAccount': {
+      verbose_log("===== listen searchMpvAccount in main ====", data)
+      const { source, token, searchData, ...others } = data
+      // token => userToken
+      console.log("searchData=>", searchData)
+      const ret = await searchMpvAccount(searchData)
+      if (!ret.success) {
+        verbose_log("===== 搜索视频号失败 ====", ret.err_msg)
+      } else {
+        verbose_log("===== 搜索视频号成功 ====", ret.mpvs)
+      }
+      viewContents.send('fromMain', { tag: 'mpv-ret:searchMpvAccount', data: { source, ret, ...others } })
+      break
+    }
+    case 'mpv:searchMpvVideo': {
+      verbose_log("===== listen searchMpvVideo in main ====", data)
+      const { source, token, searchData, ...others } = data
+      // token => userToken
+      console.log("searchData=>", searchData)
+      const ret = await searchMpvVideo(searchData)
+      if (!ret.success) {
+        verbose_log("===== 搜索视频号视频失败 ====", ret.err_msg)
+      } else {
+        verbose_log("===== 搜索视频号视频成功 ====", ret.mpv_videos.length)
+      }
+      viewContents.send('fromMain', { tag: 'mpv-ret:searchMpvVideo', data: { source, ret, ...others } })
+      break
+    }
+    case 'mpv:searchMpvLive': {
+      verbose_log("===== listen searchMpvLive in main ====", data)
+      const { source, token, searchData, ...others } = data
+      // token => userToken
+      console.log("searchData=>", searchData)
+      const ret = await searchMpvLive(searchData)
+      if (!ret.success) {
+        verbose_log("===== 搜索视频号直播失败 ====", ret.err_msg)
+      } else {
+        verbose_log("===== 搜索视频号直播成功 ====", ret.mpv_lives.length)
+      }
+      viewContents.send('fromMain', { tag: 'mpv-ret:searchMpvLive', data: { source, ret, ...others } })
       break
     }
     case 'stat:getPvData': {
