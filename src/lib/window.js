@@ -30,7 +30,7 @@ import { serializeCookie } from "@/utils/cookie.js";
 const verbose_log = global.utils.verbose_log;
 const verbose_error = global.utils.verbose_error;
 const get_backend_url_old = global.utils.get_backend_url_old;
-var { batchWechatData, getWxGroupList, batchWxUploadImg } = require('./mp_stat-tasks.js');
+var { batchWechatData, getWxGroupList, batchWxUploadImg, batchWxAggregate, batchWxAggregateSafe } = require('./mp_stat-tasks.js');
 var dog=require('debug')('editor')
 
 
@@ -780,8 +780,11 @@ function initRpc() {
       case 'wxDelVideos': {
         return deleteVideo(data)
       };
+      case 'batchWxAggregate':{
+        return batchWxAggregateSafe(data);
+      }
       default: {
-        conosle.error(new Error(`Unknown RPC call: ${name}`));
+        console.error(new Error(`Unknown RPC call: ${name}`));
         return null;
       }
     }

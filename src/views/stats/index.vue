@@ -6,6 +6,10 @@
           <el-icon><TrendCharts/></el-icon>
           <span>微信公众号</span>
         </el-menu-item>
+        <el-menu-item index="aggregate">
+          <el-icon><PieChart/></el-icon>
+          <span>数据聚合</span>
+        </el-menu-item>
       </el-menu-item-group>
       <el-menu-item-group title="文章" v-if="$route.query.pagetype=='2'">
         <el-menu-item index="posts">
@@ -29,6 +33,7 @@
     </el-menu>
     <div class="h-full overflow-y-scroll flex-1">
       <MPAccount v-if="activeName==='mp_account'" class="aaa w-full flex-1 p-2"></MPAccount>
+      <Aggregate v-else-if="activeName==='aggregate'"/>
       <Posts v-else-if="activeName==='posts'"/>
       <SubKeywords v-else-if="activeName==='sub_keywords'"/>
       <SubMPList v-else-if="activeName==='sub_mplist'"/>
@@ -65,7 +70,7 @@ import { ref, toRaw, watchEffect } from 'vue'
 import MPAccount from './MPAccount.vue';
 import Posts from './Posts.vue'
 import ICFire from './ICFire.vue';
-import {TrendCharts,Avatar,Management} from '@element-plus/icons-vue'
+import {TrendCharts,Avatar,Management,PieChart} from '@element-plus/icons-vue'
 import SubKeywords from './SubKeywords.vue';
 import SubMPList from './SubMPList.vue';
 import Hydrate from '@/components/Hydrate.vue';
@@ -73,6 +78,7 @@ import { dog } from '@/utils';
 import { useRoute } from 'vue-router';
 import Gossip from './Gossip.vue';
 import Hot from './Hot.vue';
+import Aggregate from './Aggregate.vue';
 
 var route = useRoute();
 const activeName = ref('mp_account');

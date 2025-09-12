@@ -58,7 +58,7 @@
             </div>
             <div ref="elListMsgsRef" class="overflow-auto" style="height:calc(100vh - 208px)">
               <div @click="loadArticle(item, true)" v-for="(item, index) in mp_msgsRef" :key="item.msg_id"
-                class="flex items-center p-2 border-b w-full">
+                class="flex items-center border-b w-full">
                 <img v-if="item.cdn_url" :src="fmtImageUrl(item.cdn_url)" style="width:0px;height:0px;"
                   referrerpolicy="no-referrer" />
                 <div v-if="index === 0" class='relative w-full flex h-40 justify-between items-end bg-[#e6e6e6] '
@@ -85,10 +85,10 @@
                     </el-icon>
                   </div>
                 </div>
-                <div class="w-full flex h-20 items-center p-1 relative"
+                <div class="w-full flex h-20 items-center relative"
                   :class="{ 'border-2 border-[#07C160]': (item.msg_id === msg_idRef) }" v-else>
                   <div class="flex flex-col flex-1 h-full justify-end">
-                    <div class="h-[54px] w-full max-w-full max-h-[54px] overflow-y-hidden"><span
+                    <div class="w-full max-w-full max-h-full overflow-y-hidden p-1"><span
                         class="mx-1 text-red-500" v-if="item.msg_id === 0">*</span>
                       <el-icon v-if="item.item_show_type === 5" :size="20"
                         class="cursor-pointer flex justify-center items-end" title="视频文章">
@@ -103,7 +103,7 @@
                     :class="checkTitleIsPublished(item.title) ? 'bg-red-600' : 'bg-green-600'">
                     {{ getTitleMessage(item.title) }}
                   </div>
-                  <img v-if="item.cdn_url" class="w-10 h-10 rounded-sm" :src="fmtImageUrl(item.cdn_url)" />
+                  <img v-if="item.cdn_url" class="h-20 w-20 p-1 rounded-sm object-cover" :src="fmtImageUrl(item.cdn_url)" />
                   <div class="flex flex-col justify-around px-1 h-full" v-if="item.msg_id === msg_idRef">
                     <el-icon class="cursor-pointer" @click="swapUp(item.msg_id)">
                       <component :is="ArrowUpRef"></component>
