@@ -7,7 +7,7 @@
         </el-col>
         <el-col :span="12">
           <select-user v-model="listQuery.user_id"></select-user>
-        </el-col> 
+        </el-col>
         <el-col :span="12" style="margin-top: 10px">
           <select-group v-model="listQuery.cate_id"></select-group>
         </el-col> -->
@@ -26,7 +26,7 @@
         <draggable v-model="accounts" class="list-group" ghost-class="ghost" :disabled="dragDisabled" handle=".handle"
           @start="handleDragStart" @end="handleDragEnd" item-key="id">
           <template #item="{ element }">
-            <div @click="element.expired ? handleAddMPAccount(mp_platform) : addNewTab(element)"
+            <div @click="element.expired ? handleAddMPAccount(mp_platform, element) : addNewTab(element)"
               style="display: flex;align-items: center;padding: 5px; border-bottom: solid 1px #ccc;"
               :class="{ 'bg-gray-200': selected_account_id === element.id }">
               <img style="width: 40px; height: 40px;border-radius: 50%" :src="element.avatar"
@@ -257,8 +257,9 @@ const handleDragEnd = async (e) => {
   }
 }
 
-const handleAddMPAccount = (item) => {
-  console.log("handleAddMPAccount", item)
+/** 弹出新窗口登录公众号 */
+const handleAddMPAccount = (item, account=null) => {
+  account && (selected_account_id.value = account.id)
   window.ipcRenderer.send('toMain', {
     tag: 'addAccount',
     token: getToken(),
@@ -491,7 +492,7 @@ onMounted(() => {
         }
       }
       console.log("accounts_mapping_tabs=>", accounts_mapping_tabs.value)
-      const new_mapping = accounts_mapping_tabs.value.find(v => v.tabId === 0) 
+      const new_mapping = accounts_mapping_tabs.value.find(v => v.tabId === 0)
       if (new_mapping) {
         new_mapping.tabId = currentTabId.value
       }

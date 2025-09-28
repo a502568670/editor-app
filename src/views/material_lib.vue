@@ -176,7 +176,7 @@
 }
 </style>
 <script setup>
-import { ref, toRefs, useTemplateRef, computed, nextTick, onMounted, onActivated, onDeactivated, provide, toRaw } from 'vue';
+import { ref, toRefs, useTemplateRef, computed, nextTick, onMounted, onActivated, onDeactivated, provide, toRaw, effect } from 'vue';
 import { vScroll } from '@vueuse/components'
 import SyncToOtherAccountsDialog from "@/dlgs/syncToOtherAccounts"
 import OperateProgressDialog from "@/dlgs/operateProgress"
@@ -191,7 +191,7 @@ import { serializeCookie } from "@/utils/cookie"
 import { fmtImageUrl } from "@/utils/format"
 import { formatDate } from "@/utils/date"
 import { getVideoFrameHtml } from "@/utils/video"
-import { debounceFn, dog } from "@/utils/index"
+import { debounceFn, dog, sortByOrder } from "@/utils/index"
 import { toDeepRaw } from "@/utils/convert"
 import { Clock, PencilLine, SendHorizonal, Forward, Trash2, MonitorDown } from 'lucide-vue-next';
 import { useRouter } from 'vue-router'
@@ -244,7 +244,7 @@ const channelName = 'fromMain'
 const channelSource = 'material_lib'
 
 const store = useStore()
-const { all_accounts } = toRefs(store.getters)
+const { all_accounts, account_orders } = toRefs(store.getters)
 const router = useRouter();
 
 const elRef = useTemplateRef('el')
@@ -318,11 +318,14 @@ async function loadMore(params) {
 }
 
 const handleAccountSelect = async ({ account, index }) => {
-  // console.log('all_accounts.value=>', all_accounts.value)
-  console.log("---->", account, index)
   selectedAccountRef.value = account
   selectedIndexRef.value = index
-  otherAccountsRef.value = toDeepRaw(all_accounts.value.list.filter(v => v.id !== account.id))
+  // 未排序的公众号列表
+  const not_sort = toDeepRaw(all_accounts.value.list.filter(v => v.id !== account.id))
+  effect(()=>{
+    otherAccountsRef.value = sortByOrder(not_sort, toDeepRaw(account_orders.value)).result
+  })
+
   listMode.value = 0
   if (materialTypeRef.value === 0) {
     loaded_page_no.value = 0

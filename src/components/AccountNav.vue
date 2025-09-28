@@ -110,13 +110,11 @@ const props = defineProps({
 });
 
 const listAccounts = (query) => {
+  console.log('账号', account_orders.value)
   const filteredAccounts = all_accounts.value.list.filter(a => a.name.includes(query))
   const not_sort = toDeepRaw(filteredAccounts)
-  console.log("all_accounts=>", all_accounts)
-  console.log("account_orders=>", account_orders.value)
   const { result: sorted } = sortByOrder(not_sort, toDeepRaw(account_orders.value))
   accountsRef.value = sorted
-  console.log("accountsRef.value=>", accountsRef.value)
 }
 
 onMounted(async () => {
@@ -132,7 +130,7 @@ onActivated(async () => {
     emitAccountEvents("accountSelect", { account: toDeepRaw(accountsRef.value[props.defaultSelectedIndex]), index: props.defaultSelectedIndex })
   }
   nextTick(scrollIndexIntoView);
-  
+
 })
 var refList=useTemplateRef('refList')
 function scrollIndexIntoView(){
