@@ -53,7 +53,7 @@
           <el-button class="mb-2" type="primary" :disabled="mp_msgsRef.length === 0" @click="checkTitles">
             检测标题(30天内)
           </el-button>
-          <div ref="elListMsgsRef" class="overflow-auto">
+          <div ref="elListMsgsRef" class="overflow-auto border-b">
             <div @click="loadArticle(item, true)" v-for="(item, index) in mp_msgsRef" :key="item.msg_id"
               class="flex items-center w-full relative group border-2 border-transparent hover:border-[#07C160]"
               :class="{
@@ -157,11 +157,18 @@
           </div>
         </div>
       </div>
-      <div class="h-full flex flex-col flex-1">
-        <el-input v-model="currentArticleRef.title" style="--el-input-text-color:#000;--el-input-height:52px;font-size:24px" clearable placeholder="请输入文章标题"
-          @input="syncToList('title')" v-if="![5, 8].includes(currentArticleRef.item_show_type)" />
-        <div ref="ueditor_wrapper" class="h-full flex-1">
-          <vue-ueditor-wrap class="h-full flex items-stretch"
+      <div class="h-full flex-1 p-2 bg-white border-x border-[#efefef] flex flex-col">
+        <el-input
+          class="no-border"
+          v-model="currentArticleRef.title"
+          style="--el-input-text-color:#000;--el-input-height:52px;font-size:24px"
+          clearable
+          placeholder="请输入文章标题"
+          @input="syncToList('title')"
+          v-if="![5, 8].includes(currentArticleRef.item_show_type)"
+        />
+        <div ref="ueditor_wrapper" class="flex-1">
+          <vue-ueditor-wrap class="h-full ueditor-wrapper flex items-stretch"
             v-if="msg_idRef !== 0 && currentArticleRef.item_show_type === 0"
             v-model="currentArticleRef.content_noencode" :editor-id="editorIdRef" @ready="ready"
             :config="editorConfigRef" :editorDependencies="['ueditor.config.js', 'ueditor.all.js']" />
@@ -799,6 +806,15 @@
 :deep(.el-textarea__inner) {
   height: 100%;
 }
+
+.no-border :deep(.el-input__wrapper) {
+  box-shadow: none !important; /* 去掉阴影 */
+  border-bottom: 1px solid #eee !important;     /* 去掉边框 */
+}
+
+.ueditor-wrapper :deep(.edui-default .edui-editor) {
+  border: none !important;     /* 去掉边框 */
+}
 </style>
 <script setup>
 import { ref, toRefs, shallowRef, onMounted, onBeforeUnmount, nextTick, onActivated, onDeactivated, onUnmounted, watch, computed, provide, toRaw, unref } from 'vue';
@@ -944,7 +960,9 @@ const editorConfigRef = ref({
       return;
     }
     call();
-  }
+  },
+  elementPathEnabled: false,
+  iframeCssUrl: '/css/ueditorcss.css'
 })
 
 // component
@@ -3276,13 +3294,7 @@ watch(() => [props.mainMsg], async (newVal) => {
 // 文章拖拽
 const { start } = useDraggable(elListMsgsRef, mp_msgsRef, {
   animation: 150,
-  ghostClass: 'ghost',
-  onStart(e) {
-    console.log('start', e)
-  },
-  onUpdate(e) {
-    console.log('update', mp_msgsRef.value)
-  }
+  ghostClass: 'ghost'
 })
 
 // 组件生命周期
