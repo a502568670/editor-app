@@ -1,12 +1,17 @@
 <template>
-  <el-row :gutter="20">
-    <el-col :span="4" style="display: flex;flex-direction: column;justify-content: center">
-      <div style="font-size: 12px;margin-bottom: 5px;">{{$store.state.user?.mobile}}</div>
-      <div v-if="$store.state.user?.vip_name" style="color:#999;font-size: 12px;">{{$store.state.user?.vip_name}}[{{$store.state.user?.vip_endtime}}]到期</div>
-      <div style="color:#999;font-size: 12px;" v-else>{{username}}</div>
+  <el-row>
+    <el-col :span="4">
+      <div class="flex items-center justify-start h-full">
+        <img src="/favicon.ico" class="w-[30px] h-[30px] rounded-full mr-2" />
+        <div style="display: flex;flex-direction: column;justify-content: center">
+          <div style="font-size: 12px;margin-bottom: 5px;">{{$store.state.user?.mobile}}</div>
+          <div v-if="$store.state.user?.vip_name" style="color:#999;font-size: 12px;">{{$store.state.user?.vip_name}}[{{$store.state.user?.vip_endtime}}]到期</div>
+          <div style="color:#999;font-size: 12px;" v-else>{{username}}</div>
+        </div>
+      </div>
     </el-col>
-    <el-col :span="14">
-      <div style="display:flex;align-items: center;">
+    <el-col :span="16">
+      <div style="display:flex;align-items: center;justify-content: center;">
         <div @click="toUrl(item.url,index)"  v-for="(item,index) in menuList" :key="index" class="menu" :class="{'active':item.url==current}">
           <img  v-if="item.url==current" :src="item.icon_active" />
           <img v-else :src="item.icon" />
@@ -22,14 +27,28 @@
         </router-link>
       </div>
     </el-col>
-    <el-col :span="6" style="text-align: right">
-      <div class="right">
+    <el-col :span="4">
+      <div class="flex justify-end items-center h-full">
+        <el-dropdown @command="handleCommand">
+          <el-icon :size="25">
+            <Menu />
+          </el-icon>
+          <template #dropdown>
+            <el-dropdown-menu>
+              <el-dropdown-item command="gotoExternal">极致了助手</el-dropdown-item>
+              <el-dropdown-item command="toKf">联系客服</el-dropdown-item>
+              <el-dropdown-item command="exit">退出</el-dropdown-item>
+            </el-dropdown-menu>
+          </template>
+        </el-dropdown>
+      </div>
+      <!-- <div class="right"> -->
         <!-- <Hydrate/> -->
         <!-- <el-button @click="toBuyVip" type="primary" >购买会员</el-button> -->
-        <el-button @click="gotoExternal(jzl_assistant_url)" type="primary" >极致了助手</el-button>
+        <!-- <el-button @click="gotoExternal(jzl_assistant_url)" type="primary" >极致了助手</el-button>
         <el-button @click="toKf" type="success" >联系客服</el-button>
         <el-button @click="exit" type="danger" :icon="SwitchButton" circle></el-button>
-      </div>
+      </div> -->
     </el-col>
   </el-row>
 </template>
@@ -40,7 +59,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useStore } from 'vuex'
 import {ImagePlay, Newspaper} from 'lucide-vue-next'
 import {
-  SwitchButton
+  SwitchButton,Menu
 } from '@element-plus/icons-vue'
 import { gotoExternal } from "@/utils/openWindow"
 import Hydrate from '@/components/Hydrate.vue';
@@ -133,6 +152,22 @@ const toKf = function () {
 }
 const username = ref(localStorage.getItem("username"))
 const jzl_assistant_url = store.state.config?.jzl_assistant_url
+
+const handleCommand = (command) => {
+  switch (command) {
+    case 'exit':
+      exit()
+      break;
+    case 'toKf':
+      toKf()
+      break;
+    case 'gotoExternal':
+      gotoExternal(jzl_assistant_url)
+      break;
+    default:
+      break;
+  }
+}
 </script>
 
 <style  scoped>
