@@ -81,13 +81,14 @@
               <div v-if="index === 0" class='w-full flex h-32 relative justify-between items-end bg-[#e6e6e6]'>
                 <img v-if="subitem.cdn_url" class="w-full h-full  object-cover rounded-sm" :src="subitem.cdn_url"
                   referrerpolicy="no-referrer" />
-                <div class="w-full h-[30px] absolute flex text-white p-1 bg-gray-800 opacity-70 pl-2 truncate">{{
-                  subitem.title }}</div>
+                <div class="w-full h-[30px] absolute text-white p-1 bg-gray-800 opacity-70 pl-2 truncate">
+                  {{ subitem.title }}
+                </div>
               </div>
               <div class="w-full flex h-[75px] items-center"
                 :class="{ 'border-b': index > 0 && index !== item.multi_item.length - 1 }" v-else>
-                <div class="flex flex-col flex-1 h-full">
-                  <div class="flex-1 h-2/3 w-full max-w-full max-h-2/3 overflow-y-hidden ">
+                <div class="flex-1 h-full w-0 flex items-center">
+                  <div class="w-full max-w-full overflow-y-hidden truncate">
                     <!-- <el-icon v-if="subitem.item_show_type === 5" :size="20"
                       class="cursor-pointer flex justify-center items-end" title="视频文章">
                       <Video />

@@ -1,5 +1,5 @@
 <template>
-  <div class="flex w-ful h-full bg-[#e9f9f1] pt-1">
+  <div class="flex w-ful h-full pt-1">
     <el-tabs v-show="editableTabs.length > 0" v-model="editableTabsValue" type="card" class="editor-tabs w-full h-full"
       closable @tab-remove="handleCloseTab">
       <el-tab-pane v-for="(item, idx) in editableTabs" :key="idx" :name="item.name" class="h-full">
@@ -245,7 +245,7 @@ const handleTitleChange = ({ appmsgid, title }) => {
     // const split_str = '-<'
     // const arr =  editableTabs.value[idx].title.split(split_str)
     // console.log('arr=>', arr)
-    // arr[0] = title 
+    // arr[0] = title
     // editableTabs.value[idx].title = arr.join(split_str)
     editableTabs.value[idx].title = title
   }

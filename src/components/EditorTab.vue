@@ -1,5 +1,5 @@
 <template>
-  <div class="flex flex-col h-full bg-[#e9f9f1]">
+  <div class="flex flex-col h-full">
     <div class="h-10 flex space-x-2 items-center border-b mb-1 shadow-md">
       <div class="flex items-center pl-1">
         <img class="w-9 h-9 rounded-full" :src="selectedAccount?.avatar" />
@@ -47,326 +47,338 @@
       <!-- <el-button @click="handleSyncToWechatDraftBox" type="danger">同步到微信草稿箱</el-button>
       <el-button @click="openSendArticleDialog" type="danger">同步到其他账号</el-button> -->
     </div>
-    <el-row :gutter="0" class="flex-1 items-stretch h-0">
-      <el-col :span="6" class="overflow-scroll bg-white">
-        <div class="bg-white  shadow-xl">
-          <div v-if="mp_msgsRef">
-            <div class="flex w-full items-center pl-2 pt-2">
-              <el-button type="primary" :disabled="mp_msgsRef.length === 0" @click="checkTitles">
-                检测标题(30天内)
-              </el-button>
-            </div>
-            <div ref="elListMsgsRef" class="overflow-auto" style="height:calc(100vh - 208px)">
-              <div @click="loadArticle(item, true)" v-for="(item, index) in mp_msgsRef" :key="item.msg_id"
-                class="flex items-center border-b w-full">
-                <img v-if="item.cdn_url" :src="fmtImageUrl(item.cdn_url)" style="width:0px;height:0px;"
+    <div class="flex-1 items-stretch h-0 flex">
+      <div class="bg-white shadow-xl w-[300px] p-3">
+        <div v-if="mp_msgsRef">
+          <el-button class="mb-2" type="primary" :disabled="mp_msgsRef.length === 0" @click="checkTitles">
+            检测标题(30天内)
+          </el-button>
+          <div ref="elListMsgsRef" class="overflow-auto">
+            <div @click="loadArticle(item, true)" v-for="(item, index) in mp_msgsRef" :key="item.msg_id"
+              class="flex items-center w-full relative group border-2 border-transparent hover:border-[#07C160]"
+              :class="{
+                '!border-[#07C160]': (item.msg_id === msg_idRef),
+                'rounded-t-lg': (index === 0)
+              }"
+            >
+              <img v-if="item.cdn_url" :src="fmtImageUrl(item.cdn_url)" style="width:0px;height:0px;"
+                referrerpolicy="no-referrer" />
+              <div v-if="index === 0" class='relative w-full flex h-40 justify-between items-end bg-[#e6e6e6]'>
+                <div v-if="isShowCheckTitleResults(item.title)"
+                  class="flex absolute left-0 top-0 justify-between px-1 space-x-2 text-white text-sm opacity-70"
+                  :class="checkTitleIsPublished(item.title) ? 'bg-red-600' : 'bg-green-600'">
+                  {{ getTitleMessage(item.title) }}
+                </div>
+                <img v-if="item.cdn_url" class="w-full h-full object-cover rounded-sm" :src="item.cdn_url"
                   referrerpolicy="no-referrer" />
-                <div v-if="index === 0" class='relative w-full flex h-40 justify-between items-end bg-[#e6e6e6] '
-                  :class="{ 'border-2 border-[#07C160]': (item.msg_id === msg_idRef) }">
-                  <div v-if="isShowCheckTitleResults(item.title)"
-                    class="flex absolute left-0 top-0 justify-between px-1 space-x-2 text-white text-sm opacity-70"
-                    :class="checkTitleIsPublished(item.title) ? 'bg-red-600' : 'bg-green-600'">
-                    {{ getTitleMessage(item.title) }}
+                <div class="absolute text-white p-1 bg-gray-800 opacity-80 w-full truncate">
+                  {{ item.msg_id === 0 ? '*' : '' }} {{ item.title }}
+                </div>
+                <!-- <div
+                  class="flex absolute right-0 justify-between px-1 space-x-2 py-1 text-white bg-gray-600 opacity-70"
+                  v-if="item.msg_id === msg_idRef && !is_xiaolvshu">
+                  <el-icon class="cursor-pointer" @click="swapDown(item.msg_id)">
+                    <component :is="ArrowDown"></component>
+                  </el-icon>
+                  <el-icon class="cursor-pointer" @click="removeArticle(item.msg_id)">
+                    <component :is="Delete"></component>
+                  </el-icon>
+                </div> -->
+              </div>
+              <div class="w-full flex h-20 items-center relative" v-else>
+                <div class="flex flex-col flex-1 h-full justify-end w-0">
+                  <div class="w-full max-w-full max-h-full overflow-y-hidden p-1"><span
+                      class="mx-1 text-red-500" v-if="item.msg_id === 0">*</span>
+                    <el-icon v-if="item.item_show_type === 5" :size="20"
+                      class="cursor-pointer flex justify-center items-end" title="视频文章">
+                      <Video />
+                    </el-icon>
+                    <div class="w-full truncate">
+                      {{ item.title }}
+                    </div>
                   </div>
-                  <img v-if="item.cdn_url" class="w-full h-full  object-cover rounded-sm" :src="item.cdn_url"
-                    referrerpolicy="no-referrer" />
-                  <div class="flex absolute text-white p-1 bg-gray-600 opacity-70"><span
-                      v-if="item.msg_id === 0">*</span>{{
-                        item.title }}
+                  <!-- <div class=" text-sm flex-0" style="color: #51ce94">{{ item.author }}</div> -->
+                </div>
+                <div v-if="isShowCheckTitleResults(item.title)"
+                  class="flex absolute top-0 justify-between px-1 space-x-2 text-white text-sm opacity-70"
+                  :class="checkTitleIsPublished(item.title) ? 'bg-red-600' : 'bg-green-600'">
+                  {{ getTitleMessage(item.title) }}
+                </div>
+                <img v-if="item.cdn_url" class="h-20 w-20 p-1 rounded-sm object-cover" :src="fmtImageUrl(item.cdn_url)" />
+                <!-- <div class="flex flex-col justify-around px-1 h-full" v-if="item.msg_id === msg_idRef">
+                  <el-icon class="cursor-pointer" @click="swapUp(item.msg_id)">
+                    <component :is="ArrowUpRef"></component>
+                  </el-icon>
+                  <el-icon class="cursor-pointer" @click="swapDown(item.msg_id)">
+                    <component :is="ArrowDownRef" v-if="index < mp_msgsRef.length - 1"></component>
+                  </el-icon>
+                  <el-icon class="cursor-pointer" @click="removeArticle(item.msg_id)">
+                    <component :is="DeleteRef"></component>
+                  </el-icon>
+                </div> -->
+              </div>
+              <div class="absolute hidden group-hover:block bg-black/60 p-1 bottom-0 left-0 w-full">
+                <div class="flex justify-end">
+                  <div class="flex justify-center items-center bg-white rounded-full p-1 mx-1">
+                    <el-icon class="cursor-pointer" @click="swapUp(item.msg_id, index)">
+                      <component :is="ArrowUpRef"></component>
+                    </el-icon>
                   </div>
-                  <div
-                    class="flex absolute right-0 justify-between px-1 space-x-2 py-1 text-white bg-gray-600 opacity-70"
-                    v-if="item.msg_id === msg_idRef && !is_xiaolvshu">
-                    <el-icon class="cursor-pointer" @click="swapDown(item.msg_id)">
+                  <div class="flex justify-center items-center bg-white rounded-full p-1 mx-1">
+                    <el-icon class="cursor-pointer" @click="swapDown(item.msg_id, index)">
                       <component :is="ArrowDown"></component>
                     </el-icon>
+                  </div>
+                  <div class="flex justify-center items-center bg-white rounded-full p-1 mx-1">
                     <el-icon class="cursor-pointer" @click="removeArticle(item.msg_id)">
                       <component :is="Delete"></component>
                     </el-icon>
                   </div>
                 </div>
-                <div class="w-full flex h-20 items-center relative"
-                  :class="{ 'border-2 border-[#07C160]': (item.msg_id === msg_idRef) }" v-else>
-                  <div class="flex flex-col flex-1 h-full justify-end">
-                    <div class="w-full max-w-full max-h-full overflow-y-hidden p-1"><span
-                        class="mx-1 text-red-500" v-if="item.msg_id === 0">*</span>
-                      <el-icon v-if="item.item_show_type === 5" :size="20"
-                        class="cursor-pointer flex justify-center items-end" title="视频文章">
-                        <Video />
-                      </el-icon>
-                      {{ item.title }}
-                    </div>
-                    <!-- <div class=" text-sm flex-0" style="color: #51ce94">{{ item.author }}</div> -->
-                  </div>
-                  <div v-if="isShowCheckTitleResults(item.title)"
-                    class="flex absolute top-0 justify-between px-1 space-x-2 text-white text-sm opacity-70"
-                    :class="checkTitleIsPublished(item.title) ? 'bg-red-600' : 'bg-green-600'">
-                    {{ getTitleMessage(item.title) }}
-                  </div>
-                  <img v-if="item.cdn_url" class="h-20 w-20 p-1 rounded-sm object-cover" :src="fmtImageUrl(item.cdn_url)" />
-                  <div class="flex flex-col justify-around px-1 h-full" v-if="item.msg_id === msg_idRef">
-                    <el-icon class="cursor-pointer" @click="swapUp(item.msg_id)">
-                      <component :is="ArrowUpRef"></component>
-                    </el-icon>
-                    <el-icon class="cursor-pointer" @click="swapDown(item.msg_id)">
-                      <component :is="ArrowDownRef" v-if="index < mp_msgsRef.length - 1"></component>
-                    </el-icon>
-                    <el-icon class="cursor-pointer" @click="removeArticle(item.msg_id)">
-                      <component :is="DeleteRef"></component>
-                    </el-icon>
-                  </div>
-                </div>
-              </div>
-              <div class="w-full flex h-20 items-center p-1 justify-center">
-                <el-dropdown v-if="!is_xiaolvshu">
-                  <el-button type="primary">
-                    新建消息<el-icon class="el-icon--right"><arrow-down /></el-icon>
-                  </el-button>
-                  <template #dropdown>
-                    <el-dropdown-menu>
-                      <el-dropdown-item @click="() => newArticle(true, 0)">图文</el-dropdown-item>
-                      <el-dropdown-item @click="() => newArticle(true, 5)">视频</el-dropdown-item>
-                    </el-dropdown-menu>
-                  </template>
-                </el-dropdown>
               </div>
             </div>
-            <div class="w-full flex h-1 items-center p-1 justify-center">
-              <!-- <div @click="newArticle()"  class="cursor-pointer">+新建文章</div> -->
-              <!-- <el-button @click="newArticle" type="primary">新建文章</el-button> -->
-            </div>
+          </div>
+          <div class="flex items-center justify-center mt-2">
+            <el-dropdown v-if="!is_xiaolvshu">
+              <el-button type="primary">
+                新建消息<el-icon class="el-icon--right"><arrow-down /></el-icon>
+              </el-button>
+              <template #dropdown>
+                <el-dropdown-menu>
+                  <el-dropdown-item @click="() => newArticle(true, 0)">图文</el-dropdown-item>
+                  <el-dropdown-item @click="() => newArticle(true, 5)">视频</el-dropdown-item>
+                </el-dropdown-menu>
+              </template>
+            </el-dropdown>
+          </div>
+          <div class="w-full flex h-1 items-center p-1 justify-center">
+            <!-- <div @click="newArticle()"  class="cursor-pointer">+新建文章</div> -->
+            <!-- <el-button @click="newArticle" type="primary">新建文章</el-button> -->
           </div>
         </div>
-      </el-col>
-      <el-col :span="12" class="h-full overflow-auto" v-loading="globalLoadingRef">
-        <div class="h-full flex flex-col">
-          <el-input v-model="currentArticleRef.title" style="--el-input-text-color:#000;--el-input-height:52px;font-size:24px" clearable placeholder="请输入文章标题"
-            @input="syncToList('title')" v-if="![5, 8].includes(currentArticleRef.item_show_type)" />
-          <div ref="ueditor_wrapper" class="h-full flex-1">
-            <vue-ueditor-wrap class="h-full flex items-stretch"
-              v-if="msg_idRef !== 0 && currentArticleRef.item_show_type === 0"
-              v-model="currentArticleRef.content_noencode" :editor-id="editorIdRef" @ready="ready"
-              :config="editorConfigRef" :editorDependencies="['ueditor.config.js', 'ueditor.all.js']" />
-            <!-- 这里是视频的编辑区 -->
-            <div v-if="msg_idRef !== 0 && currentArticleRef.item_show_type === 5" class="w-full p-2">
-              <el-row :gutter="4" class="mb-1 w-full">
-                <el-col :span="24">
-                  <el-input v-model="currentArticleRef.title" clearable class="w-full" placeholder="请输入文章标题"
-                    @input="syncToList('title')" />
-                </el-col>
-              </el-row>
-              <el-row :gutter="4" class="mb-1 w-full">
-                <el-col :span="24" class="flex w-full">
-                  <!-- <el-input v-model="currentArticleRef.author" clearable class="w-full" placeholder="请输入视频介绍,可以不填" /> -->
-                  <el-mention v-model="currentArticleRef.guide_words" type="textarea" class="w-full h-40"
-                    placeholder="请输入视频介绍,可以不填" />
-                </el-col>
-              </el-row>
-              <el-row :gutter="4" class="mb-1 w-full">
-                <el-col :span="24" class="flex justify-center items-center">
-                  <div v-if="!currentArticleRef.vid" class="flex-1 flex justify-center h-[60px]">
-                    <el-button @click="openVideoMaterialDialog" class="max-w-[80px]  m-auto"
-                      type="primary">视频素材</el-button>
-                  </div>
-                  <div v-else v-html="currentArticleRef.content_noencode">
-                  </div>
-                </el-col>
-              </el-row>
-            </div>
-            <!-- 这里是小绿书的编辑区 -->
-            <div v-if="msg_idRef !== 0 && currentArticleRef.item_show_type === 8"
-              class="w-full p-2 pb-5 flex-col h-full overflow-auto">
-              <el-row :gutter="4" class="mb-1 w-full">
-                <el-col :span="24">
-                  <ImgListPicker v-model="currentArticleRef.picture_page_info_list">
-                    <template #picker v-if="(currentArticleRef.picture_page_info_list || []).length < 20">
-                      <el-icon class="item bg-white" @click="refImgPicker.openDialog(), imgListPicking = true">
-                        <Plus />
-                      </el-icon>
-                    </template>
-                  </ImgListPicker>
-                </el-col>
-              </el-row>
-              <el-row :gutter="4" class="mb-1 w-full">
-                <el-col :span="24">
-                  <el-input v-model="currentArticleRef.title" clearable class="w-full" placeholder="请在这里输入标题 (选填)"
-                    @input="syncToList('title')" />
-                </el-col>
-              </el-row>
-              <el-row :gutter="4" class="mb-1 w-full ">
-                <el-col :span="24" class="flex w-full">
-                  <!-- <el-input v-model="currentArticleRef.author" clearable class="w-full" placeholder="请输入视频介绍,可以不填" /> -->
-                  <el-mention v-model="currentArticleRef.guide_words" type="textarea" class="w-full h-20"
-                    placeholder="填写描述信息，让大家了解更多内容" />
-                </el-col>
-              </el-row>
-            </div>
-            <!-- 纯文字的编辑区，不排除其他类型 -->
-            <div v-if="msg_idRef !== 0 && currentArticleRef.item_show_type === 10"
-              class="w-full p-2 pb-5 flex-col h-full overflow-auto">
-              <el-row :gutter="4" class="mb-1 w-full">
-                <el-col :span="24">
-                  <el-input v-model="currentArticleRef.title" clearable class="w-full" placeholder="请在这里输入标题 (选填)"
-                    @input="syncToList('title')" />
-                </el-col>
-              </el-row>
-              <el-row :gutter="4" class="mb-1 w-full ">
-                <el-col :span="24" class="flex w-full">
-                  <!-- <el-input v-model="currentArticleRef.author" clearable class="w-full" placeholder="请输入视频介绍,可以不填" /> -->
-                  <el-mention v-model="currentArticleRef.guide_words" type="textarea" class="w-full h-96"
-                    placeholder="填写描述信息，让大家了解更多内容" />
-                </el-col>
-              </el-row>
-            </div>
-          </div>
-        </div>
-      </el-col>
-      <el-col :span="1" class="overflow-scroll bg-white">
-        <div
-          class="grid-content flex flex-col h-full justify-start items-center border  space-y-2 p-2 bg-slate-100 text-blue-500">
-          <el-icon :size="20" class="cursor-pointer flex justify-center" @click="runEditorCMD('cleardoc')"
-            title="清空当前编辑器内容">
-            <BrushFilled />
-          </el-icon>
-          <el-icon :size="20" class="cursor-pointer flex justify-center" @click="openExtractMpArticleUrlDialog"
-            title="提取链接内容">
-            <Link />
-          </el-icon>
-          <BatchExtractMpArticle v-model="mp_msgsRef" @confirm="onBatchExtractMp" />
-          <el-icon :size="20" class="cursor-pointer flex justify-center" @click="openAdDialog" title="设置广告">
-            <DollarSign />
-          </el-icon>
-          <el-icon :size="20" class="cursor-pointer flex justify-center" @click="openMiniAppDialog" title="插入小程序">
-            <WechatMiniAppIcon />
-          </el-icon>
-          <el-icon :size="20" class="cursor-pointer flex justify-center" @click="openMPDialog" title="插入公众号名片">
-            <WechatMPIcon />
-          </el-icon>
-          <el-icon :size="20" class="cursor-pointer flex justify-center" @click="openMPVDialog" title="插入视频">
-            <WechatVideoIcon />
-          </el-icon>
-          <Minus class="text-gray-200" />
-          <!-- <div class="flex-1"></div> -->
-          <el-icon :size="20" class="cursor-pointer flex justify-center" @click="handlePreview" title="文章预览">
-            <Eye />
-          </el-icon>
-          <el-icon :size="20" class="cursor-pointer flex justify-center" @click="openMobilePreviewDialog"
-            title="文章手机预览">
-            <ScanEye />
-          </el-icon>
-          <el-icon :size="20" class="cursor-pointer flex justify-center" @click="openAppMsgMobilePreviewDialog"
-            title="消息手机预览">
-            <Smartphone />
-          </el-icon>
-
-          <!-- <el-icon v-if="isDebugRef" :size="20" class="cursor-pointer flex justify-center"
-            @click="handleLocalExtractMpArticleUrl" title="测试本地提取链接">
-            <Link2 />
-          </el-icon> -->
-          <el-icon v-if="isDebugRef" :size="20" class="cursor-pointer flex justify-center" @click="openDebugDialog"
-            title="调试信息">
-            <SquareTerminal />
-          </el-icon>
-        </div>
-      </el-col>
-      <el-col :span="5" class="h-full">
-        <el-tabs type="border-card" class="editor-inner-tabs">
-          <el-tab-pane label="发布设置">
-            <el-row :gutter="4" class="mb-1" v-if="false&&![5, 8].includes(currentArticleRef.item_show_type)">
+      </div>
+      <div class="h-full flex flex-col flex-1">
+        <el-input v-model="currentArticleRef.title" style="--el-input-text-color:#000;--el-input-height:52px;font-size:24px" clearable placeholder="请输入文章标题"
+          @input="syncToList('title')" v-if="![5, 8].includes(currentArticleRef.item_show_type)" />
+        <div ref="ueditor_wrapper" class="h-full flex-1">
+          <vue-ueditor-wrap class="h-full flex items-stretch"
+            v-if="msg_idRef !== 0 && currentArticleRef.item_show_type === 0"
+            v-model="currentArticleRef.content_noencode" :editor-id="editorIdRef" @ready="ready"
+            :config="editorConfigRef" :editorDependencies="['ueditor.config.js', 'ueditor.all.js']" />
+          <!-- 这里是视频的编辑区 -->
+          <div v-if="msg_idRef !== 0 && currentArticleRef.item_show_type === 5" class="w-full p-2">
+            <el-row :gutter="4" class="mb-1 w-full">
               <el-col :span="24">
-                <el-input v-model="currentArticleRef.title" clearable class="grid-content-control" placeholder="请输入文章标题"
+                <el-input v-model="currentArticleRef.title" clearable class="w-full" placeholder="请输入文章标题"
                   @input="syncToList('title')" />
               </el-col>
             </el-row>
-            <el-row :gutter="4" class="mb-1" v-if="![8].includes(currentArticleRef.item_show_type)">
-              <el-col :span="24">
-                <el-input v-model="currentArticleRef.author" clearable class="grid-content-control"
-                  placeholder="请输入文章作者" />
+            <el-row :gutter="4" class="mb-1 w-full">
+              <el-col :span="24" class="flex w-full">
+                <!-- <el-input v-model="currentArticleRef.author" clearable class="w-full" placeholder="请输入视频介绍,可以不填" /> -->
+                <el-mention v-model="currentArticleRef.guide_words" type="textarea" class="w-full h-40"
+                  placeholder="请输入视频介绍,可以不填" />
               </el-col>
             </el-row>
             <el-row :gutter="4" class="mb-1 w-full">
-              <el-col :span="24" class="h-20 py-2 w-full flex justify-center items-center" style="display: none;">
-                <img class="cursor-pointer max-h-16 block" @click="triggerFileInput" v-if="selectedCdnImageRef"
-                  :src="selectedCdnImageRef" alt="封面预览">
-                <img class="cursor-pointer max-h-16 block" @click="triggerFileInput"
-                  v-else-if="currentArticleRef.cdn_url" :src="currentArticleRef.cdn_url" referrerpolicy="no-referrer"
-                  alt="封面图" />
-                <div v-else @click="triggerFileInput"
-                  class="cursor-pointer border h-16 w-[180px] flex justify-center items-center bg-[#8c8c8c]">设置封面图</div>
-                <input class="invisible" ref="cdnFileInputRef" @change="handleImage" type="file" accept="image/*">
+              <el-col :span="24" class="flex justify-center items-center">
+                <div v-if="!currentArticleRef.vid" class="flex-1 flex justify-center h-[60px]">
+                  <el-button @click="openVideoMaterialDialog" class="max-w-[80px]  m-auto"
+                    type="primary">视频素材</el-button>
+                </div>
+                <div v-else v-html="currentArticleRef.content_noencode">
+                </div>
               </el-col>
-              <ImgPicker v-show="currentArticleRef.item_show_type !== 10" ref="refImgPicker" v-model="pickerQuery"
-                :pageInfo="pickerPageInfo" :imgSrc="currentArticleRef.cdn_url" placeholder="设置封面图"
-                @change="handleImageUpload" @confirm="onImgPick" :editorInst="editorRef" />
-              <!-- <ImgCrop :imgSrc="currentArticleRef.cdn_url" placeholder="设置封面图" @change="handleImageUpload"></ImgCrop> -->
             </el-row>
-            <!-- <el-row :gutter="4" class="mb-1 invisible">
-        <el-col :span="24">
-          
-        </el-col>
-      </el-row> -->
-            <el-row :gutter="4" class="my-2">
+          </div>
+          <!-- 这里是小绿书的编辑区 -->
+          <div v-if="msg_idRef !== 0 && currentArticleRef.item_show_type === 8"
+            class="w-full p-2 pb-5 flex-col h-full overflow-auto">
+            <el-row :gutter="4" class="mb-1 w-full">
               <el-col :span="24">
-                <hr />
+                <ImgListPicker v-model="currentArticleRef.picture_page_info_list">
+                  <template #picker v-if="(currentArticleRef.picture_page_info_list || []).length < 20">
+                    <el-icon class="item bg-white" @click="refImgPicker.openDialog(), imgListPicking = true">
+                      <Plus />
+                    </el-icon>
+                  </template>
+                </ImgListPicker>
               </el-col>
             </el-row>
-            <el-row :gutter="4" class="mb-1">
+            <el-row :gutter="4" class="mb-1 w-full">
               <el-col :span="24">
-                <!-- 创作来源 -->
-                <el-select v-model="selected_claim_source_typeRef" value-key="id" filterable placeholder="创作来源">
-                  <el-option v-for="(item) in claim_source_typesRef" :key="item.id" :label="item.name" :value="item" />
-                </el-select>
+                <el-input v-model="currentArticleRef.title" clearable class="w-full" placeholder="请在这里输入标题 (选填)"
+                  @input="syncToList('title')" />
               </el-col>
             </el-row>
-            <el-row :gutter="4" class="mb-1">
+            <el-row :gutter="4" class="mb-1 w-full ">
+              <el-col :span="24" class="flex w-full">
+                <!-- <el-input v-model="currentArticleRef.author" clearable class="w-full" placeholder="请输入视频介绍,可以不填" /> -->
+                <el-mention v-model="currentArticleRef.guide_words" type="textarea" class="w-full h-20"
+                  placeholder="填写描述信息，让大家了解更多内容" />
+              </el-col>
+            </el-row>
+          </div>
+          <!-- 纯文字的编辑区，不排除其他类型 -->
+          <div v-if="msg_idRef !== 0 && currentArticleRef.item_show_type === 10"
+            class="w-full p-2 pb-5 flex-col h-full overflow-auto">
+            <el-row :gutter="4" class="mb-1 w-full">
               <el-col :span="24">
-                <el-checkbox label="声明原创" v-model="copyrightRef" />
+                <el-input v-model="currentArticleRef.title" clearable class="w-full" placeholder="请在这里输入标题 (选填)"
+                  @input="syncToList('title')" />
               </el-col>
             </el-row>
-            <el-row :gutter="4" class="h-8 mb-1">
-              <el-col :span="24">
-                <el-input v-model="currentArticleRef.sourceurl" clearable class="grid-content-control"
-                  placeholder="原文链接" />
+            <el-row :gutter="4" class="mb-1 w-full ">
+              <el-col :span="24" class="flex w-full">
+                <!-- <el-input v-model="currentArticleRef.author" clearable class="w-full" placeholder="请输入视频介绍,可以不填" /> -->
+                <el-mention v-model="currentArticleRef.guide_words" type="textarea" class="w-full h-96"
+                  placeholder="填写描述信息，让大家了解更多内容" />
               </el-col>
             </el-row>
-            <el-row :gutter="4" class="mb-1">
-              <el-col :span="24">
-                <el-checkbox label="打开留言" v-model="needOpenCommentRef" />
-                <el-radio-group :disabled="!needOpenCommentRef" v-model="commentTypeRef">
-                  <!-- works when >=2.6.0, recommended ✔️ not work when <2.6.0 ❌ -->
-                  <el-radio value="0">所有人可留言</el-radio>
-                  <!-- works when <2.6.0, deprecated act as value when >=3.0.0 -->
-                  <el-radio label="1">仅关注后可留言</el-radio>
-                </el-radio-group>
-              </el-col>
-            </el-row>
+          </div>
+        </div>
+      </div>
+      <div class="grid-content flex flex-col h-full justify-start items-center border space-y-2 p-2 bg-slate-100 text-blue-500">
+        <el-icon :size="20" class="cursor-pointer flex justify-center" @click="runEditorCMD('cleardoc')"
+          title="清空当前编辑器内容">
+          <BrushFilled />
+        </el-icon>
+        <el-icon :size="20" class="cursor-pointer flex justify-center" @click="openExtractMpArticleUrlDialog"
+          title="提取链接内容">
+          <Link />
+        </el-icon>
+        <BatchExtractMpArticle v-model="mp_msgsRef" @confirm="onBatchExtractMp" />
+        <el-icon :size="20" class="cursor-pointer flex justify-center" @click="openAdDialog" title="设置广告">
+          <DollarSign />
+        </el-icon>
+        <el-icon :size="20" class="cursor-pointer flex justify-center" @click="openMiniAppDialog" title="插入小程序">
+          <WechatMiniAppIcon />
+        </el-icon>
+        <el-icon :size="20" class="cursor-pointer flex justify-center" @click="openMPDialog" title="插入公众号名片">
+          <WechatMPIcon />
+        </el-icon>
+        <el-icon :size="20" class="cursor-pointer flex justify-center" @click="openMPVDialog" title="插入视频">
+          <WechatVideoIcon />
+        </el-icon>
+        <Minus class="text-gray-200" />
+        <!-- <div class="flex-1"></div> -->
+        <el-icon :size="20" class="cursor-pointer flex justify-center" @click="handlePreview" title="文章预览">
+          <Eye />
+        </el-icon>
+        <el-icon :size="20" class="cursor-pointer flex justify-center" @click="openMobilePreviewDialog"
+          title="文章手机预览">
+          <ScanEye />
+        </el-icon>
+        <el-icon :size="20" class="cursor-pointer flex justify-center" @click="openAppMsgMobilePreviewDialog"
+          title="消息手机预览">
+          <Smartphone />
+        </el-icon>
 
-            <!-- <el-row :gutter="4" class="my-2">
-          <el-col :span="24">
-            <hr />
-          </el-col>
-        </el-row>
-        <el-row :gutter="4" class="mb-1">
-          <el-col :span="24">
+        <!-- <el-icon v-if="isDebugRef" :size="20" class="cursor-pointer flex justify-center"
+          @click="handleLocalExtractMpArticleUrl" title="测试本地提取链接">
+          <Link2 />
+        </el-icon> -->
+        <el-icon v-if="isDebugRef" :size="20" class="cursor-pointer flex justify-center" @click="openDebugDialog"
+          title="调试信息">
+          <SquareTerminal />
+        </el-icon>
+      </div>
+      <el-tabs type="border-card" class="editor-inner-tabs w-[300px]">
+        <el-tab-pane label="发布设置">
+          <el-row :gutter="4" class="mb-1" v-if="false&&![5, 8].includes(currentArticleRef.item_show_type)">
+            <el-col :span="24">
+              <el-input v-model="currentArticleRef.title" clearable class="grid-content-control" placeholder="请输入文章标题"
+                @input="syncToList('title')" />
+            </el-col>
+          </el-row>
+          <el-row :gutter="4" class="mb-1" v-if="![8].includes(currentArticleRef.item_show_type)">
+            <el-col :span="24">
+              <el-input v-model="currentArticleRef.author" clearable class="grid-content-control"
+                placeholder="请输入文章作者" />
+            </el-col>
+          </el-row>
+          <el-row :gutter="4" class="mb-1 w-full">
+            <el-col :span="24" class="h-20 py-2 w-full flex justify-center items-center" style="display: none;">
+              <img class="cursor-pointer max-h-16 block" @click="triggerFileInput" v-if="selectedCdnImageRef"
+                :src="selectedCdnImageRef" alt="封面预览">
+              <img class="cursor-pointer max-h-16 block" @click="triggerFileInput"
+                v-else-if="currentArticleRef.cdn_url" :src="currentArticleRef.cdn_url" referrerpolicy="no-referrer"
+                alt="封面图" />
+              <div v-else @click="triggerFileInput"
+                class="cursor-pointer border h-16 w-[180px] flex justify-center items-center bg-[#8c8c8c]">设置封面图</div>
+              <input class="invisible" ref="cdnFileInputRef" @change="handleImage" type="file" accept="image/*">
+            </el-col>
+            <ImgPicker v-show="currentArticleRef.item_show_type !== 10" ref="refImgPicker" v-model="pickerQuery"
+              :pageInfo="pickerPageInfo" :imgSrc="currentArticleRef.cdn_url" placeholder="设置封面图"
+              @change="handleImageUpload" @confirm="onImgPick" :editorInst="editorRef" />
+            <!-- <ImgCrop :imgSrc="currentArticleRef.cdn_url" placeholder="设置封面图" @change="handleImageUpload"></ImgCrop> -->
+          </el-row>
+          <!-- <el-row :gutter="4" class="mb-1 invisible">
+      <el-col :span="24">
 
-          </el-col>
-        </el-row>
-        <el-row :gutter="4" class="h-8 mb-1">
-          <el-col :span="24"></el-col>
-        </el-row>
-        <el-row :gutter="4" class="h-8 mb-1">
-          <el-col :span="24"></el-col>
-        </el-row> -->
-          </el-tab-pane>
-          <el-tab-pane label="样式中心" class="h-full">
-            <SysTempl :editorInst="editorRef" />
-          </el-tab-pane>
-          <el-tab-pane label="自定义模板" class="h-full">
-            <UserTempl v-model="currentArticleRef.content_noencode" :visible="currentArticleRef.item_show_type === 0" />
-          </el-tab-pane>
-        </el-tabs>
       </el-col>
-    </el-row>
+    </el-row> -->
+          <el-row :gutter="4" class="my-2">
+            <el-col :span="24">
+              <hr />
+            </el-col>
+          </el-row>
+          <el-row :gutter="4" class="mb-1">
+            <el-col :span="24">
+              <!-- 创作来源 -->
+              <el-select v-model="selected_claim_source_typeRef" value-key="id" filterable placeholder="创作来源">
+                <el-option v-for="(item) in claim_source_typesRef" :key="item.id" :label="item.name" :value="item" />
+              </el-select>
+            </el-col>
+          </el-row>
+          <el-row :gutter="4" class="mb-1">
+            <el-col :span="24">
+              <el-checkbox label="声明原创" v-model="copyrightRef" />
+            </el-col>
+          </el-row>
+          <el-row :gutter="4" class="h-8 mb-1">
+            <el-col :span="24">
+              <el-input v-model="currentArticleRef.sourceurl" clearable class="grid-content-control"
+                placeholder="原文链接" />
+            </el-col>
+          </el-row>
+          <el-row :gutter="4" class="mb-1">
+            <el-col :span="24">
+              <el-checkbox label="打开留言" v-model="needOpenCommentRef" />
+              <el-radio-group :disabled="!needOpenCommentRef" v-model="commentTypeRef">
+                <!-- works when >=2.6.0, recommended ✔️ not work when <2.6.0 ❌ -->
+                <el-radio value="0">所有人可留言</el-radio>
+                <!-- works when <2.6.0, deprecated act as value when >=3.0.0 -->
+                <el-radio label="1">仅关注后可留言</el-radio>
+              </el-radio-group>
+            </el-col>
+          </el-row>
+
+          <!-- <el-row :gutter="4" class="my-2">
+        <el-col :span="24">
+          <hr />
+        </el-col>
+      </el-row>
+      <el-row :gutter="4" class="mb-1">
+        <el-col :span="24">
+
+        </el-col>
+      </el-row>
+      <el-row :gutter="4" class="h-8 mb-1">
+        <el-col :span="24"></el-col>
+      </el-row>
+      <el-row :gutter="4" class="h-8 mb-1">
+        <el-col :span="24"></el-col>
+      </el-row> -->
+        </el-tab-pane>
+        <el-tab-pane label="样式中心" class="h-full">
+          <SysTempl :editorInst="editorRef" />
+        </el-tab-pane>
+        <el-tab-pane label="自定义模板" class="h-full">
+          <UserTempl v-model="currentArticleRef.content_noencode" :visible="currentArticleRef.item_show_type === 0" />
+        </el-tab-pane>
+      </el-tabs>
+    </div>
   </div>
   <el-dialog :close-on-click-modal="false" title="提取文章链接内容" v-model="dialogExtractMpAritcleUrlRef" width="720px">
     <div class="w-full flex flex-col">
@@ -813,14 +825,14 @@ import { createDateByDays, parseDate, formatDate } from "@/utils/date"
 import { ad_categorys, adMarkerContentInUEditor, format_ad_content_in_UEditor, restore_ad_content_from_UEditor, has_ad_in_wangEditor, removeAd, has_ad_in_raw } from "@/utils/ad"
 import { getVideoFrameHtml, extractVideoFrame } from "@/utils/video"
 import { apperrmsg, claim_source_types, HOUSRS, MINUTES, wxretmsg } from "@/utils/constants"
-import { 
+import {
   tplWithAppLinkAndText, tplWithAppLinkAndImage, tplMiniAppCardInEditor,
   hasMiniAppCardInEditor, replaceMiniAppCardToWechat, replaceMiniAppCardFromWechat
  } from "@/utils/miniapp"
 import {hasMPCardInEditor, replaceMPCardToWechat, tplMPCardInEditor, replaceMPCardFromWechat} from "@/utils/mpcard"
 import {hasMPVContentInEditor, replaceMPVContentToWechat, tplMPVContentInEditor, replaceMPVContentFromWechat} from "@/utils/mpvcontent"
 import { ElMessage, ElMessageBox, ElLoading } from 'element-plus'
-import { ArrowUp, ArrowDown, Delete, CircleCheckFilled, CircleCloseFilled, InfoFilled, Search, Plus, BrushFilled } from '@element-plus/icons-vue'
+import { ArrowUp, ArrowDown, Delete, CircleCheckFilled, CircleCloseFilled, InfoFilled, Search, Plus, BrushFilled,Close } from '@element-plus/icons-vue'
 import { Link, Link2, RadioTower, DollarSign, SquareTerminal, Eye, ScanEye, Minus, Smartphone, Video } from 'lucide-vue-next';
 import WechatMiniAppIcon from "@/components/icons/WechatMiniAppIcon"
 import WechatMPIcon from "@/components/icons/WechatMPIcon"
@@ -844,6 +856,7 @@ import SysTempl from './editor/SysTempl.vue';
 import SetMiniApp from "@/components/editor/SetMiniAppWeiYu.vue"
 import SetMPCard from "@/components/editor/SetMPCard.vue"
 import SetMPV from './editor/SetMPV.vue';
+import { useDraggable } from 'vue-draggable-plus'
 
 const props = defineProps(['account', 'appmsg', 'mode', 'mainMsg']);
 const emitEvents = defineEmits(['titleChange', 'createAppmsg', 'msgidChange'])
@@ -851,7 +864,7 @@ const is_xiaolvshu = computed(() => (props.appmsg?.multi_item[0] || currentArtic
 
 const { all_accounts } = toRefs(store.getters)
 // console.log('envVars.backend_url=>', envVars.backend_url)
-// editor 
+// editor
 const isDebugRef = ref(envVars.is_debug)
 const ueditor_wrapper = ref(null)
 const editorRef = shallowRef()
@@ -961,7 +974,7 @@ const copyrightRef = ref(false)
 
 // 留言
 const needOpenCommentRef = ref(false)
-const commentTypeRef = ref("0") // 0-全部 1-只有粉丝 
+const commentTypeRef = ref("0") // 0-全部 1-只有粉丝
 
 // 创作来源
 const claim_source_typesRef = ref(claim_source_types)
@@ -972,7 +985,7 @@ const ad_idRef = ref(0)
 const dialogAdVisibleRef = ref(false)
 const adCategoryRef = ref(ad_categorys)
 const adCategoryChoosedRef = ref([])
-const insertAdTypeRef = ref("1") // 0-不插入 1-手动 2-智能 
+const insertAdTypeRef = ref("1") // 0-不插入 1-手动 2-智能
 
 
 // 进度
@@ -1249,6 +1262,7 @@ const listArticles = async () => {
     const { wechat_id } = selectedAccount.value
     mp_msgsRef.value = await newlistArticlesByAppMsg(wechat_id, appmsgid).catch((err) => { }).then(response => {
       response.data.forEach(gen_picture_page_info_list)
+      console.log('aaa',response)
       return response.data;
     })
     console.log("mp_msgsRef.value=>", mp_msgsRef.value)
@@ -1286,10 +1300,10 @@ const loadArticle = (mp_msg, before_save) => {
   // 视频号内容
   const mpvcontent_obj = toDeepRaw(mpExsRef.value.mpvcontent_obj)
   vhtml = replaceMPVContentFromWechat(vhtml, mpvcontent_obj)
-  
+
   mp_msg.content_noencode = vhtml
 
-  // console.log("mp_msg1=>", mp_msg.picture_page_info_list) 
+  // console.log("mp_msg1=>", mp_msg.picture_page_info_list)
   // gen_picture_page_info_list(mp_msg)
   // console.log("mp_msg2=>", mp_msg.picture_page_info_list)
   // appmsgidRef.value = mp_msg.appmsgid
@@ -1345,40 +1359,38 @@ const loadArticleByMsgId = (msg_id) => {
   }
 }
 
-const swapUp = async (msg_id) => {
-  if (checkHasNotSave(true)) {
+const swapUp = async (msg_id, index) => {
+  if (checkHasNotSave(true) || index === 0) {
     return
   }
   const idx = mp_msgsRef.value.findIndex(v => v.msg_id === msg_id)
-  const prev = mp_msgsRef.value[idx - 1].msg_id
-  console.log("prev index:", prev)
-  if (props.mode === 'create' || props.mode == 'hydrate') {
-    var tmp = mp_msgsRef.value[idx];
-    mp_msgsRef.value[idx] = mp_msgsRef.value[idx - 1]
-    mp_msgsRef.value[idx - 1] = tmp
+  // const prev = mp_msgsRef.value[idx - 1].msg_id
+  // if (props.mode === 'create' || props.mode == 'hydrate') {
+  var tmp = mp_msgsRef.value[idx];
+  mp_msgsRef.value[idx] = mp_msgsRef.value[idx - 1]
+  mp_msgsRef.value[idx - 1] = tmp
 
-    return;
-  }
-  await swapArticles(prev, msg_id).catch((err) => { })
-  await listArticles()
+  //   return;
+  // }
+  // await swapArticles(prev, msg_id).catch((err) => { })
+  // await listArticles()
 }
-const swapDown = async (msg_id) => {
-  if (checkHasNotSave(true)) {
+const swapDown = async (msg_id, index) => {
+  if (checkHasNotSave(true) || index === mp_msgsRef.value.length - 1) {
     return
   }
   const idx = mp_msgsRef.value.findIndex(v => v.msg_id === msg_id)
-  const next = mp_msgsRef.value[idx + 1]?.msg_id
-  console.log("next index:", next)
-  if (!next) return
-  if (props.mode === 'create' || props.mode == 'hydrate') {
-    var tmp = mp_msgsRef.value[idx];
-    mp_msgsRef.value[idx] = mp_msgsRef.value[idx + 1]
-    mp_msgsRef.value[idx + 1] = tmp
+  // const next = mp_msgsRef.value[idx + 1]?.msg_id
+  // if (!next) return
+  // if (props.mode === 'create' || props.mode == 'hydrate') {
+  var tmp = mp_msgsRef.value[idx];
+  mp_msgsRef.value[idx] = mp_msgsRef.value[idx + 1]
+  mp_msgsRef.value[idx + 1] = tmp
 
-    return;
-  }
-  await swapArticles(msg_id, next)
-  await listArticles()
+  //   return;
+  // }
+  // await swapArticles(msg_id, next)
+  // await listArticles()
 }
 
 const checkHasNotSave = (showMessage) => {
@@ -1552,7 +1564,7 @@ const saveCurrentToList = (msg_id) => {
 
   // console.log("vhtml=>", vhtml)
   currentArticleRef.value.content_noencode = vhtml
-  
+
   console.log("abc")
   const idx = mp_msgsRef.value.findIndex(v => v.msg_id === msg_id)
   if (idx !== -1) {
@@ -1629,10 +1641,10 @@ const _saveAppMsg = async (push_to_remote) => {
   let selected_idx = saveCurrentToList(msg_id)
   console.log("mp_msgsRef after saveCurrentToList=>", mp_msgsRef.value[0].content_noencode)
   saveOthersToListForCustomTag(msg_id)
-  
+
   // console.log("mp_msgsRef after saveOthersToListForCustomTag=>", mp_msgsRef.value[0].content_noencode)
   // console.log("save all mp_msgsRef.value=>", mp_msgsRef.value)
-  // const appmsgid =  appmsgidRef.value 
+  // const appmsgid =  appmsgidRef.value
   let appmsgid = _getAppMsgId()
 
   const postData = {
@@ -1648,7 +1660,7 @@ const _saveAppMsg = async (push_to_remote) => {
   const loader = ElLoading.service({
     target: '.main'
   })
-  
+
   await saveAppMsg(postData).then(async (res) => {
     ElMessage({
       message: `消息${push_to_remote === 0 ? "暂存" : "同步"}成功`,
@@ -1658,7 +1670,7 @@ const _saveAppMsg = async (push_to_remote) => {
     console.log("saveArticleDraft res=>", res)
     res.data.data.mp_msgs.forEach(gen_picture_page_info_list)
     mp_msgsRef.value = res.data.data.mp_msgs
-    // ### todo: mp_msg_exs 
+    // ### todo: mp_msg_exs
 
     const isCreateNewAppMsg = appmsgid <= 0 && res.data.data.appmsgid > 0
     appmsgid = res.data.data.appmsgid
@@ -2479,7 +2491,7 @@ const searchMiniApp = (val) => {
     let html = ""
     if (formData.miniAppText) {
       html = tplWithAppLinkAndText({
-        app_link: "", 
+        app_link: "",
         app_title: formData.miniAppText,
         weapp_path: miniAppLink.weapp_path, ...miniAppLink.weapp
       })
@@ -2497,7 +2509,7 @@ const searchMiniApp = (val) => {
         app_title: formData.miniAppCardTitle,
         weapp_path: miniAppLink.weapp_path, ...miniAppLink.weapp
       }
-      mpExsRef.value.miniappcard_obj = {...mpExsRef.value.miniappcard_obj, [uniqid]: dep} 
+      mpExsRef.value.miniappcard_obj = {...mpExsRef.value.miniappcard_obj, [uniqid]: dep}
       html = tplMiniAppCardInEditor(uniqid, dep, {br: true})
     }
     editorRef.value.execCommand('inserthtml', html);
@@ -2606,7 +2618,7 @@ const insertMPVContent = (val) => {
     htmls.push(tplMPVContentInEditor(uniqid, v))
   })
   console.log("insert_mpvcontent_obj=>", insert_mpvcontent_obj)
-  mpExsRef.value.mpvcontent_obj = {...mpExsRef.value.mpvcontent_obj, ...insert_mpvcontent_obj}  
+  mpExsRef.value.mpvcontent_obj = {...mpExsRef.value.mpvcontent_obj, ...insert_mpvcontent_obj}
   editor.execCommand('inserthtml', htmls.join(''));
   setMPVRef.value.closeDialog()
 }
@@ -2814,7 +2826,7 @@ const openAppMsgMobilePreviewDialog = async () => {
     token: parseInt(token),
   }).then((v) => {
     const { data } = v
-    // previewersRef.value = 
+    // previewersRef.value =
     console.log('getMpUserInfo =>', data)
     const { alias, base_resp } = data
     if (base_resp.ret == "0") {
@@ -3061,7 +3073,7 @@ watch(() => [props.mainMsg], async (newVal) => {
         return
       }
       let parsed_data = parseExtractMpArticleData(ret, { import_settings: import_settings.value })
-      
+
       // 公众号卡片
       const mps_obj = toDeepRaw(mpExsRef.value.mps_obj)
       parsed_data.content_noencode = replaceMPCardFromWechat(parsed_data.content_noencode, mps_obj)
@@ -3211,7 +3223,7 @@ watch(() => [props.mainMsg], async (newVal) => {
               app_title: formData.miniAppCardTitle,
               weapp_path, ...weapp
             }
-            mpExsRef.value.miniappcard_obj = {...mpExsRef.value.miniappcard_obj, [uniqid]: dep} 
+            mpExsRef.value.miniappcard_obj = {...mpExsRef.value.miniappcard_obj, [uniqid]: dep}
             html = tplMiniAppCardInEditor(uniqid, dep, {br: true})
           }
           editorRef.value.execCommand('inserthtml', html);
@@ -3261,8 +3273,21 @@ watch(() => [props.mainMsg], async (newVal) => {
 
 })
 
+// 文章拖拽
+const { start } = useDraggable(elListMsgsRef, mp_msgsRef, {
+  animation: 150,
+  ghostClass: 'ghost',
+  onStart(e) {
+    console.log('start', e)
+  },
+  onUpdate(e) {
+    console.log('update', mp_msgsRef.value)
+  }
+})
+
 // 组件生命周期
 onMounted(async () => {
+  start()
   console.log("==onMounted editorTab==", props.appmsg)
   console.log("props.appmsg?.multi_item[0]?.item_show_type=>", props.appmsg?.multi_item[0]?.item_show_type)
 
