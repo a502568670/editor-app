@@ -107,7 +107,7 @@ function insert(item){
     padding: 0;
   }
   .el-tabs__header{
-    @apply -mx-1 mb-0;
+    margin: 0;
   }
 }
 </style>

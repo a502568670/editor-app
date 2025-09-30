@@ -49,15 +49,15 @@
     </div>
     <div class="flex-1 items-stretch h-0 flex">
       <div class="bg-white shadow-xl w-[300px] p-3">
-        <div v-if="mp_msgsRef">
+        <div v-if="mp_msgsRef" class="h-full flex flex-col">
           <el-button class="mb-2" type="primary" :disabled="mp_msgsRef.length === 0" @click="checkTitles">
             检测标题(30天内)
           </el-button>
-          <div ref="elListMsgsRef" class="overflow-auto border-b">
+          <div ref="elListMsgsRef" class="overflow-auto border-b flex-1 h-0">
             <div @click="loadArticle(item, true)" v-for="(item, index) in mp_msgsRef" :key="item.msg_id"
-              class="flex items-center w-full relative group border-2 border-transparent hover:border-[#07C160]"
+              class="flex overflow-hidden items-center w-full relative group border-2 border-transparent hover:border-[var(--jzl-primary-color)]"
               :class="{
-                '!border-[#07C160]': (item.msg_id === msg_idRef),
+                '!border-[var(--jzl-primary-color)]': (item.msg_id === msg_idRef),
                 'rounded-t-lg': (index === 0)
               }"
             >
@@ -245,50 +245,22 @@
           </div>
         </div>
       </div>
-      <div class="grid-content flex flex-col h-full justify-start items-center border space-y-2 p-2 bg-slate-100 text-blue-500">
-        <el-icon :size="20" class="cursor-pointer flex justify-center" @click="runEditorCMD('cleardoc')"
-          title="清空当前编辑器内容">
-          <BrushFilled />
-        </el-icon>
-        <el-icon :size="20" class="cursor-pointer flex justify-center" @click="openExtractMpArticleUrlDialog"
-          title="提取链接内容">
-          <Link />
-        </el-icon>
-        <BatchExtractMpArticle v-model="mp_msgsRef" @confirm="onBatchExtractMp" />
-        <el-icon :size="20" class="cursor-pointer flex justify-center" @click="openAdDialog" title="设置广告">
-          <DollarSign />
-        </el-icon>
-        <el-icon :size="20" class="cursor-pointer flex justify-center" @click="openMiniAppDialog" title="插入小程序">
-          <WechatMiniAppIcon />
-        </el-icon>
-        <el-icon :size="20" class="cursor-pointer flex justify-center" @click="openMPDialog" title="插入公众号名片">
-          <WechatMPIcon />
-        </el-icon>
-        <el-icon :size="20" class="cursor-pointer flex justify-center" @click="openMPVDialog" title="插入视频">
-          <WechatVideoIcon />
-        </el-icon>
-        <Minus class="text-gray-200" />
-        <!-- <div class="flex-1"></div> -->
-        <el-icon :size="20" class="cursor-pointer flex justify-center" @click="handlePreview" title="文章预览">
-          <Eye />
-        </el-icon>
-        <el-icon :size="20" class="cursor-pointer flex justify-center" @click="openMobilePreviewDialog"
-          title="文章手机预览">
-          <ScanEye />
-        </el-icon>
-        <el-icon :size="20" class="cursor-pointer flex justify-center" @click="openAppMsgMobilePreviewDialog"
-          title="消息手机预览">
-          <Smartphone />
-        </el-icon>
-
+      <div class="bg-white">
+        <div v-for="(item,index) of operationList" :key="index">
+          <div v-if="!item.isShow && !item.component" class="p-2 border-b" @click="item.action">
+            <el-tooltip :content="item.title" placement="left">
+              <Icon :icon="item.icon" style="font-size: 20px;" />
+            </el-tooltip>
+          </div>
+          <div v-else-if="item.component" class="p-2 border-b">
+            <component :is="item.component" v-bind="item.componentProps" />
+          </div>
+        </div>
+        <!-- <BatchExtractMpArticle v-model="mp_msgsRef" @confirm="onBatchExtractMp" /> -->
         <!-- <el-icon v-if="isDebugRef" :size="20" class="cursor-pointer flex justify-center"
           @click="handleLocalExtractMpArticleUrl" title="测试本地提取链接">
           <Link2 />
         </el-icon> -->
-        <el-icon v-if="isDebugRef" :size="20" class="cursor-pointer flex justify-center" @click="openDebugDialog"
-          title="调试信息">
-          <SquareTerminal />
-        </el-icon>
       </div>
       <el-tabs type="border-card" class="editor-inner-tabs w-[300px]">
         <el-tab-pane label="发布设置">
@@ -383,6 +355,9 @@
         </el-tab-pane>
         <el-tab-pane label="自定义模板" class="h-full">
           <UserTempl v-model="currentArticleRef.content_noencode" :visible="currentArticleRef.item_show_type === 0" />
+        </el-tab-pane>
+        <el-tab-pane label="默认模板" class="h-full">
+          <DefaultTempl v-model="currentArticleRef.content_noencode" @useTemplate="handleUseTemplate" />
         </el-tab-pane>
       </el-tabs>
     </div>
@@ -733,16 +708,16 @@
 }
 
 .editor-inner-tabs {
-  height: calc(100vh - 60px - 3rem - var(--el-tabs-header-height));
+  height: 100%;
 
   .el-tabs__content {
-    @apply p-1 flex-1 overflow-y-auto;
+    @apply p-2;
   }
 
   .el-tabs__item {
     /* font-size: 12px; */
-    padding: 0 10px !important;
-    --el-tabs-header-height: 32px;
+    /* padding: 0 10px !important; */
+    /* --el-tabs-header-height: 32px; */
   }
 }
 
@@ -865,6 +840,7 @@ import ImgPicker from '@/components/editor/ImgPicker.vue';
 import ImgListPicker from '@/components/editor/ImgListPicker.vue';
 import GroupNotifySelect from '@/components/editor/GroupNotifySelect.vue'
 import UserTempl from './editor/UserTempl.vue';
+import DefaultTempl from './editor/DefaultTempl.vue';
 import debounce from 'lodash-es/debounce'
 import { dog } from '@/utils';
 import SysTempl from './editor/SysTempl.vue';
@@ -3296,6 +3272,76 @@ const { start } = useDraggable(elListMsgsRef, mp_msgsRef, {
   animation: 150,
   ghostClass: 'ghost'
 })
+
+// 使用默认模板触发，填充当前文章作者及来源链接
+const handleUseTemplate = (data) => {
+  currentArticleRef.value.sourceurl = data.originalLink
+  currentArticleRef.value.author = data.author
+}
+
+const operationList = ref([
+  {
+    title: '清空',
+    icon: 'tdesign:clear-formatting-1',
+    action: () => { runEditorCMD('cleardoc') }
+  },
+  {
+    title: '提取链接内容',
+    icon: 'ph:link-bold',
+    action: () => { openExtractMpArticleUrlDialog() }
+  },
+  {
+    title: '批量提取链接内容',
+    icon: 'fluent:link-add-20-filled',
+    component: BatchExtractMpArticle,
+    componentProps: {
+      modelValue: mp_msgsRef,
+      'onUpdate:modelValue': (val) => { mp_msgsRef.value = val },
+      onConfirm: onBatchExtractMp
+    }
+  },
+  {
+    title: '设置广告',
+    icon: 'ic:sharp-attach-money',
+    action: () => { openAdDialog() }
+  },
+  {
+    title: '插入小程序',
+    icon: 'ri:mini-program-line',
+    action: () => { openMiniAppDialog() }
+  },
+  {
+    title: '插入公众号名片',
+    icon: 'mdi:business-card-outline',
+    action: () => { openMPDialog() }
+  },
+  {
+    title: '插入视频',
+    icon: 'ri:wechat-channels-line',
+    action: () => { openMPVDialog() }
+  },
+  {
+    title: '文章预览',
+    icon: 'mdi:eye-outline',
+    action: () => { handlePreview() }
+  },
+  {
+    title: '文章手机预览',
+    icon: 'tabler:scan-eye',
+    action: () => { openMobilePreviewDialog() }
+  },
+  {
+    title: '消息手机预览',
+    icon: 'mdi:mobile-phone-message',
+    action: () => { openAppMsgMobilePreviewDialog() }
+  },
+  {
+    title: '调试信息',
+    icon: 'mdi:bug-outline',
+    action: () => { openDebugDialog() },
+    isShow: !isDebugRef.value
+  },
+])
 
 // 组件生命周期
 onMounted(async () => {
