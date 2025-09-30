@@ -141,7 +141,7 @@
           <div class="flex items-center justify-center mt-2">
             <el-dropdown v-if="!is_xiaolvshu">
               <el-button type="primary">
-                新建消息<el-icon class="el-icon--right"><arrow-down /></el-icon>
+                新建内容<el-icon class="el-icon--right"><arrow-down /></el-icon>
               </el-button>
               <template #dropdown>
                 <el-dropdown-menu>
