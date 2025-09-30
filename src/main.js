@@ -18,10 +18,12 @@ import { getToken, removeToken } from "./utils/auth";
 import CKEditor from '@mayasabha/ckeditor4-vue3';
 import VueUeditorWrap from 'vue-ueditor-wrap';
 import { createPinia } from 'pinia'
+import { Icon } from '@iconify/vue';
 // 引入全局css
 import '@/style/index.css'
 
 let app = createApp(App)
+app.component('Icon', Icon);
 app.use(CKEditor);
 app.use(VueUeditorWrap);
 app.use(createPinia())
