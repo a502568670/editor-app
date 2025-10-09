@@ -18,6 +18,11 @@ jobs:
         with:
           node-version: 16
 
+      - name: Install Python 3
+        run: |
+          brew install python@3.11
+          ln -sf /usr/bin/python3 /usr/bin/python3
+
       # 3️⃣ 安装依赖
       - name: Install dependencies
         run: npm install
@@ -28,7 +33,7 @@ jobs:
 
       # 5️⃣ 打包 macOS 应用
       - name: Package macOS app
-        run: npx electron-builder --mac
+        run: npm run electron:build_mac
 
       # 6️⃣ 上传产物供下载
       - name: Upload build artifacts
