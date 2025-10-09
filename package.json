@@ -1,6 +1,6 @@
 {
   "name": "gaoqingsong",
-  "version": "0.4.6",
+  "version": "0.4.7",
   "private": true,
   "description": "稿轻松",
   "author": "gaoqingsong",
@@ -15,7 +15,7 @@
     "postinstall": "electron-builder install-app-deps",
     "postuninstall": "electron-builder install-app-deps"
   },
-  "main": "background.js",
+  "main": "src/background.js",
   "dependencies": {
     "@element-plus/icons-vue": "^2.1.0",
     "@mayasabha/ckeditor4-vue3": "^1.0.9",
