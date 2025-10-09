@@ -357,7 +357,7 @@
           <UserTempl v-model="currentArticleRef.content_noencode" :visible="currentArticleRef.item_show_type === 0" />
         </el-tab-pane>
         <el-tab-pane label="默认模板" class="h-full">
-          <DefaultTempl v-model="currentArticleRef.content_noencode" @useTemplate="handleUseTemplate" />
+          <DefaultTempl v-model="currentArticleRef.content_noencode" :account="$props.account" :appmsg="$props.appmsg" @useTemplate="handleUseTemplate" />
         </el-tab-pane>
       </el-tabs>
     </div>
@@ -1118,6 +1118,7 @@ function ready(editorInstance) {
 
 
 // 帮助方法
+/** 获取appmsgid */
 const _getAppMsgId = () => {
   return currentAppmsgRef.value?.appmsgid
 }
@@ -3346,8 +3347,7 @@ const operationList = ref([
 // 组件生命周期
 onMounted(async () => {
   start()
-  console.log("==onMounted editorTab==", props.appmsg)
-  console.log("props.appmsg?.multi_item[0]?.item_show_type=>", props.appmsg?.multi_item[0]?.item_show_type)
+  console.log('props的值',props)
 
   accountsRef.value = toDeepRaw(all_accounts.value.list)
   selectedAccount.value = props.account

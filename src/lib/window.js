@@ -141,7 +141,7 @@ const postToken = async function (payload,) {
     }, { 'Authorization': `Bearer ${userToken}`, 'X-Sjq-Token': '' });//{ 'X-Sjq-Token': userToken || '' });
     resultData = JSON.parse(resultData);
     verbose_log("resultData=>", resultData)
-
+    console.log('请求/platform/addAccount获取到的值', resultData);
     if (resultData.code == 1) {
       verbose_log("tabbedWin.win.isDestroyed=>", tabbedWin.win.isDestroyed())
       if (!tabbedWin.win.isDestroyed()) {
@@ -466,7 +466,6 @@ async function reactToIpcObjectData(data, tabbedWin, viewContents) {
       companyMap.webview = view;
       companyMap.userToken = data.token
       if (companyMap.bxgs) {
-
         companyMap.bxgs.init(companyMap, postToken)
         verbose_log("===== companyMap.bxgs.init in add account ====")
       }
@@ -529,7 +528,7 @@ async function reactToIpcObjectData(data, tabbedWin, viewContents) {
 
       const ret = []
       // 同步顺序调用
-      // 
+      //
       // for await (const extractArticleUrl of extractArticleUrls) {
       //   const html = await localExtractMpArticleUrlUseRequest(extractArticleUrl)
       //     .catch((err) => {

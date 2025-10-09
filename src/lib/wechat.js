@@ -13,6 +13,7 @@ let viewData;
 
 // 获取Cookie的函数
 async function getCookies(domain, webContents) {
+  console.log('获取到的cookie值', webContents.session.cookies.get({ domain }));
   try {
     if (webContents) {
       const cookies = await webContents.session.cookies.get({ domain });
@@ -44,6 +45,7 @@ function checkCookiesExpired(cookies, checkkeys) {
 
 // 初始化init
 async function init(d, postTokenInWin) {
+  console.log('初始化微信公众号d的值',d)
   viewData = d;
 
   platform = {
@@ -98,6 +100,7 @@ async function init(d, postTokenInWin) {
         if (hasAllCookies) {
           // intervalId && clearInterval(intervalId);
           const finalURL = viewData.webview.webContents.getURL();
+          console.log('token的值', finalURL);
           // verbose_log("checkLoginStatus finalURL=>", viewData.webview.webContents.getURL())
           // verbose_log("checkLoginStatus finalURL2=>", d.webview.webContents.getURL())
           const urlParams = new URLSearchParams(new URL(finalURL).search);
@@ -125,6 +128,7 @@ async function init(d, postTokenInWin) {
 
             if (response.ok) {
               const data = await response.json();
+              console.log('请求微信公众号接口后的获取的data', data);
               // verbose_log('data=>', data)
               // let nickname = data.setting_info && data.setting_info.nickname && data.setting_info.nickname.nickname;
               // const originalUsername = data.setting_info && data.setting_info.original_username;
@@ -290,6 +294,7 @@ async function init(d, postTokenInWin) {
 
   // 设置 WebView 的窗口打开行为
   viewData.webview.webContents.setWindowOpenHandler(data => {
+    console.log('打开新窗口',data)
     let url = data.url;
     if (url == 'about:blank') {
       return { action: 'deny' };
@@ -380,7 +385,7 @@ async function init(d, postTokenInWin) {
       return;
     }
     try {
-
+      console.log('登录事件viewData值',viewData);
       if (isLoginedEventTriggered) {
         verbose_log('logined事件已触发过，跳过重复触发');
         return;
