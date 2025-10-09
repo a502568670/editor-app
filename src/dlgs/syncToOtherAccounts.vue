@@ -7,7 +7,7 @@
         <el-input v-model="input" placeholder="搜索公众号" size="small" style="margin-left: 10px;width: 200px;" clearable/>
         <div class="flex-1 flex items-center justify-center">
           <span class="text-sm text-gray-600">
-            已选择 <span class="font-semibold text-blue-600">{{ selectedCount }}</span> 个账号
+            已选择 <span class="font-semibold" style="color: var(--jzl-primary-color)">{{ selectedCount }}</span> 个账号
           </span>
         </div>
         <el-button @click="handleSend" type="primary">立即发送</el-button>
