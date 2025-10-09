@@ -21,7 +21,7 @@ jobs:
       # 3️⃣ 安装python
       - name: Install Python 3
         run: |
-          brew install python@3.11
+          brew install python@3.10
           ln -sf /usr/local/bin/python3 /usr/local/bin/python
 
       # 4️⃣ 安装依赖
