@@ -19,22 +19,30 @@ jobs:
           node-version: 16
 
       # 3️⃣ 安装python
-      - name: Install Python 2
+      - name: Install Python 3
         run: |
-          brew install python@2
-          ln -sf /usr/local/bin/python2 /usr/local/bin/python
+          brew install python@3.10
+          brew link python@3.10 --force
+          ln -sf $(which python3) /usr/local/bin/python
 
       # 4️⃣ 安装依赖
       - name: Install dependencies
         run: npm install
 
-      # 5️⃣ 打包 macOS 应用
+      # 5️⃣ 应用 dmg-builder Python3 补丁
+      - name: Apply dmg-builder Python3 patch
+        run: |
+          if [ -f node_modules/dmg-builder/vendor/dmgbuild/core.py ]; then
+            sed -i '' 's/reload(sys)/import importlib; importlib.reload(sys)/' node_modules/dmg-builder/vendor/dmgbuild/core.py
+          fi
+
+      # 6️⃣ 打包 macOS 应用
       - name: Package macOS app
         run: npm run electron:build_mac
 
-      # 6️⃣ 上传产物供下载
+      # 7️⃣ 上传构建产物
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
           name: mac-build
-          path: dist/
+          path: dist_electron/
