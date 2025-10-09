@@ -19,10 +19,10 @@ jobs:
           node-version: 16
 
       # 3️⃣ 安装python
-      - name: Install Python 3
+      - name: Install Python 2
         run: |
-          brew install python@3.10
-          ln -sf /usr/local/bin/python3 /usr/local/bin/python
+          brew install python@2
+          ln -sf /usr/local/bin/python2 /usr/local/bin/python
 
       # 4️⃣ 安装依赖
       - name: Install dependencies
