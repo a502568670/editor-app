@@ -18,18 +18,15 @@ jobs:
         with:
           node-version: 16
 
+      # 3️⃣ 安装python
       - name: Install Python 3
         run: |
           brew install python@3.11
-          ln -sf /usr/bin/python3 /usr/bin/python3
+          ln -sf /usr/local/bin/python3 /usr/local/bin/python
 
-      # 3️⃣ 安装依赖
+      # 4️⃣ 安装依赖
       - name: Install dependencies
         run: npm install
-
-      # 4️⃣ 构建应用（如果你用前端构建工具比如 Vite、Vue CLI）
-      - name: Build frontend
-        run: npm run build --if-present
 
       # 5️⃣ 打包 macOS 应用
       - name: Package macOS app
