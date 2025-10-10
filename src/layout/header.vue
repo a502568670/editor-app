@@ -57,7 +57,7 @@
 import { ref, reactive, toRefs, computed, toRaw } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useStore } from 'vuex'
-import {ImagePlay, Newspaper} from 'lucide-vue-next'
+import {ImagePlay, Newspaper, Share} from 'lucide-vue-next'
 import {
   SwitchButton,Menu
 } from '@element-plus/icons-vue'
@@ -116,6 +116,12 @@ const menuList = ref([
   url:'/stats',
   icon:require('@/assets/image/stat.png'),
   icon_active:require('@/assets/image/stat_active.png')
+},
+{
+  name:'高级转发',
+  url:'/advanced-forward',
+  icon:require('@/assets/image/share.png'),
+  icon_active:require('@/assets/image/share_active.png')
 },
 // {
 //   name:'编辑器旧',

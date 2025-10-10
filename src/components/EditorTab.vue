@@ -1754,7 +1754,6 @@ const confirmOpenPublishToWechatDialog = async () => {
 }
 
 const openPublishToWechatDialog = async () => {
-
   // 发布调试完毕需要先将appmsg同步到草稿箱
   await _saveAppMsg(1)
   if (!currentArticleRef.value.cdn_url) return
