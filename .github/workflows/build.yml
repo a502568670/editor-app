@@ -16,7 +16,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: 16
 
       # 3️⃣ 安装 Python 并修复 electron-builder 的依赖问题
       - name: Install Python 3 and link
@@ -47,12 +47,17 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      # 6️⃣ 修复 dmg-builder 兼容 Python3
-      - name: Apply dmg-builder Python3 patch
+      # 6️⃣ 修复 dmg-builder 的 Python3 不兼容语法
+      - name: Patch dmg-builder for Python3
         run: |
-          if [ -f node_modules/dmg-builder/vendor/dmgbuild/core.py ]; then
-            sed -i '' 's/reload(sys)/import importlib; importlib.reload(sys)/' node_modules/dmg-builder/vendor/dmgbuild/core.py
-            echo "✅ dmg-builder Python3 patch applied."
+          FILE="node_modules/dmg-builder/vendor/dmgbuild/core.py"
+          if [ -f "$FILE" ]; then
+            echo "🔧 Patching $FILE for Python3..."
+            # 删除旧的 setdefaultencoding 行
+            sed -i '' '/sys.setdefaultencoding/d' "$FILE"
+            # 确保 reload 兼容
+            sed -i '' 's/reload(sys)/import importlib; importlib.reload(sys)/' "$FILE"
+            echo "✅ dmg-builder Python3 compatibility patch applied."
           else
             echo "⚠️ dmg-builder not found, skipping patch."
           fi
