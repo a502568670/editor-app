@@ -16,7 +16,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 16
+          node-version: 18
 
       # 3️⃣ 安装 Python 并修复 electron-builder 的依赖问题
       - name: Install Python 3 and link
@@ -68,7 +68,7 @@ jobs:
           PYTHON_PATH: ${{ env.PYTHON_PATH }}
         run: |
           echo "🚀 Building Electron app for macOS..."
-          npx electron-builder --mac
+          npx electron-builder --mac --publish never
           echo "✅ Build completed."
 
       # 8️⃣ 上传构建产物
@@ -76,6 +76,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: mac-build
-          path: |
-            dist/*.dmg
-            dist/*.zip
+          path: dist/
