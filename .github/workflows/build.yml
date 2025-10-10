@@ -18,12 +18,13 @@ jobs:
         with:
           node-version: 18
 
-      # 3️⃣ 安装python
+      # 3️⃣ 安装 Python 3 并创建 /usr/local/bin/python 链接
       - name: Install Python 3
         run: |
           brew install python@3.11
           brew link python@3.11 --force
-          ln -sf $(which python3) /usr/local/bin/python
+          sudo ln -sf $(which python3) /usr/local/bin/python
+          echo "✅ Python linked at $(which python)"
 
       # 4️⃣ 安装依赖
       - name: Install dependencies
