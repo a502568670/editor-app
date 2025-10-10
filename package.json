@@ -15,7 +15,7 @@
     "postinstall": "electron-builder install-app-deps",
     "postuninstall": "electron-builder install-app-deps"
   },
-  "main": "src/background.js",
+  "main": "background.js",
   "dependencies": {
     "@element-plus/icons-vue": "^2.1.0",
     "@mayasabha/ckeditor4-vue3": "^1.0.9",
