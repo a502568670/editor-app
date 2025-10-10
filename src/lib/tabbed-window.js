@@ -332,6 +332,7 @@ export class TabbedWindow extends EventEmitter {
    * @fires TabbedWindow#new-tab
    */
   async newTab(url, appendTo, references) {
+    console.log('创建新标签：', url, appendTo, references);
     verbose_log('newTab url=>', url)
     if (typeof url === "object") {
       for (let key in this.tabConfigs) {

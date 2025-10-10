@@ -2067,7 +2067,7 @@ function handleInstantSend({ otherAccountsChoosed }) {
 }
 const handleSendToOtherAccount = async () => {
   const appmsgid = _getAppMsgId()
-  console.log('choosed', otherAccountsChoosedRef);
+  console.log('打印otherAccountsChoosedRef的值', otherAccountsChoosedRef);
   if (otherAccountsChoosedRef.value.length === 0) {
     ElMessageBox.alert('请至少选择一个需要发送的账号', '警告', {
       confirmButtonText: '确定',

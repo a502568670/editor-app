@@ -377,6 +377,30 @@ async function reactToIpcObjectData(data, tabbedWin, viewContents) {
       verbose_log("===== listen addAccount in main ====", data)
       let viewKey = data.id;
       // userToken = data.token
+      // 判断是否已经打开过登录窗口，如果没有再进行后边的创建
+      try {
+        console.log('已经存在的窗口值', companyMap);
+        console.log('新创建的窗口值', data);
+        if (companyMap && companyMap.id === data.id && companyMap.webview) {
+          const existingWebview = companyMap.webview;
+          const destroyed = existingWebview && existingWebview.webContents && existingWebview.webContents.isDestroyed && existingWebview.webContents.isDestroyed();
+
+          if (!destroyed && !companyMap.login_success) {
+            verbose_log('Found existing login window for platform', data.id, '-> focusing instead of creating new one')
+            try {
+              if (existingWebview.isMinimized()) existingWebview.restore(); // 恢复最小化的窗口
+              existingWebview.show(); // 显示窗口
+              existingWebview.focus(); // 聚焦窗口
+            } catch (e) {
+              verbose_error('Error focusing existing login window', e)
+            }
+            return;
+          }
+        }
+      } catch (e) {
+        verbose_error('Error while checking existing login window', e)
+      }
+
       let partition = "persist:" + viewKey + new Date().getTime();
       let preload = './preload.js';
       switch (parseInt(data.id)) {
@@ -428,7 +452,7 @@ async function reactToIpcObjectData(data, tabbedWin, viewContents) {
         }
       })
       view.focus();
-      view.setAlwaysOnTop(true);
+      // view.setAlwaysOnTop(true);
       companyMap.login_success = false
       view.on('close', function (e) {
         const viewUrl = view.webContents.getURL()

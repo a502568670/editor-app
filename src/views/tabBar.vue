@@ -26,7 +26,7 @@
         <draggable v-model="accounts" class="list-group" ghost-class="ghost" :disabled="dragDisabled" handle=".handle"
           @start="handleDragStart" @end="handleDragEnd" item-key="id">
           <template #item="{ element }">
-            <div @click="element.expired ? handleAddMPAccount(mp_platform, element) : addNewTab(element)"
+            <div @click="addNewTab(element)"
               style="display: flex;align-items: center;padding: 5px; border-bottom: solid 1px #ccc;"
               :class="{ 'bg-gray-200': selected_account_id === element.id }">
               <img style="width: 40px; height: 40px;border-radius: 50%" :src="element.avatar"
@@ -258,8 +258,7 @@ const handleDragEnd = async (e) => {
 }
 
 /** 弹出新窗口登录公众号 */
-const handleAddMPAccount = (item, account=null) => {
-  account && (selected_account_id.value = account.id)
+const handleAddMPAccount = (item) => {
   window.ipcRenderer.send('toMain', {
     tag: 'addAccount',
     token: getToken(),
@@ -331,26 +330,22 @@ const changeTab = (tabId) => {
   window.ipcRenderer.send('switch-tab', tabId)
 }
 
-// 1.添加新tab
+/** 添加新标签页 */
 const addNewTab = (account) => {
-  // if (selected_account_id.value === account.id) {
-  //   return
-  // }
-  console.log("currentTabId.value=>", currentTabId.value)
+  // 在所有标签页中获取到当前点击的标签的值
+  const activeTab = tabs.value.find(item => item.account_id === account.id)
+  if(activeTab){
+    if(selected_account_id.value === account.id) return
+    window.ipcRenderer.send('switch-tab', activeTab.tabId)
+    return
+  }
   selected_account_id.value = account.id
   accounts_mapping_tabs.value.push({
     accountId: account.id,
     tabId: 0,
   })
-  console.log("accounts_mapping_tabs=>", accounts_mapping_tabs.value)
 
   let a = Object.assign({ userToken: getToken() }, account)
-  console.log("a=>", a)
-  // if (selectedAccount.value && selectedAccount.value.id === a.id) {
-  //   console.log("已经选中>", a)
-  // } else {
-  //   selectedAccount.value = account
-  // }
   window.ipcRenderer.send('new-tab', a)
 }
 
