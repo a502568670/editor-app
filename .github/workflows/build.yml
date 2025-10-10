@@ -68,7 +68,7 @@ jobs:
           PYTHON_PATH: ${{ env.PYTHON_PATH }}
         run: |
           echo "🚀 Building Electron app for macOS..."
-          npx electron-builder --mac --publish never
+          npm run electron:build --publish never
           echo "✅ Build completed."
 
       # 8️⃣ 上传构建产物
