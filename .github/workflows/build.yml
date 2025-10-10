@@ -52,12 +52,10 @@ jobs:
         run: |
           FILE="node_modules/dmg-builder/vendor/dmgbuild/core.py"
           if [ -f "$FILE" ]; then
-            echo "🔧 Patching $FILE for Python3..."
-            # 删除旧的 setdefaultencoding 行
+            echo "🔧 Patching dmg-builder for Python3..."
             sed -i '' '/sys.setdefaultencoding/d' "$FILE"
-            # 确保 reload 兼容
             sed -i '' 's/reload(sys)/import importlib; importlib.reload(sys)/' "$FILE"
-            echo "✅ dmg-builder Python3 compatibility patch applied."
+            echo "✅ dmg-builder patch applied."
           else
             echo "⚠️ dmg-builder not found, skipping patch."
           fi
@@ -76,4 +74,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: mac-build
-          path: dist/
+          path: dist_electron/**/*
