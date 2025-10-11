@@ -44,6 +44,7 @@ async function init(viewData, postTokenInWin) {
 
   // 登录状态检测函数
   async function checkLoginStatus(event) {
+    console.log('检查是否登录', viewData);
     verbose_log('=====checkLoginStatus=====');
     verbose_log('checkLoginStatus 开始检查登录状态');
 
@@ -51,6 +52,7 @@ async function init(viewData, postTokenInWin) {
     // verbose_log("in checkLoginStatus viewData.user=>", viewData.user);
     const original_id = (viewData.user || {}).original_id;
     const cookies = await getCookies('mp.weixin.qq.com', viewData.webview.webContents);
+    console.log('拿到的cookie', cookies);
     const requiredCookies = ['slave_user', 'slave_sid', 'data_ticket', 'data_bizuin'];
 
     if (viewData.user && viewData.user.session_id) {
@@ -376,6 +378,7 @@ async function init(viewData, postTokenInWin) {
     verbose_log('登录状态:', isLoggedIn);
     if ('https://mp.weixin.qq.com/' != currentURL && viewData.tabWin) {
       verbose_log('send to ipcRender: account_check_login =>', isLoggedIn);
+      console.log('登录是否过期', isLoggedIn);
       viewData.tabWin.raiseRenderAct('account_check_login', isLoggedIn);
     }
   });

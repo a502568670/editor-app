@@ -1,76 +1,51 @@
 <template>
   <div style="display: flex;height: 100%">
-    <div class="bg-white" style="width: 300px;display: flex;flex-direction: column;height: 100%;padding: 10px;">
-      <el-row :gutter="10">
-        <!-- <el-col :span="12">
-          <select-platform v-model="listQuery.platform_id"></select-platform>
-        </el-col>
-        <el-col :span="12">
-          <select-user v-model="listQuery.user_id"></select-user>
-        </el-col>
-        <el-col :span="12" style="margin-top: 10px">
-          <select-group v-model="listQuery.cate_id"></select-group>
-        </el-col> -->
-        <el-col :span="24" style="margin-top: 10px">
-          <el-input v-model="listQuery.keyword" clearable style="width: 100%;"
-            :placeholder="`请输入账号关键词(总共${accountTotal}个公众号)`" @input="handleInput" />
-        </el-col>
-        <!-- <el-col :span="24" style="padding-top: 10px;">
-          <el-button style="width: 100%;background-color: #51ce94;border: none" type="primary"
-            @click="handleFilter">搜索</el-button>
-        </el-col> -->
-      </el-row>
+    <div class="bg-white" style="width: 250px;display: flex;flex-direction: column;height: 100%;padding: 10px;">
+      <el-input v-model="listQuery.keyword" clearable placeholder="输入关键词" @input="handleInput" />
 
-      <!--      左侧账号展示 账号列表数据 (accounts) 的获取-->
+      <!-- 左侧账号展示 账号列表数据 (accounts) 的获取 -->
       <div style="flex: 1;overflow-y: auto;">
         <draggable v-model="accounts" class="list-group" ghost-class="ghost" :disabled="dragDisabled" handle=".handle"
           @start="handleDragStart" @end="handleDragEnd" item-key="id">
           <template #item="{ element }">
             <div @click="addNewTab(element)"
-              style="display: flex;align-items: center;padding: 5px; border-bottom: solid 1px #ccc;"
-              :class="{ 'bg-gray-200': selected_account_id === element.id }">
-              <img style="width: 40px; height: 40px;border-radius: 50%" :src="element.avatar"
+              class="hover:bg-zinc-100 group transition duration-500"
+              style="display: flex;align-items: center;padding: 10px 5px;border-radius: var(--jzl-border-radius-large);margin-top: 10px;"
+              :class="{
+                '!bg-zinc-200': selected_account_id === element.id,
+                'grayscale': element.expired
+              }">
+              <img style="width: 25px; height: 25px;border-radius: 50%" :src="element.avatar"
                 :class="{ 'handle cursor-move': !dragDisabled }" />
-              <div style="margin-left: 10px;flex: 1;">
-                <div>{{ element.name }}</div>
-                <div style="color: #51ce94">{{ element.platform_name + "(" + element.name + ")" }}</div>
+              <div class="cursor-pointer pl-2 flex-1 flex items-center justify-around">
+                <div class="truncate flex-1 w-0" :class="{ 'text-[var(--jzl-primary-color)]': selected_account_id === element.id }">{{ element.name }}</div>
+                <img src="@/assets/image/gzh.png" style="width: 15px;height: 15px;">
               </div>
-              <el-tooltip v-if="element.expired" content="登录过期">
+              <div class="items-center justify-center ml-1 hidden group-hover:flex">
+                <el-popconfirm title="你是否要删除该公众号" @confirm="onDelMPAccount(element.wechat_id)"
+                  placement="bottom-end">
+                  <template #reference>
+                    <el-icon style="color: brown;" @click.prevent.stop class=" cursor-pointer">
+                      <Close />
+                    </el-icon>
+                  </template>
+                </el-popconfirm>
+              </div>
+
+              <!-- <el-tooltip v-if="element.expired" content="登录过期">
                 <el-icon class="mr-1" style="color:red">
                   <WarnTriangleFilled />
                 </el-icon>
-              </el-tooltip>
-              <el-popconfirm title="你是否要删除该公众号" @confirm="onDelMPAccount(element.wechat_id)" width="250"
-                placement="top-end">
-                <template #reference>
-                  <el-icon @click.prevent.stop class=" cursor-pointer">
-                    <Delete />
-                  </el-icon>
-                </template>
-              </el-popconfirm>
+              </el-tooltip> -->
             </div>
           </template>
         </draggable>
       </div>
-      <el-row :gutter="10">
-        <!-- <el-col :span="8" style="text-align: center">
-          <el-button :disabled="listQuery.page <= 1" @click="prvePage">上一页</el-button>
-        </el-col>
-        <el-col :span="8" style="text-align: center;vertical-align: middle;">
-          {{ listQuery.page }}/{{ accountTotalPage }}
-        </el-col>
-        <el-col :span="8" style="text-align: center">
-          <el-button :disabled="accountTotalPage <= listQuery.page" @click="nextPage">下一页</el-button>
-        </el-col> -->
-        <el-col :span="24" style="padding-top: 10px;">
-          <el-button style="width: 100%;background-color: #51ce94;border: none" type="primary"
-            @click="handleAddMPAccount(mp_platform)">登录微信公众号</el-button>
-        </el-col>
-      </el-row>
+      <el-button style="width: 100%;" type="primary" @click="handleAddMPAccount(mp_platform)">
+        登录微信公众号
+      </el-button>
     </div>
-    <div style="flex: 1;display: flex;flex-direction: column;background-color: #e9f9f1;">
-
-
+    <div style="flex: 1;display: flex;flex-direction: column">
       <!--      右侧账号展示 当前打开的标签页列表  标签页数据 (tabs) 的获取-->
       <!--      通过 window.ipcRenderer.receive('tabs-update', ...) 监听来自主进程的消息更新。-->
       <div class="tab-control-wrap" v-show="tabs.length > 0">
@@ -125,7 +100,7 @@
 <script setup>
 import { nextTick, onMounted, onActivated, onUnmounted, ref, toRefs, onDeactivated, computed, toRaw, onBeforeUnmount } from 'vue'
 import { ElMessage, ElNotification } from 'element-plus'
-import { Delete, WarnTriangleFilled } from '@element-plus/icons-vue'
+import { Delete, WarnTriangleFilled,Close } from '@element-plus/icons-vue'
 import { getToken } from "@/utils/auth";
 import { debounceFn, dog, sortByOrder } from "@/utils/index"
 import store from '@/store'
@@ -563,9 +538,7 @@ window.ipcRenderer.send('control-ready')
 <style scoped>
 .tab-control-wrap {
   width: 100%;
-  /* height: 60px; */
-  /* background-color: #e9f9f1; */
-  background-color: #ccc;
+  background-color: #ededed;
   display: flex;
   justify-content: space-between;
   flex-wrap: nowrap;

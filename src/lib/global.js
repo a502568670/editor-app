@@ -14,7 +14,7 @@ global.common = {
   APP_HOME_URL: process.env.WEBPACK_DEV_SERVER_URL + "/index.html",
   TAB_BAR_VIEW: "tabBar",
   DARK_WIN_COLOUR: "#e9f9f1",
-  LIGHT_WIN_COLOUR: "#e9f9f1",
+  LIGHT_WIN_COLOUR: "#F6F7F8",
   MIN_WIN_HEIGHT: 768,
   MIN_WIN_WIDTH: 1280,
   MACOS: "darwin",
