@@ -346,6 +346,7 @@ const addNewTab = (account) => {
   })
 
   let a = Object.assign({ userToken: getToken() }, account)
+  console.log('打印添加标签页时传递给主进程的值',a)
   window.ipcRenderer.send('new-tab', a)
 }
 

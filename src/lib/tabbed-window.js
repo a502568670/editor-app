@@ -382,68 +382,68 @@ export class TabbedWindow extends EventEmitter {
 
     // Add to the manager first.
     const lastView = this.currentView;
+    console.log('打印lastView', this.currentView);
     this.setCurrentView(view.id);
     view.setAutoResize({ height: true, width: true });
     if (typeof url === "object") {
-      verbose_log('url 是一个对象，根据 url.platform_id 加载相应的平台模块:')
+      verbose_log('url 是一个对象，根据 url.platform_id 加载相应的平台模块:');
       this.loadURL('');
 
+      // view.id 是 view.webContents.id
+      // viewKey 是 url.id
       this.setTabConfig(view.id, {
         account_id: viewKey
       });
 
-      let companyMap = {}
-      verbose_log('调试url.platform_id:', url.platform_id)
+      let companyMap = {};
+      verbose_log('调试url.platform_id:', url.platform_id);
       switch (parseInt(url.platform_id)) {
         case 1:
-          companyMap.bxgs = require('./blbl')
+          companyMap.bxgs = require('./blbl');
           break;
         case 2:
-          companyMap.bxgs = require('./toutiao')
+          companyMap.bxgs = require('./toutiao');
           break;
         case 3:
-          companyMap.bxgs = require('./baijia')
+          companyMap.bxgs = require('./baijia');
           break;
         case 4:
-          companyMap.bxgs = require('./wechat')
+          companyMap.bxgs = require('./wechat');
           break;
       }
       companyMap.window_id = view.id;
-      companyMap.id = url.id
+      companyMap.id = url.id;
       if (url.session_id) {
-        url.session_id = JSON.parse(url.session_id)
+        url.session_id = JSON.parse(url.session_id);
       }
-      companyMap.user = url
+      companyMap.user = url;
       companyMap.partition = partition;
       companyMap.webview = view;
       companyMap.tabWin = this;
-      verbose_log('调试companyMap.bxgs:', companyMap.bxgs)
+      verbose_log('调试companyMap.bxgs:', companyMap.bxgs);
       if (companyMap.bxgs) {
-        let setCookies = async function (cookies, webContents) {
-          for (let cookiesItem of cookies) {
-            try {
-              let {
-                secure = false,
-                domain = '',
-                path = '',
-                name
-              } = cookiesItem
-              //await webContents.session.cookies.remove((secure ? 'https://' : 'http://') + domain.replace(/^\./, '') + path, name)
-              //delete cookiesItem.domain
-              await webContents.session.cookies.set(Object.assign(cookiesItem, {
-                url: (secure ? 'https://' : 'http://') + domain.replace(/^\./, '') + path
-              }));
-            } catch (e) {
-              console.info(e)
-            }
-          }
-        }
+        // let setCookies = async function (cookies, webContents) {
+        //   for (let cookiesItem of cookies) {
+        //     try {
+        //       let { secure = false, domain = '', path = '', name } = cookiesItem;
+        //       //await webContents.session.cookies.remove((secure ? 'https://' : 'http://') + domain.replace(/^\./, '') + path, name)
+        //       //delete cookiesItem.domain
+        //       await webContents.session.cookies.set(
+        //         Object.assign(cookiesItem, {
+        //           url: (secure ? 'https://' : 'http://') + domain.replace(/^\./, '') + path
+        //         })
+        //       );
+        //     } catch (e) {
+        //       console.info(e);
+        //     }
+        //   }
+        // };
         // verbose_log('调用下面的方法来初始化和选择用户:', companyMap)
-        companyMap.bxgs.init(companyMap)
-        companyMap.bxgs.selectUser(companyMap, setCookies)
+        companyMap.bxgs.init(companyMap);
+        // companyMap.bxgs.selectUser(companyMap, setCookies);
       }
       this.setTabConfig(view.id, {
-        title: url.name,
+        title: url.name
       });
     } else {
       this.loadURL(url || this.options.blankPage);
@@ -631,6 +631,7 @@ export class TabbedWindow extends EventEmitter {
     if (!this.views[viewId]) {
       return;
     } // end if
+    console.log('打印currentView', this.currentView);
     if (this.currentView) this.win.removeBrowserView(this.currentView);
     this.win.addBrowserView(this.views[viewId]);
 
@@ -688,6 +689,7 @@ export class TabbedWindow extends EventEmitter {
    * @ignore
    */
   setTabConfig(viewId, kv) {
+    console.log('打印tabConfigs', this.tabConfigs);
     const tab = this.tabConfigs[viewId];
     const { webContents } = this.views[viewId] || {};
     verbose_log("-----setTabConfig------", viewId, kv)
