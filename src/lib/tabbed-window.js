@@ -169,7 +169,7 @@ export class TabbedWindow extends EventEmitter {
   }
 
   /**
-   * Destroy the tab.
+   * 销毁标签页
    * @param {TabID} viewId the tab view ID.
    * @ignore
    */
@@ -210,7 +210,7 @@ export class TabbedWindow extends EventEmitter {
     if (!currentView) {
       return;
     } // end if
-
+    console.log('打印当前视图', currentView.webContents.__IS_INITIALIZED__);
     const { id, webContents } = currentView;
     const MARKS = '__IS_INITIALIZED__';
 
@@ -375,25 +375,7 @@ export class TabbedWindow extends EventEmitter {
       companyMap.tabWin = this;
       verbose_log('调试companyMap.bxgs:', companyMap.bxgs);
       if (companyMap.bxgs) {
-        // let setCookies = async function (cookies, webContents) {
-        //   for (let cookiesItem of cookies) {
-        //     try {
-        //       let { secure = false, domain = '', path = '', name } = cookiesItem;
-        //       //await webContents.session.cookies.remove((secure ? 'https://' : 'http://') + domain.replace(/^\./, '') + path, name)
-        //       //delete cookiesItem.domain
-        //       await webContents.session.cookies.set(
-        //         Object.assign(cookiesItem, {
-        //           url: (secure ? 'https://' : 'http://') + domain.replace(/^\./, '') + path
-        //         })
-        //       );
-        //     } catch (e) {
-        //       console.info(e);
-        //     }
-        //   }
-        // };
-        // verbose_log('调用下面的方法来初始化和选择用户:', companyMap)
         companyMap.bxgs.init(companyMap);
-        // companyMap.bxgs.selectUser(companyMap, setCookies);
       }
       this.setTabConfig(view.id, {
         title: url.name
@@ -445,13 +427,14 @@ export class TabbedWindow extends EventEmitter {
       'close-tab': async (e, id) => {
         verbose_log('== channel listened close-tab===', id, this.currentViewId);
         if (id) {
+          // 判断删除的标签页是否是最后一个，是则将前一个设为当前页，不是则将后一个设为当前页
           if (id === this.currentViewId) {
             const removeIndex = this.tabs.indexOf(id);
             if (removeIndex > -1) {
               const nextIndex = removeIndex === this.tabs.length - 1 ? removeIndex - 1 : removeIndex + 1;
               this.setCurrentView(this.tabs[nextIndex]);
             }
-          } // end if
+          }
 
           this.tabs = this.tabs.filter(v => v !== id);
           this.tabConfigs = {
@@ -467,6 +450,7 @@ export class TabbedWindow extends EventEmitter {
            */
           this.emit('close-tab', id);
         } else {
+          // 清除所有标签页
           for (let a of this.tabs) {
             this.destroyView(a);
           }
@@ -612,14 +596,13 @@ export class TabbedWindow extends EventEmitter {
   }
 
   /**
-   * Set the tab configurations.
+   * 设置标签页配置
    * @param {number} viewId the tab view ID.
    * @param {object} kv the configurations.
    * @returns the tab configurations
    * @ignore
    */
   setTabConfig(viewId, kv) {
-    console.log('打印tabConfigs', this.tabConfigs);
     const tab = this.tabConfigs[viewId];
     const { webContents } = this.views[viewId] || {};
     verbose_log('-----setTabConfig------', viewId, kv);
