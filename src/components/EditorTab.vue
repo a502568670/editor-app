@@ -1,8 +1,8 @@
 <template>
   <div class="flex flex-col h-full">
-    <div class="h-10 flex space-x-2 items-center border-b mb-1 shadow-md">
+    <div class="p-2 flex space-x-2 items-center border-b shadow-md">
       <div class="flex items-center pl-1">
-        <img class="w-9 h-9 rounded-full" :src="selectedAccount?.avatar" />
+        <img class="w-7 h-7 rounded-full" :src="selectedAccount?.avatar" />
         <div class="flex-1 flex justify-start text-left items-center pl-1 min-w-[190px]">
           {{ selectedAccount?.name }}
         </div>
@@ -34,18 +34,6 @@
       <el-button @click="handleSyncToWechatDraftBox" type="success">保存到公众号草稿箱</el-button>
       <el-button @click="openSendArticleDialog" type="success">同步到其他账号</el-button>
       <el-button @click="confirmOpenPublishToWechatDialog" type="danger">发表</el-button>
-      <!-- <el-dropdown split-button type="danger">
-        其他
-        <template #dropdown>
-          <el-dropdown-menu>
-            <el-dropdown-item @click="handleSyncToWechatDraftBox">同步到微信草稿箱</el-dropdown-item>
-            <el-dropdown-item @click="confirmOpenPublishToWechatDialog">发布到微信</el-dropdown-item>
-            <el-dropdown-item divided @click="openSendArticleDialog">同步到其他账号</el-dropdown-item>
-          </el-dropdown-menu>
-        </template>
-</el-dropdown> -->
-      <!-- <el-button @click="handleSyncToWechatDraftBox" type="danger">同步到微信草稿箱</el-button>
-      <el-button @click="openSendArticleDialog" type="danger">同步到其他账号</el-button> -->
     </div>
     <div class="flex-1 items-stretch h-0 flex">
       <div class="bg-white shadow-xl w-[300px] p-3">
