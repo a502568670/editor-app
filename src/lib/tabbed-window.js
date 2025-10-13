@@ -72,14 +72,7 @@ export class TabbedWindow extends EventEmitter {
     super();
     this.options = options;
 
-    const {
-      controlPanel,
-      controlReferences,
-      height,
-      width,
-      ver,
-      winOptions = {},
-    } = options;
+    const { controlPanel, controlReferences, height, width, ver, winOptions = {} } = options;
 
     this.commonWebPreferences = {
       minimumFontSize: 12,
@@ -87,14 +80,14 @@ export class TabbedWindow extends EventEmitter {
       devTools: this.options.debug,
       nodeIntegrationInSubFrames: false,
       nodeIntegration: process.env.ELECTRON_NODE_INTEGRATION, // See https://nklayman.github.io/vue-cli-plugin-electron-builder/guide/security.html#node-integration for more info.
-      preload: path.join(__dirname, "preload.js"),
+      preload: path.join(__dirname, 'preload.js'),
       allowDisplayingInsecureContent: true,
       allowRunningInsecureContent: true,
       webSecurity: false,
       plugins: true,
       sandbox: true // Support window.opener. See https://github.com/electron/electron/issues/1865#issuecomment-249989894 for more info.
     };
-    verbose_log("this.commonWebPreferences=>", this.commonWebPreferences)
+    verbose_log('this.commonWebPreferences=>', this.commonWebPreferences);
     this.defCurrentViewId = null;
     this.defTabConfigs = {};
     this.ipc = null; // IPC channel.
@@ -109,17 +102,17 @@ export class TabbedWindow extends EventEmitter {
       // icon: path.join(__dirname, 'icon.ico'), // 设置Windows图标
       webPreferences: {
         ...this.commonWebPreferences,
-        ...controlReferences, // Put it here to overwrite existing values in the above properties.
-      },
+        ...controlReferences // Put it here to overwrite existing values in the above properties.
+      }
     });
-    verbose_log("controlPanel=>", controlPanel)
-    verbose_log("width=>", width)
-    verbose_log("height=>", height)
+    verbose_log('controlPanel=>', controlPanel);
+    verbose_log('width=>', width);
+    verbose_log('height=>', height);
     this.win.loadURL(controlPanel).then(() => {
       if (ver) {
-        const newTitle = `${this.win.title}-v${ver}`
-        verbose_log("setTitle to =>", newTitle )
-        this.win.title = newTitle
+        const newTitle = `${this.win.title}-v${ver}`;
+        verbose_log('setTitle to =>', newTitle);
+        this.win.title = newTitle;
       }
     });
     this.setChannel();
@@ -144,7 +137,7 @@ export class TabbedWindow extends EventEmitter {
     this.setContentBounds();
 
     if (this.ipc) {
-      this.ipc.reply("active-update", id);
+      this.ipc.reply('active-update', id);
     } // end if
   }
 
@@ -168,9 +161,9 @@ export class TabbedWindow extends EventEmitter {
     this.defTabConfigs = v;
 
     if (this.ipc) {
-      this.ipc.reply("tabs-update", {
+      this.ipc.reply('tabs-update', {
         confs: v,
-        tabs: this.tabs,
+        tabs: this.tabs
       });
     } // end if
   }
@@ -181,10 +174,10 @@ export class TabbedWindow extends EventEmitter {
    * @ignore
    */
   destroyView(viewId) {
-    verbose_log('indestroyView', viewId, this.views, this.views[viewId])
+    verbose_log('indestroyView', viewId, this.views, this.views[viewId]);
     const view = this.views[viewId];
     if (view && view.webContents && !view.webContents.isDestroyed() && !this.win.isDestroyed()) {
-      verbose_log("before removeBrowserView")
+      verbose_log('before removeBrowserView');
       this.win.removeBrowserView(view);
       view.webContents.stop();
       view.webContents.close({ waitForBeforeUnload: global.common.WAIT_FOR_BEFORE_UNLOAD });
@@ -202,7 +195,7 @@ export class TabbedWindow extends EventEmitter {
       height: this.options.controlHeight,
       width: contentBounds.width - this.options.controlWidth,
       x: 0,
-      y: 0,
+      y: 0
     };
   } // end function getControlBounds
 
@@ -219,7 +212,7 @@ export class TabbedWindow extends EventEmitter {
     } // end if
 
     const { id, webContents } = currentView;
-    const MARKS = "__IS_INITIALIZED__";
+    const MARKS = '__IS_INITIALIZED__';
 
     // Prevent addEventListeners on the same webContents when entering urls in the same tab.
     if (webContents[MARKS]) {
@@ -229,63 +222,32 @@ export class TabbedWindow extends EventEmitter {
       return;
     } // end if
 
-    const onNewWindow = async (
-      e,
-      newUrl,
-      frameName,
-      disposition,
-      winOptions
-    ) => {
+    const onNewWindow = async (e, newUrl, frameName, disposition, winOptions) => {
       // Handle newUrl = "about:blank" in some cases.
       if (!new URL(newUrl).host) {
         return;
       } // end if
 
       e.preventDefault();
-      if (disposition === "new-window") {
-        verbose_log("new-window")
+      if (disposition === 'new-window') {
+        verbose_log('new-window');
         e.newGuest = new BrowserWindow(winOptions);
-      } else if (disposition === "foreground-tab") {
-        verbose_log("foreground-tab")
+      } else if (disposition === 'foreground-tab') {
+        verbose_log('foreground-tab');
         await this.newTab(newUrl, id);
         e.newGuest = new BrowserWindow({ ...winOptions, show: false }); // `newGuest` must be set to prevent freeze the trigger tab. The window will be destroyed automatically on the trigger tab closed.
       } else {
-        verbose_log("other")
+        verbose_log('other');
         webContents.loadURL(newUrl);
         //await this.newTab(newUrl, id);
       } // end nested if...else
     };
 
-    webContents.on("new-window", this.options.onNewWindow || onNewWindow);
+    webContents.on('new-window', this.options.onNewWindow || onNewWindow);
 
     // Keep the events in order.
     webContents
-      // .on("did-start-loading", () => {
-      //   this.setTabConfig(id, { isLoading: true });
-      // })
-      // .on('did-navigate', async function (event, url, isInPlace, isMainFrame) {
-      //   console.log("==did-navigate==")
-      //   console.log("url=>", url);
-      //   console.log('isInPlace=>', isInPlace)
-      //   console.log('isMainFrame=>', isMainFrame)
-      //   // console.log("event=>", event)
-      //   if (url === "https://mp.weixin.qq.com/") {
-      //     // 退出登陆
-      //     console.log("")
-      //     console.log('退出登陆 viewData.user:', viewData.user);
-      //     const accounlt_session_id = viewData.user.account_session_id
-      //     console.log("accounlt_session_id:", accounlt_session_id)
-      //     if (accounlt_session_id) {
-      //       this.raiseRenderAct('remove-account-session', accounlt_session_id)
-      //       console.log("send remove-account-session event to ipcRenderer")
-      //     }
-      //   } else {
-
-      //   }
-
-      //   console.log("=================")
-      // })
-      .on("did-start-navigation", (e, href, isInPlace, isMainFrame) => {
+      .on('did-start-navigation', (e, href, isInPlace, isMainFrame) => {
         if (isMainFrame) {
           this.setTabConfig(id, { url: href, href });
           /**
@@ -294,25 +256,14 @@ export class TabbedWindow extends EventEmitter {
            * @returns the current tab view.
            * @returns the updated URL.
            */
-          this.emit("url-updated", { view: currentView, href });
+          this.emit('url-updated', { view: currentView, href });
         } // end if
       })
-      .on("will-redirect", (e, href) => {
+      .on('will-redirect', (e, href) => {
         this.setTabConfig(id, { url: href, href });
-        this.emit("url-updated", { view: currentView, href });
+        this.emit('url-updated', { view: currentView, href });
       })
-      // .on("page-title-updated", (e, title) => {
-      //   // this.setTabConfig(id, { title });
-      //   console.log(title)
-      //   e.preventDefault()
-      // })
-      // .on("page-favicon-updated", (e, favicons) => {
-      //   this.setTabConfig(id, { favicon: favicons[0] });
-      // })
-      // .on("did-stop-loading", () => {
-      //   this.setTabConfig(id, { isLoading: false });
-      // })
-      .on("dom-ready", () => {
+      .on('dom-ready', () => {
         webContents.focus();
       });
     if (url) {
@@ -321,7 +272,6 @@ export class TabbedWindow extends EventEmitter {
     webContents[MARKS] = true;
 
     this.setContentBounds();
-
   } // end function loadURL
 
   /**
@@ -333,59 +283,62 @@ export class TabbedWindow extends EventEmitter {
    */
   async newTab(url, appendTo, references) {
     console.log('创建新标签：', url, appendTo, references);
-    verbose_log('newTab url=>', url)
-    if (typeof url === "object") {
+    verbose_log('newTab url=>', url);
+    if (typeof url === 'object') {
+      // 如果已经有这个窗口实例便切换标签，没有再执行创建
+      console.log('打印tabConfigs 第一次', this.tabConfigs);
       for (let key in this.tabConfigs) {
         if (this.tabConfigs[key] && this.tabConfigs[key].account_id == url.id) {
           this.switchTab(parseInt(key));
-          verbose_log("is return from newTab...")
+          verbose_log('is return from newTab...');
           return;
         }
       }
     }
-    let viewKey = typeof url === "object" ? url.id : url;
-    let partition = "persist:" + viewKey;
-    verbose_log('this.commonWebPreferences=>', this.commonWebPreferences)
-    // console.log('references=>', references)
-    // console.log('this.options.viewReferences=>', this.options.viewReferences)
+    let viewKey = typeof url === 'object' ? url.id : url;
+    // 窗口独立缓存需要的唯一值
+    let partition = 'persist:' + viewKey;
+    verbose_log('this.commonWebPreferences=>', this.commonWebPreferences);
+    // 创建视图
     const view = new BrowserView({
       webPreferences: {
         partition: partition,
         ...this.commonWebPreferences,
-        ...(references || this.options.viewReferences), // Put it here to overwrite existing values in the above properties.
-      },
+        ...(references || this.options.viewReferences) // Put it here to overwrite existing values in the above properties.
+      }
     });
+    view.setAutoResize({ height: true, width: true });
+    view.id = view.webContents.id;
 
     // custom window.open() action
-    view.webContents.setWindowOpenHandler((details) => {
-      //this.newTab(details.url)
-      verbose_log("details=>", details)
+    view.webContents.setWindowOpenHandler(details => {
+      verbose_log('details=>', details);
       if (details.url == 'about:blank') {
         return { action: 'deny' };
       }
       view.webContents.loadURL(details.url, {
         httpReferrer: details.referrer
       });
-      return { action: 'deny' }
-    })
-
-    view.id = view.webContents.id;
+      return { action: 'deny' };
+    });
 
     if (appendTo) {
       const prevIndex = this.tabs.indexOf(appendTo);
       this.tabs.splice(prevIndex + 1, 0, view.id);
     } else {
       this.tabs.push(view.id);
-    } // end if...else
+    }
 
     this.views[view.id] = view;
+    console.log('打印tabs', this.tabs);
+    console.log('打印views', this.views);
 
-    // Add to the manager first.
+    // 保存下更新前的视图id
     const lastView = this.currentView;
     console.log('打印lastView', this.currentView);
+    // 设置当前的视图
     this.setCurrentView(view.id);
-    view.setAutoResize({ height: true, width: true });
-    if (typeof url === "object") {
+    if (typeof url === 'object') {
       verbose_log('url 是一个对象，根据 url.platform_id 加载相应的平台模块:');
       this.loadURL('');
 
@@ -448,7 +401,7 @@ export class TabbedWindow extends EventEmitter {
     } else {
       this.loadURL(url || this.options.blankPage);
       this.setTabConfig(view.id, {
-        title: this.options.blankTitle,
+        title: this.options.blankTitle
       });
     }
     /**
@@ -458,7 +411,7 @@ export class TabbedWindow extends EventEmitter {
      * @returns the loaded URL.
      * @returns the previous active view.
      */
-    this.emit("new-tab", view, { openedURL: url, lastView });
+    this.emit('new-tab', view, { openedURL: url, lastView });
     return view;
   } // end function newTab
 
@@ -467,16 +420,16 @@ export class TabbedWindow extends EventEmitter {
    * @ignore
    */
   setChannel() {
-    const webContentsAct = (actionName) => {
+    const webContentsAct = actionName => {
       const webContents = this.currentWebContents;
       const action = webContents && webContents[actionName];
-      if (typeof action === "function") {
-        if (actionName === "reload" && webContents.getURL() === "") {
+      if (typeof action === 'function') {
+        if (actionName === 'reload' && webContents.getURL() === '') {
           return;
         } // end if
         action.call(webContents);
       } else {
-        log.warn("Invalid tabbed window web content action:", actionName);
+        log.warn('Invalid tabbed window web content action:', actionName);
       } // end if...else
     };
 
@@ -484,13 +437,13 @@ export class TabbedWindow extends EventEmitter {
       act: (e, actName) => webContentsAct(actName),
       'remove-tab': async (e, id) => {
         dog('remove-tab', id, this.currentViewId);
-        var view=this.views[id || this.currentViewId];
-        if(view) {
+        var view = this.views[id || this.currentViewId];
+        if (view) {
           this.win.removeBrowserView(view);
         }
       },
-      "close-tab": async (e, id) => {
-        verbose_log('== channel listened close-tab===', id, this.currentViewId)
+      'close-tab': async (e, id) => {
+        verbose_log('== channel listened close-tab===', id, this.currentViewId);
         if (id) {
           if (id === this.currentViewId) {
             const removeIndex = this.tabs.indexOf(id);
@@ -500,10 +453,10 @@ export class TabbedWindow extends EventEmitter {
             }
           } // end if
 
-          this.tabs = this.tabs.filter((v) => v !== id);
+          this.tabs = this.tabs.filter(v => v !== id);
           this.tabConfigs = {
             ...this.tabConfigs,
-            [id]: null,
+            [id]: null
           };
           this.destroyView(id);
 
@@ -512,16 +465,16 @@ export class TabbedWindow extends EventEmitter {
            * @event TabbedWindow#close-tab
            * @returns the tab item index.
            */
-          this.emit("close-tab", id);
+          this.emit('close-tab', id);
         } else {
           for (let a of this.tabs) {
             this.destroyView(a);
           }
           this.tabs = [];
-          this.tabConfigs = {}
+          this.tabConfigs = {};
         }
       },
-      "control-ready": async (e, icon) => {
+      'control-ready': async (e, icon) => {
         this.ipc = e;
         //await this.newTab(this.options.startPage || "");
         //this.win.show();
@@ -531,35 +484,35 @@ export class TabbedWindow extends EventEmitter {
          * @event TabbedWindow#control-ready
          * @type {IpcMainEvent}
          */
-        this.emit("control-ready", e);
+        this.emit('control-ready', e);
       },
-      "new-tab": (e, url, references) => {
-        verbose_log('主进程接收到的new-tab url', url)
-        verbose_log('主进程接收到的new-tab references', references)
+      'new-tab': (e, url, references) => {
+        verbose_log('主进程接收到的new-tab url', url);
+        verbose_log('主进程接收到的new-tab references', references);
         this.newTab(url, null, references);
       },
-      "switch-tab": (e, id) => {
+      'switch-tab': (e, id) => {
         this.switchTab(id);
       },
-      "refresh-tab": (e, id) => {
+      'refresh-tab': (e, id) => {
         this.refresh(id);
       },
-      "back-tab": (e, id) => {
+      'back-tab': (e, id) => {
         if (this.currentView && !this.currentView.webContents.isDestroyed()) {
-          this.currentView.webContents.goBack()
+          this.currentView.webContents.goBack();
         }
       },
-      "forward-tab": (e, id) => {
+      'forward-tab': (e, id) => {
         if (this.currentView && !this.currentView.webContents.isDestroyed()) {
-          this.currentView.webContents.goForward()
+          this.currentView.webContents.goForward();
         }
       },
-      "url-change": (e, url) => {
+      'url-change': (e, url) => {
         this.setTabConfig(this.currentViewId, { url });
       },
-      "url-enter": (e, url) => {
+      'url-enter': (e, url) => {
         this.loadURL(url);
-      },
+      }
     });
 
     channels
@@ -567,29 +520,23 @@ export class TabbedWindow extends EventEmitter {
         name,
         (e, ...args) => {
           // Support multiple tabbed windows.
-          if (
-            this.win &&
-            !this.win.isDestroyed() &&
-            e.sender === this.win.webContents
-          ) {
+          if (this.win && !this.win.isDestroyed() && e.sender === this.win.webContents) {
             listener(e, ...args);
           } // end if
-        },
+        }
       ])
       .forEach(([name, listener]) => ipcMain.on(name, listener));
 
-    this.win.on("closed", () => {
-      channels.forEach(([name, listener]) =>
-        ipcMain.removeListener(name, listener)
-      ); // Remember to clear all ipcMain events as ipcMain bind on every new tabbed window instance.
+    this.win.on('closed', () => {
+      channels.forEach(([name, listener]) => ipcMain.removeListener(name, listener)); // Remember to clear all ipcMain events as ipcMain bind on every new tabbed window instance.
 
-      this.tabs.forEach((id) => this.destroyView(id)); // Prevent BrowserView memory leak on close.
+      this.tabs.forEach(id => this.destroyView(id)); // Prevent BrowserView memory leak on close.
 
       /**
        * The closed event.
        * @event TabbedWindow#closed
        */
-      this.emit("closed");
+      this.emit('closed');
     });
   } // end function setChannel
 
@@ -601,83 +548,66 @@ export class TabbedWindow extends EventEmitter {
     const [contentWidth, contentHeight] = this.win.getContentSize();
     const controlBounds = this.getControlBounds();
     if (this.currentView && !this.currentView.webContents.isDestroyed()) {
-      ipcMain.removeAllListeners(['webBounds'])
+      ipcMain.removeAllListeners(['webBounds']);
       ipcMain.on('webBounds', async (event, data) => {
         if (this.currentView && !this.currentView.webContents.isDestroyed()) {
           this.currentView.setBounds({
             height: data.height,
             width: data.width,
             x: data.x,
-            y: data.y,
+            y: data.y
           });
         }
-      })
-      this.win.webContents.send('getWebBounds')
+      });
+      this.win.webContents.send('getWebBounds');
       this.currentView.setBounds({
         height: contentHeight - controlBounds.height,
         width: contentWidth - 400,
         x: 400,
-        y: controlBounds.y + controlBounds.height,
+        y: controlBounds.y + controlBounds.height
       });
     } // end if
   } // end function setControlBounds
 
   /**
-   * Set the current tab view.
+   * 切换当前标签页
    * @param {number} viewId the tab view ID.
    * @ignore
    */
   setCurrentView(viewId) {
     if (!this.views[viewId]) {
       return;
-    } // end if
-    console.log('打印currentView', this.currentView);
+    }
     if (this.currentView) this.win.removeBrowserView(this.currentView);
     this.win.addBrowserView(this.views[viewId]);
 
-    // const devToolsBV = new BrowserView();
-    // this.win.addBrowserView(devToolsBV);
-    // this.views[viewId].setDevToolsWebContents(devToolsBV.webContents);
-    // bv.webContents.openDevTools({mode: "detach"});
-    // const bounds = this.win.getBounds()
-    // const contentBounds = this.win.getContentBounds()
-    // const topBarHeight = bounds.height - contentBounds.height;
-    // devToolsBV.setBounds({
-    //   x: bounds.width / 2,
-    //   // 注意 titleBar 的高度
-    //   y: topBarHeight,
-    //   width: bounds.width / 2,
-    //   height: bounds.height
-    // })
-
     this.currentViewId = viewId;
-    verbose_log("tabbed-window.js::setCurrentView")
+    verbose_log('tabbed-window.js::setCurrentView');
     this.win.webContents.send('fromMain', { currentTabId: viewId });
     this.currentWebContents.focus();
-
   } // end function setCurrentView
 
   raiseRenderAct(event, ...args) {
     // verbose_log('this.win.webContents=>', this.win.webContents)
     this.win.webContents.send(event, ...args);
-    if (event === "remove-account-session") {
-
+    if (event === 'remove-account-session') {
       // verbose_log("currentView:", this.currentView)
       if (this.currentView) {
         const session = this.currentView.webContents.session;
-        session.clearStorageData({
-          storages: ['cookies', 'localstorage', 'caches']
-        }, function (data) {
-          verbose_log('clearStorageData', data);
-        })
+        session.clearStorageData(
+          {
+            storages: ['cookies', 'localstorage', 'caches']
+          },
+          function (data) {
+            verbose_log('clearStorageData', data);
+          }
+        );
         // 考虑关闭tab
         // sendCloseTab(this.currentView.id)
         // this.destroyView(this.currentView.id);
-
       }
-    } else if (event === "account_check_login") {
-      verbose_log("in main print account_check_login:", args)
-
+    } else if (event === 'account_check_login') {
+      verbose_log('in main print account_check_login:', args);
     }
   }
 
@@ -692,21 +622,21 @@ export class TabbedWindow extends EventEmitter {
     console.log('打印tabConfigs', this.tabConfigs);
     const tab = this.tabConfigs[viewId];
     const { webContents } = this.views[viewId] || {};
-    verbose_log("-----setTabConfig------", viewId, kv)
+    verbose_log('-----setTabConfig------', viewId, kv);
     this.tabConfigs = {
       ...this.tabConfigs,
       [viewId]: {
         ...tab,
         canGoBack: webContents && webContents.canGoBack(),
         canGoForward: webContents && webContents.canGoForward(),
-        ...kv, // Put it here to overwrite existing values in the above properties.
-      },
+        ...kv // Put it here to overwrite existing values in the above properties.
+      }
     };
     return this.tabConfigs;
   } // end function setTabConfig
 
   /**
-   * Switch to the specified tab.
+   * 切换到指定标签页
    * @param {TabID} viewId the tab view ID.
    */
   switchTab(viewId) {
@@ -717,7 +647,7 @@ export class TabbedWindow extends EventEmitter {
       return;
     } // end if
     if (this.currentView && !this.currentView.webContents.isDestroyed()) {
-      this.currentView.webContents.reloadIgnoringCache()
+      this.currentView.webContents.reloadIgnoringCache();
     }
   } // end function setCurrentView
 } // end class TabbedWindow
