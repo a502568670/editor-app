@@ -1,5 +1,5 @@
 <template>
-  <div style="display: flex;height: 100%">
+  <div style="display: flex;height: 100%;width: 100%;">
     <AccountList
       ref="AccountListRef"
       :selectId="selected_account_id"
@@ -7,28 +7,28 @@
       @delAccountTrigger="onDelMPAccount"
       @addAccountTrigger="handleAddMPAccount"
     />
-    <div style="flex: 1;display: flex;flex-direction: column">
-      <!-- 右侧账号展示 当前打开的标签页列表  标签页数据 (tabs) 的获取-->
-      <!-- 通过 window.ipcRenderer.receive('tabs-update', ...) 监听来自主进程的消息更新。-->
-      <div class="tab-control-wrap" v-show="tabs.length > 0">
-        <div class="control-left" style="line-height: 0;">
-          <el-tabs v-model="currentTabId" ref="elTabsRef" type="border-card" closable
-            style="display: inline-block; max-width: calc(100vw - 300px)" :stretch="false" @tab-remove="removeTab"
-            @tab-change="changeTab">
-            <el-tab-pane v-for="item in tabs" :key="item.tabId" :label="item.title" :name="item.tabId"
-              style="padding: 0px">
-              <template #label>
-                <span class="custom-tabs-label">
-                  <span v-if="item.title.length > 9" :title="item.title" class="tab-title">{{ item.title.slice(0, 9)
-                  }}</span>
-                  <span v-else class="tab-title">{{ item.title }}</span>
-                </span>
-              </template>
-            </el-tab-pane>
-          </el-tabs>
-        </div>
-      </div>
-
+    <div class="flex flex-col flex-1 w-0">
+      <el-tabs
+        v-model="currentTabId"
+        v-show="tabs.length > 0"
+        ref="elTabsRef"
+        type="border-card"
+        closable
+        :stretch="false"
+        @tab-remove="removeTab"
+        @tab-change="changeTab"
+      >
+        <el-tab-pane v-for="item in tabs" :key="item.tabId" :label="item.title" :name="item.tabId"
+          style="padding: 0px">
+          <template #label>
+            <span class="custom-tabs-label">
+              <span v-if="item.title.length > 9" :title="item.title" class="tab-title">{{ item.title.slice(0, 9)
+              }}</span>
+              <span v-else class="tab-title">{{ item.title }}</span>
+            </span>
+          </template>
+        </el-tab-pane>
+      </el-tabs>
       <div v-show="isDebugRef && tabs.length > 0"
         style="height: auto;display: flex;align-items: center;justify-content: space-between;padding: 10px;background-color: #FFF;z-index: 1000">
         <div v-if="isDebugRef">
@@ -43,7 +43,7 @@
         </div>
         <div v-if="!isDebugRef">&nbsp;</div>
       </div>
-      <div ref="webRef" style="flex: 1;margin-top:2px;"></div>
+      <div ref="webRef" style="flex: 1;"></div>
     </div>
     <el-dialog :close-on-click-modal="false" title="选择添加账号的平台" v-model="dialogAddAccountVisible" width="800px">
       <el-row :gutter="10">
