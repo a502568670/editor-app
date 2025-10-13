@@ -1,5 +1,5 @@
 export const claim_source_types = [{
-  "name": "不声明",
+  "name": "不声明创作来源",
   "id": 0
 }, {
   "name": "内容由ai生成",
