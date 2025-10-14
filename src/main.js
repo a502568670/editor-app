@@ -149,6 +149,11 @@ const router = createRouter({
           path: '/file',
           name: 'file',
           component: () => import('./views/file')
+        },
+        {
+          path: '/advanced-forward',
+          name: 'advanced-forward',
+          component: () => import('./views/advanced-forward')
         }
       ]
     }

@@ -88,6 +88,7 @@ export const useAotPickerStore = defineStore('AccountPicker', () => {
   return {
     visible, show, hide,account,list,update,select};
 });
+
 // webpack HMR
 if (import.meta.webpackHot) {
   // dog('piniaStore HMR', import.meta.webpackHot, acceptHMRUpdate(useHydrateStore, import.meta.webpackHot));

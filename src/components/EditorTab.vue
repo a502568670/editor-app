@@ -1742,7 +1742,6 @@ const confirmOpenPublishToWechatDialog = async () => {
 }
 
 const openPublishToWechatDialog = async () => {
-
   // 发布调试完毕需要先将appmsg同步到草稿箱
   await _saveAppMsg(1)
   if (!currentArticleRef.value.cdn_url) return
@@ -2087,8 +2086,8 @@ const handleSendToOtherAccount = async () => {
   //   target_wechat_ids: otherAccountsChoosedRef.value
   // })
   const { wechat_id } = selectedAccount.value
-  let stepRet
-  await send_to_other_accounts_events({
+  let stepRetsend_to_other_accounts_events
+  await ({
     source_wechat_id: wechat_id,
     soruce_appmsgid: appmsgid,
     target_wechat_ids: otherAccountsChoosedRef.value
