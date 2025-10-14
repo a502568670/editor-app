@@ -31,7 +31,7 @@
               >
                 {{ element.name }}
               </div>
-              <img src="@/assets/image/gzh.png" style="width: 15px; height: 15px" />
+              <img src="@/assets/image/account/wxgzh.png" style="width: 18px; height: 18px" />
             </div>
             <div v-if="$props.showDel" class="items-center justify-center ml-1 hidden group-hover:flex">
               <el-popconfirm title="你是否要删除该公众号" @confirm="delAccount(element.wechat_id)" placement="top-end">
@@ -46,7 +46,17 @@
         </template>
       </draggable>
     </div>
-    <el-button v-if="$props.showAdd" style="width: 100%" type="primary" @click="addAccount"> 登录微信公众号 </el-button>
+    <el-button v-if="$props.showAdd" style="width: 100%" type="primary" @click="addAccount"> 添加账号 </el-button>
+    <!-- <el-popover v-if="$props.showAdd" placement="top" :width="220">
+      <template #reference>
+        <el-button style="width: 100%" type="primary"> 添加账号 </el-button>
+      </template>
+      <div>
+        <div v-for="item of platforms" :key="item.id">
+          <img :src="item.img" alt="" />
+        </div>
+      </div>
+    </el-popover> -->
   </div>
 </template>
 
@@ -58,7 +68,8 @@ import { sortByOrder, debounceFn } from '@/utils/index';
 import draggable from 'vuedraggable';
 import { Close } from '@element-plus/icons-vue';
 import { apperrmsg } from '@/utils/constants';
-import { ElMessageBox } from 'element-plus'
+import { ElMessageBox, ElMessage } from 'element-plus';
+import { useAccountStore } from '@/store/piniaStore';
 
 const props = defineProps({
   selectId: {},
@@ -70,7 +81,7 @@ const props = defineProps({
     type: Boolean,
     default: true
   },
-  invalidWarn:{
+  invalidWarn: {
     type: Boolean,
     default: true
   }
@@ -78,6 +89,17 @@ const props = defineProps({
 const emit = defineEmits(['clickAccountTrigger', 'delAccountTrigger', 'addAccountTrigger']);
 
 const { all_accounts, account_orders } = toRefs(store.getters);
+
+const getImgResource = (path) => {
+  return new URL(path, import.meta.url).href
+}
+const platforms = [
+  {
+    name: '微信公众号',
+    img: getImgResource('@/assets/image/account/wxgzh.png'),
+    id: '1'
+  }
+];
 
 // 账号列表数据
 const accounts = ref([]);
@@ -121,8 +143,13 @@ const getList = () => {
   accounts.value = result;
 };
 
+const account = useAccountStore()
 /** 点击删除按钮触发 */
-const delAccount = id => {
+const delAccount = async id => {
+  await store.dispatch('DelAccount', id)
+  account.update(account.list.filter(item => item.id !== id))
+  getList()
+  ElMessage({ type: 'success', message: '删除成功' })
   emit('delAccountTrigger', id);
 };
 
@@ -133,26 +160,28 @@ const addAccount = () => {
 
 /** 点击账号触发 */
 const clickAccount = account => {
-  const { token, session_id } = account
+  const { token, session_id } = account;
   if (props.invalidWarn && (!token || !session_id)) {
     ElMessageBox.alert(apperrmsg.invalid_session, '错误', {
       confirmButtonText: '确定',
       type: 'error'
-    }).then(() => {
-      console.log("then")
-    }).catch(() => {
-      console.log("catch")
     })
-    return
+      .then(() => {
+        console.log('then');
+      })
+      .catch(() => {
+        console.log('catch');
+      });
+    return;
   }
   emit('clickAccountTrigger', account);
 };
 
-const proxyAccounts = new Proxy(accounts,{
+const proxyAccounts = new Proxy(accounts, {
   get(target, key) {
-    return target.value[key]
-  },
-})
+    return target.value[key];
+  }
+});
 
 defineExpose({
   getList,

@@ -5,7 +5,6 @@
       :selectId="selected_account_id"
       :invalidWarn="false"
       @clickAccountTrigger="addNewTab"
-      @delAccountTrigger="onDelMPAccount"
       @addAccountTrigger="handleAddMPAccount"
     />
     <div class="flex flex-col flex-1 w-0">
