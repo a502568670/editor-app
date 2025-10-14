@@ -2,7 +2,7 @@
   <el-dialog 
     v-model="visible" 
     title="选择公众号" 
-    width="600px" 
+    width="900px" 
     :before-close="handleClose"
     append-to-body
     class="account-picker-modal"
@@ -27,13 +27,16 @@
       </div>
 
       <!-- 公众号列表 -->
-      <div class="account-list">
-        <div class="grid grid-cols-2 gap-4">
+      <div class="account-list" v-loading="loading">
+        <div class="grid grid-cols-3 gap-4">
           <div 
             v-for="account in filteredAccounts" 
             :key="account.id"
             class="account-card"
-            :class="{ 'selected': selectedAccountId === account.id, 'disabled': account.expired }"
+            :class="{ 
+              'selected': props.multiple ? selectedAccountIds.includes(account.id) : selectedAccountId === account.id, 
+              'disabled': account.expired 
+            }"
             @click="selectAccount(account)"
           >
             <div class="account-avatar">
@@ -49,7 +52,7 @@
                 {{ account.expired ? '未登录' : '已登录' }}
               </div>
             </div>
-            <div v-if="selectedAccountId === account.id" class="selected-indicator">
+            <div v-if="(props.multiple ? selectedAccountIds.includes(account.id) : selectedAccountId === account.id)" class="selected-indicator">
               <el-icon><Check /></el-icon>
             </div>
           </div>
@@ -69,7 +72,7 @@
         <el-button 
           type="primary" 
           @click="handleConfirm"
-          :disabled="!selectedAccountId"
+          :disabled="props.multiple ? selectedAccountIds.length === 0 : !selectedAccountId"
         >
           确定
         </el-button>
@@ -89,6 +92,14 @@ const props = defineProps({
   modelValue: {
     type: Boolean,
     default: false
+  },
+  multiple: {
+    type: Boolean,
+    default: false
+  },
+  selectedAccounts: {
+    type: Array,
+    default: () => []
   }
 })
 
@@ -100,8 +111,10 @@ const accountStore = useAccountStore()
 
 // 响应式数据
 const visible = ref(false)
+const loading = ref(false)
 const searchKeyword = ref('')
 const selectedAccountId = ref('')
+const selectedAccountIds = ref([])
 
 // 计算属性
 const filteredAccounts = computed(() => {
@@ -115,6 +128,14 @@ const filteredAccounts = computed(() => {
     )
   }
   
+  // 排序：已登录的账号优先显示
+  accounts.sort((a, b) => {
+    // 已登录的账号排在前面
+    if (!a.expired && b.expired) return -1
+    if (a.expired && !b.expired) return 1
+    return 0
+  })
+  
   return accounts
 })
 
@@ -124,10 +145,17 @@ watch(() => props.modelValue, (newVal) => {
   if (newVal) {
     // 弹窗打开时重置状态
     searchKeyword.value = ''
-    selectedAccountId.value = ''
+    if (props.multiple) {
+      selectedAccountIds.value = [...props.selectedAccounts]
+    } else {
+      selectedAccountId.value = ''
+    }
     // 确保账号数据已加载
     if (!accountStore.list.length) {
-      accountStore.fetch()
+      loading.value = true
+      accountStore.fetch().finally(() => {
+        loading.value = false
+      })
     }
   }
 })
@@ -142,17 +170,44 @@ const selectAccount = (account) => {
     ElMessage.warning('该账号未登录，无法选择')
     return
   }
-  selectedAccountId.value = account.id
+  
+  if (props.multiple) {
+    // 多选模式
+    const index = selectedAccountIds.value.findIndex(id => id === account.id)
+    if (index > -1) {
+      selectedAccountIds.value.splice(index, 1)
+    } else {
+      selectedAccountIds.value.push(account.id)
+    }
+  } else {
+    // 单选模式
+    selectedAccountId.value = account.id
+  }
 }
 
 const handleConfirm = () => {
-  if (!selectedAccountId.value) {
-    ElMessage.warning('请选择一个公众号')
-    return
+  if (props.multiple) {
+    // 多选模式
+    if (selectedAccountIds.value.length === 0) {
+      ElMessage.warning('请至少选择一个公众号')
+      return
+    }
+    
+    const selectedAccounts = accountStore.list.filter(account => 
+      selectedAccountIds.value.includes(account.id)
+    )
+    emit('confirm', selectedAccounts)
+  } else {
+    // 单选模式
+    if (!selectedAccountId.value) {
+      ElMessage.warning('请选择一个公众号')
+      return
+    }
+    
+    const selectedAccount = accountStore.list.find(account => account.id === selectedAccountId.value)
+    emit('confirm', selectedAccount)
   }
   
-  const selectedAccount = accountStore.list.find(account => account.id === selectedAccountId.value)
-  emit('confirm', selectedAccount)
   handleClose()
 }
 
@@ -168,7 +223,10 @@ const handleClose = () => {
 onMounted(() => {
   // 确保账号数据已加载
   if (!accountStore.list.length) {
-    accountStore.fetch()
+    loading.value = true
+    accountStore.fetch().finally(() => {
+      loading.value = false
+    })
   }
 })
 </script>
@@ -176,7 +234,7 @@ onMounted(() => {
 <style scoped>
 .account-picker-modal {
   .account-picker-content {
-    max-height: 500px;
+    max-height: 600px;
     overflow-y: auto;
   }
 
@@ -256,8 +314,17 @@ onMounted(() => {
     position: absolute;
     top: 8px;
     right: 8px;
-    color: #3b82f6;
-    font-size: 16px;
+    color: white;
+    font-size: 14px;
+    background: #3b82f6;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);
+    border: 2px solid white;
   }
 
   .empty-state {

@@ -95,7 +95,7 @@ async function batchWxUploadImg(account, urls) {
     var res = await Promise.all(urls.map(img=>
         netFetch(`https://mp.weixin.qq.com/cgi-bin/uploadimg2cdn?_=${Date.now()}&f=json&userlang=zh_CN&lang=zh_CN&ajax=1&plugin=mptooler&token=${account.token}`,
             {...opts,body:`t=ajax-editor-upload-img&imgUrl=${encodeURIComponent(img)}&token=${account.token}`})));
-    
+            
     return res.map(s => JSON.parse(s));
 }
 function wxFetch(url,opts={}){

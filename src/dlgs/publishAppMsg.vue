@@ -314,7 +314,7 @@ const handleNext = async () => {
       publishStepsRef.value = ["设置发表参数", "确认发表方式", "填写编辑推荐语"]
       publishStepRef.value = 1
     } else if (stepRet.copyright === 0) {
-      // 不是原创 不经历 确认发表方式和填写编辑推荐语
+      // 不是原创 经历 确认发表方式和填写编辑推荐语
       // instantPublishRef.value = true
       // 不是原创改成直接提交
       instantPublishRef.value = true

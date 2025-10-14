@@ -24,8 +24,12 @@ import { useAccountStore } from './store/piniaStore';
 import { dog } from './utils'
 import { getToken } from './utils/auth';
 import { useStore } from 'vuex';
+
+
 var account=useAccountStore()
 var store=useStore()
+
+
 onMounted(async ()=>{
   if(getToken()){
     var {list}=store.state.accounts
