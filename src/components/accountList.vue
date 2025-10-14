@@ -60,13 +60,17 @@ import { Close } from '@element-plus/icons-vue';
 import { apperrmsg } from '@/utils/constants';
 import { ElMessageBox } from 'element-plus'
 
-defineProps({
+const props = defineProps({
   selectId: {},
   showAdd: {
     type: Boolean,
     default: true
   },
   showDel: {
+    type: Boolean,
+    default: true
+  },
+  invalidWarn:{
     type: Boolean,
     default: true
   }
@@ -130,7 +134,7 @@ const addAccount = () => {
 /** 点击账号触发 */
 const clickAccount = account => {
   const { token, session_id } = account
-  if (!token || !session_id) {
+  if (props.invalidWarn && (!token || !session_id)) {
     ElMessageBox.alert(apperrmsg.invalid_session, '错误', {
       confirmButtonText: '确定',
       type: 'error'
