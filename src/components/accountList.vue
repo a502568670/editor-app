@@ -57,6 +57,8 @@ import { toDeepRaw } from '@/utils/convert';
 import { sortByOrder, debounceFn } from '@/utils/index';
 import draggable from 'vuedraggable';
 import { Close } from '@element-plus/icons-vue';
+import { apperrmsg } from '@/utils/constants';
+import { ElMessageBox } from 'element-plus'
 
 defineProps({
   selectId: {},
@@ -127,6 +129,18 @@ const addAccount = () => {
 
 /** 点击账号触发 */
 const clickAccount = account => {
+  const { token, session_id } = account
+  if (!token || !session_id) {
+    ElMessageBox.alert(apperrmsg.invalid_session, '错误', {
+      confirmButtonText: '确定',
+      type: 'error'
+    }).then(() => {
+      console.log("then")
+    }).catch(() => {
+      console.log("catch")
+    })
+    return
+  }
   emit('clickAccountTrigger', account);
 };
 
