@@ -376,7 +376,7 @@ async function reactToIpcObjectData(data, tabbedWin, viewContents) {
     case 'addAccount': {
       verbose_log("===== listen addAccount in main ====", data)
       let viewKey = data.id;
-      // userToken = data.token
+
       let partition = "persist:" + viewKey + new Date().getTime();
       let preload = './preload.js';
       switch (parseInt(data.id)) {
@@ -408,15 +408,20 @@ async function reactToIpcObjectData(data, tabbedWin, viewContents) {
           break;
       }
       let view = new BrowserWindow({
-        icon: path.join(__dirname, "logo.png"),
-        frame: true,
+        parent: tabbedWin.win,
+        icon: path.join(__dirname, 'logo.png'),
         title: data.name,
+        modal: true,
+        width: 800,
+        height: 600,
+        resizable: false,
+        movable: false,
+        resizable: false,
+        minimizable: false,
+        maximizable: false,
         webPreferences: {
-          // nodeIntegration: true,
-          // nodeIntegrationInWorker: true,// 是否在Web工作器中启用了Node集成
           minimumFontSize: 12,
           nodeIntegrationInSubFrames: true,
-          //  nableRemoteModule: true,  // 打开remote模块
           allowDisplayingInsecureContent: true,
           allowRunningInsecureContent: true,
           webSecurity: false,
@@ -426,9 +431,7 @@ async function reactToIpcObjectData(data, tabbedWin, viewContents) {
           plugins: true,
           preload: path.join(__dirname, preload)
         }
-      })
-      view.focus();
-      view.setAlwaysOnTop(true);
+      });
       companyMap.login_success = false
       view.on('close', function (e) {
         const viewUrl = view.webContents.getURL()

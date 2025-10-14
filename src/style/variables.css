@@ -8,6 +8,8 @@
   --jzl-input-title-color: #606266;
   /* 圆角尺寸：与element-plus保持一致 */
   --jzl-border-radius-base: 4px;
+  /* 圆角尺寸 */
+  --jzl-border-radius-large: 8px;
   /* 边框颜色 */
   --jzl-border-color: #dcdfe6;
   /* 边框颜色hover */

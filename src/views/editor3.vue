@@ -1,5 +1,5 @@
 <template>
-  <div class="flex w-ful h-full pt-1">
+  <div class="flex w-ful h-full">
     <el-tabs v-show="editableTabs.length > 0" v-model="editableTabsValue" type="card" class="editor-tabs w-full h-full"
       closable @tab-remove="handleCloseTab">
       <el-tab-pane v-for="(item, idx) in editableTabs" :key="idx" :name="item.name" class="h-full">
@@ -11,9 +11,13 @@
       </el-tab-pane>
     </el-tabs>
     <div v-show="editableTabs.length === 0" class="flex w-full h-full">
-      <div class="w-[200px] border-r shadow-md">
-        <account-nav :default-selected-index="selectedIndexRef" @account-select="handleAccountSelect" />
-      </div>
+      <AccountList
+        ref="AccountListRef"
+        :selectId="selectedIndexRef"
+        :showAdd="false"
+        :showDel="false"
+        @clickAccountTrigger="handleAccountSelect"
+      />
       <div class="flex flex-1 justify-center items-center">
         <el-card style="width: 480px">
           <div class="flex flex-col w-full space-y-10">
@@ -71,8 +75,8 @@
 }
 </style>
 <script setup>
-import { onActivated, onDeactivated, onMounted, ref, toRefs,provide, toRaw } from 'vue'
-import { ElMessage, ElMessageBox, ElLoading } from 'element-plus'
+import { onActivated, onDeactivated, onMounted, ref, toRefs,provide } from 'vue'
+import { ElMessageBox } from 'element-plus'
 import EditorTab from "@/components/EditorTab"
 import ChooseAccountDialog from "@/dlgs/chooseAccount"
 import { Plus } from '@element-plus/icons-vue'
@@ -80,10 +84,9 @@ import { toDeepRaw } from "@/utils/convert"
 import { v4 as uuidv4 } from 'uuid';
 import { useRoute } from 'vue-router'
 import { useStore } from 'vuex'
-import ImgPicker from '@/components/editor/ImgPicker.vue'
-import GroupNotifySelect from '@/components/editor/GroupNotifySelect.vue'
-import { useHydrateStore } from '@/store/piniaStore'
 import { dog } from '@/utils'
+
+const AccountListRef = ref()
 
 const store = useStore()
 const route = useRoute()
@@ -97,7 +100,7 @@ const { all_accounts } = toRefs(store.getters)
 
 const selectedAccountRef = ref(null)
 provide('selectedAccount', selectedAccountRef)
-const selectedIndexRef = ref(0)
+const selectedIndexRef = ref()
 
 const dialogChooseAccountVisibleRef = ref(false)
 
@@ -110,7 +113,13 @@ onMounted(async () => {
 })
 
 onActivated(async () => {
-  console.log("----onActivated editor3-----")
+  AccountListRef.value.getList()
+  // 如果没有选中账号，则默认选择第一个
+  if(!selectedAccountRef.value){
+    selectedAccountRef.value = AccountListRef.value.proxyAccounts[0]
+    selectedIndexRef.value = selectedAccountRef.value.id
+  }
+
   registerChannels()
   const appmsgid = route.query.appmsgid
   const title = route.query.title
@@ -152,7 +161,7 @@ onActivated(async () => {
       var i = all_accounts.value.list.findIndex(a => a.id === id)
       if (i>-1) {
         selectedAccountRef.value = all_accounts.value.list[i]
-        selectedIndexRef.value = i
+        selectedIndexRef.value = selectedAccountRef.value.id
     addTab(selectedAccountRef.value, appmsg, { icon: selectedAccountRef.value.avatar, mode: 'hydrate' })
       }
     }
@@ -178,9 +187,9 @@ onDeactivated(() => {
   }
 })
 
-const handleAccountSelect = async ({ account, index }) => {
+const handleAccountSelect = async (account) => {
   selectedAccountRef.value = account
-  selectedIndexRef.value = index
+  selectedIndexRef.value = account.id
 }
 
 // const formatTitleSuffix = (account_name) => {
