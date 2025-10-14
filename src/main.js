@@ -12,15 +12,18 @@ import { createRouter, createWebHashHistory } from 'vue-router'
 import ElementPlus from 'element-plus'
 import 'element-plus/dist/index.css'
 import locale from 'element-plus/dist/locale/zh-cn.mjs'
-import './assets/styles/global.css'
 import Layout from '@/layout/index.vue'
 import Home from '@/layout/home.vue'
 import { getToken, removeToken } from "./utils/auth";
 import CKEditor from '@mayasabha/ckeditor4-vue3';
 import VueUeditorWrap from 'vue-ueditor-wrap';
 import { createPinia } from 'pinia'
+import { Icon } from '@iconify/vue';
+// 引入全局css
+import '@/style/index.css'
 
 let app = createApp(App)
+app.component('Icon', Icon);
 app.use(CKEditor);
 app.use(VueUeditorWrap);
 app.use(createPinia())
@@ -146,6 +149,11 @@ const router = createRouter({
           path: '/file',
           name: 'file',
           component: () => import('./views/file')
+        },
+        {
+          path: '/advanced-forward',
+          name: 'advanced-forward',
+          component: () => import('./views/advanced-forward')
         }
       ]
     }
@@ -221,7 +229,7 @@ app.mount('#app')
 //   exec(editor, value) {
 //     if (this.isDisabled(editor)) return
 //     //如果此时需要载入固定格式的文字，则在此处使用编辑器插入html方法
-//     // editor.insertText(value) // value 
+//     // editor.insertText(value) // value
 //     //如果以上方法无法满足你的需求的话，则采用触发事件的形式。
 //     editor.emit("formulaClick")
 //   }

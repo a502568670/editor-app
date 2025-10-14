@@ -1,10 +1,14 @@
 <template>
-  <div class="w-full flex h-full bg-[#e9f9f1]">
-    <div class="w-[200px] border-r shadow-md">
-      <account-nav :default-selected-index="selectedIndexRef" @account-select="handleAccountSelect" />
-    </div>
+  <div class="w-full h-full flex">
+    <AccountList
+      ref="AccountListRef"
+      :selectId="selectedIndexRef"
+      :showAdd="false"
+      :showDel="false"
+      @clickAccountTrigger="handleAccountSelect"
+    />
     <div class="flex-1 flex flex-col h-full" v-loading="dataLoadingRef">
-      <div class="h-12 flex space-x-2 items-center pl-2 border-b mb-1 shadow-md">
+      <div class="flex space-x-2 items-center border-b p-3">
         <el-button @click="handleCreateNewMaterial" type="success">
           <el-icon>
             <Plus />
@@ -25,115 +29,115 @@
         </el-button>
         <Hydrate />
       </div>
-      <div v-if="selectedAccountRef !== null" class="h-10  flex space-x-2 items-center pl-2">
-        <div class="text-gray-500">{{ materialTypeRef === 0 ? '草稿箱' : '本地素材' }}</div>
-        <el-button @click="handleAppMsgRefresh" type="primary">
-          <el-icon>
-            <RefreshRight />
-          </el-icon>
-          <span class="ml-1">刷新</span>
-        </el-button>
-        <el-button @click="handleAppMsgDelete" type="danger" v-if="materialTypeRef === 0">
-          <el-icon>
-            <Delete />
-          </el-icon>
-          <span class="ml-1">批量删除草稿</span>
-        </el-button>
-        <!-- <el-button @click="() => { elRef.updateOrder() }" type="primary">
-          <el-icon>
-            <RefreshRight />
-          </el-icon>
-          <span class="ml-1">重排</span>
-        </el-button> -->
-        <div class="flex-1"></div>
-        <div class="bg-white px-2 py-0.5 flex items-center border rounded-sm"><el-input class="bg-white"
-            v-model="queryRef" style="width: 100%;" placeholder="请输入账号关键词" @input="handleAppMsgFilterInput" />
-          <el-icon style="cursor: pointer;" @click="handleAppMsgFilter">
-            <Search />
-          </el-icon>
+      <div class="flex flex-1 h-0 flex-col" v-show="selectedAccountRef !== null  && !selectedAccountRef.expired">
+        <div class="flex space-x-2 items-center p-3 shadow z-10">
+          <div class="text-gray-500">{{ materialTypeRef === 0 ? '草稿箱' : '本地素材' }}</div>
+          <el-button @click="handleAppMsgRefresh" type="primary">
+            <el-icon>
+              <RefreshRight />
+            </el-icon>
+            <span class="ml-1">刷新</span>
+          </el-button>
+          <el-button @click="handleAppMsgDelete" type="danger" v-if="materialTypeRef === 0">
+            <el-icon>
+              <Delete />
+            </el-icon>
+            <span class="ml-1">批量删除草稿</span>
+          </el-button>
+          <div class="flex-1"></div>
+          <el-input
+            v-model="queryRef"
+            style="width: 200px"
+            placeholder="请输入账号关键词"
+            @input="handleAppMsgFilterInput"
+          >
+            <template #append>
+              <el-button :icon="Search" @click="handleAppMsgFilter" />
+            </template>
+          </el-input>
         </div>
-        <div></div>
-      </div>
-      <div v-scroll="onScroll" class="flex-1 overflow-auto pt-5">
-        <VueFlexWaterfall ref="el" align-content="center" col="3" col-spacing="20" :breakByContainer="true">
-          <div v-for="(item, i) in list" :key="item.app_id"
-            class="w-[280px] bg-white border flex flex-col mb-5 rounded shadow relative"
-            :style="{ minHeight: item.height + 'px' }">
-            <div style="height:50px" class="flex items-center p-4 text-sm text-gray-400">
-              <el-icon :size="16" class="flex justify-center">
-                <Clock />
-              </el-icon>
-              <span class="ml-2">
-                最新修改: {{
-                  formatDate(materialTypeRef === 0 ? item.update_time * 1000 : item.update_time, 'yyyy-MM-dd HH:mm') }}
-              </span>
-            </div>
-            <div v-for="(subitem, index) in item.multi_item" :key="subitem.msg_index_id"
-              class="flex items-center px-4 py-2 w-full relative material-item" @click="toggleItemId(`${i}-${index}`)">
-              <div class="material-item-actions">
-                <el-tooltip content="添加到素材合成器" v-if="subitem.item_show_type !== 8 && subitem.share_page_type !== 8">
-                  <el-icon class="bg-white rounded-full p-1 mr-1 cursor-pointer" size="24"
-                    @click="hydrateAdd(item, index)">
-                    <FolderAdd />
+        <div v-scroll="onScroll" class="flex-1 h-0 overflow-auto pt-1">
+          <VueFlexWaterfall ref="el" align-content="center" col="3" col-spacing="20" :breakByContainer="true">
+            <div v-for="(item, i) in list" :key="item.app_id"
+              class="w-[280px] bg-white border flex flex-col mb-5 rounded shadow relative"
+              :style="{ minHeight: item.height + 'px' }">
+              <div style="height:50px" class="flex items-center p-4 text-sm text-gray-400">
+                <el-icon :size="16" class="flex justify-center">
+                  <Clock />
+                </el-icon>
+                <span class="ml-2">
+                  最新修改: {{
+                    formatDate(materialTypeRef === 0 ? item.update_time * 1000 : item.update_time, 'yyyy-MM-dd HH:mm') }}
+                </span>
+              </div>
+              <div v-for="(subitem, index) in item.multi_item" :key="subitem.msg_index_id"
+                class="flex items-center px-4 py-2 w-full relative material-item" @click="toggleItemId(`${i}-${index}`)">
+                <div class="material-item-actions">
+                  <el-tooltip content="添加到素材合成器" v-if="subitem.item_show_type !== 8 && subitem.share_page_type !== 8">
+                    <el-icon class="bg-white rounded-full p-1 mr-1 cursor-pointer" size="24"
+                      @click="hydrateAdd(item, index)">
+                      <FolderAdd />
+                    </el-icon>
+                  </el-tooltip>
+                </div>
+                <div v-if="index === 0" class='w-full flex h-32 relative justify-between items-end bg-[#e6e6e6]'>
+                  <img v-if="subitem.cdn_url" class="w-full h-full  object-cover rounded-sm" :src="subitem.cdn_url"
+                    referrerpolicy="no-referrer" />
+                  <div class="w-full h-[30px] absolute text-white p-1 bg-gray-800 opacity-70 pl-2 truncate">
+                    {{ subitem.title }}
+                  </div>
+                </div>
+                <div class="w-full flex h-[75px] items-center"
+                  :class="{ 'border-b': index > 0 && index !== item.multi_item.length - 1 }" v-else>
+                  <div class="flex-1 h-full w-0 flex items-center">
+                    <div class="w-full max-w-full overflow-y-hidden truncate">
+                      <!-- <el-icon v-if="subitem.item_show_type === 5" :size="20"
+                        class="cursor-pointer flex justify-center items-end" title="视频文章">
+                        <Video />
+                      </el-icon> -->
+                      {{ subitem.title }}
+                    </div>
+                    <!-- <div class=" text-sm flex-0" style="color: #51ce94">{{ item.author }}</div> -->
+                  </div>
+                  <img v-if="subitem.cdn_url" class="w-16 h-16 rounded-sm" :src="subitem.cdn_url"
+                    referrerpolicy="no-referrer" />
+                </div>
+              </div>
+              <div class=" bg-gray-200 h-10 flex justify-around items-center text-gray-500">
+                <el-tooltip class="box-item" effect="dark" content="编辑" placement="bottom">
+                  <el-icon :size="24" class="cursor-pointer flex justify-center" @click="handleAppmsgEdit(item)">
+                    <PencilLine />
+                  </el-icon>
+                </el-tooltip>
+                <el-tooltip v-if="materialTypeRef === 0" class="box-item" effect="dark" content="发表" placement="bottom">
+                  <el-icon :size="24" class="cursor-pointer flex justify-center" @click="handleOpenPublish(item)">
+                    <SendHorizonal />
+                  </el-icon>
+                </el-tooltip>
+                <el-tooltip v-if="materialTypeRef === 0" class="box-item" effect="dark" content="发送到其他账号"
+                  placement="bottom">
+                  <el-icon :size="24" class="cursor-pointer flex justify-center"
+                    @click="handleSyncAppmsgToOtherAccounts(item)">
+                    <Forward />
+                  </el-icon>
+                </el-tooltip>
+                <el-tooltip class="box-item" effect="dark" content="删除" placement="bottom">
+                  <el-icon :size="24" class="cursor-pointer flex justify-center" title="删除"
+                    @click="handleRemoveAppmsg(item)">
+                    <Trash2 />
                   </el-icon>
                 </el-tooltip>
               </div>
-              <div v-if="index === 0" class='w-full flex h-32 relative justify-between items-end bg-[#e6e6e6]'>
-                <img v-if="subitem.cdn_url" class="w-full h-full  object-cover rounded-sm" :src="subitem.cdn_url"
-                  referrerpolicy="no-referrer" />
-                <div class="w-full h-[30px] absolute flex text-white p-1 bg-gray-800 opacity-70 pl-2 truncate">{{
-                  subitem.title }}</div>
-              </div>
-              <div class="w-full flex h-[75px] items-center"
-                :class="{ 'border-b': index > 0 && index !== item.multi_item.length - 1 }" v-else>
-                <div class="flex flex-col flex-1 h-full">
-                  <div class="flex-1 h-2/3 w-full max-w-full max-h-2/3 overflow-y-hidden ">
-                    <!-- <el-icon v-if="subitem.item_show_type === 5" :size="20"
-                      class="cursor-pointer flex justify-center items-end" title="视频文章">
-                      <Video />
-                    </el-icon> -->
-                    {{ subitem.title }}
-                  </div>
-                  <!-- <div class=" text-sm flex-0" style="color: #51ce94">{{ item.author }}</div> -->
-                </div>
-                <img v-if="subitem.cdn_url" class="w-16 h-16 rounded-sm" :src="subitem.cdn_url"
-                  referrerpolicy="no-referrer" />
+              <div v-if="checkIsLocal(item.app_id)" class="absolute right-1 top-1 text-xs text-blue-400">
+                <el-tooltip class="box-item" effect="dark" content="本地" placement="top">
+                  <el-icon :size="16" class="flex justify-center">
+                    <MonitorDown />
+                  </el-icon>
+                </el-tooltip>
               </div>
             </div>
-            <div class=" bg-gray-200 h-10 flex justify-around items-center text-gray-500">
-              <el-tooltip class="box-item" effect="dark" content="编辑" placement="bottom">
-                <el-icon :size="24" class="cursor-pointer flex justify-center" @click="handleAppmsgEdit(item)">
-                  <PencilLine />
-                </el-icon>
-              </el-tooltip>
-              <el-tooltip v-if="materialTypeRef === 0" class="box-item" effect="dark" content="发表" placement="bottom">
-                <el-icon :size="24" class="cursor-pointer flex justify-center" @click="handleOpenPublish(item)">
-                  <SendHorizonal />
-                </el-icon>
-              </el-tooltip>
-              <el-tooltip v-if="materialTypeRef === 0" class="box-item" effect="dark" content="发送到其他账号"
-                placement="bottom">
-                <el-icon :size="24" class="cursor-pointer flex justify-center"
-                  @click="handleSyncAppmsgToOtherAccounts(item)">
-                  <Forward />
-                </el-icon>
-              </el-tooltip>
-              <el-tooltip class="box-item" effect="dark" content="删除" placement="bottom">
-                <el-icon :size="24" class="cursor-pointer flex justify-center" title="删除"
-                  @click="handleRemoveAppmsg(item)">
-                  <Trash2 />
-                </el-icon>
-              </el-tooltip>
-            </div>
-            <div v-if="checkIsLocal(item.app_id)" class="absolute right-1 top-1 text-xs text-blue-400">
-              <el-tooltip class="box-item" effect="dark" content="本地" placement="top">
-                <el-icon :size="16" class="flex justify-center">
-                  <MonitorDown />
-                </el-icon>
-              </el-tooltip>
-            </div>
-          </div>
-        </VueFlexWaterfall>
+          </VueFlexWaterfall>
+        </div>
       </div>
     </div>
   </div>
@@ -147,7 +151,7 @@
     @dialog-closed="dialogPublishVisbleRef = false" />
 </template>
 <style scoped>
-:deep(.el-input__wrapper) {
+/* :deep(.el-input__wrapper) {
   box-shadow: 0 0 0 0px var(--el-input-border-color, var(--el-border-color)) inset;
   background: transparent;
   cursor: default;
@@ -155,7 +159,7 @@
 
 :deep(.el-input__wrapper .el-input__inner) {
   cursor: default !important;
-}
+} */
 
 .material-item:not(:hover) .material-item-actions {
   visibility: hidden;
@@ -176,7 +180,7 @@
 }
 </style>
 <script setup>
-import { ref, toRefs, useTemplateRef, computed, nextTick, onMounted, onActivated, onDeactivated, provide, toRaw } from 'vue';
+import { ref, toRefs, useTemplateRef, computed, nextTick, onMounted, onActivated, onDeactivated, provide, toRaw, effect } from 'vue';
 import { vScroll } from '@vueuse/components'
 import SyncToOtherAccountsDialog from "@/dlgs/syncToOtherAccounts"
 import OperateProgressDialog from "@/dlgs/operateProgress"
@@ -191,7 +195,7 @@ import { serializeCookie } from "@/utils/cookie"
 import { fmtImageUrl } from "@/utils/format"
 import { formatDate } from "@/utils/date"
 import { getVideoFrameHtml } from "@/utils/video"
-import { debounceFn, dog } from "@/utils/index"
+import { debounceFn, dog, sortByOrder } from "@/utils/index"
 import { toDeepRaw } from "@/utils/convert"
 import { Clock, PencilLine, SendHorizonal, Forward, Trash2, MonitorDown } from 'lucide-vue-next';
 import { useRouter } from 'vue-router'
@@ -202,6 +206,9 @@ import Hydrate from '@/components/Hydrate.vue';
 import { useHydrateStore } from '@/store/piniaStore';
 import { newlistArticlesByAppMsg } from '@/api/mp_msg';
 import { format_to_UEditor_html } from "@/utils/dom";
+import AccountList from '@/components/accountList.vue'
+
+const AccountListRef = ref()
 
 var hydrateStore = useHydrateStore();
 var hydrateLocalIdx;
@@ -244,7 +251,7 @@ const channelName = 'fromMain'
 const channelSource = 'material_lib'
 
 const store = useStore()
-const { all_accounts } = toRefs(store.getters)
+const { all_accounts, account_orders } = toRefs(store.getters)
 const router = useRouter();
 
 const elRef = useTemplateRef('el')
@@ -255,7 +262,7 @@ const queryRef = ref("")
 
 const selectedAccountRef = ref(null)
 provide('selectedAccount', selectedAccountRef)
-const selectedIndexRef = ref(0)
+const selectedIndexRef = ref()
 const otherAccountsRef = ref([])
 const dataLoadingRef = ref(false)
 const currentOperateName = ref("")
@@ -284,7 +291,6 @@ const loaded_page_no = ref(0)
 // const { x, y, isScrolling, arrivedState, directions } = useScroll(waterfallContainerRef)
 
 const onScroll = debounceFn((state) => {
-  console.log(state) // {x, y, isScrolling, arrivedState, directions}
   if (state.arrivedState.bottom) {
     loadMore()
   }
@@ -317,12 +323,15 @@ async function loadMore(params) {
   }
 }
 
-const handleAccountSelect = async ({ account, index }) => {
-  // console.log('all_accounts.value=>', all_accounts.value)
-  console.log("---->", account, index)
+const handleAccountSelect = async (account) => {
   selectedAccountRef.value = account
-  selectedIndexRef.value = index
-  otherAccountsRef.value = toDeepRaw(all_accounts.value.list.filter(v => v.id !== account.id))
+  selectedIndexRef.value = account.id
+  // 未排序的公众号列表
+  const not_sort = toDeepRaw(all_accounts.value.list.filter(v => v.id !== account.id))
+  effect(()=>{
+    otherAccountsRef.value = sortByOrder(not_sort, toDeepRaw(account_orders.value)).result
+  })
+
   listMode.value = 0
   if (materialTypeRef.value === 0) {
     loaded_page_no.value = 0
@@ -338,7 +347,6 @@ const handleAppMsgRefresh = async () => {
     return
   }
   listMode.value = 0
-  console.log('materialTypeRef.value=>', materialTypeRef.value)
   if (materialTypeRef.value === 0) {
     loaded_page_no.value = 0
     await listAppMsgIds(selectedAccountRef.value.id)
@@ -524,7 +532,7 @@ const handlePublishToWechat = async ({ send_time, isFreePublish, hasNotify, repr
   console.log("operation_seq_val=>", operation_seq_val)
 
   // reuturn
-
+  console.log(selectedAccountRef.value)
   const { token, session_id, wechat_id } = selectedAccountRef.value
   window.ipcRenderer.send('toMain', {
     tag: 'appmsg:publishToWechat',
@@ -561,9 +569,6 @@ const checkIsLocal = (remote_appmsgid) => {
 
 const validateAccount = () => {
   const { token, session_id } = selectedAccountRef.value
-  // console.log("token=>", token)
-  // console.log("id=>", id)
-  // console.log("session_id=>", session_id)
   if (!token || !session_id) {
     ElMessageBox.alert(apperrmsg.invalid_session, '错误', {
       confirmButtonText: '确定',
@@ -621,8 +626,10 @@ const _listAppmsgsInLocal = async (begin = 0, count = _listCount) => {
     height: (50 + (it.multi_item.length === 1 ? 115 : (115 + (it.multi_item.length - 1) * 75)) + 40),
   }))
   if (listMode.value === 0) {
+    console.log('打印transformed_items',transformed_items)
     list.value = transformed_items
   } else {
+    console.log('打印transformed_items',transformed_items)
     list.value.push(...transformed_items)
   }
   // elRef.value.updateOrder()
@@ -805,7 +812,6 @@ const removeAppMsg = async (appmsgid) => {
 var file_cnt;
 const registerChannels = () => {
   channelCleans[channelName] = window.ipcRenderer.receive(channelName, (msg) => {
-    console.log("material_lib ipcRenderer receive fromMain:", msg)
     if (typeof msg === 'object' && Object.prototype.hasOwnProperty.call(msg, 'tag')) {
       const { source, ret } = msg.data
       if (source !== channelSource) {
@@ -934,7 +940,7 @@ const registerChannels = () => {
 }
 
 onActivated(async () => {
-  console.log("---onActivated material_lib----")
+  AccountListRef.value.getList()
   registerChannels()
 })
 

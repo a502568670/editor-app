@@ -1,97 +1,35 @@
 <template>
-  <div style="display: flex;height: 100%">
-    <div class="bg-white" style="width: 300px;display: flex;flex-direction: column;height: 100%;padding: 10px;">
-      <el-row :gutter="10">
-        <!-- <el-col :span="12">
-          <select-platform v-model="listQuery.platform_id"></select-platform>
-        </el-col>
-        <el-col :span="12">
-          <select-user v-model="listQuery.user_id"></select-user>
-        </el-col> 
-        <el-col :span="12" style="margin-top: 10px">
-          <select-group v-model="listQuery.cate_id"></select-group>
-        </el-col> -->
-        <el-col :span="24" style="margin-top: 10px">
-          <el-input v-model="listQuery.keyword" clearable style="width: 100%;"
-            :placeholder="`请输入账号关键词(总共${accountTotal}个公众号)`" @input="handleInput" />
-        </el-col>
-        <!-- <el-col :span="24" style="padding-top: 10px;">
-          <el-button style="width: 100%;background-color: #51ce94;border: none" type="primary"
-            @click="handleFilter">搜索</el-button>
-        </el-col> -->
-      </el-row>
-
-      <!--      左侧账号展示 账号列表数据 (accounts) 的获取-->
-      <div style="flex: 1;overflow-y: auto;">
-        <draggable v-model="accounts" class="list-group" ghost-class="ghost" :disabled="dragDisabled" handle=".handle"
-          @start="handleDragStart" @end="handleDragEnd" item-key="id">
-          <template #item="{ element }">
-            <div @click="element.expired ? handleAddMPAccount(mp_platform) : addNewTab(element)"
-              style="display: flex;align-items: center;padding: 5px; border-bottom: solid 1px #ccc;"
-              :class="{ 'bg-gray-200': selected_account_id === element.id }">
-              <img style="width: 40px; height: 40px;border-radius: 50%" :src="element.avatar"
-                :class="{ 'handle cursor-move': !dragDisabled }" />
-              <div style="margin-left: 10px;flex: 1;">
-                <div>{{ element.name }}</div>
-                <div style="color: #51ce94">{{ element.platform_name + "(" + element.name + ")" }}</div>
-              </div>
-              <el-tooltip v-if="element.expired" content="登录过期">
-                <el-icon class="mr-1" style="color:red">
-                  <WarnTriangleFilled />
-                </el-icon>
-              </el-tooltip>
-              <el-popconfirm title="你是否要删除该公众号" @confirm="onDelMPAccount(element.wechat_id)" width="250"
-                placement="top-end">
-                <template #reference>
-                  <el-icon @click.prevent.stop class=" cursor-pointer">
-                    <Delete />
-                  </el-icon>
-                </template>
-              </el-popconfirm>
-            </div>
+  <div style="display: flex;height: 100%;width: 100%;">
+    <AccountList
+      ref="AccountListRef"
+      :selectId="selected_account_id"
+      :invalidWarn="false"
+      @clickAccountTrigger="addNewTab"
+      @delAccountTrigger="onDelMPAccount"
+      @addAccountTrigger="handleAddMPAccount"
+    />
+    <div class="flex flex-col flex-1 w-0">
+      <el-tabs
+        v-model="currentTabId"
+        v-show="tabs.length > 0"
+        ref="elTabsRef"
+        type="border-card"
+        closable
+        :stretch="false"
+        @tab-remove="removeTab"
+        @tab-change="changeTab"
+      >
+        <el-tab-pane v-for="item in tabs" :key="item.tabId" :label="item.title" :name="item.tabId"
+          style="padding: 0px">
+          <template #label>
+            <span class="custom-tabs-label">
+              <span v-if="item.title.length > 9" :title="item.title" class="tab-title">{{ item.title.slice(0, 9)
+              }}</span>
+              <span v-else class="tab-title">{{ item.title }}</span>
+            </span>
           </template>
-        </draggable>
-      </div>
-      <el-row :gutter="10">
-        <!-- <el-col :span="8" style="text-align: center">
-          <el-button :disabled="listQuery.page <= 1" @click="prvePage">上一页</el-button>
-        </el-col>
-        <el-col :span="8" style="text-align: center;vertical-align: middle;">
-          {{ listQuery.page }}/{{ accountTotalPage }}
-        </el-col>
-        <el-col :span="8" style="text-align: center">
-          <el-button :disabled="accountTotalPage <= listQuery.page" @click="nextPage">下一页</el-button>
-        </el-col> -->
-        <el-col :span="24" style="padding-top: 10px;">
-          <el-button style="width: 100%;background-color: #51ce94;border: none" type="primary"
-            @click="handleAddMPAccount(mp_platform)">登录微信公众号</el-button>
-        </el-col>
-      </el-row>
-    </div>
-    <div style="flex: 1;display: flex;flex-direction: column;background-color: #e9f9f1;">
-
-
-      <!--      右侧账号展示 当前打开的标签页列表  标签页数据 (tabs) 的获取-->
-      <!--      通过 window.ipcRenderer.receive('tabs-update', ...) 监听来自主进程的消息更新。-->
-      <div class="tab-control-wrap" v-show="tabs.length > 0">
-        <div class="control-left" style="line-height: 0;">
-          <el-tabs v-model="currentTabId" ref="elTabsRef" type="border-card" closable
-            style="display: inline-block; max-width: calc(100vw - 300px)" :stretch="false" @tab-remove="removeTab"
-            @tab-change="changeTab">
-            <el-tab-pane v-for="item in tabs" :key="item.time" :label="item.title" :name="item.tabId"
-              style="padding: 0px">
-              <template #label>
-                <span class="custom-tabs-label">
-                  <span v-if="item.title.length > 9" :title="item.title" class="tab-title">{{ item.title.slice(0, 9)
-                  }}</span>
-                  <span v-else class="tab-title">{{ item.title }}</span>
-                </span>
-              </template>
-            </el-tab-pane>
-          </el-tabs>
-        </div>
-      </div>
-
+        </el-tab-pane>
+      </el-tabs>
       <div v-show="isDebugRef && tabs.length > 0"
         style="height: auto;display: flex;align-items: center;justify-content: space-between;padding: 10px;background-color: #FFF;z-index: 1000">
         <div v-if="isDebugRef">
@@ -106,7 +44,7 @@
         </div>
         <div v-if="!isDebugRef">&nbsp;</div>
       </div>
-      <div ref="webRef" style="flex: 1;margin-top:2px;"></div>
+      <div ref="webRef" style="flex: 1;"></div>
     </div>
     <el-dialog :close-on-click-modal="false" title="选择添加账号的平台" v-model="dialogAddAccountVisible" width="800px">
       <el-row :gutter="10">
@@ -123,24 +61,18 @@
 </template>
 
 <script setup>
-import { nextTick, onMounted, onActivated, onUnmounted, ref, toRefs, onDeactivated, computed, toRaw, onBeforeUnmount } from 'vue'
+import { nextTick, onMounted, onActivated, ref, onDeactivated, onBeforeUnmount } from 'vue'
 import { ElMessage, ElNotification } from 'element-plus'
-import { Delete, WarnTriangleFilled } from '@element-plus/icons-vue'
 import { getToken } from "@/utils/auth";
-import { debounceFn, dog, sortByOrder } from "@/utils/index"
 import store from '@/store'
 import {
-  listAccount, createAccount, updateAccount, deleteAccount,
   removeAccountSession, refreshAccountSession
 } from '@/api/account'
-import draggable from "vuedraggable";
 import { listPlatform } from '@/api/platform'
-import { toDeepRaw } from "@/utils/convert"
-import selectPlatform from "../components/selectPlatform";
-import selectUser from "../components/selectUser";
 import { useAccountStore } from '@/store/piniaStore';
-// import selectGroup from "../components/selectGroup";
-const { all_accounts, account_orders } = toRefs(store.getters)
+import AccountList from '@/components/accountList.vue'
+
+const AccountListRef = ref()
 
 const tabs = ref([])
 const currentTabId = ref(0)
@@ -148,73 +80,12 @@ const currentTab = ref({})
 const elTabsRef = ref({})
 const webRef = ref({})
 const isDebugRef = ref(window.envVars.is_debug)
-
-const listQuery = ref({
-  page: 1,
-  num: 20,
-  type: 1,
-  keyword: ''
-})
-const accountTotal = ref(0)
-const accountTotalPage = ref(0)
-const accounts = ref([])
 const selected_account_id = ref(0)
 const accounts_mapping_tabs = ref([])
-// const selectedAccount = ref(null)
-// const selectedAccountLoginStatus = ref({})
-
-// drag
-const dragging = ref(false)
-const dragDisabled = computed(() => listQuery.value.keyword.length > 0);
-
-const getList = () => {
-  const query = listQuery.value.keyword
-  console.log("query=>", query)
-  console.log("all_accounts.value=>", all_accounts.value)
-  const filteredAccounts = toDeepRaw(all_accounts.value.list.filter(a => a.name.includes(query)))
-
-  const not_sort = toDeepRaw(filteredAccounts)
-  console.log("all_accounts=>", all_accounts)
-  console.log("account_orders=>", account_orders.value)
-  const { result: sorted } = sortByOrder(not_sort, toDeepRaw(account_orders.value))
-
-  accounts.value = sorted
-  accountTotal.value = all_accounts.value.total
-  accountTotalPage.value = parseInt(accountTotal.value / listQuery.value.num) + (accountTotal.value % listQuery.value.num > 0 ? 1 : 0)
-
-  // console.log("filteredAccounts=>", filteredAccounts)
-
-  // return listAccount(listQuery.value).then(response => {
-  //   accounts.value = response.data.data.list
-  //   accountTotal.value = response.data.data.total
-  //   accountTotalPage.value = parseInt(accountTotal.value / listQuery.value.num) + (accountTotal.value % listQuery.value.num > 0 ? 1 : 0)
-  // }).catch(() => {
-  // })
-}
-
-const nextPage = () => {
-  listQuery.value.page = 1 + listQuery.value.page
-  getList();
-}
-const prvePage = () => {
-  listQuery.value.page = listQuery.value.page - 1
-  getList();
-}
-
-const handleInput = debounceFn((query) => {
-  listQuery.value.page = 1
-  getList()
-  // emitAccountEvents("accountFilter", { query })
-}, 200, false)
-
-
 
 const handleFilter = () => {
-  listQuery.value.page = 1
-  return getList();
+  return AccountListRef.value.getList()
 }
-
-
 
 const dialogAddAccountVisible = ref(false)
 const platform_list = ref([])
@@ -222,7 +93,6 @@ const mp_platform = ref(null)
 listPlatform({}).then(response => {
   if (response.data && response.data.data && Array.isArray(response.data.data.list)) {
     const platforms = response.data.data.list
-    console.log("platforms=>", platforms)
     platform_list.value = platforms.filter(p => p.platform_name === "公众号").map(item => ({
       id: item.platform_id,
       name: item.platform_name,
@@ -236,45 +106,17 @@ listPlatform({}).then(response => {
   console.error('Failed to fetch platform list:', error)
 })
 
-const handleDragStart = (e) => {
-  // console.log('handleDragStart:',e)
-  dragging.value = true
-}
-
-const handleDragEnd = async (e) => {
-  // console.log('handleDragEnd:',e)
-  dragging.value = false
-  const { oldIndex, newIndex } = e
-  if (oldIndex != newIndex) {
-    const oldId = accounts.value[newIndex].id
-    const newId = accounts.value[oldIndex].id
-    // store.dispatch('SWAPAccounts', { oldId, newId })
-    const new_account_orders = accounts.value.map(v => v.id)
-    // console.log('new_account_orders', new_account_orders)
-    store.commit('SET_ACCOUNT_ORDERS', new_account_orders)
-    localStorage.setItem("account_orders", new_account_orders)
-
-  }
-}
-
-const handleAddMPAccount = (item) => {
-  console.log("handleAddMPAccount", item)
+/** 弹出新窗口登录公众号 */
+const handleAddMPAccount = () => {
   window.ipcRenderer.send('toMain', {
     tag: 'addAccount',
     token: getToken(),
-    ...item,
+    ...mp_platform.value,
     session_id: null // 确保每次创建新的 webview 时 session_id 为 null
   })
 }
 
-
-const openAddAccountDialog = () => {
-  window.ipcRenderer.send('close-tab')  // 关闭当前标签页（如果需要）
-  dialogAddAccountVisible.value = true //设置显示对话框close-tab
-}
-
 const handleAddAccount = (item, index) => {
-  console.log("handleAddAccount", item, index)
   dialogAddAccountVisible.value = false
   if (index < 4) {
     window.ipcRenderer.send('toMain', {
@@ -295,7 +137,7 @@ var account=useAccountStore()
 async function onDelMPAccount(id) {
   await store.dispatch('DelAccount', id)
   account.update(account.list.filter(item => item.id !== id))
-  getList()
+  AccountListRef.value.getList()
   ElMessage({ type: 'success', message: '删除成功' })
 }
 const refresh = () => {
@@ -330,42 +172,23 @@ const changeTab = (tabId) => {
   window.ipcRenderer.send('switch-tab', tabId)
 }
 
-// 1.添加新tab
+/** 添加新标签页 */
 const addNewTab = (account) => {
-  // if (selected_account_id.value === account.id) {
-  //   return
-  // }
-  console.log("currentTabId.value=>", currentTabId.value)
+  // 在所有标签页中获取到当前点击的标签的值
+  const activeTab = tabs.value.find(item => item.account_id === account.id)
+  if(activeTab){
+    if(selected_account_id.value === account.id) return
+    window.ipcRenderer.send('switch-tab', activeTab.tabId)
+    return
+  }
   selected_account_id.value = account.id
   accounts_mapping_tabs.value.push({
     accountId: account.id,
     tabId: 0,
   })
-  console.log("accounts_mapping_tabs=>", accounts_mapping_tabs.value)
 
   let a = Object.assign({ userToken: getToken() }, account)
-  console.log("a=>", a)
-  // if (selectedAccount.value && selectedAccount.value.id === a.id) {
-  //   console.log("已经选中>", a)
-  // } else {
-  //   selectedAccount.value = account
-  // }
   window.ipcRenderer.send('new-tab', a)
-}
-
-// 最小化窗口
-const minimize = () => {
-  window.ipcRenderer.send('toMain', 'minimiseWin')
-}
-
-// 最大化窗口
-const maximize = () => {
-  window.ipcRenderer.send('toMain', 'maximiseOrRestoreWin')
-}
-
-// 关闭窗口
-const closeWindow = () => {
-  window.ipcRenderer.send('toMain', 'closeWin')
 }
 // 对函数进行 节流
 function throttle(fn, delay = 1000) {
@@ -394,30 +217,18 @@ const throttleFunc = throttle(() => {
 }, 200);
 var cleanups=[]
 onMounted(() => {
-
   var c1=window.ipcRenderer.receive('account_check_login', async (isLoggedIn) => {
-    console.log("account_check_login isLoggedIn => ", isLoggedIn)
-    // selectedAccountLoginStatus.value = { ...selectedAccountLoginStatus.value, [selectedAccount.value.id]: isLoggedIn }
-    // console.log("selectedAccountLoginStatus.value  => ", selectedAccountLoginStatus.value)
-    // if (selectedAccount.value.id && selectedAccountLoginStatus.value[selectedAccount.value.id] === false) {
-    //   handleAddMPAccount(mp_platform.value)
-    // }
     if (!isLoggedIn) {
       removeTab(currentTabId.value)
-    } else {
-
     }
   })
 
   var c2=window.ipcRenderer.receive('remove-account-session', async (account_session_id) => {
-    // console.log("account_session_id => ", account_session_id)
     if (account_session_id) {
-      console.log("== remove-account-session ==")
       await removeAccountSession({ account_session_id })
       store.dispatch('ListAccounts').then(() => {
         handleFilter();
       })
-      // handleFilter();
     }
   })
 
@@ -433,7 +244,6 @@ onMounted(() => {
   var c4=window.ipcRenderer.receive(// 获取右侧账号列表数据
     'tabs-update',// 监听的事件名称，监听来自主进程的 tabs-update 消息，更新标签页数据
     (tabOptions) => {// 回调函数，参数为接收到的消息内容 // 参数：tabOptions，包含标签页配置信息。
-      console.log('tabs-update',tabOptions) //打印tabOptions 的内容，用于调试。
       // 处理逻辑
       const time = new Date().valueOf()// 获取当前时间戳，用于标识标签页的创建时间。
       let oldlength = tabs.value.length;// 记录更新前 tabs 数组的长度，用于后续判断数组长度是否发生变化。
@@ -443,13 +253,6 @@ onMounted(() => {
         if (!obj.title) obj.title = '新标签页'
         return obj
       })
-      //       tabs.value = ...：更新 tabs 数组的内容。
-      // Object.keys(tabOptions.confs)：获取 tabOptions.confs 对象的所有键（即标签页 ID）。
-      //     .filter(id => tabOptions.confs[id] && tabOptions.confs[id].title)：过滤出 tabOptions.confs 中有 title 属性的项。
-      //     .map(tabId => { ... })：对过滤后的每个 tabId 进行映射处理：
-      // const obj = { ...tabOptions.confs[tabId], tabId: parseInt(tabId), time }：创建一个新的对象，包含原始配置信息、解析后的 tabId（转为整数）和当前时间戳。
-      // if (!obj.title) obj.title = '新标签页'：如果 obj 没有 title 属性，则设置默认标题为“新标签页”。
-      // return obj：返回处理后的对象。
 
       // 遍历更新后的 tabs 数组。
       for (let a of tabs.value) {
@@ -482,7 +285,6 @@ onMounted(() => {
 
   // 用户切换标签页时，主进程会发送 fromMain 消息，通知当前选中的标签页 ID。
   var c5=window.ipcRenderer.receive('fromMain', (data) => {
-    console.log("tabBar receive fromMain:", data)
     if (typeof data === 'object' && Object.prototype.hasOwnProperty.call(data, 'currentTabId')) {
       currentTabId.value = parseInt(data.currentTabId)
       for (let a of tabs.value) {
@@ -490,37 +292,24 @@ onMounted(() => {
           currentTab.value = a
         }
       }
-      console.log("accounts_mapping_tabs=>", accounts_mapping_tabs.value)
-      const new_mapping = accounts_mapping_tabs.value.find(v => v.tabId === 0) 
+      const new_mapping = accounts_mapping_tabs.value.find(v => v.tabId === 0)
       if (new_mapping) {
         new_mapping.tabId = currentTabId.value
       }
       for (let a of accounts_mapping_tabs.value) {
-        console.log("a.tabId => ", a.tabId)
-        console.log("currentTabId.value => ", currentTabId.value)
-        console.log("a.accountId => ", a.accountId)
         if (a.tabId == currentTabId.value) {
           selected_account_id.value = a.accountId
-          console.log("selected_account_id => ", selected_account_id.value)
           break
         }
       }
     } else {
       if (typeof msg === 'object' && Object.prototype.hasOwnProperty.call(msg, 'tag')) {
         const tag = msg.tag;
-        console.log("handleFilter in fromMain", tag)
       }
       if (data === "login-success") {
-        console.log("==login-success==")
         store.dispatch('ListAccounts').then((data) => {
           handleFilter();
           account.update(data.list)
-          // const selectAccountItem = accounts.value.find(v => v.id === selectedAccount.value?.id)
-          // if (selectAccountItem) {
-          //   console.log("selectAccountItem.token=>", selectAccountItem.token)
-          //   console.log("selectedAccount.value.token=>", selectedAccount.value.token)
-          //   addNewTab(selectAccountItem)
-          // }
         })
       }
     }
@@ -541,8 +330,6 @@ onMounted(() => {
     })
   })
   cleanups.push(c1,c2,c3,c4,c5,c6)
-  // 获取browserview内部
-
 })
 
 onActivated(() => {
@@ -556,7 +343,6 @@ onBeforeUnmount(()=>{
   }
 })
 onDeactivated(() => {
-  // console.log('组件卸载',toRaw(tabs.value));
   window.ipcRenderer.send('remove-tab')
   // tabs.value = []
 });
@@ -566,18 +352,12 @@ window.ipcRenderer.send('control-ready')
 <style scoped>
 .tab-control-wrap {
   width: 100%;
-  /* height: 60px; */
-  /* background-color: #e9f9f1; */
-  background-color: #ccc;
+  background-color: #ededed;
   display: flex;
   justify-content: space-between;
   flex-wrap: nowrap;
   -webkit-app-region: drag;
 }
-
-/* .el-tabs--border-card {
-  border: none;
-} */
 
 .el-tabs--border-card>.el-tabs__header .el-tabs__item.is-active {
   color: #51ce94

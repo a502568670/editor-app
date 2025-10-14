@@ -1,0 +1,22 @@
+/* 滚动条整体宽度 */
+::-webkit-scrollbar {
+  width: 4px;
+  background-color: transparent;
+  /* 背景透明 */
+}
+
+/* 滚动条滑块 */
+::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 0, 0, 0.3);
+  border-radius: 3px;
+}
+
+/* 滚动条轨道 */
+::-webkit-scrollbar-track {
+  background-color: transparent;
+}
+
+/* 横向滚动条整体高度 */
+::-webkit-scrollbar {
+  height: 4px;
+}

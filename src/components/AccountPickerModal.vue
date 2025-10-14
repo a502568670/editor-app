@@ -1,0 +1,370 @@
+<template>
+  <el-dialog 
+    v-model="visible" 
+    title="选择公众号" 
+    width="900px" 
+    :before-close="handleClose"
+    append-to-body
+    class="account-picker-modal"
+  >
+    <div class="account-picker-content">
+      <!-- 搜索和筛选区域 -->
+      <div class="search-section mb-4">
+        <div class="flex items-center">
+          <div class="flex-1">
+            <el-input
+              v-model="searchKeyword"
+              placeholder="搜索关键词"
+              clearable
+              class="search-input"
+            >
+              <template #prefix>
+                <el-icon><Search /></el-icon>
+              </template>
+            </el-input>
+          </div>
+        </div>
+      </div>
+
+      <!-- 公众号列表 -->
+      <div class="account-list" v-loading="loading">
+        <div class="grid grid-cols-3 gap-4">
+          <div 
+            v-for="account in filteredAccounts" 
+            :key="account.id"
+            class="account-card"
+            :class="{ 
+              'selected': props.multiple ? selectedAccountIds.includes(account.id) : selectedAccountId === account.id, 
+              'disabled': account.expired 
+            }"
+            @click="selectAccount(account)"
+          >
+            <div class="account-avatar">
+              <img 
+                :src="account.avatar || '/favicon.ico'" 
+                :alt="account.name" 
+                class="w-12 h-12 rounded-full object-cover"
+              />
+            </div>
+            <div class="account-info">
+              <div class="account-id">{{ account.name }}</div>
+              <div class="account-status" :class="{ 'logged': !account.expired, 'expired': account.expired }">
+                {{ account.expired ? '未登录' : '已登录' }}
+              </div>
+            </div>
+            <div v-if="(props.multiple ? selectedAccountIds.includes(account.id) : selectedAccountId === account.id)" class="selected-indicator">
+              <el-icon><Check /></el-icon>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 空状态 -->
+      <div v-if="filteredAccounts.length === 0" class="empty-state">
+        <el-icon class="empty-icon"><User /></el-icon>
+        <p class="empty-text">暂无公众号数据</p>
+      </div>
+    </div>
+
+    <template #footer>
+      <div class="dialog-footer">
+        <el-button @click="handleCancel">取消</el-button>
+        <el-button 
+          type="primary" 
+          @click="handleConfirm"
+          :disabled="props.multiple ? selectedAccountIds.length === 0 : !selectedAccountId"
+        >
+          确定
+        </el-button>
+      </div>
+    </template>
+  </el-dialog>
+</template>
+
+<script setup>
+import { ref, computed, watch, onMounted } from 'vue'
+import { Search, Check, User } from '@element-plus/icons-vue'
+import { useAccountStore } from '@/store/piniaStore'
+import { ElMessage } from 'element-plus'
+
+// Props
+const props = defineProps({
+  modelValue: {
+    type: Boolean,
+    default: false
+  },
+  multiple: {
+    type: Boolean,
+    default: false
+  },
+  selectedAccounts: {
+    type: Array,
+    default: () => []
+  }
+})
+
+// Emits
+const emit = defineEmits(['update:modelValue', 'confirm'])
+
+// Store
+const accountStore = useAccountStore()
+
+// 响应式数据
+const visible = ref(false)
+const loading = ref(false)
+const searchKeyword = ref('')
+const selectedAccountId = ref('')
+const selectedAccountIds = ref([])
+
+// 计算属性
+const filteredAccounts = computed(() => {
+  let accounts = accountStore.list || []
+  
+  // 搜索过滤
+  if (searchKeyword.value) {
+    accounts = accounts.filter(account => 
+      account.name?.includes(searchKeyword.value) ||
+      account.account_id?.includes(searchKeyword.value)
+    )
+  }
+  
+  // 排序：已登录的账号优先显示
+  accounts.sort((a, b) => {
+    // 已登录的账号排在前面
+    if (!a.expired && b.expired) return -1
+    if (a.expired && !b.expired) return 1
+    return 0
+  })
+  
+  return accounts
+})
+
+// 监听器
+watch(() => props.modelValue, (newVal) => {
+  visible.value = newVal
+  if (newVal) {
+    // 弹窗打开时重置状态
+    searchKeyword.value = ''
+    if (props.multiple) {
+      selectedAccountIds.value = [...props.selectedAccounts]
+    } else {
+      selectedAccountId.value = ''
+    }
+    // 确保账号数据已加载
+    if (!accountStore.list.length) {
+      loading.value = true
+      accountStore.fetch().finally(() => {
+        loading.value = false
+      })
+    }
+  }
+})
+
+watch(visible, (newVal) => {
+  emit('update:modelValue', newVal)
+})
+
+// 方法
+const selectAccount = (account) => {
+  if (account.expired) {
+    ElMessage.warning('该账号未登录，无法选择')
+    return
+  }
+  
+  if (props.multiple) {
+    // 多选模式
+    const index = selectedAccountIds.value.findIndex(id => id === account.id)
+    if (index > -1) {
+      selectedAccountIds.value.splice(index, 1)
+    } else {
+      selectedAccountIds.value.push(account.id)
+    }
+  } else {
+    // 单选模式
+    selectedAccountId.value = account.id
+  }
+}
+
+const handleConfirm = () => {
+  if (props.multiple) {
+    // 多选模式
+    if (selectedAccountIds.value.length === 0) {
+      ElMessage.warning('请至少选择一个公众号')
+      return
+    }
+    
+    const selectedAccounts = accountStore.list.filter(account => 
+      selectedAccountIds.value.includes(account.id)
+    )
+    emit('confirm', selectedAccounts)
+  } else {
+    // 单选模式
+    if (!selectedAccountId.value) {
+      ElMessage.warning('请选择一个公众号')
+      return
+    }
+    
+    const selectedAccount = accountStore.list.find(account => account.id === selectedAccountId.value)
+    emit('confirm', selectedAccount)
+  }
+  
+  handleClose()
+}
+
+const handleCancel = () => {
+  handleClose()
+}
+
+const handleClose = () => {
+  visible.value = false
+}
+
+// 生命周期
+onMounted(() => {
+  // 确保账号数据已加载
+  if (!accountStore.list.length) {
+    loading.value = true
+    accountStore.fetch().finally(() => {
+      loading.value = false
+    })
+  }
+})
+</script>
+
+<style scoped>
+.account-picker-modal {
+  .account-picker-content {
+    max-height: 600px;
+    overflow-y: auto;
+  }
+
+  .search-section {
+    padding: 16px 0;
+    border-bottom: 1px solid #f0f0f0;
+  }
+
+  .search-input {
+    width: 100%;
+  }
+
+  .account-list {
+    padding: 16px 0;
+  }
+
+  .account-card {
+    position: relative;
+    display: flex;
+    align-items: center;
+    padding: 16px;
+    border: 2px solid #e5e7eb;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    background: white;
+  }
+
+  .account-card:hover {
+    border-color: #3b82f6;
+    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.1);
+  }
+
+  .account-card.selected {
+    border-color: #3b82f6;
+    background: #eff6ff;
+  }
+
+  .account-card.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .account-avatar {
+    margin-right: 12px;
+  }
+
+  .account-info {
+    flex: 1;
+  }
+
+  .account-id {
+    font-size: 14px;
+    font-weight: 500;
+    color: #1f2937;
+    margin-bottom: 4px;
+  }
+
+  .account-status {
+    font-size: 12px;
+    padding: 2px 8px;
+    border-radius: 12px;
+    display: inline-block;
+  }
+
+  .account-status.logged {
+    background: #dcfce7;
+    color: #166534;
+  }
+
+  .account-status.expired {
+    background: #fef3c7;
+    color: #92400e;
+  }
+
+  .selected-indicator {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    color: white;
+    font-size: 14px;
+    background: #3b82f6;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);
+    border: 2px solid white;
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: #6b7280;
+  }
+
+  .empty-icon {
+    font-size: 48px;
+    margin-bottom: 16px;
+  }
+
+  .empty-text {
+    font-size: 14px;
+  }
+
+  .dialog-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+  }
+}
+
+/* 自定义滚动条 */
+.account-picker-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.account-picker-content::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.account-picker-content::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+.account-picker-content::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+</style>

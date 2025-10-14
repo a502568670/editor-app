@@ -27,7 +27,7 @@
                 <Hydrate/>
             </div>
             <el-table :data="tableData" @sort-change="onSort" class="w-full" v-loading="loading" row-key="aid">
-                <el-table-column prop="" label="标题" width="450">
+                <el-table-column prop="" label="标题" min-width="450">
                     <template #header>
                         <span class="mr-1">文章</span>
                         <el-divider direction="vertical"></el-divider>
@@ -38,7 +38,7 @@
                         <!-- <el-checkbox style="margin-right: 10px;" label="原创" size="small"></el-checkbox> -->
                     </template>
                     <template #default="v">
-                        <div class="text-ellipsis text-nowrap overflow-hidden text-sm">
+                        <div class="text-ellipsis overflow-hidden text-sm line-clamp-3">
                             <el-tag v-if="v.row.original" class="mr-1" type="success" effect="dark"
                                 size="small">原创</el-tag>
                             <el-tag v-if="v.row.position === 1" class="mr-1" type="danger" effect="dark"

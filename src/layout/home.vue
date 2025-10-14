@@ -106,7 +106,6 @@ export default {
   width: 100%;
   padding: 20px;
   margin: 0;
-  background-color: #e9f9f1;
 }
 .el-aside {
   height: 100%;
@@ -115,10 +114,5 @@ export default {
 .el-menu{
   border: none;
 }
-.el-menu-item.is-active {
-  background-color: #e9f9f1;
-}
-
-
 </style>
 

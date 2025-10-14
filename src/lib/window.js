@@ -15,6 +15,7 @@ import {
 import { deleteFile, deleteVideo, listFiles, listVideos } from "./mp_file-tasks.js"
 import { searchMiniApp } from "./mpa-tasks.js"
 import { searchBiz } from "./mp-tasks.js"
+import { searchMpvAccount, searchMpvVideo,searchMpvLive } from "./mpv_tasks.js"
 import { postJsonToJZLApi, postJsonToEditorApi } from "./request.js"
 const path = require('path')
 const fs = require('fs')
@@ -30,7 +31,7 @@ import { serializeCookie } from "@/utils/cookie.js";
 const verbose_log = global.utils.verbose_log;
 const verbose_error = global.utils.verbose_error;
 const get_backend_url_old = global.utils.get_backend_url_old;
-var { batchWechatData, getWxGroupList, batchWxUploadImg } = require('./mp_stat-tasks.js');
+var { batchWechatData, getWxGroupList, batchWxUploadImg, batchWxAggregate, batchWxAggregateSafe } = require('./mp_stat-tasks.js');
 var dog=require('debug')('editor')
 
 
@@ -140,7 +141,7 @@ const postToken = async function (payload,) {
     }, { 'Authorization': `Bearer ${userToken}`, 'X-Sjq-Token': '' });//{ 'X-Sjq-Token': userToken || '' });
     resultData = JSON.parse(resultData);
     verbose_log("resultData=>", resultData)
-
+    console.log('请求/platform/addAccount获取到的值', resultData);
     if (resultData.code == 1) {
       verbose_log("tabbedWin.win.isDestroyed=>", tabbedWin.win.isDestroyed())
       if (!tabbedWin.win.isDestroyed()) {
@@ -375,7 +376,7 @@ async function reactToIpcObjectData(data, tabbedWin, viewContents) {
     case 'addAccount': {
       verbose_log("===== listen addAccount in main ====", data)
       let viewKey = data.id;
-      // userToken = data.token
+
       let partition = "persist:" + viewKey + new Date().getTime();
       let preload = './preload.js';
       switch (parseInt(data.id)) {
@@ -407,15 +408,20 @@ async function reactToIpcObjectData(data, tabbedWin, viewContents) {
           break;
       }
       let view = new BrowserWindow({
-        icon: path.join(__dirname, "logo.png"),
-        frame: true,
+        parent: tabbedWin.win,
+        icon: path.join(__dirname, 'logo.png'),
         title: data.name,
+        modal: true,
+        width: 800,
+        height: 600,
+        resizable: false,
+        movable: false,
+        resizable: false,
+        minimizable: false,
+        maximizable: false,
         webPreferences: {
-          // nodeIntegration: true,
-          // nodeIntegrationInWorker: true,// 是否在Web工作器中启用了Node集成
           minimumFontSize: 12,
           nodeIntegrationInSubFrames: true,
-          //  nableRemoteModule: true,  // 打开remote模块
           allowDisplayingInsecureContent: true,
           allowRunningInsecureContent: true,
           webSecurity: false,
@@ -425,9 +431,7 @@ async function reactToIpcObjectData(data, tabbedWin, viewContents) {
           plugins: true,
           preload: path.join(__dirname, preload)
         }
-      })
-      view.focus();
-      view.setAlwaysOnTop(true);
+      });
       companyMap.login_success = false
       view.on('close', function (e) {
         const viewUrl = view.webContents.getURL()
@@ -465,7 +469,6 @@ async function reactToIpcObjectData(data, tabbedWin, viewContents) {
       companyMap.webview = view;
       companyMap.userToken = data.token
       if (companyMap.bxgs) {
-
         companyMap.bxgs.init(companyMap, postToken)
         verbose_log("===== companyMap.bxgs.init in add account ====")
       }
@@ -528,7 +531,7 @@ async function reactToIpcObjectData(data, tabbedWin, viewContents) {
 
       const ret = []
       // 同步顺序调用
-      // 
+      //
       // for await (const extractArticleUrl of extractArticleUrls) {
       //   const html = await localExtractMpArticleUrlUseRequest(extractArticleUrl)
       //     .catch((err) => {
@@ -694,6 +697,48 @@ async function reactToIpcObjectData(data, tabbedWin, viewContents) {
       viewContents.send('fromMain', { tag: 'mp-ret:searchBiz', data: { source, ret, ...others } })
       break
     }
+    case 'mpv:searchMpvAccount': {
+      verbose_log("===== listen searchMpvAccount in main ====", data)
+      const { source, token, searchData, ...others } = data
+      // token => userToken
+      console.log("searchData=>", searchData)
+      const ret = await searchMpvAccount(searchData)
+      if (!ret.success) {
+        verbose_log("===== 搜索视频号失败 ====", ret.err_msg)
+      } else {
+        verbose_log("===== 搜索视频号成功 ====", ret.mpvs)
+      }
+      viewContents.send('fromMain', { tag: 'mpv-ret:searchMpvAccount', data: { source, ret, ...others } })
+      break
+    }
+    case 'mpv:searchMpvVideo': {
+      verbose_log("===== listen searchMpvVideo in main ====", data)
+      const { source, token, searchData, ...others } = data
+      // token => userToken
+      console.log("searchData=>", searchData)
+      const ret = await searchMpvVideo(searchData)
+      if (!ret.success) {
+        verbose_log("===== 搜索视频号视频失败 ====", ret.err_msg)
+      } else {
+        verbose_log("===== 搜索视频号视频成功 ====", ret.mpv_videos.length)
+      }
+      viewContents.send('fromMain', { tag: 'mpv-ret:searchMpvVideo', data: { source, ret, ...others } })
+      break
+    }
+    case 'mpv:searchMpvLive': {
+      verbose_log("===== listen searchMpvLive in main ====", data)
+      const { source, token, searchData, ...others } = data
+      // token => userToken
+      console.log("searchData=>", searchData)
+      const ret = await searchMpvLive(searchData)
+      if (!ret.success) {
+        verbose_log("===== 搜索视频号直播失败 ====", ret.err_msg)
+      } else {
+        verbose_log("===== 搜索视频号直播成功 ====", ret.mpv_lives.length)
+      }
+      viewContents.send('fromMain', { tag: 'mpv-ret:searchMpvLive', data: { source, ret, ...others } })
+      break
+    }
     case 'stat:getPvData': {
       var { list, exports } = data.data;
       list = await batchWechatData(list);
@@ -780,8 +825,11 @@ function initRpc() {
       case 'wxDelVideos': {
         return deleteVideo(data)
       };
+      case 'batchWxAggregate':{
+        return batchWxAggregateSafe(data);
+      }
       default: {
-        conosle.error(new Error(`Unknown RPC call: ${name}`));
+        console.error(new Error(`Unknown RPC call: ${name}`));
         return null;
       }
     }

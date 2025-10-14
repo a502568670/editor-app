@@ -14,3 +14,10 @@ export function setCachedStat(data){
         data
     });
 }
+export function getExMpstat(data={begin_date:'',end_date:''}){
+    return request({
+        url: '/stat/get_mp_accounts_ex',
+        method: 'post',
+        data
+    });
+}

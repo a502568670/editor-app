@@ -1,0 +1,26 @@
+/* 变量加入jzl-前缀用于区分，防止冲突 */
+:root {
+  /* 基础颜色 */
+  /* 主色调 */
+  --jzl-primary-color: #1677ff;
+
+  /* 输入框标题颜色 */
+  --jzl-input-title-color: #606266;
+  /* 圆角尺寸：与element-plus保持一致 */
+  --jzl-border-radius-base: 4px;
+  /* 圆角尺寸 */
+  --jzl-border-radius-large: 8px;
+  /* 边框颜色 */
+  --jzl-border-color: #dcdfe6;
+  /* 边框颜色hover */
+  --jzl-border-color-hover: var(--jzl-primary-color);
+  /* 遮罩层背景颜色 */
+  --jzl-overlay-bg-color: rgba(0, 0, 0, 0.5);
+
+  /* elment-plus重置变量 */
+  --el-color-primary: var(--jzl-primary-color);
+  --el-color-primary-light-1: #2a80ff;
+  --el-color-primary-light-2: #3b99ff;
+  --el-color-primary-light-3: #4cb2ff;
+  --el-color-primary-dark: #105bc6;
+}

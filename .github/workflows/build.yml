@@ -1,0 +1,77 @@
+name: Build Electron App (macOS)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-mac:
+    runs-on: macos-latest
+
+    steps:
+      # 1️⃣ 拉取代码
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # 2️⃣ 安装 Node.js
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      # 3️⃣ 安装 Python 并修复 electron-builder 的依赖问题
+      - name: Install Python 3 and link
+        run: |
+          echo "🟦 Installing Python..."
+          brew install python@3.11
+          brew link python@3.11 --force
+
+          # 获取 Python 路径
+          PYTHON_PATH=$(which python3)
+          echo "✅ Python installed at: $PYTHON_PATH"
+
+          # 创建 /usr/local/bin/python 链接 (electron-builder 旧依赖)
+          sudo mkdir -p /usr/local/bin
+          sudo ln -sf "$PYTHON_PATH" /usr/local/bin/python
+
+          # 输出环境变量
+          echo "PYTHON_PATH=$PYTHON_PATH" >> $GITHUB_ENV
+          echo "PATH=/usr/local/bin:$PATH" >> $GITHUB_ENV
+
+      # 4️⃣ 验证 Python 是否正确
+      - name: Verify Python
+        run: |
+          which python
+          python --version
+
+      # 5️⃣ 安装依赖
+      - name: Install dependencies
+        run: npm install
+
+      # 6️⃣ 修复 dmg-builder 的 Python3 不兼容语法
+      - name: Patch dmg-builder for Python3
+        run: |
+          FILE="node_modules/dmg-builder/vendor/dmgbuild/core.py"
+          if [ -f "$FILE" ]; then
+            echo "🔧 Patching dmg-builder for Python3..."
+            sed -i '' '/sys.setdefaultencoding/d' "$FILE"
+            sed -i '' 's/reload(sys)/import importlib; importlib.reload(sys)/' "$FILE"
+            echo "✅ dmg-builder patch applied."
+          else
+            echo "⚠️ dmg-builder not found, skipping patch."
+          fi
+
+      # 7️⃣ 打包 macOS 应用
+      - name: Package macOS app
+        env:
+          PYTHON_PATH: ${{ env.PYTHON_PATH }}
+        run: |
+          echo "🚀 Building Electron app for macOS..."
+          npm run electron:build --publish never
+          echo "✅ Build completed."
+
+      # 8️⃣ 上传构建产物
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: mac-build
+          path: dist_electron/**/*

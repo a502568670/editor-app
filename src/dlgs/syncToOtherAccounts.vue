@@ -4,7 +4,12 @@
     <div class="w-full">
       <div class="flex items-center mb-2">
         <el-checkbox label="全部" :indeterminate="otherAccountsChoosedRef.length>0&&otherAccountsChoosedRef.length<props.accounts.length" @change="clickAllOtherAccounts"></el-checkbox>
-        <el-input v-model="input" placeholder="搜索公众号" size="small" style="margin-left: 10px;width: 200px;margin-right: auto;" clearable/>
+        <el-input v-model="input" placeholder="搜索公众号" size="small" style="margin-left: 10px;width: 200px;" clearable/>
+        <div class="flex-1 flex items-center justify-center">
+          <span class="text-sm text-gray-600">
+            已选择 <span class="font-semibold" style="color: var(--jzl-primary-color)">{{ selectedCount }}</span> 个账号
+          </span>
+        </div>
         <el-button @click="handleSend" type="primary">立即发送</el-button>
       </div>
       <el-checkbox-group v-model="otherAccountsChoosedRef" class="grid grid-cols-3 gap-0 mr-10">
@@ -38,6 +43,11 @@ var filterAccounts=computed(()=>{
     return props.accounts.filter(v=>v.name.indexOf(input.value)>-1)
   }
   return props.accounts;
+})
+
+// 计算选择的账号数量
+const selectedCount = computed(() => {
+  return otherAccountsChoosedRef.value.length
 })
 // watch(otherAccountsChoosedRef,()=>console.log(otherAccountsChoosedRef.value))
 

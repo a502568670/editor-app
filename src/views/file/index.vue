@@ -1,6 +1,12 @@
 <template>
 <div class="filepage h-full flex">
-  <AccountNav class="w-[200px] shadow-md" :default-selected-index="selectIdx" @account-select="onAccountSelect"/>
+  <AccountList
+    ref="AccountListRef"
+    :selectId="selectIdx"
+    :showAdd="false"
+    :showDel="false"
+    @clickAccountTrigger="handleAccountSelect"
+  />
   <div class="flex-1 w-0 bg-white flex flex-col">
     <el-menu v-model="actMenu" default-active="img" mode="horizontal" @select="getList">
       <el-menu-item index="img">图片</el-menu-item>
@@ -30,7 +36,7 @@
           <el-button :icon="SetUp" @click="onPublish(-1)" text plain></el-button>
         </el-tooltip>
         <el-tooltip content="删除">
-          <el-button :icon="Delete" @click="onDelete(-1)" text plain></el-button>
+          <el-button :icon="Delete" :disabled="loading" @click="onDelete(-1)" text plain></el-button>
         </el-tooltip>
       </div>
       <div class="flex-1 overflow-y-auto m-2" v-loading="loading">
@@ -131,6 +137,9 @@ import { uploadImage } from '@/api/img'
 import { useAotPickerStore } from '@/store/piniaStore'
 import { useRouter } from 'vue-router'
 import { serializeCookie } from '@/utils/cookie'
+import AccountList from '@/components/accountList.vue'
+
+const AccountListRef = ref()
 
 var refTable=useTemplateRef('refTable')
 var refDialog=useTemplateRef('refDialog')
@@ -143,12 +152,11 @@ function selectable(row, index) {
   return true;
 }
 var actMenu=ref('img')
-var selectIdx=ref(0)
+var selectIdx=ref()
 var account=shallowRef({})
-function onAccountSelect(data){
-
-  account.value=data.account
-  selectIdx.value=data.index
+function handleAccountSelect(data){
+  account.value = data
+  selectIdx.value = data.id
   getList()
 }
 var query=ref({group_id:0,page:1,limit:12})
@@ -165,8 +173,8 @@ var totalVid=ref(0)
 var videos=shallowRef([])
 var word=ref('')
 var previewVid=shallowRef(null)
-onActivated(async()=>{
-  // getList()
+onActivated(()=>{
+  AccountListRef.value.getList()
 })
 var loading=ref(false)
 var groups=shallowRef([])
@@ -177,7 +185,7 @@ async function getList(index){
     actMenu.value=index
     query.value.page=1
   }
-  try {    
+  try {
     if(actMenu.value==='img'){
       word.value=''
       var res=await window.webBridge.callRpc('wxListImages',{account:toRaw(account.value),...query.value})
@@ -225,7 +233,7 @@ async function onImgName(){
     ElMessage.error('图片名称不能为空')
     return
   }
-  dog('edit img name',v.name) 
+  dog('edit img name',v.name)
   actEditnameIdx.value=-1
 }
 async function onUpload({file,onSuccess,onError}){
@@ -271,6 +279,7 @@ async function onDelete(idx=-1){
   var cookies=serializeCookie(JSON.parse(account.value.session_id)["cookie"])
   var token= +account.value.token;
   var group_id=query.value.group_id
+  loading.value=true
   var res=await window.webBridge.callRpc('wxDelImgs',{cookies,token,fileid,group_id})
   // dog('delete imgs',idx,res)
   if(res?.base_resp?.ret===0){
