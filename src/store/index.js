@@ -92,7 +92,12 @@ export default createStore({
     async ListAccounts({ commit, state, dispatch }, { page = 1, num = 500 } = { page: 1, num: 500 }) {
       const response = await listAccount({ page, num });
       console.info('SET_ACCOUNTS', response.data.data);
-      response.data.data.list?.forEach(v => (v.expired = checkWxSession(v.session_id)));
+      response.data.data.list?.forEach(v => {
+        v.expired = checkWxSession(v.session_id)
+        if(v.expired){
+          v.session_id = '';
+        }
+      });
       commit('SET_ACCOUNTS', response.data.data);
       const account_orders = localStorage.getItem('account_orders');
       if (!account_orders) {
