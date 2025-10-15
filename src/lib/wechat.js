@@ -309,7 +309,7 @@ async function init(viewData, postTokenInWin) {
 
   // 拦截请求头，在请求微信公众号时添加 Cookie
   viewData.webview.webContents.session.webRequest.onBeforeSendHeaders(weixin_filter, (details, callback) => {
-    if (viewData.user && viewData.user.session_id) {
+    if (viewData.user && !viewData.user.expired && viewData.user.session_id) {
       let session_id = viewData.user.session_id;
       if (session_id && session_id.cookie) {
         let cookie_str = '';
