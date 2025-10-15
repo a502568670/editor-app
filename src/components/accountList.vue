@@ -46,17 +46,18 @@
         </template>
       </draggable>
     </div>
-    <el-button v-if="$props.showAdd" style="width: 100%" type="primary" @click="addAccount"> 添加账号 </el-button>
-    <!-- <el-popover v-if="$props.showAdd" placement="top" :width="220">
+    <!-- <el-button v-if="$props.showAdd" style="width: 100%" type="primary" @click="addAccount"> 添加账号 </el-button> -->
+    <el-popover v-if="$props.showAdd" placement="top" :width="220">
       <template #reference>
         <el-button style="width: 100%" type="primary"> 添加账号 </el-button>
       </template>
-      <div>
-        <div v-for="item of platforms" :key="item.id">
-          <img :src="item.img" alt="" />
+      <div class="grid grid-cols-2 gap-2">
+        <div v-for="item of platforms" :key="item.id" class="account-list_platforms" @click="addAccount(item)">
+          <img :src="item.img" style="width: 30px; height: 30px" />
+          <span>{{ item.name }}</span>
         </div>
       </div>
-    </el-popover> -->
+    </el-popover>
   </div>
 </template>
 
@@ -90,14 +91,36 @@ const emit = defineEmits(['clickAccountTrigger', 'delAccountTrigger', 'addAccoun
 
 const { all_accounts, account_orders } = toRefs(store.getters);
 
-const getImgResource = (path) => {
-  return new URL(path, import.meta.url).href
-}
 const platforms = [
   {
+    name: '哔哩哔哩',
+    img: new URL('@/assets/image/account/bilibili.png', import.meta.url).href,
+    id: 1
+  },
+  {
+    name: '头条',
+    img: new URL('@/assets/image/account/tt.png', import.meta.url).href,
+    id: 2
+  },
+  {
+    name: '百家',
+    img: new URL('@/assets/image/account/bj.png', import.meta.url).href,
+    id: 3
+  },
+  {
     name: '微信公众号',
-    img: getImgResource('@/assets/image/account/wxgzh.png'),
-    id: '1'
+    img: new URL('@/assets/image/account/wxgzh.png', import.meta.url).href,
+    id: 4
+  },
+  {
+    name: '小红书',
+    img: new URL('@/assets/image/account/xhs.png', import.meta.url).href,
+    id: 5
+  },
+  {
+    name: '通用平台',
+    img: new URL('@/assets/image/account/typt.png', import.meta.url).href,
+    id: 6
   }
 ];
 
@@ -143,19 +166,19 @@ const getList = () => {
   accounts.value = result;
 };
 
-const account = useAccountStore()
+const account = useAccountStore();
 /** 点击删除按钮触发 */
 const delAccount = async id => {
-  await store.dispatch('DelAccount', id)
-  account.update(account.list.filter(item => item.id !== id))
-  getList()
-  ElMessage({ type: 'success', message: '删除成功' })
+  await store.dispatch('DelAccount', id);
+  account.update(account.list.filter(item => item.id !== id));
+  getList();
+  ElMessage({ type: 'success', message: '删除成功' });
   emit('delAccountTrigger', id);
 };
 
 /** 点击登录账号按钮触发 */
-const addAccount = () => {
-  emit('addAccountTrigger');
+const addAccount = platform => {
+  emit('addAccountTrigger', platform);
 };
 
 /** 点击账号触发 */
@@ -210,5 +233,9 @@ defineExpose({
   padding: 10px 5px;
   border-radius: var(--jzl-border-radius-large);
   margin-top: 10px;
+}
+
+.account-list_platforms {
+  @apply hover:bg-zinc-100 cursor-pointer p-2 rounded-md flex flex-col justify-center items-center;
 }
 </style>

@@ -90,6 +90,7 @@ const dialogAddAccountVisible = ref(false)
 const platform_list = ref([])
 const mp_platform = ref(null)
 listPlatform({}).then(response => {
+    console.log(response)
   if (response.data && response.data.data && Array.isArray(response.data.data.list)) {
     const platforms = response.data.data.list
     platform_list.value = platforms.filter(p => p.platform_name === "公众号").map(item => ({
@@ -106,7 +107,8 @@ listPlatform({}).then(response => {
 })
 
 /** 弹出新窗口登录公众号 */
-const handleAddMPAccount = () => {
+const handleAddMPAccount = (platform) => {
+
   window.ipcRenderer.send('toMain', {
     tag: 'addAccount',
     token: getToken(),
