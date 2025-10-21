@@ -37,7 +37,7 @@
           <el-checkbox-group v-if="imgs.length" class="flex-1 flex flex-wrap p-2 mt-2" v-model="selected">
             <div class="item ml-3 mb-3" v-for="(v,idx) in imgs" :key="idx">
               <!-- <img class="img size-[100px] object-contain" :src="v.cdn_url" alt=""  @click="selected.indexOf(idx)<0&&selected.push(idx)"/> -->
-              <el-image class="img size-[100px] object-contain" fit="contain" :src="v.cdn_url" alt=""  @click="selected.indexOf(idx)<0&&selected.push(idx)"/>
+              <el-image class="img size-[100px] object-contain" fit="contain" :src="v.cdn_url" alt=""  @click="handleImageClick(idx)"/>
               <p class="w-[100px] truncate text-sm text-center mt-2">{{ v.name }}</p>
               <div v-if="selected.indexOf(idx)>-1" class="overlay" @click.prevent="selected=selected.filter(i=>i!==idx)"></div>
               <el-checkbox class="checkbox" :value="idx"></el-checkbox>
@@ -65,7 +65,18 @@ import debounce from 'lodash-es/debounce'
 import { uploadImage } from '@/api/img'
 import {serializeCookie} from '@/utils/cookie'
 
-var {imgSrc,editorInst,pageInfo,h, forbidCrop, upload}=defineProps(['imgSrc','editorInst','pageInfo', 'h', 'forbidCrop', 'upload'])
+var {imgSrc,editorInst,pageInfo,h, forbidCrop, upload, multiple}=defineProps({
+  imgSrc: String,
+  editorInst: Object,
+  pageInfo: Object,
+  h: Number,
+  forbidCrop: Boolean,
+  upload: Boolean,
+  multiple: {
+    type: Boolean,
+    default: true
+  }
+})
 var $emit=defineEmits(['change','confirm'])
 var pickerQuery=defineModel()
 var total=computed(()=>groups.value.find(v=>v.id==pickerQuery.value.group_id)?.count)
@@ -164,16 +175,9 @@ function onConfirm(){
   var urls=imgs.value.filter((v,idx)=>selected.value.indexOf(idx)>-1).map(v=>v.cdn_url)
   // console.log(selected.value,refImgCrop.value,urls);
   if(activeMenu.value==='local'){
-    ElMessageBox.confirm('是否要对图片进行裁剪','裁剪',{
-      confirmButtonText:'确定',
-      cancelButtonText:'不裁剪直接使用',
-      type:'info',
-    }).then(()=>{
-      refImgCrop.value.cropWith(urls[0])
-    }).catch(()=>{
-      $emit('confirm',urls)
-      open.value=false
-    })
+    // 直接使用图片，不提示裁剪
+    $emit('confirm',urls)
+    open.value=false
   }else if(activeMenu.value==='search'){
     uploading.value=true;
     // Promise.all(urls.map(toWxCdnUrl)).then(res=>{
@@ -208,6 +212,14 @@ function onConfirm(){
   }
 }
 function onImageCrop(data){
+  // 如果 data 是字符串（CDN URL），说明是上传成功，需要刷新列表
+  if(typeof data === 'string'){
+    // 调用 uploadSucc 更新图片列表
+    if(activeMenu.value==='material'){
+      imgs.value.pop();
+      imgs.value.unshift({cdn_url:data, name: `图片-${Date.now()}`});
+    }
+  }
   $emit('change', data)
 }
 var initParams={page:1,limit:12,group_id:0};
@@ -247,6 +259,17 @@ function onPagination(query){
 function onSearchPagination(query){
   searchQuery.value.pn=query.page-1
   selected.value=[]
+}
+function handleImageClick(idx){
+  if(multiple){
+    // 多选模式：切换选中状态
+    if(selected.value.indexOf(idx)<0){
+      selected.value.push(idx)
+    }
+  }else{
+    // 单选模式：只保留当前选中项
+    selected.value=[idx]
+  }
 }
 </script>
 <style>

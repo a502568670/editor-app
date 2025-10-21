@@ -4,14 +4,16 @@
       ref="AccountListRef"
       :selectId="selected_account_id"
       :invalidWarn="false"
+      :isManagementMode="showAccountManagement"
       @clickAccountTrigger="addNewTab"
       @delAccountTrigger="onDelMPAccount"
       @addAccountTrigger="handleAddMPAccount"
+      @userManagementTrigger="handleUserManagement"
     />
     <div class="flex flex-col flex-1 w-0">
       <el-tabs
         v-model="currentTabId"
-        v-show="tabs.length > 0"
+        v-show="tabs.length > 0 && !showAccountManagement"
         ref="elTabsRef"
         type="border-card"
         closable
@@ -23,14 +25,13 @@
           style="padding: 0px">
           <template #label>
             <span class="custom-tabs-label">
-              <span v-if="item.title.length > 9" :title="item.title" class="tab-title">{{ item.title.slice(0, 9)
-              }}</span>
+              <span v-if="item.title.length > 9" :title="item.title" class="tab-title">{{ item.title.slice(0, 9) }}</span>
               <span v-else class="tab-title">{{ item.title }}</span>
             </span>
           </template>
         </el-tab-pane>
       </el-tabs>
-      <div v-show="isDebugRef && tabs.length > 0"
+      <div v-show="isDebugRef && tabs.length > 0 && !showAccountManagement"
         style="height: auto;display: flex;align-items: center;justify-content: space-between;padding: 10px;background-color: #FFF;z-index: 1000">
         <div v-if="isDebugRef">
           <el-button @click="goBack">后退</el-button>
@@ -44,7 +45,10 @@
         </div>
         <div v-if="!isDebugRef">&nbsp;</div>
       </div>
-      <div ref="webRef" style="flex: 1;"></div>
+      <div ref="webRef" v-show="!showAccountManagement" style="flex: 1;"></div>
+      
+      <!-- 账号管理区域 -->
+      <AccountManagement v-if="showAccountManagement" style="flex: 1;" />
     </div>
     <el-dialog :close-on-click-modal="false" title="选择添加账号的平台" v-model="dialogAddAccountVisible" width="800px">
       <el-row :gutter="10">
@@ -61,8 +65,9 @@
 </template>
 
 <script setup>
-import { nextTick, onMounted, onActivated, ref, onDeactivated, onBeforeUnmount } from 'vue'
+import { nextTick, onMounted, onActivated, ref, onDeactivated, onBeforeUnmount, watch, provide } from 'vue'
 import { ElMessage, ElNotification } from 'element-plus'
+import { useRoute } from 'vue-router'
 import { getToken } from "@/utils/auth";
 import store from '@/store'
 import {
@@ -71,8 +76,21 @@ import {
 import { listPlatform } from '@/api/platform'
 import { useAccountStore } from '@/store/piniaStore';
 import AccountList from '@/components/accountList.vue'
+import AccountManagement from './account-management.vue'
 
 const AccountListRef = ref()
+const route = useRoute()
+
+// 提供刷新 AccountList 的方法给子组件
+provide('refreshAccountList', () => {
+  if (AccountListRef.value) {
+    AccountListRef.value.getList()
+    // 同时刷新分组列表
+    if (AccountListRef.value.loadAccountGroups) {
+      AccountListRef.value.loadAccountGroups()
+    }
+  }
+})
 
 const tabs = ref([])
 const currentTabId = ref(0)
@@ -82,6 +100,7 @@ const webRef = ref({})
 const isDebugRef = ref(window.envVars.is_debug)
 const selected_account_id = ref(0)
 const accounts_mapping_tabs = ref([])
+const showAccountManagement = ref(true)
 
 const handleFilter = () => {
   return AccountListRef.value.getList()
@@ -172,16 +191,32 @@ const changeTab = (tabId) => {
   window.ipcRenderer.send('switch-tab', tabId)
 }
 
+/** 处理账号管理 */
+const handleUserManagement = () => {
+  // 隐藏所有 tabs 和 webview 区域，显示账号管理组件
+  showAccountManagement.value = true
+  // 移除当前的 BrowserView，防止遮盖账号管理页面
+  window.ipcRenderer.send('remove-tab')
+}
+
 /** 添加新标签页 */
 const addNewTab = (account) => {
+  // 关闭账号管理视图，显示正常的 tab 视图
+  const wasShowingManagement = showAccountManagement.value
+  // 保存旧的选中账号ID用于判断
+  const oldSelectedId = selected_account_id.value
+  
+  // 先更新选中的账号ID，再关闭账号管理模式，避免旧账号闪现
+  selected_account_id.value = account.id
+  showAccountManagement.value = false
+  
   // 在所有标签页中获取到当前点击的标签的值
   const activeTab = tabs.value.find(item => item.account_id === account.id)
   if(activeTab){
-    if(selected_account_id.value === account.id) return
+    if(oldSelectedId === account.id && !wasShowingManagement) return
     window.ipcRenderer.send('switch-tab', activeTab.tabId)
     return
   }
-  selected_account_id.value = account.id
   accounts_mapping_tabs.value.push({
     accountId: account.id,
     tabId: 0,
@@ -332,9 +367,34 @@ onMounted(() => {
   cleanups.push(c1,c2,c3,c4,c5,c6)
 })
 
+// 处理从账号管理页面跳转过来打开账号的逻辑
+const handleOpenAccountFromRoute = () => {
+  const openAccountId = route.query.open_account_id
+  if (openAccountId) {
+    // 查找对应的账号
+    const targetAccount = store.state.accounts.list.find(
+      account => account.id === parseInt(openAccountId)
+    )
+    if (targetAccount) {
+      // 延迟一下确保组件已经准备好
+      nextTick(() => {
+        addNewTab(targetAccount)
+        // 清除路由参数，避免重复触发
+        window.history.replaceState({}, '', '#/tabbar')
+      })
+    }
+  }
+}
+
 onActivated(() => {
   handleFilter();
-  nextTick(()=>changeTab(currentTabId.value))
+})
+
+// 监听路由参数变化（用于在 tabBar 页面内部通过路由打开账号）
+watch(() => route.query.open_account_id, (newAccountId) => {
+  if (newAccountId && route.path === '/tabbar') {
+    handleOpenAccountFromRoute()
+  }
 })
 onBeforeUnmount(()=>{
   window.ipcRenderer.send('close-tab')

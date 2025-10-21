@@ -88,6 +88,12 @@ const menuList = ref([
   icon_active:require('@/assets/image/account_active.png')
 },
 // {
+//   name:'账号管理(旧)',
+//   url:'/account',
+//   icon:require('@/assets/image/account.png'),
+//   icon_active:require('@/assets/image/account_active.png')
+// },
+// {
 //   name:'爆热集',
 //   url:'/hot',
 //   icon:require('@/assets/image/hot.png'),
@@ -118,7 +124,7 @@ const menuList = ref([
   icon_active:require('@/assets/image/stat_active.png')
 },
 {
-  name:'高级转发',
+  name:'高级群发',
   url:'/advanced-forward',
   icon:require('@/assets/image/share.png'),
   icon_active:require('@/assets/image/share_active.png')

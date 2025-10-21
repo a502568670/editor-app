@@ -10,7 +10,7 @@ import { nativeTheme, screen, dialog, Notification, app, ipcMain, webContents, n
 import { localExtractMpArticleUrlUseRequest } from "./mp_account-tasks.js"
 import {
   publishAppmsg, deleteAppmsg, listAppmsgsInDraftBox, getAppmsgInDraftBox,
-  searchAppmsgsInPublishForQuerys
+  searchAppmsgsInPublishForQuerys, listAppmsgsInPublishForQuerys
 } from "./mp_appmsg-tasks.js"
 import { deleteFile, deleteVideo, listFiles, listVideos } from "./mp_file-tasks.js"
 import { searchMiniApp } from "./mpa-tasks.js"
@@ -640,6 +640,20 @@ async function reactToIpcObjectData(data, tabbedWin, viewContents) {
       viewContents.send('fromMain', { tag: 'appmsg-ret:searchAppmsgsInPublishForQuerys', data: { source, ret } })
       break;
     }
+    case 'appmsg:listAppmsgsInPublishForQuerys': {
+      verbose_log("===== listen listAppmsgsInPublishForQuerys in main ====", data)
+      const { source, token, listData } = data
+      // token => userToken
+      console.log("listData=>", listData)
+      const ret = await listAppmsgsInPublishForQuerys(listData)
+      if (!ret.success) {
+        verbose_log("===== 获取已发布文章列表失败 ====", ret.err_msg)
+      } else {
+        verbose_log("===== 获取已发布文章列表成功 ====", ret)
+      }
+      viewContents.send('fromMain', { tag: 'appmsg-ret:listAppmsgsInPublishForQuerys', data: { source, ret } })
+      break;
+    }
     case 'image:listImages': {
       verbose_log("===== listen listImages in main ====", data)
       const { source, token, listData } = data
@@ -695,6 +709,20 @@ async function reactToIpcObjectData(data, tabbedWin, viewContents) {
         verbose_log("===== 搜索公众号成功 ====", ret.mps)
       }
       viewContents.send('fromMain', { tag: 'mp-ret:searchBiz', data: { source, ret, ...others } })
+      break
+    }
+    case 'mp:searchBizForLink': {
+      verbose_log("===== listen searchBizForLink in main ====", data)
+      const { source, token, searchData, ...others } = data
+      // token => userToken
+      console.log("searchData=>", searchData)
+      const ret = await searchBiz(searchData)
+      if (!ret.success) {
+        verbose_log("===== 搜索公众号失败 ====", ret.err_msg)
+      } else {
+        verbose_log("===== 搜索公众号成功 ====", ret.mps)
+      }
+      viewContents.send('fromMain', { tag: 'mp-ret:searchBizForLink', data: { source, ret, ...others } })
       break
     }
     case 'mpv:searchMpvAccount': {

@@ -93,6 +93,15 @@ export function setCate(data) {
   })
 }
 
+// 批量移动账号到分组（新接口）
+export function moveAccountsToGroup(data) {
+  return request({
+    url: '/account/move-to-group',
+    method: 'post',
+    data
+  })
+}
+
 export function setOperator(data) {
   return request({
     url: '/platform/setOperator',
