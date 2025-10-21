@@ -1,6 +1,6 @@
 <template>
   <el-icon :size="20" class="cursor-pointer flex justify-center" @click="openAdDialog" title="批量提取文章链接内容">
-    <Link2 />
+    <Tickets />
   </el-icon>
   <el-dialog :close-on-click-modal="false" title="批量提取文章链接内容" v-model="open" width="600px" append-to-body>
     <div class="w-full">
@@ -23,7 +23,7 @@
 </template>
 <script setup>
 import {ref} from 'vue'
-import {Link2} from 'lucide-vue-next'
+import {Tickets} from 'lucide-vue-next'
 import {Loading} from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 

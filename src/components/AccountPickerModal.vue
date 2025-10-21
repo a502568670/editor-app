@@ -10,7 +10,7 @@
     <div class="account-picker-content">
       <!-- 搜索和筛选区域 -->
       <div class="search-section mb-4">
-        <div class="flex items-center">
+        <div class="flex items-center gap-3">
           <div class="flex-1">
             <el-input
               v-model="searchKeyword"
@@ -22,6 +22,23 @@
                 <el-icon><Search /></el-icon>
               </template>
             </el-input>
+          </div>
+          <div style="width: 200px;">
+            <el-select
+              v-model="selectedGroupId"
+              placeholder="选择分组"
+              clearable
+              filterable
+              style="width: 100%"
+            >
+              <el-option label="未分组" :value="0" />
+              <el-option
+                v-for="group in flatGroupList"
+                :key="group.id"
+                :label="group.displayName"
+                :value="group.id"
+              />
+            </el-select>
           </div>
         </div>
       </div>
@@ -86,6 +103,7 @@ import { ref, computed, watch, onMounted } from 'vue'
 import { Search, Check, User } from '@element-plus/icons-vue'
 import { useAccountStore } from '@/store/piniaStore'
 import { ElMessage } from 'element-plus'
+import { getAccountGroupList } from '@/api/account-group'
 
 // Props
 const props = defineProps({
@@ -115,10 +133,21 @@ const loading = ref(false)
 const searchKeyword = ref('')
 const selectedAccountId = ref('')
 const selectedAccountIds = ref([])
+const selectedGroupId = ref(null) // null 表示全部，0 表示未分组
+const groupList = ref([])
+const flatGroupList = ref([])
 
 // 计算属性
 const filteredAccounts = computed(() => {
   let accounts = accountStore.list || []
+  
+  // 分组过滤（使用 != null 同时检查 null 和 undefined）
+  if (selectedGroupId.value != null) {
+    accounts = accounts.filter(account => {
+      const accountGroupId = account.group_id || 0
+      return accountGroupId === selectedGroupId.value
+    })
+  }
   
   // 搜索过滤
   if (searchKeyword.value) {
@@ -145,6 +174,7 @@ watch(() => props.modelValue, (newVal) => {
   if (newVal) {
     // 弹窗打开时重置状态
     searchKeyword.value = ''
+    selectedGroupId.value = null
     if (props.multiple) {
       selectedAccountIds.value = [...props.selectedAccounts]
     } else {
@@ -157,6 +187,8 @@ watch(() => props.modelValue, (newVal) => {
         loading.value = false
       })
     }
+    // 加载分组列表
+    loadGroups()
   }
 })
 
@@ -219,6 +251,37 @@ const handleClose = () => {
   visible.value = false
 }
 
+// 加载分组列表
+const loadGroups = async () => {
+  try {
+    const response = await getAccountGroupList()
+    if (response && response.data && response.data.code === 1) {
+      groupList.value = response.data.data.list || []
+      flatGroupList.value = flattenGroupTree(groupList.value)
+    }
+  } catch (error) {
+    console.error('加载分组列表失败:', error)
+  }
+}
+
+// 将树形结构展平为列表
+const flattenGroupTree = (tree, level = 0, result = []) => {
+  tree.forEach(node => {
+    const prefix = level > 0 ? '　'.repeat(level) + '├─ ' : ''
+    result.push({
+      id: node.id,
+      name: node.name,
+      displayName: prefix + node.name,
+      level: level
+    })
+    
+    if (node.children && node.children.length > 0) {
+      flattenGroupTree(node.children, level + 1, result)
+    }
+  })
+  return result
+}
+
 // 生命周期
 onMounted(() => {
   // 确保账号数据已加载
@@ -228,12 +291,15 @@ onMounted(() => {
       loading.value = false
     })
   }
+  // 加载分组列表
+  loadGroups()
 })
 </script>
 
 <style scoped>
 .account-picker-modal {
   .account-picker-content {
+    width: 100%;
     max-height: 600px;
     overflow-y: auto;
   }

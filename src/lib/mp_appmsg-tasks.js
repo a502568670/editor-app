@@ -36,8 +36,8 @@ const api = {
   //数据
   list_in_draftbox: (tk, query, begin, count) => `${baseUrl}/cgi-bin/appmsg?begin=${begin}&count=${count}&type=77&action=list_card&token=${tk}&lang=zh_CN&f=json&query=${query}`,
   get_in_draftbox: (tk, appmsgid) => `${baseUrl}/cgi-bin/appmsg?t=media/appmsg_edit&action=edit&type=77&appmsgid=${appmsgid}&isMul=1&replaceScene=0&isSend=0&isFreePublish=0&token=${tk}&lang=zh_CN&timestamp=${+new Date()}&f=json`,
-  list_in_publish: (tk, query, begin, count) => `${baseUrl}/cgi-bin/appmsgpublish?sub=list&begin=${begin}&count=${count}&query=${query}&token=${tk}&lang=zh_CN&f=json`,
-  search_in_publish: (tk, query, begin, count) => `${baseUrl}/cgi-bin/appmsgpublish?sub=search&begin=${begin}&count=${count}&query=${query}&token=${tk}&lang=zh_CN&f=json`
+  list_in_publish: (tk, query, begin, count, fakeid) => `${baseUrl}/cgi-bin/appmsgpublish?sub=list&begin=${begin}&count=${count}&query=${query}&token=${tk}&lang=zh_CN&f=json${fakeid ? `&fakeid=${fakeid}` : ''}`,
+  search_in_publish: (tk, query, begin, count, fakeid) => `${baseUrl}/cgi-bin/appmsgpublish?sub=search&begin=${begin}&count=${count}&query=${query}&token=${tk}&lang=zh_CN&f=json${fakeid ? `&fakeid=${fakeid}` : ''}`
 
 };
 // &is_release_publish_page=1
@@ -224,11 +224,11 @@ const getAppmsgInDraftBox = async ({ cookies, token, appmsgid }) => {
   }
 }
 
-const listAppmsgsInPublishForQuerys = async ({ cookies, token, querys, begin, count = 10 }) => {
+const listAppmsgsInPublishForQuerys = async ({ cookies, token, querys, begin, count = 10, fakeid }) => {
   const opts = {
     headers: { ...getDefaultHeader(), cookie: cookies }
   };
-  const urls = querys.map(query => api.list_in_publish(token, encodeURIComponent(query), begin, count))
+  const urls = querys.map(query => api.list_in_publish(token, encodeURIComponent(query), begin, count, fakeid))
   verbose_log("urls=>", urls)
   const netFetchs = urls.map(url => netFetch(url, opts))
 
@@ -255,11 +255,11 @@ const listAppmsgsInPublishForQuerys = async ({ cookies, token, querys, begin, co
   }
 }
 
-const searchAppmsgsInPublishForQuerys = async ({ cookies, token, querys, begin, count = 10 }) => {
+const searchAppmsgsInPublishForQuerys = async ({ cookies, token, querys, begin, count = 10, fakeid }) => {
   const opts = {
     headers: { ...getDefaultHeader(), cookie: cookies }
   };
-  const urls = querys.map(query => api.search_in_publish(token, encodeURIComponent(query), begin, count))
+  const urls = querys.map(query => api.search_in_publish(token, encodeURIComponent(query), begin, count, fakeid))
   verbose_log("urls=>", urls)
   const netFetchs = urls.map(url => netFetch(url, opts))
 
