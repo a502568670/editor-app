@@ -31,7 +31,7 @@
               >
                 {{ element.name }}
               </div>
-              <img src="@/assets/image/account/wxgzh.png" style="width: 18px; height: 18px" />
+              <img :src="getPlatformsImg(element.platform_id)" style="width: 18px; height: 18px" />
             </div>
             <div v-if="$props.showDel" class="items-center justify-center ml-1 hidden group-hover:flex">
               <el-popconfirm title="你是否要删除该公众号" @confirm="delAccount(element.wechat_id)" placement="top-end">
@@ -46,16 +46,35 @@
         </template>
       </draggable>
     </div>
-    <!-- <el-button v-if="$props.showAdd" style="width: 100%" type="primary" @click="addAccount"> 添加账号 </el-button> -->
-    <el-popover v-if="$props.showAdd" placement="top" :width="220">
+    <el-popover v-if="$props.showAdd" placement="top" :width="220" trigger="click">
       <template #reference>
         <el-button style="width: 100%" type="primary"> 添加账号 </el-button>
       </template>
-      <div class="grid grid-cols-2 gap-2">
-        <div v-for="item of platforms" :key="item.id" class="account-list_platforms" @click="addAccount(item)">
-          <img :src="item.img" style="width: 30px; height: 30px" />
-          <span>{{ item.name }}</span>
-        </div>
+      <div>
+        <Transition mode="out-in">
+          <div v-if="!isUniversalForm" class="grid grid-cols-2 gap-2">
+            <div v-for="item of platforms" :key="item.id" class="account-list_platforms" @click="addAccount(item)">
+              <img :src="item.img" style="width: 30px; height: 30px" />
+              <span>{{ item.name }}</span>
+            </div>
+          </div>
+          <div v-else>
+            <el-form :model="universalForm" label-position="top" style="max-width: 100%">
+              <el-form-item label="昵称">
+                <el-input v-model="universalForm.name" />
+              </el-form-item>
+              <el-form-item label="平台首页">
+                <el-input v-model="universalForm.url" />
+              </el-form-item>
+              <el-form-item>
+                <div class="text-right w-full">
+                  <el-button @click="isUniversalForm = false">取消</el-button>
+                  <el-button type="primary" @click="addUniversal">添加</el-button>
+                </div>
+              </el-form-item>
+            </el-form>
+          </div>
+        </Transition>
       </div>
     </el-popover>
   </div>
@@ -71,6 +90,8 @@ import { Close } from '@element-plus/icons-vue';
 import { apperrmsg } from '@/utils/constants';
 import { ElMessageBox, ElMessage } from 'element-plus';
 import { useAccountStore } from '@/store/piniaStore';
+import { createAccount } from '@/api/account';
+import { getToken } from '@/utils/auth';
 
 const props = defineProps({
   selectId: {},
@@ -123,6 +144,18 @@ const platforms = [
     id: 6
   }
 ];
+/** 获取账号对应的logo */
+const getPlatformsImg = id => {
+  const platform = platforms.find(item => item.id === id);
+  return platform?.img;
+};
+// 是否显示通用平台表单
+const isUniversalForm = ref(false);
+// 通用平台表单
+const universalForm = ref({
+  name: '',
+  url: ''
+});
 
 // 账号列表数据
 const accounts = ref([]);
@@ -176,9 +209,34 @@ const delAccount = async id => {
   emit('delAccountTrigger', id);
 };
 
-/** 点击登录账号按钮触发 */
+/** 点击平台触发 */
 const addAccount = platform => {
+  // 如果是通用平台则打开表单
+  if (platform.id === 6) {
+    isUniversalForm.value = true;
+    return;
+  }
   emit('addAccountTrigger', platform);
+};
+/** 点击通用平台的添加时触发 */
+const addUniversal = async () => {
+  const platform = {
+    platform_id: 6,
+    originalUsername: Math.floor(Date.now() / 1000),
+    session_id: '',
+    name: universalForm.value.name,
+    avatar: '',
+    platform_url: universalForm.value.url
+  };
+  const { data } = await createAccount(platform);
+  if (data.code === 1) {
+    store.dispatch('ListAccounts').then(() => {
+      getList();
+    });
+    ElMessage({ type: 'success', message: data.msg || '添加成功' });
+  } else {
+    ElMessage({ type: 'error', message: data.msg || '添加失败' });
+  }
 };
 
 /** 点击账号触发 */
@@ -213,6 +271,17 @@ defineExpose({
 </script>
 
 <style scoped>
+.v-leave-active,
+.v-enter-active {
+  transition: all 0.3s;
+}
+
+.v-enter-from,
+.v-leave-to {
+  transform: translateX(20px);
+  opacity: 0;
+}
+
 .account-list {
   width: 250px;
   display: flex;

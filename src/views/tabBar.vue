@@ -45,23 +45,12 @@
       </div>
       <div ref="webRef" style="flex: 1;"></div>
     </div>
-    <el-dialog :close-on-click-modal="false" title="选择添加账号的平台" v-model="dialogAddAccountVisible" width="800px">
-      <el-row :gutter="10">
-        <el-col :span="3" v-for="(item, index) in platform_list" :key="index" style="margin-bottom: 10px;">
-          <div @click="handleAddAccount(item, index)"
-            style="cursor:pointer;display: flex;flex-direction: column;align-items: center;justify-content: center;width: 100%;">
-            <img style="height: 60px; margin-bottom: 5px;" :src="item.image" />
-            <span>{{ item.name }}</span>
-          </div>
-        </el-col>
-      </el-row>
-    </el-dialog>
   </div>
 </template>
 
 <script setup>
 import { nextTick, onMounted, onActivated, ref, onDeactivated, onBeforeUnmount } from 'vue'
-import { ElMessage, ElNotification } from 'element-plus'
+import { ElNotification } from 'element-plus'
 import { getToken } from "@/utils/auth";
 import store from '@/store'
 import {
@@ -86,61 +75,20 @@ const handleFilter = () => {
   return AccountListRef.value.getList()
 }
 
-const dialogAddAccountVisible = ref(false)
 const platform_list = ref([])
-const mp_platform = ref(null)
-listPlatform({}).then(response => {
-  if (response.data && response.data.data && Array.isArray(response.data.data.list)) {
-    const platforms = response.data.data.list
-    platform_list.value = platforms.filter(p => p.platform_name === "公众号").map(item => ({
-      id: item.platform_id,
-      name: item.platform_name,
-      image: item.platform_icon
-    }))
-    mp_platform.value = platform_list.value[0]
-  } else {
-    console.error('Unexpected response structure:', response)
-  }
-}).catch(error => {
-  console.error('Failed to fetch platform list:', error)
-})
 
-/** 弹出新窗口登录公众号 */
+/** 根据传递过来的平台参数，打开对应的窗口 */
 const handleAddMPAccount = (platform) => {
-  if(platform.id === 4){
-    window.ipcRenderer.send('toMain', {
-      tag: 'addAccount',
-      token: getToken(),
-      ...mp_platform.value,
-      session_id: null // 确保每次创建新的 webview 时 session_id 为 null
-    })
-  }
+  window.ipcRenderer.send('toMain', {
+    tag: 'addAccount',
+    token: getToken(),
+    ...platform,
+    session_id: null
+  })
 }
 
-const handleAddAccount = (item, index) => {
-  dialogAddAccountVisible.value = false
-  if (index < 4) {
-    window.ipcRenderer.send('toMain', {
-      tag: 'addAccount',
-      token: getToken(),
-      ...item,
-      session_id: null // 确保每次创建新的 webview 时 session_id 为 null
-    })
-  } else {
-    ElNotification({
-      type: 'error',
-      title: '失败',
-      message: '还未开通'
-    })
-  }
-}
-var account=useAccountStore()
-async function onDelMPAccount(id) {
-  await store.dispatch('DelAccount', id)
-  account.update(account.list.filter(item => item.id !== id))
-  AccountListRef.value.getList()
-  ElMessage({ type: 'success', message: '删除成功' })
-}
+var account = useAccountStore()
+
 const refresh = () => {
   window.ipcRenderer.send('refresh-tab', currentTabId.value)
 }
@@ -175,6 +123,7 @@ const changeTab = (tabId) => {
 
 /** 添加新标签页 */
 const addNewTab = (account) => {
+  console.log(account)
   // 在所有标签页中获取到当前点击的标签的值
   const activeTab = tabs.value.find(item => item.account_id === account.id)
   if(activeTab){
@@ -189,6 +138,7 @@ const addNewTab = (account) => {
   })
 
   let a = Object.assign({ userToken: getToken() }, account)
+  console.log(a)
   window.ipcRenderer.send('new-tab', a)
 }
 // 对函数进行 节流
@@ -216,8 +166,24 @@ const throttleFunc = throttle(() => {
     })
   }
 }, 200);
+
+const getListPlatform = async () => {
+  const { data } = await listPlatform({})
+  if (data && data.data && Array.isArray(data.data.list)) {
+    const platforms = data.data.list
+    platform_list.value = platforms.map(item => ({
+      id: item.platform_id,
+      name: item.platform_name,
+      image: item.platform_icon
+    }))
+  }
+}
+
 var cleanups=[]
+
 onMounted(() => {
+  getListPlatform()
+
   var c1=window.ipcRenderer.receive('account_check_login', async (isLoggedIn) => {
     if (!isLoggedIn) {
       removeTab(currentTabId.value)
@@ -241,6 +207,7 @@ onMounted(() => {
       handleFilter();
     }
   })
+
   // 1.标签页数据 (tabs) 的获取
   var c4=window.ipcRenderer.receive(// 获取右侧账号列表数据
     'tabs-update',// 监听的事件名称，监听来自主进程的 tabs-update 消息，更新标签页数据
@@ -283,9 +250,9 @@ onMounted(() => {
     }
   )
 
-
   // 用户切换标签页时，主进程会发送 fromMain 消息，通知当前选中的标签页 ID。
   var c5=window.ipcRenderer.receive('fromMain', (data) => {
+    console.log('发送数据了',data)
     if (typeof data === 'object' && Object.prototype.hasOwnProperty.call(data, 'currentTabId')) {
       currentTabId.value = parseInt(data.currentTabId)
       for (let a of tabs.value) {

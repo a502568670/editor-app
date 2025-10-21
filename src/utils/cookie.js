@@ -16,7 +16,9 @@ export function setCookie(cookies, maxage = 10) {
   console.log(cookies, document.cookie);
 }
 
-export function checkWxSession(session_id = '') {
+export function checkWxSession(v) {
+  if (v.platform_id === 6) return false;
+  const session_id = v.session_id;
   const required = ['slave_user', 'slave_sid', 'data_ticket', 'data_bizuin'];
   if (session_id) {
     const { cookie } = JSON.parse(session_id);
