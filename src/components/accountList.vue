@@ -100,7 +100,7 @@
                 >
                   {{ account.name }}
                 </div>
-                <img src="@/assets/image/gzh.png" style="width: 15px; height: 15px" />
+                <img src="@/assets/image/account/wxgzh.png" style="width: 15px; height: 15px" />
               </div>
               <div v-if="$props.showDel" class="items-center justify-center ml-1 hidden group-hover:flex">
                 <el-popconfirm title="你是否要删除该公众号" @confirm="delAccount(account.wechat_id)" placement="top-end">
