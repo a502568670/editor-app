@@ -6,7 +6,6 @@
       :invalidWarn="false"
       :isManagementMode="showAccountManagement"
       @clickAccountTrigger="addNewTab"
-      @delAccountTrigger="onDelMPAccount"
       @addAccountTrigger="handleAddMPAccount"
       @userManagementTrigger="handleUserManagement"
     />
@@ -126,13 +125,15 @@ listPlatform({}).then(response => {
 })
 
 /** 弹出新窗口登录公众号 */
-const handleAddMPAccount = () => {
-  window.ipcRenderer.send('toMain', {
-    tag: 'addAccount',
-    token: getToken(),
-    ...mp_platform.value,
-    session_id: null // 确保每次创建新的 webview 时 session_id 为 null
-  })
+const handleAddMPAccount = (platform) => {
+  if(platform.id === 4){
+    window.ipcRenderer.send('toMain', {
+      tag: 'addAccount',
+      token: getToken(),
+      ...mp_platform.value,
+      session_id: null // 确保每次创建新的 webview 时 session_id 为 null
+    })
+  }
 }
 
 const handleAddAccount = (item, index) => {

@@ -52,7 +52,7 @@
                 >
                   {{ account.name }}
                 </div>
-                <img src="@/assets/image/gzh.png" style="width: 15px; height: 15px" />
+                <img src="@/assets/image/account/wxgzh.png" style="width: 18px; height: 18px" />
               </div>
               <div v-if="$props.showDel" class="items-center justify-center ml-1 hidden group-hover:flex">
                 <el-popconfirm title="你是否要删除该公众号" @confirm="delAccount(account.wechat_id)" placement="top-end">
@@ -116,8 +116,18 @@
         </el-collapse>
       </div>
     </div>
-    
-    <el-button v-if="$props.showAdd" style="width: 100%" type="primary" @click="addAccount"> 登录微信公众号 </el-button>
+    <!-- <el-button v-if="$props.showAdd" style="width: 100%" type="primary" @click="addAccount"> 添加账号 </el-button> -->
+    <el-popover v-if="$props.showAdd" placement="top" :width="220">
+      <template #reference>
+        <el-button style="width: 100%" type="primary"> 添加账号 </el-button>
+      </template>
+      <div class="grid grid-cols-2 gap-2">
+        <div v-for="item of platforms" :key="item.id" class="account-list_platforms" @click="addAccount(item)">
+          <img :src="item.img" style="width: 30px; height: 30px" />
+          <span>{{ item.name }}</span>
+        </div>
+      </div>
+    </el-popover>
   </div>
 </template>
 
@@ -129,7 +139,8 @@ import { toDeepRaw } from '@/utils/convert';
 import { sortByOrder, debounceFn } from '@/utils/index';
 import { Close, UserFilled, Folder, FolderOpened } from '@element-plus/icons-vue';
 import { apperrmsg } from '@/utils/constants';
-import { ElMessageBox } from 'element-plus'
+import { ElMessageBox, ElMessage } from 'element-plus';
+import { useAccountStore } from '@/store/piniaStore';
 import { getAccountGroupList } from '@/api/account-group'
 
 const router = useRouter();
@@ -145,7 +156,7 @@ const props = defineProps({
     type: Boolean,
     default: true
   },
-  invalidWarn:{
+  invalidWarn: {
     type: Boolean,
     default: true
   },
@@ -157,6 +168,39 @@ const props = defineProps({
 const emit = defineEmits(['clickAccountTrigger', 'delAccountTrigger', 'addAccountTrigger', 'userManagementTrigger']);
 
 const { all_accounts, account_orders } = toRefs(store.getters);
+
+const platforms = [
+  {
+    name: '哔哩哔哩',
+    img: new URL('@/assets/image/account/bilibili.png', import.meta.url).href,
+    id: 1
+  },
+  {
+    name: '头条',
+    img: new URL('@/assets/image/account/tt.png', import.meta.url).href,
+    id: 2
+  },
+  {
+    name: '百家',
+    img: new URL('@/assets/image/account/bj.png', import.meta.url).href,
+    id: 3
+  },
+  {
+    name: '微信公众号',
+    img: new URL('@/assets/image/account/wxgzh.png', import.meta.url).href,
+    id: 4
+  },
+  {
+    name: '小红书',
+    img: new URL('@/assets/image/account/xhs.png', import.meta.url).href,
+    id: 5
+  },
+  {
+    name: '通用平台',
+    img: new URL('@/assets/image/account/typt.png', import.meta.url).href,
+    id: 6
+  }
+];
 
 // 账号列表数据
 const accounts = ref([]);
@@ -263,29 +307,36 @@ const groupedAccounts = computed(() => {
   return result;
 });
 
+const account = useAccountStore();
 /** 点击删除按钮触发 */
-const delAccount = id => {
+const delAccount = async id => {
+  await store.dispatch('DelAccount', id);
+  account.update(account.list.filter(item => item.id !== id));
+  getList();
+  ElMessage({ type: 'success', message: '删除成功' });
   emit('delAccountTrigger', id);
 };
 
 /** 点击登录账号按钮触发 */
-const addAccount = () => {
-  emit('addAccountTrigger');
+const addAccount = platform => {
+  emit('addAccountTrigger', platform);
 };
 
 /** 点击账号触发 */
 const clickAccount = account => {
-  const { token, session_id } = account
+  const { token, session_id } = account;
   if (props.invalidWarn && (!token || !session_id)) {
     ElMessageBox.alert(apperrmsg.invalid_session, '错误', {
       confirmButtonText: '确定',
       type: 'error'
-    }).then(() => {
-      console.log("then")
-    }).catch(() => {
-      console.log("catch")
     })
-    return
+      .then(() => {
+        console.log('then');
+      })
+      .catch(() => {
+        console.log('catch');
+      });
+    return;
   }
   emit('clickAccountTrigger', account);
 };
@@ -300,11 +351,11 @@ const isAccountManagementPage = computed(() => {
   return props.isManagementMode;
 });
 
-const proxyAccounts = new Proxy(accounts,{
+const proxyAccounts = new Proxy(accounts, {
   get(target, key) {
-    return target.value[key]
-  },
-})
+    return target.value[key];
+  }
+});
 
 // 组件挂载时加载分组列表
 onMounted(() => {
@@ -435,5 +486,9 @@ defineExpose({
 .grouped-view .account-list_item {
   margin-left: 10px;
   margin-right: 10px;
+}
+
+.account-list_platforms {
+  @apply hover:bg-zinc-100 cursor-pointer p-2 rounded-md flex flex-col justify-center items-center;
 }
 </style>
