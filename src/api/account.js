@@ -15,8 +15,7 @@ export async function listOrderedAccount(data) {
     data
   })
   res.data.data.list?.forEach(v => v.expired = checkWxSession(v.session_id))
-  withOrderedAccount(res.data.data.list);
-  // console.log(res);
+  // withOrderedAccount(res.data.data.list);
   return res;
 }
 export function withOrderedAccount(list) {

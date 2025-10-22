@@ -251,7 +251,7 @@ const channelName = 'fromMain'
 const channelSource = 'material_lib'
 
 const store = useStore()
-const { all_accounts, account_orders } = toRefs(store.getters)
+const { all_accounts } = toRefs(store.getters)
 const router = useRouter();
 
 const elRef = useTemplateRef('el')
@@ -328,9 +328,7 @@ const handleAccountSelect = async (account) => {
   selectedIndexRef.value = account.id
   // 未排序的公众号列表
   const not_sort = toDeepRaw(all_accounts.value.list.filter(v => v.id !== account.id))
-  effect(()=>{
-    otherAccountsRef.value = sortByOrder(not_sort, toDeepRaw(account_orders.value)).result
-  })
+  otherAccountsRef.value = not_sort
 
   listMode.value = 0
   if (materialTypeRef.value === 0) {
@@ -940,7 +938,6 @@ const registerChannels = () => {
 }
 
 onActivated(async () => {
-  AccountListRef.value.getList()
   registerChannels()
 })
 

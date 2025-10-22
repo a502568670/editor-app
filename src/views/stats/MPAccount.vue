@@ -72,7 +72,7 @@ window.ipcRenderer.receive('fromMain', (msg) => {
   }
   switch (msg.tag) {
     case 'stat-ret:getPvData': {
-      var pvData = [];      
+      var pvData = [];
       var cacheData = [];
       var REG_ILLEGAL = /流量主违规|侵权|投诉|违规|处理|责令|屏蔽|限制|删除/;
       var {list,exports}=msg.data;
@@ -147,8 +147,8 @@ window.ipcRenderer.receive('fromMain', (msg) => {
             var quota_today = '-',quota_tomorrow='-'
             var {time_send_total_num,quota_detail_list} = JSON.parse(res.value[4].value);
             // console.log(quota_detail_list);
-            
-            if(quota_detail_list){      
+
+            if(quota_detail_list){
               var [normalMsg,actMsg] = quota_detail_list;
               var checkPost = (list) => {
                 var {original_quota,str_date,quota} = list[0];
@@ -248,7 +248,8 @@ window.ipcRenderer.receive('fromMain', (msg) => {
 
         exported.value=true
       }else{
-        tableData.value = [...tableData.value,...pvData];  
+        tableData.value = [...tableData.value,...pvData];
+        console.log('1222222222',tableData.value)
         withOrderedAccount(tableData.value);
       }
       if(cacheData.length){
@@ -256,7 +257,7 @@ window.ipcRenderer.receive('fromMain', (msg) => {
       }
       // console.log(accounts, list,pvData);
       // console.log(list.find(v=>v.status==='fulfilled')?.value.map(v=>JSON.parse(v.value)));
-      
+
       break;
     }
     default:
@@ -276,7 +277,8 @@ async function getListBy(query) {
   listQuery.value=query;
   var {page=1,limit=10}=listQuery.value;
   var partAccounts = accounts.slice((page-1)*limit,page*limit);
-  var res = await cachedStat({account_ids:partAccounts.map(v=>v.id)});  
+  const filteredIds = partAccounts.filter(v => v.platform_id === 4).map(v => v.id);
+  var res = await cachedStat({account_ids:filteredIds});
   // var res={data:{items:[]}}
   res.data.items.forEach(v=>{
     var account = partAccounts.find(vv=>vv.id===v.account_id);
@@ -290,7 +292,7 @@ async function getListBy(query) {
     window.ipcRenderer.send('toMain', {tag: 'stat:getPvData', data: {list:newAccounts}});
   }else{
     loading.value=false;
-  }  
+  }
 }
 var exported=ref(true);
 function exportData() {

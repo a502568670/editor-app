@@ -36,7 +36,7 @@ function init(platformData) {
 
     // 监听cookie变化
     win.webContents.session.cookies.on('changed', (event, cookie, cause, removed) => {
-      if (cookie.name === 'sessionid') {
+      if (cookie.name.includes('session')) {
         verbose_log('cookie changed:', { event, cookie, cause, removed });
         setCookie(platformData);
       }
@@ -56,7 +56,7 @@ async function setCookie(platformData) {
     sessionStorage: '',
     originalUsername: platformData.user.original_id,
     name: platformData.user.name,
-    avatar: '',
+    avatar: platformData.user.avatar,
     userToken: platformData.user.userToken,
     platform_url: platformData.user.platform_url
   };
@@ -156,7 +156,6 @@ async function postToken(payload, tabWin) {
   } = payload;
   let url = '/platform/addAccount';
   let data = { cookie: cookies, localStorage: localStorage || {}, sessionStorage: sessionStorage || {} };
-
   try {
     let resultData = await post(
       url,

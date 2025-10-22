@@ -150,6 +150,7 @@ const handleUserManagement = () => {
 
 /** 添加新标签页 */
 const addNewTab = (account) => {
+  console.log(account)
   // 关闭账号管理视图，显示正常的 tab 视图
   const wasShowingManagement = showAccountManagement.value
   // 保存旧的选中账号ID用于判断
@@ -352,10 +353,6 @@ const handleOpenAccountFromRoute = () => {
     }
   }
 }
-
-onActivated(() => {
-  handleFilter();
-})
 
 // 监听路由参数变化（用于在 tabBar 页面内部通过路由打开账号）
 watch(() => route.query.open_account_id, (newAccountId) => {

@@ -1,12 +1,12 @@
 <template>
   <div class="account-list">
-    <div class="menu-bar"  v-if="$props.showAdd">
+    <div class="menu-bar" v-if="$props.showAdd">
       <el-button
         type="primary"
         link
         @click="handleUserManagement"
         class="user-mgmt-btn"
-        :class="{ 'active': isAccountManagementPage }"
+        :class="{ active: isAccountManagementPage }"
       >
         <el-icon>
           <user-filled />
@@ -22,56 +22,7 @@
       <!-- 分组模式 -->
       <div class="grouped-view">
         <el-collapse v-model="activeGroups" accordion>
-          <!-- 未分组 -->
-          <el-collapse-item v-if="groupedAccounts.ungrouped.length > 0" name="ungrouped">
-            <template #title>
-              <div class="group-header">
-                <el-icon><Folder /></el-icon>
-                <span class="group-name">未分组</span>
-                <span class="group-count">({{ groupedAccounts.ungrouped.length }})</span>
-              </div>
-            </template>
-            <div
-              v-for="account in groupedAccounts.ungrouped"
-              :key="account.id"
-              @click="clickAccount(account)"
-              class="account-list_item hover:bg-zinc-100 group transition duration-500"
-              :class="{
-                '!bg-zinc-200': $props.selectId === account.id && !isAccountManagementPage,
-                grayscale: account.expired
-              }"
-            >
-              <img
-                style="width: 25px; height: 25px; border-radius: 50%"
-                :src="account.avatar"
-              />
-              <div class="cursor-pointer pl-2 flex-1 flex items-center justify-around">
-                <div
-                  class="truncate flex-1 w-0"
-                  :class="{ 'text-[var(--jzl-primary-color)]': $props.selectId === account.id && !isAccountManagementPage }"
-                >
-                  {{ account.name }}
-                </div>
-                <img :src="getPlatformsImg(account.platform_id)" style="width: 18px; height: 18px" />
-              </div>
-              <div v-if="$props.showDel" class="items-center justify-center ml-1 hidden group-hover:flex">
-                <el-popconfirm title="你是否要删除该公众号" @confirm="delAccount(account.wechat_id)" placement="top-end">
-                  <template #reference>
-                    <el-icon style="color: brown" @click.prevent.stop class="cursor-pointer">
-                      <Close />
-                    </el-icon>
-                  </template>
-                </el-popconfirm>
-              </div>
-            </div>
-          </el-collapse-item>
-
-          <!-- 各个分组 -->
-          <el-collapse-item
-            v-for="group in groupedAccounts.groups"
-            :key="group.id"
-            :name="`group-${group.id}`"
-          >
+          <el-collapse-item v-for="group in groupedAccounts" :key="group.id" :name="`group-${group.id}`">
             <template #title>
               <div class="group-header">
                 <el-icon><FolderOpened /></el-icon>
@@ -79,44 +30,55 @@
                 <span class="group-count">({{ group.accounts.length }})</span>
               </div>
             </template>
-            <div
-              v-for="account in group.accounts"
-              :key="account.id"
-              @click="clickAccount(account)"
-              class="account-list_item hover:bg-zinc-100 group transition duration-500"
-              :class="{
-                '!bg-zinc-200': $props.selectId === account.id && !isAccountManagementPage,
-                grayscale: account.expired
-              }"
+            <VueDraggable
+              v-model="group.accounts"
+              :disabled="dragDisabled"
+              :animation="150"
+              ghostClass="ghost"
+              @end="handleDragEnd"
             >
-              <img
-                style="width: 25px; height: 25px; border-radius: 50%"
-                :src="account.avatar"
-              />
-              <div class="cursor-pointer pl-2 flex-1 flex items-center justify-around">
-                <div
-                  class="truncate flex-1 w-0"
-                  :class="{ 'text-[var(--jzl-primary-color)]': $props.selectId === account.id && !isAccountManagementPage }"
-                >
-                  {{ account.name }}
+              <div
+                v-for="account of group.accounts"
+                :key="account.id"
+                @click="clickAccount(account)"
+                class="account-list_item hover:bg-zinc-100 group transition duration-500"
+                :class="{
+                  '!bg-zinc-200': $props.selectId === account.id && !isAccountManagementPage,
+                  grayscale: account.expired
+                }"
+              >
+                <img style="width: 25px; height: 25px; border-radius: 50%" :src="account.avatar" />
+                <div class="cursor-pointer pl-2 flex-1 flex items-center justify-around">
+                  <div
+                    class="truncate flex-1 w-0"
+                    :class="{
+                      'text-[var(--jzl-primary-color)]': $props.selectId === account.id && !isAccountManagementPage
+                    }"
+                  >
+                    {{ account.name }}
+                  </div>
+                  <img :src="getPlatformsImg(account.platform_id)" style="width: 18px; height: 18px" />
                 </div>
-                <img src="@/assets/image/account/wxgzh.png" style="width: 15px; height: 15px" />
+                <div v-if="$props.showDel" class="items-center justify-center ml-1 hidden group-hover:flex">
+                  <el-popconfirm
+                    title="你是否要删除该公众号"
+                    @confirm="delAccount(account.wechat_id)"
+                    placement="top-end"
+                  >
+                    <template #reference>
+                      <el-icon style="color: brown" @click.prevent.stop class="cursor-pointer">
+                        <Close />
+                      </el-icon>
+                    </template>
+                  </el-popconfirm>
+                </div>
               </div>
-              <div v-if="$props.showDel" class="items-center justify-center ml-1 hidden group-hover:flex">
-                <el-popconfirm title="你是否要删除该公众号" @confirm="delAccount(account.wechat_id)" placement="top-end">
-                  <template #reference>
-                    <el-icon style="color: brown" @click.prevent.stop class="cursor-pointer">
-                      <Close />
-                    </el-icon>
-                  </template>
-                </el-popconfirm>
-              </div>
-            </div>
+            </VueDraggable>
           </el-collapse-item>
         </el-collapse>
       </div>
     </div>
-    <el-popover v-if="$props.showAdd" placement="top" :width="220" trigger="click">
+    <el-popover ref="popoverRef" v-if="$props.showAdd" placement="top" :width="220" trigger="click">
       <template #reference>
         <el-button style="width: 100%" type="primary"> 添加账号 </el-button>
       </template>
@@ -129,11 +91,17 @@
             </div>
           </div>
           <div v-else>
-            <el-form :model="universalForm" label-position="top" style="max-width: 100%">
-              <el-form-item label="昵称">
+            <el-form
+              ref="ruleFormRef"
+              :model="universalForm"
+              :rules="universalFormRules"
+              label-position="top"
+              style="max-width: 100%"
+            >
+              <el-form-item label="昵称" prop="name">
                 <el-input v-model="universalForm.name" />
               </el-form-item>
-              <el-form-item label="平台首页">
+              <el-form-item label="平台首页" prop="url">
                 <el-input v-model="universalForm.url" />
               </el-form-item>
               <el-form-item>
@@ -151,17 +119,17 @@
 </template>
 
 <script setup>
-import { ref, toRefs, computed, onMounted, watch } from 'vue';
-import { useRouter, useRoute } from 'vue-router';
+import { ref, toRefs, computed, onActivated } from 'vue';
 import store from '@/store';
 import { toDeepRaw } from '@/utils/convert';
 import { sortByOrder, debounceFn } from '@/utils/index';
-import { Close, UserFilled, Folder, FolderOpened } from '@element-plus/icons-vue';
+import { Close, UserFilled, FolderOpened } from '@element-plus/icons-vue';
 import { apperrmsg } from '@/utils/constants';
 import { ElMessageBox, ElMessage } from 'element-plus';
 import { useAccountStore } from '@/store/piniaStore';
 import { createAccount } from '@/api/account';
-import { getAccountGroupList } from '@/api/account-group'
+import { VueDraggable } from 'vue-draggable-plus';
+import { getAccountGroupList } from '@/api/account-group';
 
 const props = defineProps({
   selectId: {},
@@ -188,29 +156,9 @@ const { all_accounts, account_orders } = toRefs(store.getters);
 
 const platforms = [
   {
-    name: '哔哩哔哩',
-    img: new URL('@/assets/image/account/bilibili.png', import.meta.url).href,
-    id: 1
-  },
-  {
-    name: '头条',
-    img: new URL('@/assets/image/account/tt.png', import.meta.url).href,
-    id: 2
-  },
-  {
-    name: '百家',
-    img: new URL('@/assets/image/account/bj.png', import.meta.url).href,
-    id: 3
-  },
-  {
     name: '微信公众号',
     img: new URL('@/assets/image/account/wxgzh.png', import.meta.url).href,
     id: 4
-  },
-  {
-    name: '小红书',
-    img: new URL('@/assets/image/account/xhs.png', import.meta.url).href,
-    id: 5
   },
   {
     name: '通用平台',
@@ -226,33 +174,21 @@ const getPlatformsImg = id => {
 // 是否显示通用平台表单
 const isUniversalForm = ref(false);
 // 通用平台表单
+const ruleFormRef = ref();
 const universalForm = ref({
   name: '',
   url: ''
 });
-
-// 账号列表数据
-const accounts = ref([]);
+const universalFormRules = {
+  name: [{ required: true, message: '请输入昵称', trigger: 'blur' }],
+  url: [{ required: true, message: '请输入平台首页', trigger: 'blur' }]
+};
 
 // 分组数据
 const accountGroups = ref([]);
 
 // 活跃的折叠面板
-const activeGroups = ref(['ungrouped']);
-
-// 监听 store 中的账号列表变化，自动刷新
-watch(
-  () => all_accounts.value,
-  (newAccounts) => {
-    // 当 store 中的账号列表发生变化时，自动刷新本地列表
-    if (newAccounts && newAccounts.list) {
-      getList();
-      // 注意：不在这里刷新分组数据，避免重复请求
-      // 分组数据会通过 refreshAccountList() 主动调用 loadAccountGroups() 来刷新
-    }
-  },
-  { deep: true }
-);
+const activeGroups = ref([]);
 
 const listQuery = ref({
   page: 1,
@@ -265,21 +201,11 @@ const listQuery = ref({
 const handleInput = debounceFn(
   () => {
     listQuery.value.page = 1;
-    getList();
+    setGroupedAccounts();
   },
   200,
   false
 );
-
-/** 获取列表数据 */
-const getList = () => {
-  const query = listQuery.value.keyword;
-  // 过滤账号
-  const filteredAccounts = toDeepRaw(all_accounts.value.list.filter(a => a.name.includes(query)));
-  // 排序
-  const { result } = sortByOrder(filteredAccounts, toDeepRaw(account_orders.value));
-  accounts.value = result;
-};
 
 /** 加载分组列表 */
 const loadAccountGroups = async () => {
@@ -294,54 +220,61 @@ const loadAccountGroups = async () => {
 };
 
 /** 按分组组织账号 */
-const groupedAccounts = computed(() => {
-  const result = {
-    ungrouped: [],
-    groups: []
-  };
+const groupedAccounts = ref({
+  0: {
+    id: 0,
+    name: '未分组',
+    accounts: []
+  }
+});
+/** 设置分组账号 */
+const setGroupedAccounts = () => {
+  const query = listQuery.value.keyword;
+  // 过滤账号
+  const filteredAccounts = toDeepRaw(all_accounts.value.list.filter(a => a.name.includes(query)));
 
-  // 构建分组映射
-  const groupMap = {};
-  const flattenGroups = (groups) => {
-    groups.forEach(group => {
-      groupMap[group.id] = {
-        id: group.id,
-        name: group.name || group.label,
-        accounts: []
-      };
-      if (group.children && group.children.length > 0) {
-        flattenGroups(group.children);
-      }
-    });
-  };
-  flattenGroups(accountGroups.value);
-
-  // 将账号分配到对应的分组
-  accounts.value.forEach(account => {
-    if (!account.group_id || account.group_id === 0) {
-      // 未分组
-      result.ungrouped.push(account);
-    } else if (groupMap[account.group_id]) {
-      // 已分组
-      groupMap[account.group_id].accounts.push(account);
-    } else {
-      // 分组不存在，放到未分组
-      result.ungrouped.push(account);
+  const newGroup = {
+    0: {
+      id: 0,
+      name: '未分组',
+      accounts: []
     }
+  };
+  accountGroups.value.forEach(group => {
+    newGroup[group.id] = {
+      id: group.id,
+      name: group.name || group.label,
+      accounts: []
+    };
   });
 
-  // 只返回有账号的分组
-  result.groups = Object.values(groupMap).filter(group => group.accounts.length > 0);
-
-  return result;
-});
+  // 将账号分配到对应的分组
+  filteredAccounts.forEach(account => {
+    if (newGroup[account.group_id]) {
+      newGroup[account.group_id].accounts.push(account);
+    } else {
+      // 未分组
+      newGroup[0].accounts.push(account);
+    }
+  });
+  for (const key in newGroup) {
+    if (newGroup[key].accounts.length === 0) {
+      delete newGroup[key];
+    } else {
+      // 排序
+      const { result } = sortByOrder(newGroup[key].accounts, toDeepRaw(account_orders.value[key]));
+      newGroup[key].accounts = result;
+    }
+  }
+  groupedAccounts.value = newGroup;
+};
 
 const account = useAccountStore();
 /** 点击删除按钮触发 */
 const delAccount = async id => {
   await store.dispatch('DelAccount', id);
   account.update(account.list.filter(item => item.id !== id));
-  getList();
+  setGroupedAccounts();
   ElMessage({ type: 'success', message: '删除成功' });
   emit('delAccountTrigger', id);
 };
@@ -356,40 +289,51 @@ const addAccount = platform => {
   emit('addAccountTrigger', platform);
 };
 /** 点击通用平台的添加时触发 */
+const popoverRef = ref();
 const addUniversal = async () => {
-  const platform = {
-    platform_id: 6,
-    originalUsername: Math.floor(Date.now() / 1000),
-    session_id: '',
-    name: universalForm.value.name,
-    avatar: '',
-    platform_url: universalForm.value.url
-  };
-  const { data } = await createAccount(platform);
-  if (data.code === 1) {
-    store.dispatch('ListAccounts').then(() => {
-      getList();
-    });
-    ElMessage({ type: 'success', message: data.msg || '添加成功' });
-  } else {
-    ElMessage({ type: 'error', message: data.msg || '添加失败' });
-  }
+  if (!ruleFormRef.value) return;
+  await ruleFormRef.value.validate(async valid => {
+    if (valid) {
+      const platform = {
+        platform_id: 6,
+        originalUsername: Math.floor(Date.now() / 1000),
+        session_id: '',
+        name: universalForm.value.name,
+        avatar: new URL('@/assets/image/defimg.png', import.meta.url).href,
+        platform_url: universalForm.value.url
+      };
+      const { data } = await createAccount(platform);
+      if (data.code === 1) {
+        store.dispatch('ListAccounts').then(() => {
+          setGroupedAccounts();
+        });
+        ElMessage({ type: 'success', message: data.msg || '添加成功' });
+        isUniversalForm.value = false;
+        ruleFormRef.value.resetFields();
+        popoverRef.value.hide();
+      } else {
+        ElMessage({ type: 'error', message: data.msg || '添加失败' });
+      }
+    }
+  });
 };
 
 /** 点击账号触发 */
 const clickAccount = account => {
-  const { token, session_id } = account;
+  console.log('clickAccount', account);
+  const { token, session_id, platform_id } = account;
+  if (platform_id === 6) {
+    ElMessageBox.alert('该平台不支持此操作', '错误', {
+      confirmButtonText: '确定',
+      type: 'error'
+    });
+    return;
+  }
   if (props.invalidWarn && (!token || !session_id)) {
     ElMessageBox.alert(apperrmsg.invalid_session, '错误', {
       confirmButtonText: '确定',
       type: 'error'
-    })
-      .then(() => {
-        console.log('then');
-      })
-      .catch(() => {
-        console.log('catch');
-      });
+    });
     return;
   }
   emit('clickAccountTrigger', account);
@@ -405,19 +349,34 @@ const isAccountManagementPage = computed(() => {
   return props.isManagementMode;
 });
 
-const proxyAccounts = new Proxy(accounts, {
+const proxyAccounts = new Proxy(groupedAccounts, {
   get(target, key) {
     return target.value[key];
   }
 });
 
+const dragDisabled = computed(() => listQuery.value.keyword !== '');
+/** 拖拽结束事件 */
+const handleDragEnd = e => {
+  const { oldIndex, newIndex, clonedData } = e;
+  const group = clonedData.group_id || 0;
+  if (oldIndex !== newIndex) {
+    const new_account_orders = groupedAccounts.value[group].accounts.map(v => v.id);
+    store.commit('SET_ACCOUNT_ORDERS', { account_orders: new_account_orders, group });
+    const orders = JSON.parse(localStorage.getItem('account_group_orders')) || {};
+    orders[group] = new_account_orders;
+    localStorage.setItem('account_group_orders', JSON.stringify(orders));
+  }
+};
+
 // 组件挂载时加载分组列表
-onMounted(() => {
-  loadAccountGroups();
+onActivated(async () => {
+  await loadAccountGroups();
+  setGroupedAccounts();
 });
 
 defineExpose({
-  getList,
+  getList: setGroupedAccounts,
   proxyAccounts,
   loadAccountGroups
 });
