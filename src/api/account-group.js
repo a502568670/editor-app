@@ -48,19 +48,19 @@ export function updateAccountGroup(data) {
   const formData = {
     id: data.id
   }
-  
+
   if (data.name !== undefined) {
     formData.name = data.name
   }
-  
+
   if (data.parent_id !== undefined) {
     formData.parent_id = data.parent_id
   }
-  
+
   if (data.sort_order !== undefined) {
     formData.sort_order = data.sort_order
   }
-  
+
   return request({
     url: '/account/group/update',
     method: 'post',
@@ -118,12 +118,12 @@ export function getAccountListByGroup(params) {
     type: params.type || 1,
     keyword: params.keyword || ''
   }
-  
+
   // 如果指定了 group_id，则添加到请求参数中
   if (params.group_id !== undefined && params.group_id !== null) {
     formData.group_id = params.group_id
   }
-  
+
   return request({
     url: '/platform/accountList',
     method: 'post',

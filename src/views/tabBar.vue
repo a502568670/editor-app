@@ -5,6 +5,7 @@
       :selectId="selected_account_id"
       :invalidWarn="false"
       :isManagementMode="showAccountManagement"
+      :isSupportUniversal="true"
       @clickAccountTrigger="addNewTab"
       @addAccountTrigger="handleAddMPAccount"
       @userManagementTrigger="handleUserManagement"

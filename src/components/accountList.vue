@@ -148,6 +148,10 @@ const props = defineProps({
   isManagementMode: {
     type: Boolean,
     default: false
+  },
+  isSupportUniversal: {
+    type: Boolean,
+    default: false
   }
 });
 const emit = defineEmits(['clickAccountTrigger', 'delAccountTrigger', 'addAccountTrigger', 'userManagementTrigger']);
@@ -322,7 +326,7 @@ const addUniversal = async () => {
 const clickAccount = account => {
   console.log('clickAccount', account);
   const { token, session_id, platform_id } = account;
-  if (platform_id === 6) {
+  if (platform_id === 6 && !props.isSupportUniversal) {
     ElMessageBox.alert('该平台不支持此操作', '错误', {
       confirmButtonText: '确定',
       type: 'error'
