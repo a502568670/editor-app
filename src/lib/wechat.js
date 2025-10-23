@@ -37,6 +37,26 @@ function checkCookiesExpired(cookies, checkkeys) {
   return isExpired
 }
 
+// 请求微信公众号首页判断cookie是否过期
+async function checkLoginStatus_Old(viewData) {
+  const { cookie } = viewData.user.session_id;
+  const token = viewData.user.token;
+  const res = await fetch(`https://mp.weixin.qq.com/cgi-bin/home?t=home/index&lang=zh_CN&token=${token}`, {
+    headers: {
+      Cookie: cookie.map(cookie => `${cookie.name}=${cookie.value}`).join('; '),
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
+    }
+  });
+  const logicRet = res.headers.get('LogicRet');
+  const setCookie = res.headers.get('Set-Cookie') || '';
+  const expired = logicRet === '200003' || /EXPIRED/i.test(setCookie);
+  if (expired) {
+    verbose_log('⚠️ 微信公众号登录态已失效，需要重新登录');
+    viewData.user.expired = true;
+    viewData.user.session_id = ''
+  }
+}
+
 // 初始化init
 async function init(viewData, postTokenInWin) {
   // 重置 isLoginedEventTriggered 标志
@@ -388,7 +408,11 @@ async function init(viewData, postTokenInWin) {
     verbose_error('无法加载公众号首页: webContents已销毁');
     return;
   }
-  viewData.webview.webContents.loadURL('https://mp.weixin.qq.com/');
+
+  checkLoginStatus_Old(viewData).then(() => {
+    verbose_log('登录态检查完成，加载公众号首页', viewData.user);
+    viewData.webview.webContents.loadURL('https://mp.weixin.qq.com/');
+  });
 }
 
 module.exports.init = init;
