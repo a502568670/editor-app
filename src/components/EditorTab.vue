@@ -984,8 +984,7 @@ const editorConfigRef = ref({
     }
     call();
   },
-  elementPathEnabled: false,
-  iframeCssUrl: '/css/ueditorcss.css'
+  elementPathEnabled: false
 })
 
 // component
@@ -1750,7 +1749,7 @@ const _saveAppMsg = async (push_to_remote) => {
   }).finally(() => {
     loader.close()
   })
-  
+
   return saveSuccess
 }
 
@@ -1949,14 +1948,14 @@ const handlePublishNext = async () => {
 const handleCopyrightCheck = async () => {
   // 先同步到微信草稿箱，确保检测的是最新内容
   const saveResult = await _saveAppMsg(1)
-  
+
   // 如果保存失败（包括验证失败，如未设置封面图），则不继续执行
   if (!saveResult) {
     return
   }
-  
+
   const appmsgid = _getAppMsgId()
-  
+
   if (!appmsgid) {
     ElMessage.warning('请先保存文章')
     return
@@ -1989,12 +1988,12 @@ const handleCopyrightCheck = async () => {
         console.error("检测数据解析失败", e)
       }
     })
-    
+
     copyrightCheckLoadingRef.value = false
-    
+
     if (stepRet) {
       copyrightCheckResultRef.value = stepRet
-      
+
       // copyright === 1 表示有原创问题，需要解析未通过原因列表
       if (stepRet.copyright === 1 && stepRet.list_json_str) {
         try {
@@ -2778,20 +2777,20 @@ const searchMPForLink = (val) => {
 
 const searchArticle = async (val) => {
   console.log("searchArticle val=>", val);
-  
+
   const { query, mp } = val
   try {
-    
+
     globalLoadingRef.value = true
     const { token, session_id } = selectedAccount.value
     console.log("当前选中草稿的账号",selectedAccount.value);
     console.log("搜索的公众号 mp=>", mp);
-    
+
     const cookies = serializeCookie(JSON.parse(session_id)["cookie"])
-    
+
     // 如果选择了其他公众号，使用其 fakeid
     const fakeid = mp ? mp.fakeid : undefined
-    
+
     if (query && query.trim()) {
       // 有查询词，使用搜索接口
       window.ipcRenderer.send('toMain', {
@@ -2822,7 +2821,7 @@ const searchArticle = async (val) => {
         }
       })
     }
-    
+
     // 设置超时取消加载状态
     setTimeout(() => {
       if (globalLoadingRef.value) {
@@ -2839,12 +2838,12 @@ const searchArticle = async (val) => {
 // 解析已发布文章列表
 const parsePublishedArticles = (publishList) => {
   const articles = []
-  
+
   publishList.forEach(item => {
     try {
       const publishData = JSON.parse(item.publish_info)
       const appmsgInfoList = publishData.appmsg_info || []
-      
+
       // 获取发布时间：publish_type=1 用 publish_info.create_time，publish_type=101 用 sent_info.time
       let publishTime = ''
       if (item.publish_type === 1 && publishData.publish_info) {
@@ -2852,7 +2851,7 @@ const parsePublishedArticles = (publishList) => {
       } else if (item.publish_type === 101 && publishData.sent_info) {
         publishTime = new Date(publishData.sent_info.time * 1000).toLocaleString('zh-CN')
       }
-      
+
       // 过滤掉已删除的文章
       appmsgInfoList.forEach(appmsgInfo => {
         if (!appmsgInfo.is_deleted) {
@@ -2872,7 +2871,7 @@ const parsePublishedArticles = (publishList) => {
       console.error('解析 publish_info 失败:', e, item)
     }
   })
-  
+
   return articles
 }
 
@@ -2888,9 +2887,9 @@ const selectCurrentArticles = () => {
 const insertMPLink = (linkData) => {
   const editor = editorRef.value
   if (editor == null) return
-  
+
   const { displayType, templateType, linkTitle, customImage, articles } = linkData
-  
+
   // 处理模板模式
   if (displayType === 'template' && templateType === 'modern') {
     // 现代风格：生成整体容器包裹所有文章
@@ -2899,17 +2898,17 @@ const insertMPLink = (linkData) => {
       const title = linkTitle ? linkTitle : article.title
       const contentUrl = article.content_url || '#'
       const imageUrl = customImage || article.cdn_url
-      
+
       articlesHtml += `<a href="${contentUrl}" target="_blank"><section style="display: flex;border-top: 1px solid #e9e9e9;padding: 14px; margin-bottom: 8px;"><span style="align-self: flex-start;width: 48px; margin-right: 15px;"><section style="background: url(${imageUrl});background-size: cover;width: 48px;height: 48px;"></section></span><section style="font-size: 14px; vertical-align: top;height: 48px;line-height: 24px;overflow: hidden;">${title}</section></section></a>`
     })
-    
+
     const finalHtml = `<section style="padding: 20px;border: 1px solid #e9e9e9; margin-top: 20px;"><section style="font-size: 14px;padding-left: 10px;border-left: 4px solid #F5222D;margin-bottom: 20px;">更多推荐</section>${articlesHtml}</section><p></p>`
-    
+
     editor.execCommand('inserthtml', finalHtml)
     ElMessage.success(`成功插入 ${articles.length} 篇文章链接`)
     return
   }
-  
+
   // 往期推荐模板
   if (displayType === 'template' && templateType === 'past-recommend') {
     let articlesHtml = ''
@@ -2917,17 +2916,17 @@ const insertMPLink = (linkData) => {
       const title = linkTitle ? linkTitle : article.title
       const contentUrl = article.content_url || '#'
       const num = index + 1
-      
+
       articlesHtml += `<section class="box-edit"><a href="${contentUrl}" target="_blank" style="text-decoration: none; color: inherit;"><section style="box-shadow:0px 0px 5px #e5e5e5 ;height:65px;${index > 0 ? 'margin: 10px auto;' : ''}"><section style="display: flex;justify-content: flex-start;align-items: center;"><section style="width:60px;height: 65px;box-sizing:border-box;"><section class="135brush" data-brushtype="text" style="background: #6f8691;border-top-left-radius:7px;border-bottom-left-radius: 7px;border-top-right-radius: 100%;border-bottom-right-radius: 100%;color:#fff; font-size:18px;letter-spacing:1.5px;width:60px;height: 65px;font-size: 20px; line-height:63px;text-align: center;box-sizing:border-box;"><strong>0<span class="autonum" data-original-title="" title="" data-num="${num}">${num}</span></strong></section></section><section class="135brush" data-brushtype="text" style="padding:0px 0.4em 0px 0.5em;font-size: 16px;letter-spacing: 1.5px;color: #71868f;box-sizing:border-box;"><p style="vertical-align:inherit;">${title}</p></section></section></section></a></section>`
     })
-    
+
     const finalHtml = `<section class="_135editor" itemscope="" itemtype="https://mp.weixin.qq.com/voc/Guide" data-id="93971" data-tools="135编辑器"><section style="padding:1em;box-sizing:border-box;"><section style="display: flex;justify-content:center;margin: 1em auto;align-items: center;"><section><section data-bgless="spin" data-bglessp="280" data-bgopacity="1%" style="width:1.2em;height:1.2em;border-radius:100% ;background:#b3c0c6;margin-bottom: -20px;box-sizing:border-box;"></section><section data-bgless="spin" data-bglessp="280" data-bgopacity="1%" style="width:6px;height:6px;border-radius:100% ;background:#b3c0c6;margin-left:1.4em;box-sizing:border-box;"></section><section data-bgless="spin" data-bglessp="280" data-bgopacity="50%" style="width:2.5em;height:2.5em;border-radius:100% ;background:rgba(179,192,198,0.6);margin-left: 10px;box-sizing:border-box;"></section></section><section class="135brush" data-brushtype="text" style="margin-left:-1em;text-align:center;font-size: 20px;letter-spacing:2px;color: #71868f;">往期推荐</section></section>${articlesHtml}</section></section><p></p>`
-    
+
     editor.execCommand('inserthtml', finalHtml)
     ElMessage.success(`成功插入 ${articles.length} 篇文章链接`)
     return
   }
-  
+
   // 往期推荐2模板
   if (displayType === 'template' && templateType === 'past-recommend2') {
     let articlesHtml = ''
@@ -2935,27 +2934,27 @@ const insertMPLink = (linkData) => {
       const title = linkTitle ? linkTitle : article.title
       const contentUrl = article.content_url || '#'
       const marginTop = index === 0 ? '10px' : '5px'
-      
+
       articlesHtml += `<p class="box-edit" style="vertical-align:inherit;margin-top: ${marginTop};margin-bottom: 5px;padding-right: 0em;padding-left: 0em;letter-spacing: 1.5px;line-height: normal;color: #888888;font-size: 13px;text-align:justify;" align="justify"><a href="${contentUrl}" target="_blank" style="color: #888888; text-decoration: none;">●${title}</a></p>`
     })
-    
+
     const finalHtml = `<section class="_135editor" data-tools="135编辑器" data-id="93709"><section style="border-style: solid; border-width: 2px; padding: 5px; box-sizing: border-box;" itemscope="" itemtype="https://mp.weixin.qq.com/voc/Guide"><section style="border-style: dashed;border-width: 1px;padding: 15px;box-sizing: border-box;"><section style="text-align: center;"><span data-role="width" style="display:inline-block;width:80%;box-sizing:border-box;max-width:80% !important;" data-width="80%"><img class="assistant" src="https://image2.135editor.com/cache/remote/aHR0cHM6Ly9tbWJpei5xbG9nby5jbi9tbWJpel9naWYvN1FSVHZrSzJxQzdJSEFCRm11TWxXUWtTU3pPTWljaWNmQkxmc2RJamtPbkR2c3N1NlpueDRUVFBzSDh5WlpOWjE3aFNiRDk1d3c0M2ZzNU9GRXBwUlRXZy8wP3d4X2ZtdD1naWY=" style="margin: 0px; width: 100%;vertical-align:baseline;box-sizing:border-box;max-width:100% !important;" data-width="80%" data-op="change" width="80%" height="" border="0" mapurl="" title="" alt="" draggable="false" data-ratio="0.08658008658008658" data-w="462"/></span></section><section>${articlesHtml}</section></section></section></section><p></p>`
-    
+
     editor.execCommand('inserthtml', finalHtml)
     ElMessage.success(`成功插入 ${articles.length} 篇文章链接`)
     return
   }
-  
+
   // 其他模式：逐个生成HTML
   const htmlArray = []
-  
+
   articles.forEach((article, index) => {
     // 如果用户输入了自定义标题，使用自定义标题；否则使用文章原标题
     const title = linkTitle ? linkTitle : article.title
     const contentUrl = article.content_url || '#'
     // 图片优先级：自定义图片 > 文章封面
     const imageUrl = customImage || article.cdn_url
-    
+
     let html = ''
     if (displayType === 'text') {
       // 文字链接
@@ -2998,17 +2997,17 @@ const insertMPLink = (linkData) => {
         `
       }
     }
-    
+
     if (html) {
       htmlArray.push(html)
     }
   })
-  
+
   if (htmlArray.length === 0) {
     ElMessage.warning('没有可插入的内容')
     return
   }
-  
+
   // 将所有HTML用换行符连接起来插入
   const finalHtml = htmlArray.join('<br/>')
   editor.execCommand('inserthtml', finalHtml)
@@ -3782,7 +3781,7 @@ const operationList = ref([
     action: () => { openDebugDialog() },
     isShow: !isDebugRef.value
   }
-]) 
+])
 
 // 组件生命周期
 onMounted(async () => {
