@@ -2316,6 +2316,7 @@ const checkTitles = () => {
     tag: 'appmsg:searchAppmsgsInPublishForQuerys',
     source: `${props.appmsg.appmsgid}`,
     token: getToken(),
+    type: 'examine_title',
     getData: {
       cookies: serializeCookie(JSON.parse(session_id)["cookie"]),
       token: parseInt(token),
@@ -2797,6 +2798,7 @@ const searchArticle = async (val) => {
         tag: 'appmsg:searchAppmsgsInPublishForQuerys',
         source: `${props.appmsg.appmsgid}`,
         token: getToken(),
+        type: 'insert_link',
         getData: {
           cookies: cookies,
           token: parseInt(token),
@@ -3552,20 +3554,22 @@ watch(() => [props.mainMsg], async (newVal) => {
         publishLoadingRef.value = false
       }
     } else if (tag === "appmsg-ret:searchAppmsgsInPublishForQuerys") {
-      console.log(`tag:${msg.tag}`, typeof msg.data)
-      const { ret } = msg.data
-      console.log("ret=>", ret)
+      const { ret, type } = msg.data
       const { success, items } = ret
       if (success) {
-        // 如果只有一个查询项，说明是从 searchArticle 调用的，需要设置到插入公众号链接对话框
-        if (items.length === 1 && insertMPLinkRef.value) {
-          // 将搜索结果设置到对话框中
-          const publishList = items[0]?.value?.publish_list || []
-          const articles = parsePublishedArticles(publishList)
-          insertMPLinkRef.value.setArticles(articles)
-        } else {
-          // 多个查询项是从 checkTitles 调用的
-          checkTitleResults.value = items
+        switch (type) {
+          case 'examine_title':
+            // 标题检测
+            checkTitleResults.value = items
+            break;
+          case 'insert_link':
+            // 插入公众号链接
+            const publishList = items[0]?.value?.publish_list || []
+            const articles = parsePublishedArticles(publishList)
+            insertMPLinkRef.value.setArticles(articles)
+            break;
+          default:
+            console.log("appmsg-ret:searchAppmsgsInPublishForQuerys: 无type对应操作")
         }
       }
       globalLoadingRef.value = false
