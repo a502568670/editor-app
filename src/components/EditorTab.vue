@@ -3713,7 +3713,7 @@ const handleUseTemplate = (data) => {
   currentArticleRef.value.author = data.author
 }
 
-const operationList = ref([
+const operationList = [
 {
     title: '提取链接内容',
     icon: 'ph:link-bold',
@@ -3785,7 +3785,7 @@ const operationList = ref([
     action: () => { openDebugDialog() },
     isShow: !isDebugRef.value
   }
-])
+]
 
 // 组件生命周期
 onMounted(async () => {
