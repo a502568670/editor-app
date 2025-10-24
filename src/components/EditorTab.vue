@@ -3711,15 +3711,15 @@ const handleUseTemplate = (data) => {
 }
 
 const operationList = ref([
+{
+    title: '提取链接内容',
+    icon: 'ph:link-bold',
+    action: () => { openExtractMpArticleUrlDialog() }
+  },
   {
     title: '清空',
     icon: 'tdesign:clear-formatting-1',
     action: () => { runEditorCMD('cleardoc') }
-  },
-  {
-    title: '提取链接内容',
-    icon: 'ic:outline-book',
-    action: () => { openExtractMpArticleUrlDialog() }
   },
   {
     title: '批量提取链接内容',
@@ -3743,7 +3743,7 @@ const operationList = ref([
   },
   {
     title: '公众号链接',
-    icon: 'humbleicons:link',
+    icon: 'mingcute:wechat-line',
     action: () => { openMPLinkDialog() }
   },
   {
