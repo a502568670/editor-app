@@ -203,12 +203,17 @@ service.interceptors.response.use(
     const code = error.response.status
 
     if (code === 500) {
-      const err = error.response.data.detail
+      const err = error.response.data.detail;
       ElMessageBox.alert(err, '服务器错误', {
         confirmButtonText: '确定',
         type: 'error'
-      })
-      return Promise.reject('error')
+      });
+      return Promise.reject('error');
+    } else if (code === 401) {
+      localStorage.removeItem('Token');
+      localStorage.removeItem('accesstoken');
+      // 加载登录页
+      location.reload();
     }
     ElMessage({
       message: '系统错误，请检查网络是否正常',
