@@ -354,7 +354,7 @@
     <div class="w-full flex flex-col">
       <el-row :gutter="40" class="w-full">
         <el-col :span="18" class="w-full">
-          <el-input v-model="extractArticleUrlRef" clearable placeholder="请输入文章提取地址" />
+          <el-input v-model="extractArticleUrlRef" clearable placeholder="请输入文章提取地址 Ctrl + v 粘贴" />
         </el-col>
         <el-col :span="6">
           <el-button @click="handleLocalExtractMpArticleUrl" type="primary">提取链接内容</el-button>
