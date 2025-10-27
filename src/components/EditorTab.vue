@@ -1094,6 +1094,7 @@ function onConfirm(){
     return;
   }
   onBatchExtractMp(data)
+  dialogExtractMpAritcleUrlRef.value = false
 }
 const extractLinkClose = () => {
   extractLink.value = 'single'
