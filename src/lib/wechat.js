@@ -39,6 +39,7 @@ function checkCookiesExpired(cookies, checkkeys) {
 
 // 请求微信公众号首页判断cookie是否过期
 async function checkLoginStatus_Old(viewData) {
+  if(!viewData.user || !viewData.user.session_id) return;
   const { cookie } = viewData.user.session_id;
   const token = viewData.user.token;
   const res = await fetch(`https://mp.weixin.qq.com/cgi-bin/home?t=home/index&lang=zh_CN&token=${token}`, {
