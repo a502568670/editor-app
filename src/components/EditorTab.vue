@@ -350,44 +350,50 @@
       </el-tabs>
     </div>
   </div>
-  <el-dialog :close-on-click-modal="false" title="提取文章链接内容" v-model="dialogExtractMpAritcleUrlRef" width="720px">
-    <div class="w-full flex flex-col">
-      <el-row :gutter="40" class="w-full">
-        <el-col :span="18" class="w-full">
-          <el-input v-model="extractArticleUrlRef" clearable placeholder="请输入文章提取地址 Ctrl + v 粘贴" />
-        </el-col>
-        <el-col :span="6">
-          <el-button @click="handleLocalExtractMpArticleUrl" type="primary">提取链接内容</el-button>
-        </el-col>
-      </el-row>
-      <el-row :gutter="40" class="w-full">
-        <el-col :span="3" class="w-full">
+  <el-dialog :close-on-click-modal="false" title="提取文章链接内容" v-model="dialogExtractMpAritcleUrlRef" width="720px" @close="extractLinkClose">
+    <el-tabs style="width: 100%;" v-model="extractLink" @tab-change="handleChange">
+      <el-tab-pane label="单个提取" name="single">
+        <div>
+          <div class="flex">
+            <el-input class="mr-2" v-model="extractArticleUrlRef" clearable placeholder="请输入文章提取地址 Ctrl + v 粘贴" />
+            <el-button @click="handleLocalExtractMpArticleUrl" type="primary">提取链接内容</el-button>
+          </div>
           <el-checkbox label="仅视频" v-model="import_settings.only_video_flag" />
-        </el-col>
-      </el-row>
-      <el-row :gutter="40" class="w-full">
-        <el-col :span="4" class="w-full">
-          <el-checkbox label="清除链接" v-model="import_settings.clear_content_url" />
-        </el-col>
-        <el-col :span="4" class="w-full">
-          <el-checkbox label="清除摘要" v-model="import_settings.clear_abstract" />
-        </el-col>
-        <el-col :span="4" class="w-full">
-          <el-checkbox label="清除作者" v-model="import_settings.clear_author" />
-        </el-col>
-        <el-col :span="4" class="w-full">
-          <el-checkbox label="清除原文链接" v-model="import_settings.clear_source_url" />
-        </el-col>
-      </el-row>
-      <el-row>
-        <el-col :span="4" class="w-full">
-          <el-checkbox label="清除小程序" v-model="import_settings.clear_weapp" />
-        </el-col>
-        <el-col :span="4" class="w-full">
-          <el-checkbox label="清除广告" v-model="import_settings.clear_ad" />
-        </el-col>
-      </el-row>
-    </div>
+          <el-row :gutter="40">
+            <el-col :span="4">
+              <el-checkbox label="清除链接" v-model="import_settings.clear_content_url" />
+            </el-col>
+            <el-col :span="4">
+              <el-checkbox label="清除摘要" v-model="import_settings.clear_abstract" />
+            </el-col>
+            <el-col :span="4">
+              <el-checkbox label="清除作者" v-model="import_settings.clear_author" />
+            </el-col>
+            <el-col :span="4">
+              <el-checkbox label="清除原文链接" v-model="import_settings.clear_source_url" />
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col :span="4">
+              <el-checkbox label="清除小程序" v-model="import_settings.clear_weapp" />
+            </el-col>
+            <el-col :span="4">
+              <el-checkbox label="清除广告" v-model="import_settings.clear_ad" />
+            </el-col>
+          </el-row>
+        </div>
+      </el-tab-pane>
+      <el-tab-pane label="批量提取" name="batch">
+        <div>
+          <el-input v-for="(v,idx) of inputs" :key="idx" v-model.trim="inputs[idx].url" clearable placeholder="请输入文章提取地址">
+            <template #prepend>#{{ idx + mp_msgsRef.length+1 }}</template>
+          </el-input>
+          <div class="flex justify-end mt-4 space-x-2">
+            <el-button type="primary" @click="onConfirm">批量提取</el-button>
+          </div>
+        </div>
+      </el-tab-pane>
+    </el-tabs>
   </el-dialog>
   <el-dialog :close-on-click-modal="false" title="视频素材" v-model="dialogVideoMaterialRef" width="600px">
     <el-row :gutter="40" class="w-full h-[400px]" v-loading="videoLoadingRef">
@@ -1067,6 +1073,32 @@ const import_settings = ref({
   clear_weapp: true,
   clear_ad: true,
 })
+
+// 批量提取文章
+const extractLink = ref('single')
+const MAX = 8
+const inputs = ref([])
+function handleChange(tab){
+  if(tab === 'batch'){
+    if(mp_msgsRef.value.length < MAX){
+      inputs.value = Array.from({length: MAX - mp_msgsRef.value.length}, ()=>({type:0,url:''}))
+      return;
+    }
+    ElMessage({type:'error',message:`超出单消息最大文章数 ${MAX} 篇`})
+  }
+}
+function onConfirm(){
+  const data = inputs.value.filter(v=>v.url)
+  if(!data.length){
+    ElMessage({type:'warning',message:'请输入有效的提取链接'})
+    return;
+  }
+  onBatchExtractMp(data)
+}
+const extractLinkClose = () => {
+  extractLink.value = 'single'
+  inputs.value = []
+}
 
 // 提取链接
 // const extractArticleUrlRef = ref("https://mp.weixin.qq.com/s/G2TYEsgZsTJ1VWj4R2F2hQ?from=kdocs_link")
@@ -3724,16 +3756,16 @@ const operationList = [
     icon: 'tdesign:clear-formatting-1',
     action: () => { runEditorCMD('cleardoc') }
   },
-  {
-    title: '批量提取链接内容',
-    icon: 'fluent:link-add-20-filled',
-    component: BatchExtractMpArticle,
-    componentProps: {
-      modelValue: mp_msgsRef,
-      'onUpdate:modelValue': (val) => { mp_msgsRef.value = val },
-      onConfirm: onBatchExtractMp
-    }
-  },
+  // {
+  //   title: '批量提取链接内容',
+  //   icon: 'fluent:link-add-20-filled',
+  //   component: BatchExtractMpArticle,
+  //   componentProps: {
+  //     modelValue: mp_msgsRef,
+  //     'onUpdate:modelValue': (val) => { mp_msgsRef.value = val },
+  //     onConfirm: onBatchExtractMp
+  //   }
+  // },
   {
     title: '设置广告',
     icon: 'ic:sharp-attach-money',
