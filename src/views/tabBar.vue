@@ -71,13 +71,11 @@ const AccountListRef = ref()
 const route = useRoute()
 
 // 提供刷新 AccountList 的方法给子组件
-provide('refreshAccountList', () => {
+provide('refreshAccountList',async () => {
   if (AccountListRef.value) {
-    AccountListRef.value.getList()
     // 同时刷新分组列表
-    if (AccountListRef.value.loadAccountGroups) {
-      AccountListRef.value.loadAccountGroups()
-    }
+    await AccountListRef.value.loadAccountGroups()
+    AccountListRef.value.getList()
   }
 })
 
