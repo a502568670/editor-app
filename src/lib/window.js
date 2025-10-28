@@ -628,16 +628,15 @@ async function reactToIpcObjectData(data, tabbedWin, viewContents) {
     }
     case 'appmsg:searchAppmsgsInPublishForQuerys': {
       verbose_log("===== listen searchAppmsgsInPublishForQuerys in main ====", data)
-      const { source, token, getData } = data
+      const { source, token, type, getData } = data
       // token => userToken
-      console.log("getData=>", getData)
       const ret = await searchAppmsgsInPublishForQuerys(getData)
       if (!ret.success) {
         verbose_log("===== 批量关键词查询发表记录失败 ====", ret.err_msg)
       } else {
         verbose_log("===== 批量关键词查询发表记录成功 ====", ret)
       }
-      viewContents.send('fromMain', { tag: 'appmsg-ret:searchAppmsgsInPublishForQuerys', data: { source, ret } })
+      viewContents.send('fromMain', { tag: 'appmsg-ret:searchAppmsgsInPublishForQuerys', data: { source, ret, type } });
       break;
     }
     case 'appmsg:listAppmsgsInPublishForQuerys': {

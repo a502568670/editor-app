@@ -37,12 +37,8 @@
 </template>
 
 <script setup>
-import { ref, onMounted, toRefs } from 'vue';
+import { ref, onMounted } from 'vue';
 import { getDefaultTempl, setDefaultTempl } from '@/api/mp_msg';
-import { useStore } from 'vuex';
-
-const store = useStore();
-const { getUserData } = toRefs(store.getters);
 
 // 拿到父组件传递的v-model值
 const html = defineModel();
@@ -53,7 +49,7 @@ const templateData = ref({
   attentionGuidance: '', // 关注引导
   readOriginalGuidance: '', // 阅读原文引导
   originalLink: '', // 原文链接
-  author: '', // 作者
+  author: '' // 作者
 });
 
 // 点击导入按钮
@@ -70,8 +66,9 @@ const deleteHtml = key => {
 // 点击使用模板按钮
 const useTemplate = () => {
   html.value = `
-    <br/>
     ${templateData.value.attentionGuidance}
+    <br/>
+    ${html.value}
     <br/>
     ${templateData.value.readOriginalGuidance}
   `;
@@ -99,7 +96,7 @@ const setTemplateData = async () => {
     guide_attention: templateData.value.attentionGuidance,
     guide_read_original: templateData.value.readOriginalGuidance,
     original_link: templateData.value.originalLink,
-    author: templateData.value.author,
+    author: templateData.value.author
   };
   await setDefaultTempl(formData);
 };

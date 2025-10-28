@@ -1,13 +1,27 @@
 <template>
   <el-row>
     <el-col :span="4">
-      <div class="flex items-center justify-start h-full">
-        <img src="/favicon.ico" class="w-[30px] h-[30px] rounded-full mr-2" />
-        <div style="display: flex;flex-direction: column;justify-content: center">
-          <div style="font-size: 12px;margin-bottom: 5px;">{{$store.state.user?.mobile}}</div>
-          <div v-if="$store.state.user?.vip_name" style="color:#999;font-size: 12px;">{{$store.state.user?.vip_name}}[{{$store.state.user?.vip_endtime}}]到期</div>
-          <div style="color:#999;font-size: 12px;" v-else>{{username}}</div>
-        </div>
+      <div class="flex items-center h-full">
+        <el-dropdown @command="handleCommand">
+          <div class="flex items-center justify-start h-full">
+            <img src="/favicon.ico" class="w-[30px] h-[30px] rounded-full mr-2" />
+            <div style="display: flex;flex-direction: column;justify-content: center">
+              <div style="font-size: 12px;margin-bottom: 5px;">{{$store.state.user?.mobile}}</div>
+              <div v-if="$store.state.user?.vip_name" style="color:#999;font-size: 12px;">{{$store.state.user?.vip_name}}[{{$store.state.user?.vip_endtime}}]到期</div>
+              <div style="color:#999;font-size: 14px;" v-else>{{username}}</div>
+            </div>
+            <el-icon class="flex items-center ml-2">
+              <arrow-down />
+            </el-icon>
+          </div>
+          <template #dropdown>
+            <el-dropdown-menu>
+              <el-dropdown-item command="gotoExternal">极致了助手</el-dropdown-item>
+              <el-dropdown-item command="toKf">联系客服</el-dropdown-item>
+              <el-dropdown-item command="exit">退出</el-dropdown-item>
+            </el-dropdown-menu>
+          </template>
+        </el-dropdown>
       </div>
     </el-col>
     <el-col :span="16">
@@ -28,7 +42,7 @@
       </div>
     </el-col>
     <el-col :span="4">
-      <div class="flex justify-end items-center h-full">
+      <!-- <div class="flex justify-end items-center h-full">
         <el-dropdown @command="handleCommand">
           <el-icon :size="25">
             <Menu />
@@ -41,7 +55,7 @@
             </el-dropdown-menu>
           </template>
         </el-dropdown>
-      </div>
+      </div> -->
       <!-- <div class="right"> -->
         <!-- <Hydrate/> -->
         <!-- <el-button @click="toBuyVip" type="primary" >购买会员</el-button> -->
@@ -58,9 +72,7 @@ import { ref, reactive, toRefs, computed, toRaw } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useStore } from 'vuex'
 import {ImagePlay, Newspaper, Share} from 'lucide-vue-next'
-import {
-  SwitchButton,Menu
-} from '@element-plus/icons-vue'
+import { ArrowDown } from '@element-plus/icons-vue'
 import { gotoExternal } from "@/utils/openWindow"
 import Hydrate from '@/components/Hydrate.vue';
 import { useAccountStore } from '@/store/piniaStore'

@@ -350,44 +350,50 @@
       </el-tabs>
     </div>
   </div>
-  <el-dialog :close-on-click-modal="false" title="提取文章链接内容" v-model="dialogExtractMpAritcleUrlRef" width="720px">
-    <div class="w-full flex flex-col">
-      <el-row :gutter="40" class="w-full">
-        <el-col :span="18" class="w-full">
-          <el-input v-model="extractArticleUrlRef" clearable placeholder="请输入文章提取地址" />
-        </el-col>
-        <el-col :span="6">
-          <el-button @click="handleLocalExtractMpArticleUrl" type="primary">提取链接内容</el-button>
-        </el-col>
-      </el-row>
-      <el-row :gutter="40" class="w-full">
-        <el-col :span="3" class="w-full">
+  <el-dialog :close-on-click-modal="false" title="提取文章链接内容" v-model="dialogExtractMpAritcleUrlRef" width="720px" @close="extractLinkClose">
+    <el-tabs style="width: 100%;" v-model="extractLink" @tab-change="handleChange">
+      <el-tab-pane label="单个提取" name="single">
+        <div>
+          <div class="flex">
+            <el-input class="mr-2" v-model="extractArticleUrlRef" clearable placeholder="请输入文章提取地址 Ctrl + v 粘贴" />
+            <el-button @click="handleLocalExtractMpArticleUrl" type="primary">提取链接内容</el-button>
+          </div>
           <el-checkbox label="仅视频" v-model="import_settings.only_video_flag" />
-        </el-col>
-      </el-row>
-      <el-row :gutter="40" class="w-full">
-        <el-col :span="4" class="w-full">
-          <el-checkbox label="清除链接" v-model="import_settings.clear_content_url" />
-        </el-col>
-        <el-col :span="4" class="w-full">
-          <el-checkbox label="清除摘要" v-model="import_settings.clear_abstract" />
-        </el-col>
-        <el-col :span="4" class="w-full">
-          <el-checkbox label="清除作者" v-model="import_settings.clear_author" />
-        </el-col>
-        <el-col :span="4" class="w-full">
-          <el-checkbox label="清除原文链接" v-model="import_settings.clear_source_url" />
-        </el-col>
-      </el-row>
-      <el-row>
-        <el-col :span="4" class="w-full">
-          <el-checkbox label="清除小程序" v-model="import_settings.clear_weapp" />
-        </el-col>
-        <el-col :span="4" class="w-full">
-          <el-checkbox label="清除广告" v-model="import_settings.clear_ad" />
-        </el-col>
-      </el-row>
-    </div>
+          <el-row :gutter="40">
+            <el-col :span="4">
+              <el-checkbox label="清除链接" v-model="import_settings.clear_content_url" />
+            </el-col>
+            <el-col :span="4">
+              <el-checkbox label="清除摘要" v-model="import_settings.clear_abstract" />
+            </el-col>
+            <el-col :span="4">
+              <el-checkbox label="清除作者" v-model="import_settings.clear_author" />
+            </el-col>
+            <el-col :span="4">
+              <el-checkbox label="清除原文链接" v-model="import_settings.clear_source_url" />
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col :span="4">
+              <el-checkbox label="清除小程序" v-model="import_settings.clear_weapp" />
+            </el-col>
+            <el-col :span="4">
+              <el-checkbox label="清除广告" v-model="import_settings.clear_ad" />
+            </el-col>
+          </el-row>
+        </div>
+      </el-tab-pane>
+      <el-tab-pane label="批量提取" name="batch">
+        <div>
+          <el-input v-for="(v,idx) of inputs" :key="idx" v-model.trim="inputs[idx].url" clearable placeholder="请输入文章提取地址">
+            <template #prepend>#{{ idx + mp_msgsRef.length+1 }}</template>
+          </el-input>
+          <div class="flex justify-end mt-4 space-x-2">
+            <el-button type="primary" @click="onConfirm">批量提取</el-button>
+          </div>
+        </div>
+      </el-tab-pane>
+    </el-tabs>
   </el-dialog>
   <el-dialog :close-on-click-modal="false" title="视频素材" v-model="dialogVideoMaterialRef" width="600px">
     <el-row :gutter="40" class="w-full h-[400px]" v-loading="videoLoadingRef">
@@ -1067,6 +1073,33 @@ const import_settings = ref({
   clear_weapp: true,
   clear_ad: true,
 })
+
+// 批量提取文章
+const extractLink = ref('single')
+const MAX = 8
+const inputs = ref([])
+function handleChange(tab){
+  if(tab === 'batch'){
+    if(mp_msgsRef.value.length < MAX){
+      inputs.value = Array.from({length: MAX - mp_msgsRef.value.length}, ()=>({type:0,url:''}))
+      return;
+    }
+    ElMessage({type:'error',message:`超出单消息最大文章数 ${MAX} 篇`})
+  }
+}
+function onConfirm(){
+  const data = inputs.value.filter(v=>v.url)
+  if(!data.length){
+    ElMessage({type:'warning',message:'请输入有效的提取链接'})
+    return;
+  }
+  onBatchExtractMp(data)
+  dialogExtractMpAritcleUrlRef.value = false
+}
+const extractLinkClose = () => {
+  extractLink.value = 'single'
+  inputs.value = []
+}
 
 // 提取链接
 // const extractArticleUrlRef = ref("https://mp.weixin.qq.com/s/G2TYEsgZsTJ1VWj4R2F2hQ?from=kdocs_link")
@@ -2229,17 +2262,15 @@ const handleSendToOtherAccount = async () => {
   //   target_wechat_ids: otherAccountsChoosedRef.value
   // })
   const { wechat_id } = selectedAccount.value
-  let stepRetsend_to_other_accounts_events
-  await ({
+  let stepRet
+  await send_to_other_accounts_events({
     source_wechat_id: wechat_id,
     soruce_appmsgid: appmsgid,
     target_wechat_ids: otherAccountsChoosedRef.value
   }, (data) => {
-    // console.log("step raw=>", data)
     try {
       const v = data.replaceAll(/data: /gi, "")
       stepRet = JSON5.parse(v)
-      // console.log("step data=>", o)
       percentRef.value = stepRet.percent
       progressDescRef.value = stepRet.desc
     } catch {
@@ -2316,6 +2347,7 @@ const checkTitles = () => {
     tag: 'appmsg:searchAppmsgsInPublishForQuerys',
     source: `${props.appmsg.appmsgid}`,
     token: getToken(),
+    type: 'examine_title',
     getData: {
       cookies: serializeCookie(JSON.parse(session_id)["cookie"]),
       token: parseInt(token),
@@ -2797,6 +2829,7 @@ const searchArticle = async (val) => {
         tag: 'appmsg:searchAppmsgsInPublishForQuerys',
         source: `${props.appmsg.appmsgid}`,
         token: getToken(),
+        type: 'insert_link',
         getData: {
           cookies: cookies,
           token: parseInt(token),
@@ -3552,20 +3585,22 @@ watch(() => [props.mainMsg], async (newVal) => {
         publishLoadingRef.value = false
       }
     } else if (tag === "appmsg-ret:searchAppmsgsInPublishForQuerys") {
-      console.log(`tag:${msg.tag}`, typeof msg.data)
-      const { ret } = msg.data
-      console.log("ret=>", ret)
+      const { ret, type } = msg.data
       const { success, items } = ret
       if (success) {
-        // 如果只有一个查询项，说明是从 searchArticle 调用的，需要设置到插入公众号链接对话框
-        if (items.length === 1 && insertMPLinkRef.value) {
-          // 将搜索结果设置到对话框中
-          const publishList = items[0]?.value?.publish_list || []
-          const articles = parsePublishedArticles(publishList)
-          insertMPLinkRef.value.setArticles(articles)
-        } else {
-          // 多个查询项是从 checkTitles 调用的
-          checkTitleResults.value = items
+        switch (type) {
+          case 'examine_title':
+            // 标题检测
+            checkTitleResults.value = items
+            break;
+          case 'insert_link':
+            // 插入公众号链接
+            const publishList = items[0]?.value?.publish_list || []
+            const articles = parsePublishedArticles(publishList)
+            insertMPLinkRef.value.setArticles(articles)
+            break;
+          default:
+            console.log("appmsg-ret:searchAppmsgsInPublishForQuerys: 无type对应操作")
         }
       }
       globalLoadingRef.value = false
@@ -3709,7 +3744,7 @@ const handleUseTemplate = (data) => {
   currentArticleRef.value.author = data.author
 }
 
-const operationList = ref([
+const operationList = [
 {
     title: '提取链接内容',
     icon: 'ph:link-bold',
@@ -3720,16 +3755,16 @@ const operationList = ref([
     icon: 'tdesign:clear-formatting-1',
     action: () => { runEditorCMD('cleardoc') }
   },
-  {
-    title: '批量提取链接内容',
-    icon: 'fluent:link-add-20-filled',
-    component: BatchExtractMpArticle,
-    componentProps: {
-      modelValue: mp_msgsRef,
-      'onUpdate:modelValue': (val) => { mp_msgsRef.value = val },
-      onConfirm: onBatchExtractMp
-    }
-  },
+  // {
+  //   title: '批量提取链接内容',
+  //   icon: 'fluent:link-add-20-filled',
+  //   component: BatchExtractMpArticle,
+  //   componentProps: {
+  //     modelValue: mp_msgsRef,
+  //     'onUpdate:modelValue': (val) => { mp_msgsRef.value = val },
+  //     onConfirm: onBatchExtractMp
+  //   }
+  // },
   {
     title: '设置广告',
     icon: 'ic:sharp-attach-money',
@@ -3781,7 +3816,7 @@ const operationList = ref([
     action: () => { openDebugDialog() },
     isShow: !isDebugRef.value
   }
-])
+]
 
 // 组件生命周期
 onMounted(async () => {

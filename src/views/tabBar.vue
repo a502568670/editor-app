@@ -355,6 +355,11 @@ const handleOpenAccountFromRoute = () => {
   }
 }
 
+onActivated(() => {
+  // handleFilter();
+  nextTick(()=>changeTab(currentTabId.value))
+})
+
 // 监听路由参数变化（用于在 tabBar 页面内部通过路由打开账号）
 watch(() => route.query.open_account_id, (newAccountId) => {
   if (newAccountId && route.path === '/tabbar') {
