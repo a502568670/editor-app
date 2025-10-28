@@ -1825,7 +1825,6 @@ const checkQuota = (date) => {
 
 const confirmOpenPublishToWechatDialog = async () => {
   const publish_flag = currentAppmsgRef.value.publish_flag;
-  console.log("publish_flag=>", publish_flag)
   if (publish_flag === 1) {
     ElMessageBox.confirm(
       '当前消息列表已发布，除非在公众号后台撤销，否则操作会引发错误, 是否继续?',
@@ -1947,6 +1946,7 @@ const handlePublishNext = async () => {
     })
     publishLoadingRef.value = false
     // console.log("step data=>", o)
+    console.log('打印是否是原创',stepRet)
     if (stepRet.copyright === 1) {
       // <el-step title="设置发表参数" />
       //   <el-step title="确认发表方式" />
