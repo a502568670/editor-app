@@ -39,9 +39,6 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { getDefaultTempl, setDefaultTempl } from '@/api/mp_msg';
-import { useStore } from 'vuex';
-
-const store = useStore();
 
 // 拿到父组件传递的v-model值
 const html = defineModel();
@@ -69,7 +66,6 @@ const deleteHtml = key => {
 // 点击使用模板按钮
 const useTemplate = () => {
   html.value = `
-    <br/>
     ${templateData.value.attentionGuidance}
     <br/>
     ${html.value}
