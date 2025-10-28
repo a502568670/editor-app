@@ -251,92 +251,79 @@
         </el-icon> -->
       </div>
       <el-tabs type="border-card" class="editor-inner-tabs w-[300px]">
-        <el-tab-pane label="发布设置">
-          <el-row :gutter="4" class="mb-1" v-if="false&&![5, 8].includes(currentArticleRef.item_show_type)">
-            <el-col :span="24">
-              <el-input v-model="currentArticleRef.title" clearable class="grid-content-control" placeholder="请输入文章标题"
-                @input="syncToList('title')" />
-            </el-col>
-          </el-row>
-          <el-row :gutter="4" class="mb-1" v-if="![8].includes(currentArticleRef.item_show_type)">
-            <el-col :span="24">
-              <el-input v-model="currentArticleRef.author" clearable class="grid-content-control"
-                placeholder="请输入文章作者" />
-            </el-col>
-          </el-row>
-          <el-row :gutter="4" class="mb-1 w-full">
-            <el-col :span="24" class="h-20 py-2 w-full flex justify-center items-center" style="display: none;">
-              <img class="cursor-pointer max-h-16 block" @click="triggerFileInput" v-if="selectedCdnImageRef"
-                :src="selectedCdnImageRef" alt="封面预览">
-              <img class="cursor-pointer max-h-16 block" @click="triggerFileInput"
-                v-else-if="currentArticleRef.cdn_url" :src="currentArticleRef.cdn_url" referrerpolicy="no-referrer"
-                alt="封面图" />
-              <div v-else @click="triggerFileInput"
-                class="cursor-pointer border h-16 w-[180px] flex justify-center items-center bg-[#8c8c8c]">设置封面图</div>
-              <input class="invisible" ref="cdnFileInputRef" @change="handleImage" type="file" accept="image/*">
-            </el-col>
-            <ImgPicker v-show="currentArticleRef.item_show_type !== 10" ref="refImgPicker" v-model="pickerQuery"
-              :pageInfo="pickerPageInfo" :imgSrc="currentArticleRef.cdn_url" placeholder="设置封面图"
-              @change="handleImageUpload" @confirm="onImgPick" :editorInst="editorRef" />
-            <!-- <ImgCrop :imgSrc="currentArticleRef.cdn_url" placeholder="设置封面图" @change="handleImageUpload"></ImgCrop> -->
-          </el-row>
-          <!-- <el-row :gutter="4" class="mb-1 invisible">
-      <el-col :span="24">
-
-      </el-col>
-    </el-row> -->
-          <el-row :gutter="4" class="my-2">
-            <el-col :span="24">
-              <hr />
-            </el-col>
-          </el-row>
-          <el-row :gutter="4" class="mb-1">
-            <el-col :span="24">
-              <!-- 创作来源 -->
-              <el-select v-model="selected_claim_source_typeRef" value-key="id" filterable placeholder="创作来源">
-                <el-option v-for="(item) in claim_source_typesRef" :key="item.id" :label="item.name" :value="item" />
-              </el-select>
-            </el-col>
-          </el-row>
-          <el-row :gutter="4" class="mb-1">
-            <el-col :span="24">
-              <el-checkbox label="声明原创" v-model="copyrightRef" />
-            </el-col>
-          </el-row>
-          <el-row :gutter="4" class="h-8 mb-1">
-            <el-col :span="24">
-              <el-input v-model="currentArticleRef.sourceurl" clearable class="grid-content-control"
-                placeholder="原文链接" />
-            </el-col>
-          </el-row>
-          <el-row :gutter="4" class="mb-1">
-            <el-col :span="24">
-              <el-checkbox label="打开留言" v-model="needOpenCommentRef" />
-              <el-radio-group :disabled="!needOpenCommentRef" v-model="commentTypeRef">
-                <!-- works when >=2.6.0, recommended ✔️ not work when <2.6.0 ❌ -->
-                <el-radio value="0">所有人可留言</el-radio>
-                <!-- works when <2.6.0, deprecated act as value when >=3.0.0 -->
-                <el-radio label="1">仅关注后可留言</el-radio>
-              </el-radio-group>
-            </el-col>
-          </el-row>
-
-          <!-- <el-row :gutter="4" class="my-2">
-        <el-col :span="24">
-          <hr />
-        </el-col>
-      </el-row>
-      <el-row :gutter="4" class="mb-1">
-        <el-col :span="24">
-
-        </el-col>
-      </el-row>
-      <el-row :gutter="4" class="h-8 mb-1">
-        <el-col :span="24"></el-col>
-      </el-row>
-      <el-row :gutter="4" class="h-8 mb-1">
-        <el-col :span="24"></el-col>
-      </el-row> -->
+        <el-tab-pane label="发布设置" class="h-full">
+          <div class="overflow-y-auto h-full">
+            <el-row :gutter="4" class="mb-6" v-if="false&&![5, 8].includes(currentArticleRef.item_show_type)">
+              <el-col :span="24">
+                <el-input v-model="currentArticleRef.title" clearable class="grid-content-control" placeholder="请输入文章标题"
+                  @input="syncToList('title')" />
+              </el-col>
+            </el-row>
+            <el-row :gutter="4" class="mb-6" v-if="![8].includes(currentArticleRef.item_show_type)">
+              <el-col :span="24">
+                <p class="set-title">作者</p>
+                <el-input v-model="currentArticleRef.author" clearable placeholder="请输入文章作者" />
+              </el-col>
+            </el-row>
+            <el-row :gutter="4" class="mb-6">
+              <el-col :span="24">
+                <p class="set-title">封面设置</p>
+                <ImgPicker v-show="currentArticleRef.item_show_type !== 10" ref="refImgPicker" v-model="pickerQuery"
+                  :pageInfo="pickerPageInfo" :imgSrc="currentArticleRef.cdn_url" placeholder="设置封面图"
+                  @change="handleImageUpload" @confirm="onImgPick" :editorInst="editorRef" />
+              </el-col>
+              <!-- <el-col :span="24" class="h-20 py-2 w-full flex justify-center items-center" style="display: none;">
+                <img class="cursor-pointer max-h-16 block" @click="triggerFileInput" v-if="selectedCdnImageRef"
+                  :src="selectedCdnImageRef" alt="封面预览">
+                <img class="cursor-pointer max-h-16 block" @click="triggerFileInput"
+                  v-else-if="currentArticleRef.cdn_url" :src="currentArticleRef.cdn_url" referrerpolicy="no-referrer"
+                  alt="封面图" />
+                <div v-else @click="triggerFileInput"
+                  class="cursor-pointer border h-16 w-[180px] flex justify-center items-center bg-[#8c8c8c]">设置封面图</div>
+                <input class="invisible" ref="cdnFileInputRef" @change="handleImage" type="file" accept="image/*">
+              </el-col> -->
+              <!-- <ImgCrop :imgSrc="currentArticleRef.cdn_url" placeholder="设置封面图" @change="handleImageUpload"></ImgCrop> -->
+            </el-row>
+            <el-row :gutter="4" class="mb-6">
+              <el-col :span="24">
+                <p class="set-title">创作来源</p>
+                <el-select v-model="selected_claim_source_typeRef" value-key="id" filterable placeholder="创作来源">
+                  <el-option v-for="(item) in claim_source_typesRef" :key="item.id" :label="item.name" :value="item" />
+                </el-select>
+              </el-col>
+            </el-row>
+            <el-row :gutter="4" class="mb-6">
+              <el-col :span="24">
+                <p class="set-title">原创设置</p>
+                <el-checkbox label="声明原创" v-model="copyrightRef" />
+              </el-col>
+            </el-row>
+            <el-row :gutter="4" class="mb-6">
+              <el-col :span="24">
+                <p class="set-title">原文链接</p>
+                <el-input v-model="currentArticleRef.sourceurl" clearable placeholder="原文链接" />
+              </el-col>
+            </el-row>
+            <el-row :gutter="4" class="mb-6">
+              <el-col :span="24">
+                <p class="set-title">留言设置</p>
+                <el-checkbox label="打开留言" v-model="needOpenCommentRef" />
+                <el-radio-group :disabled="!needOpenCommentRef" v-model="commentTypeRef">
+                  <el-radio label="0">所有人可留言</el-radio>
+                  <el-radio label="1">仅关注后可留言</el-radio>
+                </el-radio-group>
+              </el-col>
+            </el-row>
+            <el-row :gutter="4" class="mb-6">
+              <el-col :span="24">
+                <p class="set-title">评论区广告</p>
+                <el-radio-group v-model="commentAreaAdvertise">
+                  <el-radio label="0">开启</el-radio>
+                  <el-radio label="1">关闭</el-radio>
+                </el-radio-group>
+              </el-col>
+            </el-row>
+          </div>
         </el-tab-pane>
         <el-tab-pane label="样式中心" class="h-full">
           <SysTempl :editorInst="editorRef" />
@@ -795,6 +782,12 @@
 }
 </style>
 <style scoped>
+.set-title{
+  font-size: 14px;
+  color: #444;
+  margin-bottom: 5px;
+}
+
 .percentage-value {
   display: block;
   margin-top: 10px;
@@ -1021,6 +1014,7 @@ const copyrightRef = ref(false)
 // 留言
 const needOpenCommentRef = ref(false)
 const commentTypeRef = ref("0") // 0-全部 1-只有粉丝
+const commentAreaAdvertise = ref('0')
 
 // 创作来源
 const claim_source_typesRef = ref(claim_source_types)
