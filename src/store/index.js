@@ -1,8 +1,8 @@
 import { createStore } from 'vuex';
-import { loginByUsername, loginByUsernameSimple, logout, getUserInfo } from '@/api/login'
-import { listAccount, removeAccount } from "@/api/account"
-import { removeToken, setToken, getToken } from '@/utils/auth'
-import { newGetconfig } from '@/api/config'
+import { loginByUsername, loginByUsernameSimple, logout, getUserInfo } from '@/api/login';
+import { listAccount, removeAccount } from '@/api/account';
+import { removeToken, setToken, getToken } from '@/utils/auth';
+import { newGetconfig } from '@/api/config';
 import { removeAccesstoken, setAccesstoken } from '@/api/posts';
 import { checkWxSession } from '@/utils/cookie';
 export default createStore({
@@ -13,9 +13,9 @@ export default createStore({
       token: '',
       accounts: {
         list: [],
-        total: 0,
+        total: 0
       },
-      account_orders: [],
+      account_orders: {}
     };
   },
   mutations: {
@@ -32,9 +32,9 @@ export default createStore({
     SET_ACCOUNTS: (state, accounts) => {
       state.accounts = accounts;
     },
-    SET_ACCOUNT_ORDERS: (state, account_orders) => {
-      state.account_orders = account_orders;
-    },
+    SET_ACCOUNT_ORDERS: (state, { account_orders, group }) => {
+      state.account_orders[group] = account_orders;
+    }
   },
   actions: {
     // 获取配置
@@ -61,7 +61,6 @@ export default createStore({
       return new Promise((resolve, reject) => {
         loginByUsername(username, userInfo.password, userInfo.captcha, userInfo.code)
           .then(response => {
-            console.info(response.data.data.token);
             commit('SET_TOKEN', response.data.data.token);
             resolve(response.data.data);
           })
@@ -76,9 +75,7 @@ export default createStore({
       return new Promise((resolve, reject) => {
         loginByUsernameSimple(username, userInfo.password)
           .then(response => {
-            // console.info(response.data.data.token)
             commit('SET_TOKEN', response.data.data.token);
-            // console.log("commit SET_TOKEN =>response.data.data.token", state)
             resolve(response.data.data);
           })
           .catch(error => {
@@ -91,20 +88,17 @@ export default createStore({
     // 分页获取账号数据(目前按照100条先不分页)
     async ListAccounts({ commit, state, dispatch }, { page = 1, num = 500 } = { page: 1, num: 500 }) {
       const response = await listAccount({ page, num });
-      console.info('SET_ACCOUNTS', response.data.data);
-      response.data.data.list?.forEach(v => (v.expired = checkWxSession(v.session_id)));
+      response.data.data.list?.forEach(v => {
+        v.expired = checkWxSession(v);
+        if (v.expired) {
+          v.session_id = '';
+        }
+      });
       commit('SET_ACCOUNTS', response.data.data);
-      const account_orders = localStorage.getItem('account_orders');
-      if (!account_orders) {
-        console.log('==SaveAccountOrders== in ListAccounts');
-        dispatch('SaveAccountOrders', response.data.data);
-      } else {
-        if (state.account_orders.length === 0) {
-          console.log('account_orders:', typeof account_orders, account_orders);
-          commit(
-            'SET_ACCOUNT_ORDERS',
-            account_orders.split(',').map(id => parseInt(id))
-          );
+      const account_orders = JSON.parse(localStorage.getItem('account_group_orders'));
+      if (account_orders) {
+        for (const group in account_orders) {
+          commit('SET_ACCOUNT_ORDERS', { account_orders: account_orders[group], group });
         }
       }
       return response.data.data;
@@ -119,7 +113,6 @@ export default createStore({
     async SaveAccountOrders({ commit, state }, { list }) {
       if (list.length > 0) {
         const account_orders = list.map(v => v.id);
-        console.log('new account_orders=>', account_orders);
         commit('SET_ACCOUNT_ORDERS', account_orders);
         localStorage.setItem('account_orders', account_orders);
       }
@@ -149,11 +142,11 @@ export default createStore({
         commit('setUser', {});
         resolve();
       });
-    },
+    }
   },
   getters: {
     all_accounts: state => state.accounts,
     account_orders: state => state.account_orders,
-    getUserData: state => state.user,
-  },
+    getUserData: state => state.user
+  }
 });

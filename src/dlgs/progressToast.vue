@@ -6,15 +6,16 @@
         <div 
           v-if="minimized" 
           class="progress-toast-minimized"
-          :class="{ 'is-completed': completed }"
+          :class="{ 'is-completed': completed, 'is-stopped': stopped }"
           @click="toggleMinimize"
-          :title="completed ? '任务完成，点击查看详情' : `进度 ${current}/${total}`"
+          :title="completed ? '任务完成，点击查看详情' : stopped ? '任务已停止，点击查看详情' : `进度 ${current}/${total}`"
         >
           <el-icon class="minimized-icon">
             <Check v-if="completed" />
+            <VideoPause v-else-if="stopped" />
             <Loading v-else />
           </el-icon>
-          <div class="minimized-badge" v-if="!completed">{{ current }}/{{ total }}</div>
+          <div class="minimized-badge" v-if="!completed && !stopped">{{ current }}/{{ total }}</div>
         </div>
 
         <!-- 正常状态：完整卡片 -->
@@ -68,7 +69,7 @@
 
 <script setup>
 import { ref, computed } from 'vue'
-import { InfoFilled, Close, Minus, Check, Loading } from '@element-plus/icons-vue'
+import { InfoFilled, Close, Minus, Check, Loading, VideoPause } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 
 const props = defineProps({
@@ -191,6 +192,21 @@ const messagesWithKeys = computed(() => {
 }
 
 .progress-toast-minimized.is-completed .minimized-icon {
+  animation: none;
+}
+
+/* 停止状态的图标不旋转，改变背景色为深灰色 */
+.progress-toast-minimized.is-stopped {
+  background: #6b7280;
+  box-shadow: 0 4px 12px rgba(107, 114, 128, 0.4);
+}
+
+.progress-toast-minimized.is-stopped:hover {
+  background: #4b5563;
+  box-shadow: 0 6px 16px rgba(107, 114, 128, 0.5);
+}
+
+.progress-toast-minimized.is-stopped .minimized-icon {
   animation: none;
 }
 

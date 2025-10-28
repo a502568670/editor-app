@@ -23,42 +23,86 @@
   </el-dialog>
 </template>
 <script setup>
-// import { useStore } from 'vuex'
-import { computed, onActivated, onMounted, ref, toRefs, watch } from 'vue'
-import { ElMessage, ElMessageBox, ElLoading } from 'element-plus'
+import { computed, ref, watch, onActivated, toRefs } from 'vue'
+import { ElMessageBox } from 'element-plus'
 import { toDeepRaw } from "@/utils/convert"
+import { getAccountGroupList } from '@/api/account-group';
+import store from '@/store';
+import { sortByOrder } from '@/utils/index';
 
-// const store = useStore()
-// const { all_accounts } = toRefs(store.getters)
+const { account_orders } = toRefs(store.getters)
 const props = defineProps(['dialogVisible', 'accounts']);
 
 const emitEvents = defineEmits(['dialogClosed', 'instantSend'])
 
 const dialogVisibleRef = ref(false)
-// const otherAccountsRef = ref([])
+// 分组数据
+const accountGroups = ref([]);
+/** 加载分组列表 */
+const loadAccountGroups = async () => {
+  try {
+    const response = await getAccountGroupList();
+    if (response && response.data && response.data.code === 1) {
+      accountGroups.value = response.data.data.list || [];
+    }
+  } catch (error) {
+    console.error('加载分组列表失败:', error);
+  }
+};
 const otherAccountsChoosedRef = ref([])
 var input=ref('')
 var filterAccounts=computed(()=>{
-  if(input.value){
-    return props.accounts.filter(v=>v.name.indexOf(input.value)>-1)
+  const filteredAccounts = props.accounts.filter(v=>v.name.indexOf(input.value)>-1)
+
+  const newGroup = {
+    0: {
+      id: 0,
+      name: '未分组',
+      accounts: []
+    }
+  };
+  accountGroups.value.forEach(group => {
+    newGroup[group.id] = {
+      id: group.id,
+      name: group.name || group.label,
+      accounts: []
+    };
+  });
+
+  // 将账号分配到对应的分组
+  filteredAccounts.forEach(account => {
+    if (newGroup[account.group_id]) {
+      newGroup[account.group_id].accounts.push(account);
+    } else {
+      // 未分组
+      newGroup[0].accounts.push(account);
+    }
+  });
+  for (const key in newGroup) {
+    if (newGroup[key].accounts.length === 0) {
+      delete newGroup[key];
+    } else {
+      // 排序
+      const { result } = sortByOrder(newGroup[key].accounts, toDeepRaw(account_orders.value[key]));
+      newGroup[key].accounts = result;
+    }
   }
-  return props.accounts;
+  return Object.values(newGroup).reduce((acc, group) => {
+    return acc.concat(group.accounts);
+  }, []);
 })
 
 // 计算选择的账号数量
 const selectedCount = computed(() => {
   return otherAccountsChoosedRef.value.length
 })
-// watch(otherAccountsChoosedRef,()=>console.log(otherAccountsChoosedRef.value))
 
 
 watch(() => [props.dialogVisible], (newVal) => {
-  // console.log("syncToOtherAccounts props.changed=>", newVal)
   dialogVisibleRef.value = newVal[0]
 })
 
 const clickAllOtherAccounts = (checkedAll) => {
-  console.log("props.accounts=>", props.accounts)
   if (checkedAll) {
     otherAccountsChoosedRef.value = props.accounts.map(v => v.id)
   } else {
@@ -85,4 +129,7 @@ const handleSend = () => {
   emitEvents("instantSend", { otherAccountsChoosed: toDeepRaw(otherAccountsChoosedRef.value) })
 }
 
+onActivated(() => {
+  loadAccountGroups();
+})
 </script>

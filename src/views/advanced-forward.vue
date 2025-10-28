@@ -184,9 +184,15 @@
             <div class="setting-item flex items-center justify-between">
               <div class="flex items-center space-x-2">
                 <span class="text-gray-700 font-medium">群发间隔</span>
-                <el-icon class="text-gray-400 cursor-pointer">
-                  <QuestionFilled />
-                </el-icon>
+                <el-tooltip 
+                  content="设置每次群发请求之间的等待时间（秒）。若未为每个账号单独配置代理，建议设为3秒以上，间隔过短可能导致请求过频而失败。" 
+                  placement="top"
+                  :show-after="200"
+                >
+                  <el-icon class="text-gray-400 cursor-pointer">
+                    <QuestionFilled />
+                  </el-icon>
+                </el-tooltip>
               </div>
               <div class="flex items-center space-x-2">
                 <el-input v-model="settings.sendInterval" class="w-16" />
@@ -199,9 +205,15 @@
               <div class="flex items-center justify-between mb-3">
                 <div class="flex items-center space-x-2">
                   <span class="text-gray-700 font-medium">群发通知</span>
-                  <el-icon class="text-gray-400 cursor-pointer">
-                    <QuestionFilled />
-                  </el-icon>
+                  <el-tooltip 
+                    content="启用后，发布的内容会出现在粉丝的公众号消息列表和账号主页中，有机会获得微信官方流量推荐。" 
+                    placement="top"
+                    :show-after="200"
+                  >
+                    <el-icon class="text-gray-400 cursor-pointer">
+                      <QuestionFilled />
+                    </el-icon>
+                  </el-tooltip>
                 </div>
                 <el-switch v-model="settings.sendNotification" />
               </div>
@@ -238,9 +250,15 @@
               <div class="flex items-center justify-between mb-3">
                 <div class="flex items-center space-x-2">
                   <span class="text-gray-700 font-medium">定时发表</span>
-                  <el-icon class="text-gray-400 cursor-pointer">
-                    <QuestionFilled />
-                  </el-icon>
+                  <el-tooltip 
+                    content="支持设定5分钟后至7天内的任意发布时间，设置成功后无法修改，但可在发布前取消且不消耗群发次数。" 
+                    placement="top"
+                    :show-after="200"
+                  >
+                    <el-icon class="text-gray-400 cursor-pointer">
+                      <QuestionFilled />
+                    </el-icon>
+                  </el-tooltip>
                 </div>
                 <el-switch v-model="settings.scheduledPublish" />
               </div>

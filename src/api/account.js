@@ -15,8 +15,7 @@ export async function listOrderedAccount(data) {
     data
   })
   res.data.data.list?.forEach(v => v.expired = checkWxSession(v.session_id))
-  withOrderedAccount(res.data.data.list);
-  // console.log(res);
+  // withOrderedAccount(res.data.data.list);
   return res;
 }
 export function withOrderedAccount(list) {
@@ -88,6 +87,15 @@ export function deleteAccount(data) {
 export function setCate(data) {
   return request({
     url: '/platform/setCate',
+    method: 'post',
+    data
+  })
+}
+
+// 批量移动账号到分组（新接口）
+export function moveAccountsToGroup(data) {
+  return request({
+    url: '/account/move-to-group',
     method: 'post',
     data
   })

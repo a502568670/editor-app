@@ -113,20 +113,10 @@ onMounted(async () => {
 })
 
 onActivated(async () => {
-  AccountListRef.value.getList()
-  // 如果没有选中账号，则默认选择第一个
-  if(!selectedAccountRef.value){
-    selectedAccountRef.value = AccountListRef.value.proxyAccounts[0]
-    selectedIndexRef.value = selectedAccountRef.value.id
-  }
-
   registerChannels()
   const appmsgid = route.query.appmsgid
   const title = route.query.title
   const account_id = route.query.account_id
-  console.log("query appmsgid:", appmsgid, typeof appmsgid)
-  console.log("query account_id:", account_id, typeof account_id)
-  console.log("all_accounts:", all_accounts.value)
   if (appmsgid && title && account_id) {
     const tab = editableTabs.value.find(v => v.account.id == account_id && v.name == `${appmsgid}`)
     if (!tab) {
@@ -198,6 +188,13 @@ const handleAccountSelect = async (account) => {
 const handleCreateAppMsg = ({ type, account_id, item_show_type = 0,cdnUrls=[] }) => {
 
   if (type === 0) {
+    if(!account_id){
+      ElMessageBox.alert('请先选择一个账号再创建素材', '提示', {
+        confirmButtonText: '确定',
+        type: 'warning',
+      })
+      return
+    }
     const new_appmsgid = 0 - (+new Date())
     const new_mp_msg = {
       msg_id: 0 - (+new Date()),

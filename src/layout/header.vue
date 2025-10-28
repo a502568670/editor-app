@@ -1,13 +1,24 @@
 <template>
   <el-row>
     <el-col :span="4">
-      <div class="flex items-center justify-start h-full">
-        <img src="/favicon.ico" class="w-[30px] h-[30px] rounded-full mr-2" />
-        <div style="display: flex;flex-direction: column;justify-content: center">
-          <div style="font-size: 12px;margin-bottom: 5px;">{{$store.state.user?.mobile}}</div>
-          <div v-if="$store.state.user?.vip_name" style="color:#999;font-size: 12px;">{{$store.state.user?.vip_name}}[{{$store.state.user?.vip_endtime}}]到期</div>
-          <div style="color:#999;font-size: 12px;" v-else>{{username}}</div>
-        </div>
+      <div class="flex items-center h-full">
+        <el-dropdown @command="handleCommand">
+          <div class="flex items-center justify-start h-full">
+            <img src="/favicon.ico" class="w-[30px] h-[30px] rounded-full mr-2" />
+            <div style="display: flex;flex-direction: column;justify-content: center">
+              <div style="font-size: 12px;margin-bottom: 5px;">{{$store.state.user?.mobile}}</div>
+              <div v-if="$store.state.user?.vip_name" style="color:#999;font-size: 12px;">{{$store.state.user?.vip_name}}[{{$store.state.user?.vip_endtime}}]到期</div>
+              <div style="color:#999;font-size: 12px;" v-else>{{username}}</div>
+            </div>
+          </div>
+          <template #dropdown>
+            <el-dropdown-menu>
+              <el-dropdown-item command="gotoExternal">极致了助手</el-dropdown-item>
+              <el-dropdown-item command="toKf">联系客服</el-dropdown-item>
+              <el-dropdown-item command="exit">退出</el-dropdown-item>
+            </el-dropdown-menu>
+          </template>
+        </el-dropdown>
       </div>
     </el-col>
     <el-col :span="16">
@@ -28,7 +39,7 @@
       </div>
     </el-col>
     <el-col :span="4">
-      <div class="flex justify-end items-center h-full">
+      <!-- <div class="flex justify-end items-center h-full">
         <el-dropdown @command="handleCommand">
           <el-icon :size="25">
             <Menu />
@@ -41,7 +52,7 @@
             </el-dropdown-menu>
           </template>
         </el-dropdown>
-      </div>
+      </div> -->
       <!-- <div class="right"> -->
         <!-- <Hydrate/> -->
         <!-- <el-button @click="toBuyVip" type="primary" >购买会员</el-button> -->
@@ -88,6 +99,12 @@ const menuList = ref([
   icon_active:require('@/assets/image/account_active.png')
 },
 // {
+//   name:'账号管理(旧)',
+//   url:'/account',
+//   icon:require('@/assets/image/account.png'),
+//   icon_active:require('@/assets/image/account_active.png')
+// },
+// {
 //   name:'爆热集',
 //   url:'/hot',
 //   icon:require('@/assets/image/hot.png'),
@@ -118,7 +135,7 @@ const menuList = ref([
   icon_active:require('@/assets/image/stat_active.png')
 },
 {
-  name:'高级转发',
+  name:'高级群发',
   url:'/advanced-forward',
   icon:require('@/assets/image/share.png'),
   icon_active:require('@/assets/image/share_active.png')

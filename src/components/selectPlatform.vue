@@ -3,7 +3,7 @@
     <el-option
       v-for="(item,index) in platform_list"
       :key="index"
-      :label="item.name"
+      :label="item.platform_name"
       :value="item[itemKey]"
     />
   </el-select>
@@ -22,7 +22,7 @@ export default {
     itemKey: {
       type: String,
       default() {
-        return 'id'
+        return 'platform_id'
       }
     },
     placeholder: {
@@ -40,7 +40,7 @@ export default {
 
   created() {
     listPlatform({  }).then(response => {
-      this.platform_list = response.data.data
+      this.platform_list = response.data.data.list || []
     }).catch(() => {
     })
   },

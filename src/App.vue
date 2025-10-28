@@ -5,6 +5,7 @@
  * @LastEditors:
  * @LastEditTime: 2023-05-22 16:13:14
 -->
+
 <template>
   <router-view v-slot="{ Component }">
     <!-- <component v-if="$route.name === 'tabBar'" :is="Component" /> -->
@@ -24,7 +25,6 @@ import { useAccountStore } from './store/piniaStore';
 import { dog } from './utils'
 import { getToken } from './utils/auth';
 import { useStore } from 'vuex';
-
 
 var account=useAccountStore()
 var store=useStore()

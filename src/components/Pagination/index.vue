@@ -10,15 +10,28 @@
       v-bind="$attrs"
       @size-change="handleSizeChange"
       @current-change="handleCurrentChange"/>
+    <el-button
+      type="primary" 
+      @click="handleRefresh"
+      title="跳转"
+      style="margin-left: 10px;">
+      跳转
+    </el-button>
     <slot name='content'></slot>
   </div>
 </template>
 
 <script>
 import { scrollTo } from '@/utils/scrollTo'
+import { Refresh } from '@element-plus/icons-vue'
 
 export default {
   name: 'Pagination',
+  data() {
+    return {
+      RefreshIcon: Refresh
+    }
+  },
   props: {
     total: {
       required: true,
@@ -85,6 +98,10 @@ export default {
       if (this.autoScroll) {
         scrollTo(0, 800)
       }
+    },
+    handleRefresh() {
+      this.$emit('refresh')
+      this.$emit('pagination', { page: this.currentPage, limit: this.pageSize })
     }
   }
 }

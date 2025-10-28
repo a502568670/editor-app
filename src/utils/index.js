@@ -513,6 +513,9 @@ export function partitionPages(arr, length) {
 
 // 排序函数
 export function sortByOrder(sortArray, orderArray) {
+  if(!Array.isArray(orderArray)){
+    return { result: sortArray, missingIds: [] };
+  }
   // 创建映射以快速查找
   const map = new Map();
   for (const item of sortArray) {
@@ -521,10 +524,10 @@ export function sortByOrder(sortArray, orderArray) {
         orderArray.push(item.id)
       }
   }
-  
+
   const result = [];
   const missingIds = [];
-  
+
   // 按照顺序数组排序
   for (const id of orderArray) {
       if (map.has(id)) {
@@ -533,7 +536,7 @@ export function sortByOrder(sortArray, orderArray) {
           missingIds.push(id);
       }
   }
-  
+
   return { result, missingIds };
 }
 
@@ -542,12 +545,12 @@ export async function copyLink(url) {
   ElMessage({ type: 'success', message: '链接已复制到剪贴板' });
 }
 /**
- * @param {File} file 
+ * @param {File} file
  * @returns {Promise<String>} base64
  */
 export async function fileToBase64(file){
   var reader = new FileReader();
-  return new Promise((resolve,reject)=>{ 
+  return new Promise((resolve,reject)=>{
     reader.readAsDataURL(file);
     reader.onload = function(){
       resolve(reader.result.split(',')[1])

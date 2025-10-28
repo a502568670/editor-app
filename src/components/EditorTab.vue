@@ -350,44 +350,50 @@
       </el-tabs>
     </div>
   </div>
-  <el-dialog :close-on-click-modal="false" title="提取文章链接内容" v-model="dialogExtractMpAritcleUrlRef" width="720px">
-    <div class="w-full flex flex-col">
-      <el-row :gutter="40" class="w-full">
-        <el-col :span="18" class="w-full">
-          <el-input v-model="extractArticleUrlRef" clearable placeholder="请输入文章提取地址" />
-        </el-col>
-        <el-col :span="6">
-          <el-button @click="handleLocalExtractMpArticleUrl" type="primary">提取链接内容</el-button>
-        </el-col>
-      </el-row>
-      <el-row :gutter="40" class="w-full">
-        <el-col :span="3" class="w-full">
+  <el-dialog :close-on-click-modal="false" title="提取文章链接内容" v-model="dialogExtractMpAritcleUrlRef" width="720px" @close="extractLinkClose">
+    <el-tabs style="width: 100%;" v-model="extractLink" @tab-change="handleChange">
+      <el-tab-pane label="单个提取" name="single">
+        <div>
+          <div class="flex">
+            <el-input class="mr-2" v-model="extractArticleUrlRef" clearable placeholder="请输入文章提取地址 Ctrl + v 粘贴" />
+            <el-button @click="handleLocalExtractMpArticleUrl" type="primary">提取链接内容</el-button>
+          </div>
           <el-checkbox label="仅视频" v-model="import_settings.only_video_flag" />
-        </el-col>
-      </el-row>
-      <el-row :gutter="40" class="w-full">
-        <el-col :span="4" class="w-full">
-          <el-checkbox label="清除链接" v-model="import_settings.clear_content_url" />
-        </el-col>
-        <el-col :span="4" class="w-full">
-          <el-checkbox label="清除摘要" v-model="import_settings.clear_abstract" />
-        </el-col>
-        <el-col :span="4" class="w-full">
-          <el-checkbox label="清除作者" v-model="import_settings.clear_author" />
-        </el-col>
-        <el-col :span="4" class="w-full">
-          <el-checkbox label="清除原文链接" v-model="import_settings.clear_source_url" />
-        </el-col>
-      </el-row>
-      <el-row>
-        <el-col :span="4" class="w-full">
-          <el-checkbox label="清除小程序" v-model="import_settings.clear_weapp" />
-        </el-col>
-        <el-col :span="4" class="w-full">
-          <el-checkbox label="清除广告" v-model="import_settings.clear_ad" />
-        </el-col>
-      </el-row>
-    </div>
+          <el-row :gutter="40">
+            <el-col :span="4">
+              <el-checkbox label="清除链接" v-model="import_settings.clear_content_url" />
+            </el-col>
+            <el-col :span="4">
+              <el-checkbox label="清除摘要" v-model="import_settings.clear_abstract" />
+            </el-col>
+            <el-col :span="4">
+              <el-checkbox label="清除作者" v-model="import_settings.clear_author" />
+            </el-col>
+            <el-col :span="4">
+              <el-checkbox label="清除原文链接" v-model="import_settings.clear_source_url" />
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col :span="4">
+              <el-checkbox label="清除小程序" v-model="import_settings.clear_weapp" />
+            </el-col>
+            <el-col :span="4">
+              <el-checkbox label="清除广告" v-model="import_settings.clear_ad" />
+            </el-col>
+          </el-row>
+        </div>
+      </el-tab-pane>
+      <el-tab-pane label="批量提取" name="batch">
+        <div>
+          <el-input v-for="(v,idx) of inputs" :key="idx" v-model.trim="inputs[idx].url" clearable placeholder="请输入文章提取地址">
+            <template #prepend>#{{ idx + mp_msgsRef.length+1 }}</template>
+          </el-input>
+          <div class="flex justify-end mt-4 space-x-2">
+            <el-button type="primary" @click="onConfirm">批量提取</el-button>
+          </div>
+        </div>
+      </el-tab-pane>
+    </el-tabs>
   </el-dialog>
   <el-dialog :close-on-click-modal="false" title="视频素材" v-model="dialogVideoMaterialRef" width="600px">
     <el-row :gutter="40" class="w-full h-[400px]" v-loading="videoLoadingRef">
@@ -465,6 +471,7 @@
     @search-mini-app="searchMiniApp" />
   <SetMPCard ref="setMPCardRef" @search-mp="searchMP" @insert-mp-card="insertMPCard" />
   <SetMPV ref="setMPVRef" @search-mpv="searchMPV" @insert-mpv-content="insertMPVContent" />
+  <InsertMPLink ref="insertMPLinkRef" :pickerPageInfo="pickerPageInfo" v-model:pickerQuery="pickerQuery" :editorInst="editorRef" @search-mp="searchMPForLink" @search-article="searchArticle" @insert-link="insertMPLink" @select-current="selectCurrentArticles" />
   <el-dialog :close-on-click-modal="false" title="手机扫码预览" v-model="dialogMobilePreviewVisibleRef" width="330px">
     <el-row :gutter="40" class="h-[300px]">
       <el-col :span="24">
@@ -685,6 +692,63 @@
       </div>
     </template>
   </el-dialog>
+  <el-dialog :close-on-click-modal="false" title="原创性检测结果" v-model="dialogCopyrightCheckVisibleRef" width="800px">
+    <div class="w-full flex flex-col" v-loading="copyrightCheckLoadingRef" element-loading-text="检测中，请稍候...">
+      <div v-if="copyrightCheckResultRef" class="flex flex-col space-y-2">
+        <div v-if="copyrightCheckResultRef.copyright === 0" class="flex flex-col space-y-2">
+          <div class="flex font-bold text-lg text-green-600">
+            <el-icon class="mr-2"><CircleCheckFilled /></el-icon>
+            原创检测通过
+          </div>
+          <div class="text-gray-600">
+            您的内容已通过原创校验，可以声明原创发表
+          </div>
+        </div>
+        <div v-else-if="copyrightCheckResultRef.copyright === 1" class="flex flex-col space-y-2">
+          <div class="flex font-bold text-lg text-orange-600">
+            <el-icon class="mr-2"><WarningFilled /></el-icon>
+            原创检测未通过
+          </div>
+          <div v-if="copyrightCheckListRef && copyrightCheckListRef.length > 0">
+            <div class="flex font-bold mb-2">
+              共 {{ copyrightCheckListRef.length }} 篇相关联内容未通过原创校验逻辑
+            </div>
+            <table class="w-full border shadow-lg">
+              <thead class="text-lg bg-gray-200 text-gray-400">
+                <tr>
+                  <th class="text-left p-4" style="width:80%">未通过原因</th>
+                  <th class="text-left p-4" style="width:20%">建议</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr class="border-b h-[80px]" v-for="item in copyrightCheckListRef" :key="item.source_idx">
+                  <td class="p-4">你的内容《{{ item.article_title }}》与原创内容《{{ item.source_title }}》相似度过高</td>
+                  <td class="p-4 text-orange-600">分享发表</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div v-else class="text-gray-600">
+            您的内容未通过原创校验，建议修改后重新检测
+          </div>
+        </div>
+        <div v-else class="flex flex-col space-y-2">
+          <div class="flex font-bold text-lg text-red-600">
+            <el-icon class="mr-2"><CircleCloseFilled /></el-icon>
+            检测失败
+          </div>
+          <div class="text-gray-600">
+            原创性检测失败，请稍后重试
+          </div>
+        </div>
+      </div>
+    </div>
+    <template #footer>
+      <div class="dialog-footer">
+        <el-button @click="dialogCopyrightCheckVisibleRef = false">关闭</el-button>
+      </div>
+    </template>
+  </el-dialog>
 </template>
 <style>
 .edui-editor {
@@ -789,7 +853,7 @@ import {
   newlistArticlesByAppMsg, listArticleGroups, swapArticles,
   deleteArticleDraft, removeMpMsg, genArticleDraftPreviewUrl, previewQRCode,
 } from "@/api/mp_msg"
-import { saveAppMsg, send_to_other_accounts_events } from "@/api/appmsg"
+import { saveAppMsg, send_to_other_accounts_events, listAppMsgs } from "@/api/appmsg"
 import {
   getMpUserInfo, getLastPreviewAccounts, sendPreview,
   listVideos, getMasssendInfo, stat_appmsg_copyright_stat_events,
@@ -811,7 +875,7 @@ import {
 import {hasMPCardInEditor, replaceMPCardToWechat, tplMPCardInEditor, replaceMPCardFromWechat} from "@/utils/mpcard"
 import {hasMPVContentInEditor, replaceMPVContentToWechat, tplMPVContentInEditor, replaceMPVContentFromWechat} from "@/utils/mpvcontent"
 import { ElMessage, ElMessageBox, ElLoading } from 'element-plus'
-import { ArrowUp, ArrowDown, Delete, CircleCheckFilled, CircleCloseFilled, InfoFilled, Search, Plus, BrushFilled,Close } from '@element-plus/icons-vue'
+import { ArrowUp, ArrowDown, Delete, CircleCheckFilled, CircleCloseFilled, InfoFilled, Search, Plus, BrushFilled, Close, WarningFilled } from '@element-plus/icons-vue'
 import { Link, Link2, RadioTower, DollarSign, SquareTerminal, Eye, ScanEye, Minus, Smartphone, Video } from 'lucide-vue-next';
 import WechatMiniAppIcon from "@/components/icons/WechatMiniAppIcon"
 import WechatMPIcon from "@/components/icons/WechatMPIcon"
@@ -836,6 +900,7 @@ import SysTempl from './editor/SysTempl.vue';
 import SetMiniApp from "@/components/editor/SetMiniAppWeiYu.vue"
 import SetMPCard from "@/components/editor/SetMPCard.vue"
 import SetMPV from './editor/SetMPV.vue';
+import InsertMPLink from './editor/InsertMPLink.vue';
 import { useDraggable } from 'vue-draggable-plus'
 
 const props = defineProps(['account', 'appmsg', 'mode', 'mainMsg']);
@@ -925,8 +990,7 @@ const editorConfigRef = ref({
     }
     call();
   },
-  elementPathEnabled: false,
-  iframeCssUrl: '/css/ueditorcss.css'
+  elementPathEnabled: false
 })
 
 // component
@@ -980,6 +1044,12 @@ const failReasonVisibleRef = ref(false)
 // 调试信息
 const dialogDebugVisibleRef = ref(false)
 
+// 原创性检测
+const dialogCopyrightCheckVisibleRef = ref(false)
+const copyrightCheckLoadingRef = ref(false)
+const copyrightCheckResultRef = ref(null)
+const copyrightCheckListRef = ref([])
+
 // 账号
 let selectedAccount = ref(null)
 let accountsRef = ref([])
@@ -1004,6 +1074,33 @@ const import_settings = ref({
   clear_ad: true,
 })
 
+// 批量提取文章
+const extractLink = ref('single')
+const MAX = 8
+const inputs = ref([])
+function handleChange(tab){
+  if(tab === 'batch'){
+    if(mp_msgsRef.value.length < MAX){
+      inputs.value = Array.from({length: MAX - mp_msgsRef.value.length}, ()=>({type:0,url:''}))
+      return;
+    }
+    ElMessage({type:'error',message:`超出单消息最大文章数 ${MAX} 篇`})
+  }
+}
+function onConfirm(){
+  const data = inputs.value.filter(v=>v.url)
+  if(!data.length){
+    ElMessage({type:'warning',message:'请输入有效的提取链接'})
+    return;
+  }
+  onBatchExtractMp(data)
+  dialogExtractMpAritcleUrlRef.value = false
+}
+const extractLinkClose = () => {
+  extractLink.value = 'single'
+  inputs.value = []
+}
+
 // 提取链接
 // const extractArticleUrlRef = ref("https://mp.weixin.qq.com/s/G2TYEsgZsTJ1VWj4R2F2hQ?from=kdocs_link")
 // const extractArticleUrlRef = ref("https://mp.weixin.qq.com/s/riiYjv8HUqyUZz_-IQKe9g")
@@ -1018,6 +1115,9 @@ const setMPCardRef = ref(null)
 
 // 视频号
 const setMPVRef = ref(null)
+
+// 公众号链接
+const insertMPLinkRef = ref(null)
 
 // 视频素材
 const dialogVideoMaterialRef = ref(false)
@@ -1599,11 +1699,11 @@ const validateMsgData = () => {
 
 const _saveAppMsg = async (push_to_remote) => {
   if (!validateAccount()) {
-    return
+    return false
   }
 
   if (!validateMsgData()) {
-    return
+    return false
   }
 
   const { token, name, session_id, wechat_id } = selectedAccount.value
@@ -1616,7 +1716,7 @@ const _saveAppMsg = async (push_to_remote) => {
     }).catch(() => {
       console.log("catch")
     })
-    return
+    return false
   }
 
   const msg_id = msg_idRef.value
@@ -1644,6 +1744,7 @@ const _saveAppMsg = async (push_to_remote) => {
     target: '.main'
   })
 
+  let saveSuccess = false
   await saveAppMsg(postData).then(async (res) => {
     ElMessage({
       message: `消息${push_to_remote === 0 ? "暂存" : "同步"}成功`,
@@ -1673,6 +1774,7 @@ const _saveAppMsg = async (push_to_remote) => {
       mp_msgsRef.value[selected_idx].appmsgid = appmsgid
     }
     loadArticle(mp_msgsRef.value[selected_idx])
+    saveSuccess = true
   }).catch((e) => {
     console.log('saveAppMsg catched e:', e)
     handleActionErr(name, e)
@@ -1680,6 +1782,8 @@ const _saveAppMsg = async (push_to_remote) => {
   }).finally(() => {
     loader.close()
   })
+
+  return saveSuccess
 }
 
 const handleSaveAppMsg = async () => {
@@ -1872,6 +1976,78 @@ const handlePublishNext = async () => {
   }
 
 }
+
+// 原创性检测处理函数
+const handleCopyrightCheck = async () => {
+  // 先同步到微信草稿箱，确保检测的是最新内容
+  const saveResult = await _saveAppMsg(1)
+
+  // 如果保存失败（包括验证失败，如未设置封面图），则不继续执行
+  if (!saveResult) {
+    return
+  }
+
+  const appmsgid = _getAppMsgId()
+
+  if (!appmsgid) {
+    ElMessage.warning('请先保存文章')
+    return
+  }
+
+  const { token, session_id } = selectedAccount.value
+  if (!token || !session_id) {
+    ElMessage.warning('账号信息不完整')
+    return
+  }
+
+  // 打开弹窗并显示加载状态
+  dialogCopyrightCheckVisibleRef.value = true
+  copyrightCheckLoadingRef.value = true
+  copyrightCheckResultRef.value = null
+  copyrightCheckListRef.value = []
+
+  let stepRet
+  try {
+    await stat_appmsg_copyright_stat_events({
+      cookies: serializeCookie(JSON.parse(session_id)["cookie"]),
+      token: parseInt(token),
+      appmsgid,
+    }, (data) => {
+      console.log("copyright check raw=>", data)
+      try {
+        const v = data.replaceAll(/data: /gi, "")
+        stepRet = JSON5.parse(v)
+      } catch (e) {
+        console.error("检测数据解析失败", e)
+      }
+    })
+
+    copyrightCheckLoadingRef.value = false
+
+    if (stepRet) {
+      copyrightCheckResultRef.value = stepRet
+
+      // copyright === 1 表示有原创问题，需要解析未通过原因列表
+      if (stepRet.copyright === 1 && stepRet.list_json_str) {
+        try {
+          const copyright1_list = JSON.parse(stepRet.list_json_str)
+          copyrightCheckListRef.value = copyright1_list.list || []
+        } catch (e) {
+          console.error("解析检测结果列表失败", e)
+        }
+      }
+    } else {
+      ElMessage.error('检测失败，请重试')
+      dialogCopyrightCheckVisibleRef.value = false
+    }
+  } catch (error) {
+    console.error("原创性检测失败", error)
+    copyrightCheckLoadingRef.value = false
+    ElMessage.error('检测失败，请重试')
+    dialogCopyrightCheckVisibleRef.value = false
+  }
+}
+
 var groupstr = ref("")
 const handlePublishToWechat = async () => {
   const appmsgid = _getAppMsgId()
@@ -2173,6 +2349,7 @@ const checkTitles = () => {
     tag: 'appmsg:searchAppmsgsInPublishForQuerys',
     source: `${props.appmsg.appmsgid}`,
     token: getToken(),
+    type: 'examine_title',
     getData: {
       cookies: serializeCookie(JSON.parse(session_id)["cookie"]),
       token: parseInt(token),
@@ -2603,6 +2780,273 @@ const insertMPVContent = (val) => {
   mpExsRef.value.mpvcontent_obj = {...mpExsRef.value.mpvcontent_obj, ...insert_mpvcontent_obj}
   editor.execCommand('inserthtml', htmls.join(''));
   setMPVRef.value.closeDialog()
+}
+
+// 公众号链接相关方法
+const openMPLinkDialog = () => {
+  insertMPLinkRef.value.openDialog()
+  // 打开对话框后自动搜索最新文章（使用空查询）
+  setTimeout(() => {
+    searchArticle({ query: '', mp: null })
+  }, 100)
+}
+
+const searchMPForLink = (val) => {
+  const { query, ...others } = val
+  const { token, session_id, wechat_id } = selectedAccount.value
+  const cookies = serializeCookie(JSON.parse(session_id)["cookie"])
+  window.ipcRenderer.send('toMain', {
+    tag: 'mp:searchBizForLink',
+    source: `${props.appmsg.appmsgid}`,
+    token: getToken(),
+    wechat_id,
+    searchData: {
+      cookies,
+      token: parseInt(token),
+      pattern: query,
+    },
+    ...others,
+  })
+}
+
+const searchArticle = async (val) => {
+  console.log("searchArticle val=>", val);
+
+  const { query, mp } = val
+  try {
+
+    globalLoadingRef.value = true
+    const { token, session_id } = selectedAccount.value
+    console.log("当前选中草稿的账号",selectedAccount.value);
+    console.log("搜索的公众号 mp=>", mp);
+
+    const cookies = serializeCookie(JSON.parse(session_id)["cookie"])
+
+    // 如果选择了其他公众号，使用其 fakeid
+    const fakeid = mp ? mp.fakeid : undefined
+
+    if (query && query.trim()) {
+      // 有查询词，使用搜索接口
+      window.ipcRenderer.send('toMain', {
+        tag: 'appmsg:searchAppmsgsInPublishForQuerys',
+        source: `${props.appmsg.appmsgid}`,
+        token: getToken(),
+        type: 'insert_link',
+        getData: {
+          cookies: cookies,
+          token: parseInt(token),
+          querys: [query.trim()],
+          begin: 0,
+          fakeid: fakeid
+        }
+      })
+    } else {
+      // 无查询词，使用列表接口获取最新文章
+      window.ipcRenderer.send('toMain', {
+        tag: 'appmsg:listAppmsgsInPublishForQuerys',
+        source: `${props.appmsg.appmsgid}`,
+        token: getToken(),
+        listData: {
+          cookies: cookies,
+          token: parseInt(token),
+          querys: [''],  // 空查询获取所有文章
+          begin: 0,
+          count: 20,
+          fakeid: fakeid
+        }
+      })
+    }
+
+    // 设置超时取消加载状态
+    setTimeout(() => {
+      if (globalLoadingRef.value) {
+        globalLoadingRef.value = false
+      }
+    }, 10000)
+  } catch (error) {
+    console.error('搜索文章失败:', error)
+    ElMessage.error('搜索文章失败')
+    globalLoadingRef.value = false
+  }
+}
+
+// 解析已发布文章列表
+const parsePublishedArticles = (publishList) => {
+  const articles = []
+
+  publishList.forEach(item => {
+    try {
+      const publishData = JSON.parse(item.publish_info)
+      const appmsgInfoList = publishData.appmsg_info || []
+
+      // 获取发布时间：publish_type=1 用 publish_info.create_time，publish_type=101 用 sent_info.time
+      let publishTime = ''
+      if (item.publish_type === 1 && publishData.publish_info) {
+        publishTime = new Date(publishData.publish_info.create_time * 1000).toLocaleString('zh-CN')
+      } else if (item.publish_type === 101 && publishData.sent_info) {
+        publishTime = new Date(publishData.sent_info.time * 1000).toLocaleString('zh-CN')
+      }
+
+      // 过滤掉已删除的文章
+      appmsgInfoList.forEach(appmsgInfo => {
+        if (!appmsgInfo.is_deleted) {
+          articles.push({
+            msg_id: publishData.msgid,
+            appmsgid: appmsgInfo.appmsgid,
+            title: appmsgInfo.title,
+            digest: appmsgInfo.digest,
+            cdn_url: appmsgInfo.cover || appmsgInfo.pic_cdn_url_235_1,
+            content_url: appmsgInfo.content_url,
+            update_time: publishTime,
+            itemidx: appmsgInfo.itemidx
+          })
+        }
+      })
+    } catch (e) {
+      console.error('解析 publish_info 失败:', e, item)
+    }
+  })
+
+  return articles
+}
+
+const selectCurrentArticles = () => {
+  // 将当前编辑的文章列表设置到对话框中
+  if (mp_msgsRef.value && mp_msgsRef.value.length > 0) {
+    insertMPLinkRef.value.setArticles(mp_msgsRef.value)
+  } else {
+    ElMessage.warning('当前没有文章')
+  }
+}
+
+const insertMPLink = (linkData) => {
+  const editor = editorRef.value
+  if (editor == null) return
+
+  const { displayType, templateType, linkTitle, customImage, articles } = linkData
+
+  // 处理模板模式
+  if (displayType === 'template' && templateType === 'modern') {
+    // 现代风格：生成整体容器包裹所有文章
+    let articlesHtml = ''
+    articles.forEach((article) => {
+      const title = linkTitle ? linkTitle : article.title
+      const contentUrl = article.content_url || '#'
+      const imageUrl = customImage || article.cdn_url
+
+      articlesHtml += `<a href="${contentUrl}" target="_blank"><section style="display: flex;border-top: 1px solid #e9e9e9;padding: 14px; margin-bottom: 8px;"><span style="align-self: flex-start;width: 48px; margin-right: 15px;"><section style="background: url(${imageUrl});background-size: cover;width: 48px;height: 48px;"></section></span><section style="font-size: 14px; vertical-align: top;height: 48px;line-height: 24px;overflow: hidden;">${title}</section></section></a>`
+    })
+
+    const finalHtml = `<section style="padding: 20px;border: 1px solid #e9e9e9; margin-top: 20px;"><section style="font-size: 14px;padding-left: 10px;border-left: 4px solid #F5222D;margin-bottom: 20px;">更多推荐</section>${articlesHtml}</section><p></p>`
+
+    editor.execCommand('inserthtml', finalHtml)
+    ElMessage.success(`成功插入 ${articles.length} 篇文章链接`)
+    return
+  }
+
+  // 往期推荐模板
+  if (displayType === 'template' && templateType === 'past-recommend') {
+    let articlesHtml = ''
+    articles.forEach((article, index) => {
+      const title = linkTitle ? linkTitle : article.title
+      const contentUrl = article.content_url || '#'
+      const num = index + 1
+
+      articlesHtml += `<section class="box-edit"><a href="${contentUrl}" target="_blank" style="text-decoration: none; color: inherit;"><section style="box-shadow:0px 0px 5px #e5e5e5 ;height:65px;${index > 0 ? 'margin: 10px auto;' : ''}"><section style="display: flex;justify-content: flex-start;align-items: center;"><section style="width:60px;height: 65px;box-sizing:border-box;"><section class="135brush" data-brushtype="text" style="background: #6f8691;border-top-left-radius:7px;border-bottom-left-radius: 7px;border-top-right-radius: 100%;border-bottom-right-radius: 100%;color:#fff; font-size:18px;letter-spacing:1.5px;width:60px;height: 65px;font-size: 20px; line-height:63px;text-align: center;box-sizing:border-box;"><strong>0<span class="autonum" data-original-title="" title="" data-num="${num}">${num}</span></strong></section></section><section class="135brush" data-brushtype="text" style="padding:0px 0.4em 0px 0.5em;font-size: 16px;letter-spacing: 1.5px;color: #71868f;box-sizing:border-box;"><p style="vertical-align:inherit;">${title}</p></section></section></section></a></section>`
+    })
+
+    const finalHtml = `<section class="_135editor" itemscope="" itemtype="https://mp.weixin.qq.com/voc/Guide" data-id="93971" data-tools="135编辑器"><section style="padding:1em;box-sizing:border-box;"><section style="display: flex;justify-content:center;margin: 1em auto;align-items: center;"><section><section data-bgless="spin" data-bglessp="280" data-bgopacity="1%" style="width:1.2em;height:1.2em;border-radius:100% ;background:#b3c0c6;margin-bottom: -20px;box-sizing:border-box;"></section><section data-bgless="spin" data-bglessp="280" data-bgopacity="1%" style="width:6px;height:6px;border-radius:100% ;background:#b3c0c6;margin-left:1.4em;box-sizing:border-box;"></section><section data-bgless="spin" data-bglessp="280" data-bgopacity="50%" style="width:2.5em;height:2.5em;border-radius:100% ;background:rgba(179,192,198,0.6);margin-left: 10px;box-sizing:border-box;"></section></section><section class="135brush" data-brushtype="text" style="margin-left:-1em;text-align:center;font-size: 20px;letter-spacing:2px;color: #71868f;">往期推荐</section></section>${articlesHtml}</section></section><p></p>`
+
+    editor.execCommand('inserthtml', finalHtml)
+    ElMessage.success(`成功插入 ${articles.length} 篇文章链接`)
+    return
+  }
+
+  // 往期推荐2模板
+  if (displayType === 'template' && templateType === 'past-recommend2') {
+    let articlesHtml = ''
+    articles.forEach((article, index) => {
+      const title = linkTitle ? linkTitle : article.title
+      const contentUrl = article.content_url || '#'
+      const marginTop = index === 0 ? '10px' : '5px'
+
+      articlesHtml += `<p class="box-edit" style="vertical-align:inherit;margin-top: ${marginTop};margin-bottom: 5px;padding-right: 0em;padding-left: 0em;letter-spacing: 1.5px;line-height: normal;color: #888888;font-size: 13px;text-align:justify;" align="justify"><a href="${contentUrl}" target="_blank" style="color: #888888; text-decoration: none;">●${title}</a></p>`
+    })
+
+    const finalHtml = `<section class="_135editor" data-tools="135编辑器" data-id="93709"><section style="border-style: solid; border-width: 2px; padding: 5px; box-sizing: border-box;" itemscope="" itemtype="https://mp.weixin.qq.com/voc/Guide"><section style="border-style: dashed;border-width: 1px;padding: 15px;box-sizing: border-box;"><section style="text-align: center;"><span data-role="width" style="display:inline-block;width:80%;box-sizing:border-box;max-width:80% !important;" data-width="80%"><img class="assistant" src="https://image2.135editor.com/cache/remote/aHR0cHM6Ly9tbWJpei5xbG9nby5jbi9tbWJpel9naWYvN1FSVHZrSzJxQzdJSEFCRm11TWxXUWtTU3pPTWljaWNmQkxmc2RJamtPbkR2c3N1NlpueDRUVFBzSDh5WlpOWjE3aFNiRDk1d3c0M2ZzNU9GRXBwUlRXZy8wP3d4X2ZtdD1naWY=" style="margin: 0px; width: 100%;vertical-align:baseline;box-sizing:border-box;max-width:100% !important;" data-width="80%" data-op="change" width="80%" height="" border="0" mapurl="" title="" alt="" draggable="false" data-ratio="0.08658008658008658" data-w="462"/></span></section><section>${articlesHtml}</section></section></section></section><p></p>`
+
+    editor.execCommand('inserthtml', finalHtml)
+    ElMessage.success(`成功插入 ${articles.length} 篇文章链接`)
+    return
+  }
+
+  // 其他模式：逐个生成HTML
+  const htmlArray = []
+
+  articles.forEach((article, index) => {
+    // 如果用户输入了自定义标题，使用自定义标题；否则使用文章原标题
+    const title = linkTitle ? linkTitle : article.title
+    const contentUrl = article.content_url || '#'
+    // 图片优先级：自定义图片 > 文章封面
+    const imageUrl = customImage || article.cdn_url
+
+    let html = ''
+    if (displayType === 'text') {
+      // 文字链接
+      html = `<a target="_blank" href="${contentUrl}" textvalue="${title}" linktype="text" imgurl="" imgdata="null" data-itemshowtype="0" tab="innerlink" data-linktype="2">${title}</a>`
+    } else if (displayType === 'image') {
+      // 图片链接
+      if (imageUrl) {
+        html = `<a href="${contentUrl}" imgurl="${imageUrl}" linktype="image" tab="innerlink" data-itemshowtype="0" target="_blank" data-linktype="1"><span class="js_jump_icon h5_image_link"><img src="${imageUrl}" class="rich_pages wxw-img" contenteditable="false" draggable="true" referrerpolicy="no-referrer"></span></a>`
+      } else {
+        console.warn(`文章 ${article.title} 没有封面图且未设置自定义图片`)
+        return
+      }
+    } else if (displayType === 'template') {
+      // 其他模板样式
+      if (templateType === 'classic') {
+        // 经典风格：方正、边框、简洁
+        html = `
+          <a target="_blank" href="${contentUrl}" textvalue="${title}" linktype="template" imgurl="${imageUrl || ''}" imgdata="null" data-itemshowtype="0" tab="innerlink" data-linktype="2" style="text-decoration: none; color: inherit;">
+            <div style="border: 1px solid #d9d9d9; border-radius: 2px; padding: 10px; margin: 10px 0; display: flex; align-items: center; background: #ffffff;">
+              ${imageUrl ? `<img src="${imageUrl}" style="width: 70px; height: 70px; object-fit: cover; border-radius: 2px; margin-right: 10px; border: 1px solid #eee;" referrerpolicy="no-referrer"/>` : ''}
+              <div style="flex: 1;">
+                <div style="font-weight: 500; margin-bottom: 5px; font-size: 14px; color: #000;">${title}</div>
+                <div style="font-size: 12px; color: #888;">${article.update_time || ''}</div>
+              </div>
+            </div>
+          </a>
+        `
+      } else if (templateType === 'simple') {
+        // 简约风格：无边框、极简
+        html = `
+          <a target="_blank" href="${contentUrl}" textvalue="${title}" linktype="template" imgurl="${imageUrl || ''}" imgdata="null" data-itemshowtype="0" tab="innerlink" data-linktype="2" style="text-decoration: none; color: inherit;">
+            <div style="border: none; border-bottom: 1px solid #f0f0f0; padding: 12px 0; margin: 0; display: flex; align-items: center; background: transparent;">
+              ${imageUrl ? `<img src="${imageUrl}" style="width: 60px; height: 60px; object-fit: cover; border-radius: 4px; margin-right: 12px;" referrerpolicy="no-referrer"/>` : ''}
+              <div style="flex: 1;">
+                <div style="font-weight: 400; margin-bottom: 4px; font-size: 14px; color: #333;">${title}</div>
+                <div style="font-size: 11px; color: #aaa;">${article.update_time || ''}</div>
+              </div>
+            </div>
+          </a>
+        `
+      }
+    }
+
+    if (html) {
+      htmlArray.push(html)
+    }
+  })
+
+  if (htmlArray.length === 0) {
+    ElMessage.warning('没有可插入的内容')
+    return
+  }
+
+  // 将所有HTML用换行符连接起来插入
+  const finalHtml = htmlArray.join('<br/>')
+  editor.execCommand('inserthtml', finalHtml)
+  ElMessage.success(`成功插入 ${htmlArray.length} 篇文章链接`)
 }
 
 const validatePreview = () => {
@@ -3143,13 +3587,40 @@ watch(() => [props.mainMsg], async (newVal) => {
         publishLoadingRef.value = false
       }
     } else if (tag === "appmsg-ret:searchAppmsgsInPublishForQuerys") {
-      console.log(`tag:${msg.tag}`, typeof msg.data)
-      const { ret } = msg.data
-      console.log("ret=>", ret)
+      const { ret, type } = msg.data
       const { success, items } = ret
       if (success) {
-        checkTitleResults.value = items
+        switch (type) {
+          case 'examine_title':
+            // 标题检测
+            checkTitleResults.value = items
+            break;
+          case 'insert_link':
+            // 插入公众号链接
+            const publishList = items[0]?.value?.publish_list || []
+            const articles = parsePublishedArticles(publishList)
+            insertMPLinkRef.value.setArticles(articles)
+            break;
+          default:
+            console.log("appmsg-ret:searchAppmsgsInPublishForQuerys: 无type对应操作")
+        }
       }
+      globalLoadingRef.value = false
+
+    } else if (tag === "appmsg-ret:listAppmsgsInPublishForQuerys") {
+      console.log(`tag:${msg.tag}`, typeof msg.data)
+      const { ret } = msg.data
+      const { success, items } = ret
+      if (success && items.length > 0) {
+        // 获取文章列表并设置到对话框中
+        const publishList = items[0]?.value?.publish_list || []
+        const articles = parsePublishedArticles(publishList)
+        console.log("※解析后的 articles=>※", articles)
+        if (insertMPLinkRef.value) {
+          insertMPLinkRef.value.setArticles(articles)
+        }
+      }
+      globalLoadingRef.value = false
 
     } else if (tag === "image-ret:listImages") {
       console.log(`tag:${msg.tag}`, typeof msg.data)
@@ -3224,6 +3695,14 @@ watch(() => [props.mainMsg], async (newVal) => {
       } else {
         ElMessage({ type: 'error', message: ret.err_msg })
       }
+    } else if (tag === "mp-ret:searchBizForLink") {
+      const { ret } = msg.data
+      const { success, mps } = ret
+      if (success) {
+        insertMPLinkRef.value.setMPs(mps)
+      } else {
+        ElMessage({ type: 'error', message: ret.err_msg })
+      }
     } else if (tag==="mpv-ret:searchMpvAccount") {
       const { ret } = msg.data
       console.log("ret=>", ret)
@@ -3267,27 +3746,27 @@ const handleUseTemplate = (data) => {
   currentArticleRef.value.author = data.author
 }
 
-const operationList = ref([
-  {
-    title: '清空',
-    icon: 'tdesign:clear-formatting-1',
-    action: () => { runEditorCMD('cleardoc') }
-  },
-  {
+const operationList = [
+{
     title: '提取链接内容',
     icon: 'ph:link-bold',
     action: () => { openExtractMpArticleUrlDialog() }
   },
   {
-    title: '批量提取链接内容',
-    icon: 'fluent:link-add-20-filled',
-    component: BatchExtractMpArticle,
-    componentProps: {
-      modelValue: mp_msgsRef,
-      'onUpdate:modelValue': (val) => { mp_msgsRef.value = val },
-      onConfirm: onBatchExtractMp
-    }
+    title: '清空',
+    icon: 'tdesign:clear-formatting-1',
+    action: () => { runEditorCMD('cleardoc') }
   },
+  // {
+  //   title: '批量提取链接内容',
+  //   icon: 'fluent:link-add-20-filled',
+  //   component: BatchExtractMpArticle,
+  //   componentProps: {
+  //     modelValue: mp_msgsRef,
+  //     'onUpdate:modelValue': (val) => { mp_msgsRef.value = val },
+  //     onConfirm: onBatchExtractMp
+  //   }
+  // },
   {
     title: '设置广告',
     icon: 'ic:sharp-attach-money',
@@ -3297,6 +3776,11 @@ const operationList = ref([
     title: '插入小程序',
     icon: 'ri:mini-program-line',
     action: () => { openMiniAppDialog() }
+  },
+  {
+    title: '公众号链接',
+    icon: 'mingcute:wechat-line',
+    action: () => { openMPLinkDialog() }
   },
   {
     title: '插入公众号名片',
@@ -3319,6 +3803,11 @@ const operationList = ref([
     action: () => { openMobilePreviewDialog() }
   },
   {
+    title: '原创性检测',
+    icon: 'ic:round-copyright',
+    action: () => { handleCopyrightCheck() }
+  },
+  {
     title: '消息手机预览',
     icon: 'mdi:mobile-phone-message',
     action: () => { openAppMsgMobilePreviewDialog() }
@@ -3328,8 +3817,8 @@ const operationList = ref([
     icon: 'mdi:bug-outline',
     action: () => { openDebugDialog() },
     isShow: !isDebugRef.value
-  },
-])
+  }
+]
 
 // 组件生命周期
 onMounted(async () => {

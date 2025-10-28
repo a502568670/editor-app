@@ -340,6 +340,7 @@ export class TabbedWindow extends EventEmitter {
     this.setCurrentView(view.id);
     if (typeof url === 'object') {
       verbose_log('url 是一个对象，根据 url.platform_id 加载相应的平台模块:');
+
       this.loadURL('');
 
       // view.id 是 view.webContents.id
@@ -363,6 +364,9 @@ export class TabbedWindow extends EventEmitter {
         case 4:
           companyMap.bxgs = require('./wechat');
           break;
+        case 6:
+          companyMap.bxgs = require('./universal');
+          break;
       }
       companyMap.window_id = view.id;
       companyMap.id = url.id;
@@ -373,6 +377,7 @@ export class TabbedWindow extends EventEmitter {
       companyMap.partition = partition;
       companyMap.webview = view;
       companyMap.tabWin = this;
+
       verbose_log('调试companyMap.bxgs:', companyMap.bxgs);
       if (companyMap.bxgs) {
         companyMap.bxgs.init(companyMap);

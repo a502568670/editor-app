@@ -1,6 +1,6 @@
 <template>
   <div class="common-layout" style="height: 100vh;">
-    <el-container  style="height: 100vh;">
+    <el-container style="height: 100vh;">
         <el-header class="header">
           <Header></Header>
         </el-header>

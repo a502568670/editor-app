@@ -154,6 +154,11 @@ const router = createRouter({
           path: '/advanced-forward',
           name: 'advanced-forward',
           component: () => import('./views/advanced-forward')
+        },
+        {
+          path: '/account-management',
+          name: 'account-management',
+          component: () => import('./views/account-management')
         }
       ]
     }
@@ -200,6 +205,36 @@ router.beforeEach((to, from, next) => {
     }
   }
 })
+// 全局错误处理：忽略 ResizeObserver 错误（这是 Element Plus 的已知问题，不影响功能）
+const debounce = (fn, delay) => {
+  let timer = null
+  return function () {
+    const context = this
+    const args = arguments
+    clearTimeout(timer)
+    timer = setTimeout(() => {
+      fn.apply(context, args)
+    }, delay)
+  }
+}
+
+const _ResizeObserver = window.ResizeObserver
+window.ResizeObserver = class ResizeObserver extends _ResizeObserver {
+  constructor(callback) {
+    callback = debounce(callback, 16)
+    super(callback)
+  }
+}
+
+// 捕获全局错误
+window.addEventListener('error', (e) => {
+  if (e.message === 'ResizeObserver loop limit exceeded' || 
+      e.message === 'ResizeObserver loop completed with undelivered notifications.') {
+    e.stopImmediatePropagation()
+    e.preventDefault()
+  }
+})
+
 app.use(router)
 app.use(ElementPlus, { locale })
 app.use(store)

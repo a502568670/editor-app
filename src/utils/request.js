@@ -7,15 +7,15 @@ const sseControllers = new Map()
 
 export async function createSSEConnection(url, data, cb) {
   const token = getToken()
-  
+
   // 创建 AbortController
   const controller = new AbortController()
   const signal = controller.signal
-  
+
   // 存储控制器以便后续取消
   const requestId = Date.now() + Math.random().toString(36).substring(2, 11)
   sseControllers.set(requestId, controller)
-  
+
   try {
     const response = await fetch(url, {
       method: 'POST',
@@ -26,24 +26,24 @@ export async function createSSEConnection(url, data, cb) {
       body: JSON.stringify(data),
       signal: signal // 添加信号控制
     })
-    
+
     const reader = response.body.pipeThrough(new TextDecoderStream()).getReader()
-    
+
     while (true) {
       // 检查是否已取消
       if (signal.aborted) {
         console.log("SSE connection aborted by user")
         break
       }
-      
+
       const { value, done } = await reader.read();
       console.log("SSE recv value:", value)
       console.log("SSE recv done:", done)
-      
+
       if (done) {
         break;
       }
-      
+
       // 传递数据给回调函数，同时传递requestId用于后续控制
       cb(value, requestId)
     }
@@ -57,7 +57,7 @@ export async function createSSEConnection(url, data, cb) {
     // 清理控制器
     sseControllers.delete(requestId)
   }
-  
+
   return requestId // 返回请求ID用于后续控制
 }
 
@@ -123,18 +123,18 @@ service.interceptors.request.use(
     if (config.url.indexOf('storage/add') > -1 || config.url.indexOf('storage/update') > -1) {
       config.headers['Content-Type'] = 'multipart/form-data'
     } else {
-      if (config.method === 'post') {
+      console.log(config)
+      if (config.method === 'post' && config.url !== '/platform/addAccount') {
         if (!config.data) {
-          config.data = {}
+          config.data = {};
         }
-        config.data['token'] = token
-        config.data = Qs.stringify(config.data, { arrayFormat: 'repeat' })
-
+        config.data['token'] = token;
+        config.data = Qs.stringify(config.data, { arrayFormat: 'repeat' });
       } else if (config.method === 'get') {
         config.params = {
           token,
           ...config.params
-        }
+        };
       }
     }
     return config
@@ -203,12 +203,17 @@ service.interceptors.response.use(
     const code = error.response.status
 
     if (code === 500) {
-      const err = error.response.data.detail
+      const err = error.response.data.detail;
       ElMessageBox.alert(err, '服务器错误', {
         confirmButtonText: '确定',
         type: 'error'
-      })
-      return Promise.reject('error')
+      });
+      return Promise.reject('error');
+    } else if (code === 401) {
+      localStorage.removeItem('Token');
+      localStorage.removeItem('accesstoken');
+      // 加载登录页
+      location.reload();
     }
     ElMessage({
       message: '系统错误，请检查网络是否正常',

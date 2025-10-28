@@ -33,10 +33,10 @@ module.exports = {
       })
     ],
     resolve:{
-      fallback: { 
+      fallback: {
         "path": false,
         "fs": false
-        // "path": require.resolve("path-browserify") 
+        // "path": require.resolve("path-browserify")
       }
     }
   },
