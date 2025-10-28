@@ -21,7 +21,7 @@
     <div class="account-list_list">
       <!-- 分组模式 -->
       <div class="grouped-view">
-        <el-collapse v-model="activeGroups" accordion>
+        <el-collapse v-model="activeGroups">
           <el-collapse-item v-for="group in groupedAccounts" :key="group.id" :name="`group-${group.id}`">
             <template #title>
               <div class="group-header">
@@ -448,6 +448,7 @@ defineExpose({
 .account-list_list {
   flex: 1;
   overflow-y: auto;
+  margin-top: 10px;
 }
 
 .account-list_item {
@@ -460,7 +461,6 @@ defineExpose({
 
 /* 分组视图样式 */
 .grouped-view {
-  margin-top: 10px;
   width: 100%;
 }
 
@@ -477,6 +477,9 @@ defineExpose({
   margin-bottom: 5px;
   border: none;
   font-weight: 500;
+  position: sticky;
+  top: 0;
+  z-index: 10;
 }
 
 .grouped-view :deep(.el-collapse-item__wrap) {

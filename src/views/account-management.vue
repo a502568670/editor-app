@@ -40,7 +40,12 @@
             </el-col>
           </el-row>
           <div class="filters-actions">
-            <div></div>
+            <div>
+              <el-button type="primary" @click="handleRefresh" :loading="listLoading" plain>
+                <el-icon style="margin-right: 4px;"><Refresh /></el-icon>
+                刷新
+              </el-button>
+            </div>
             <div>
               <el-button type="success" @click="openBatchGroup" plain>批量修改分组</el-button>
             </div>
@@ -212,6 +217,7 @@
 <script setup>
 import { ref, reactive, onMounted, computed, watch, inject } from 'vue'
 import { useRouter } from 'vue-router'
+import { Refresh } from '@element-plus/icons-vue'
 import Pagination from '@/components/Pagination'
 import SelectPlatform from '@/components/selectPlatform'
 import SelectUser from '@/components/selectUser'
@@ -336,6 +342,13 @@ function getList(pagination) {
       }
     })
     .finally(() => (listLoading.value = false))
+}
+
+// 刷新按钮处理函数
+function handleRefresh() {
+  listQuery.page = 1 // 重置到第一页
+  getList()
+  ElMessage.success('刷新成功')
 }
 
 // 刷新全局账号数据
