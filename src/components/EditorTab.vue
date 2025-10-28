@@ -1006,7 +1006,7 @@ const elListMsgsRef = ref(null)
 // 封面
 const cdnRef = ref(null)
 const selectedCdnImageRef = ref(null)
-const cdnFileInputRef = ref(null)
+// const cdnFileInputRef = ref(null)
 
 //声明原创
 const copyrightRef = ref(false)
@@ -1252,38 +1252,38 @@ const validateAccount = () => {
   return true
 }
 
-const createBase64Image = async (fileObject) => {
-  const reader = new FileReader();
-  const filename = fileObject.name;
+// const createBase64Image = async (fileObject) => {
+//   const reader = new FileReader();
+//   const filename = fileObject.name;
 
-  reader.onload = async (e) => {
-    const cover = e.target.result;
-    console.log("e", e)
-    console.log("e.target", e.target)
-    // console.log("cover:", cover);
-    const matches = cover.match(/data:(image\/.*);base64,(.*)/);
-    if (matches && matches.length >= 3) {
-      const cdn_content_type = matches[1];  // 图像MIME类型 (image/webp)
-      const cdn_base64_image = matches[2]; // Base64编码数据
+//   reader.onload = async (e) => {
+//     const cover = e.target.result;
+//     console.log("e", e)
+//     console.log("e.target", e.target)
+//     // console.log("cover:", cover);
+//     const matches = cover.match(/data:(image\/.*);base64,(.*)/);
+//     if (matches && matches.length >= 3) {
+//       const cdn_content_type = matches[1];  // 图像MIME类型 (image/webp)
+//       const cdn_base64_image = matches[2]; // Base64编码数据
 
-      // console.log("cdn_content_type:", cdn_content_type);
-      // console.log("cdn_base64_image:", cdn_base64_image);
-      cdnRef.value = { cdn_content_type, cdn_base64_image, cdn_filename: filename }
-      // 切换时上传图片获取cdn_url
-      await uploadCover()
-    } else {
-      ElMessage({
-        message: '无效的图片',
-        type: 'error',
-        duration: 2 * 1000
-      })
-    }
-    // console.log('image_base64:',cover.value)
-    // this.uploadImage();
-    selectedCdnImageRef.value = reader.result
-  };
-  reader.readAsDataURL(fileObject);
-}
+//       // console.log("cdn_content_type:", cdn_content_type);
+//       // console.log("cdn_base64_image:", cdn_base64_image);
+//       cdnRef.value = { cdn_content_type, cdn_base64_image, cdn_filename: filename }
+//       // 切换时上传图片获取cdn_url
+//       await uploadCover()
+//     } else {
+//       ElMessage({
+//         message: '无效的图片',
+//         type: 'error',
+//         duration: 2 * 1000
+//       })
+//     }
+//     // console.log('image_base64:',cover.value)
+//     // this.uploadImage();
+//     selectedCdnImageRef.value = reader.result
+//   };
+//   reader.readAsDataURL(fileObject);
+// }
 
 function handleImageUpload(info) {
   cdnRef.value = { cdn_content_type: info.type, cdn_base64_image: info.data, cdn_filename: info.name }
@@ -1395,7 +1395,7 @@ const loadArticle = (mp_msg, before_save) => {
   console.log("mpExsRef=>", mpExsRef.value)
 
   selectedCdnImageRef.value = null
-  cdnFileInputRef.value.value = ""
+  // cdnFileInputRef.value.value = ""
   console.log("loadArticle:", currentArticleRef.value)
   copyrightRef.value = currentArticleRef.value.copyright_type == 1
   needOpenCommentRef.value = currentArticleRef.value.need_open_comment == 1
@@ -1642,7 +1642,7 @@ const saveCurrentToList = (msg_id) => {
   // console.log("vhtml=>", vhtml)
   currentArticleRef.value.content_noencode = vhtml
 
-  console.log("abc")
+  console.log("abc",currentArticleRef.value)
   const idx = mp_msgsRef.value.findIndex(v => v.msg_id === msg_id)
   if (idx !== -1) {
     mp_msgsRef.value[idx] = currentArticleRef.value
@@ -2320,19 +2320,19 @@ const emitChangeForPublishTimingDate = async (val) => {
   // });
 }
 
-const triggerFileInput = () => {
-  cdnFileInputRef.value.click()
-}
+// const triggerFileInput = () => {
+//   cdnFileInputRef.value.click()
+// }
 
-const handleImage = async (e) => {
-  const selectedImage = e.target.files[0]; // get first file
-  if (selectedImage) {
-    await createBase64Image(selectedImage);
-  } else {
-    selectedCdnImageRef.value = null
-    cdnFileInputRef.value.value = ""
-  }
-}
+// const handleImage = async (e) => {
+//   const selectedImage = e.target.files[0]; // get first file
+//   if (selectedImage) {
+//     await createBase64Image(selectedImage);
+//   } else {
+//     selectedCdnImageRef.value = null
+//     cdnFileInputRef.value.value = ""
+//   }
+// }
 
 const checkTitles = () => {
 
