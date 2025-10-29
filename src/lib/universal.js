@@ -9,6 +9,10 @@ function init(platformData) {
   const win = platformData.webview;
   const url = platformData.user.platform_url;
 
+  win.webContents.setUserAgent(
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+  );
+
   verbose_log('初始化平台数据:', {
     url: url,
     session_id: platformData.user.session_id,
