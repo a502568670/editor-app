@@ -251,92 +251,79 @@
         </el-icon> -->
       </div>
       <el-tabs type="border-card" class="editor-inner-tabs w-[300px]">
-        <el-tab-pane label="发布设置">
-          <el-row :gutter="4" class="mb-1" v-if="false&&![5, 8].includes(currentArticleRef.item_show_type)">
-            <el-col :span="24">
-              <el-input v-model="currentArticleRef.title" clearable class="grid-content-control" placeholder="请输入文章标题"
-                @input="syncToList('title')" />
-            </el-col>
-          </el-row>
-          <el-row :gutter="4" class="mb-1" v-if="![8].includes(currentArticleRef.item_show_type)">
-            <el-col :span="24">
-              <el-input v-model="currentArticleRef.author" clearable class="grid-content-control"
-                placeholder="请输入文章作者" />
-            </el-col>
-          </el-row>
-          <el-row :gutter="4" class="mb-1 w-full">
-            <el-col :span="24" class="h-20 py-2 w-full flex justify-center items-center" style="display: none;">
-              <img class="cursor-pointer max-h-16 block" @click="triggerFileInput" v-if="selectedCdnImageRef"
-                :src="selectedCdnImageRef" alt="封面预览">
-              <img class="cursor-pointer max-h-16 block" @click="triggerFileInput"
-                v-else-if="currentArticleRef.cdn_url" :src="currentArticleRef.cdn_url" referrerpolicy="no-referrer"
-                alt="封面图" />
-              <div v-else @click="triggerFileInput"
-                class="cursor-pointer border h-16 w-[180px] flex justify-center items-center bg-[#8c8c8c]">设置封面图</div>
-              <input class="invisible" ref="cdnFileInputRef" @change="handleImage" type="file" accept="image/*">
-            </el-col>
-            <ImgPicker v-show="currentArticleRef.item_show_type !== 10" ref="refImgPicker" v-model="pickerQuery"
-              :pageInfo="pickerPageInfo" :imgSrc="currentArticleRef.cdn_url" placeholder="设置封面图"
-              @change="handleImageUpload" @confirm="onImgPick" :editorInst="editorRef" />
-            <!-- <ImgCrop :imgSrc="currentArticleRef.cdn_url" placeholder="设置封面图" @change="handleImageUpload"></ImgCrop> -->
-          </el-row>
-          <!-- <el-row :gutter="4" class="mb-1 invisible">
-      <el-col :span="24">
-
-      </el-col>
-    </el-row> -->
-          <el-row :gutter="4" class="my-2">
-            <el-col :span="24">
-              <hr />
-            </el-col>
-          </el-row>
-          <el-row :gutter="4" class="mb-1">
-            <el-col :span="24">
-              <!-- 创作来源 -->
-              <el-select v-model="selected_claim_source_typeRef" value-key="id" filterable placeholder="创作来源">
-                <el-option v-for="(item) in claim_source_typesRef" :key="item.id" :label="item.name" :value="item" />
-              </el-select>
-            </el-col>
-          </el-row>
-          <el-row :gutter="4" class="mb-1">
-            <el-col :span="24">
-              <el-checkbox label="声明原创" v-model="copyrightRef" />
-            </el-col>
-          </el-row>
-          <el-row :gutter="4" class="h-8 mb-1">
-            <el-col :span="24">
-              <el-input v-model="currentArticleRef.sourceurl" clearable class="grid-content-control"
-                placeholder="原文链接" />
-            </el-col>
-          </el-row>
-          <el-row :gutter="4" class="mb-1">
-            <el-col :span="24">
-              <el-checkbox label="打开留言" v-model="needOpenCommentRef" />
-              <el-radio-group :disabled="!needOpenCommentRef" v-model="commentTypeRef">
-                <!-- works when >=2.6.0, recommended ✔️ not work when <2.6.0 ❌ -->
-                <el-radio value="0">所有人可留言</el-radio>
-                <!-- works when <2.6.0, deprecated act as value when >=3.0.0 -->
-                <el-radio label="1">仅关注后可留言</el-radio>
-              </el-radio-group>
-            </el-col>
-          </el-row>
-
-          <!-- <el-row :gutter="4" class="my-2">
-        <el-col :span="24">
-          <hr />
-        </el-col>
-      </el-row>
-      <el-row :gutter="4" class="mb-1">
-        <el-col :span="24">
-
-        </el-col>
-      </el-row>
-      <el-row :gutter="4" class="h-8 mb-1">
-        <el-col :span="24"></el-col>
-      </el-row>
-      <el-row :gutter="4" class="h-8 mb-1">
-        <el-col :span="24"></el-col>
-      </el-row> -->
+        <el-tab-pane label="发布设置" class="h-full">
+          <div class="overflow-y-auto h-full">
+            <el-row :gutter="4" class="mb-6" v-if="false&&![5, 8].includes(currentArticleRef.item_show_type)">
+              <el-col :span="24">
+                <el-input v-model="currentArticleRef.title" clearable class="grid-content-control" placeholder="请输入文章标题"
+                  @input="syncToList('title')" />
+              </el-col>
+            </el-row>
+            <el-row :gutter="4" class="mb-6" v-if="![8].includes(currentArticleRef.item_show_type)">
+              <el-col :span="24">
+                <p class="set-title">作者</p>
+                <el-input v-model="currentArticleRef.author" clearable placeholder="请输入文章作者" />
+              </el-col>
+            </el-row>
+            <el-row :gutter="4" class="mb-6">
+              <el-col :span="24">
+                <p class="set-title">封面设置</p>
+                <ImgPicker v-show="currentArticleRef.item_show_type !== 10" ref="refImgPicker" v-model="pickerQuery"
+                  :pageInfo="pickerPageInfo" :imgSrc="currentArticleRef.cdn_url" placeholder="设置封面图"
+                  @change="handleImageUpload" @confirm="onImgPick" :editorInst="editorRef" />
+              </el-col>
+              <!-- <el-col :span="24" class="h-20 py-2 w-full flex justify-center items-center" style="display: none;">
+                <img class="cursor-pointer max-h-16 block" @click="triggerFileInput" v-if="selectedCdnImageRef"
+                  :src="selectedCdnImageRef" alt="封面预览">
+                <img class="cursor-pointer max-h-16 block" @click="triggerFileInput"
+                  v-else-if="currentArticleRef.cdn_url" :src="currentArticleRef.cdn_url" referrerpolicy="no-referrer"
+                  alt="封面图" />
+                <div v-else @click="triggerFileInput"
+                  class="cursor-pointer border h-16 w-[180px] flex justify-center items-center bg-[#8c8c8c]">设置封面图</div>
+                <input class="invisible" ref="cdnFileInputRef" @change="handleImage" type="file" accept="image/*">
+              </el-col> -->
+              <!-- <ImgCrop :imgSrc="currentArticleRef.cdn_url" placeholder="设置封面图" @change="handleImageUpload"></ImgCrop> -->
+            </el-row>
+            <el-row :gutter="4" class="mb-6">
+              <el-col :span="24">
+                <p class="set-title">创作来源</p>
+                <el-select v-model="selected_claim_source_typeRef" value-key="id" filterable placeholder="创作来源">
+                  <el-option v-for="(item) in claim_source_typesRef" :key="item.id" :label="item.name" :value="item" />
+                </el-select>
+              </el-col>
+            </el-row>
+            <el-row :gutter="4" class="mb-6">
+              <el-col :span="24">
+                <p class="set-title">原创设置</p>
+                <el-checkbox label="声明原创" v-model="copyrightRef" />
+              </el-col>
+            </el-row>
+            <el-row :gutter="4" class="mb-6">
+              <el-col :span="24">
+                <p class="set-title">原文链接</p>
+                <el-input v-model="currentArticleRef.sourceurl" clearable placeholder="原文链接" />
+              </el-col>
+            </el-row>
+            <el-row :gutter="4" class="mb-6">
+              <el-col :span="24">
+                <p class="set-title">留言设置</p>
+                <el-checkbox label="打开留言" v-model="needOpenCommentRef" />
+                <el-radio-group :disabled="!needOpenCommentRef" v-model="commentTypeRef">
+                  <el-radio label="0">所有人可留言</el-radio>
+                  <el-radio label="1">仅关注后可留言</el-radio>
+                </el-radio-group>
+              </el-col>
+            </el-row>
+            <el-row :gutter="4" class="mb-6">
+              <el-col :span="24">
+                <p class="set-title">评论区广告</p>
+                <el-radio-group v-model="commentAreaAdvertise">
+                  <el-radio :label="1">开启</el-radio>
+                  <el-radio :label="2">关闭</el-radio>
+                </el-radio-group>
+              </el-col>
+            </el-row>
+          </div>
         </el-tab-pane>
         <el-tab-pane label="样式中心" class="h-full">
           <SysTempl :editorInst="editorRef" />
@@ -795,6 +782,12 @@
 }
 </style>
 <style scoped>
+.set-title{
+  font-size: 14px;
+  color: #444;
+  margin-bottom: 5px;
+}
+
 .percentage-value {
   display: block;
   margin-top: 10px;
@@ -1013,7 +1006,7 @@ const elListMsgsRef = ref(null)
 // 封面
 const cdnRef = ref(null)
 const selectedCdnImageRef = ref(null)
-const cdnFileInputRef = ref(null)
+// const cdnFileInputRef = ref(null)
 
 //声明原创
 const copyrightRef = ref(false)
@@ -1021,6 +1014,7 @@ const copyrightRef = ref(false)
 // 留言
 const needOpenCommentRef = ref(false)
 const commentTypeRef = ref("0") // 0-全部 1-只有粉丝
+const commentAreaAdvertise = ref(1)
 
 // 创作来源
 const claim_source_typesRef = ref(claim_source_types)
@@ -1258,38 +1252,38 @@ const validateAccount = () => {
   return true
 }
 
-const createBase64Image = async (fileObject) => {
-  const reader = new FileReader();
-  const filename = fileObject.name;
+// const createBase64Image = async (fileObject) => {
+//   const reader = new FileReader();
+//   const filename = fileObject.name;
 
-  reader.onload = async (e) => {
-    const cover = e.target.result;
-    console.log("e", e)
-    console.log("e.target", e.target)
-    // console.log("cover:", cover);
-    const matches = cover.match(/data:(image\/.*);base64,(.*)/);
-    if (matches && matches.length >= 3) {
-      const cdn_content_type = matches[1];  // 图像MIME类型 (image/webp)
-      const cdn_base64_image = matches[2]; // Base64编码数据
+//   reader.onload = async (e) => {
+//     const cover = e.target.result;
+//     console.log("e", e)
+//     console.log("e.target", e.target)
+//     // console.log("cover:", cover);
+//     const matches = cover.match(/data:(image\/.*);base64,(.*)/);
+//     if (matches && matches.length >= 3) {
+//       const cdn_content_type = matches[1];  // 图像MIME类型 (image/webp)
+//       const cdn_base64_image = matches[2]; // Base64编码数据
 
-      // console.log("cdn_content_type:", cdn_content_type);
-      // console.log("cdn_base64_image:", cdn_base64_image);
-      cdnRef.value = { cdn_content_type, cdn_base64_image, cdn_filename: filename }
-      // 切换时上传图片获取cdn_url
-      await uploadCover()
-    } else {
-      ElMessage({
-        message: '无效的图片',
-        type: 'error',
-        duration: 2 * 1000
-      })
-    }
-    // console.log('image_base64:',cover.value)
-    // this.uploadImage();
-    selectedCdnImageRef.value = reader.result
-  };
-  reader.readAsDataURL(fileObject);
-}
+//       // console.log("cdn_content_type:", cdn_content_type);
+//       // console.log("cdn_base64_image:", cdn_base64_image);
+//       cdnRef.value = { cdn_content_type, cdn_base64_image, cdn_filename: filename }
+//       // 切换时上传图片获取cdn_url
+//       await uploadCover()
+//     } else {
+//       ElMessage({
+//         message: '无效的图片',
+//         type: 'error',
+//         duration: 2 * 1000
+//       })
+//     }
+//     // console.log('image_base64:',cover.value)
+//     // this.uploadImage();
+//     selectedCdnImageRef.value = reader.result
+//   };
+//   reader.readAsDataURL(fileObject);
+// }
 
 function handleImageUpload(info) {
   cdnRef.value = { cdn_content_type: info.type, cdn_base64_image: info.data, cdn_filename: info.name }
@@ -1401,7 +1395,7 @@ const loadArticle = (mp_msg, before_save) => {
   console.log("mpExsRef=>", mpExsRef.value)
 
   selectedCdnImageRef.value = null
-  cdnFileInputRef.value.value = ""
+  // cdnFileInputRef.value.value = ""
   console.log("loadArticle:", currentArticleRef.value)
   copyrightRef.value = currentArticleRef.value.copyright_type == 1
   needOpenCommentRef.value = currentArticleRef.value.need_open_comment == 1
@@ -1628,27 +1622,21 @@ const saveCurrentToList = (msg_id) => {
   // 创作来源
   currentArticleRef.value.claim_source_type = selected_claim_source_typeRef.value.id
 
-
-  // console.log("adCategoryChoosedRef=>", adCategoryChoosedRef.value)
-
+  // 评论区广告
+  currentArticleRef.value.open_comment_ad = commentAreaAdvertise.value
 
   const to_save_content_noencode = currentArticleRef.value.content_noencode;
-  // console.log("to_save_content_noencode:", to_save_content_noencode)
 
   const category_id_list = adCategoryChoosedRef.value.join("|")
-  // console.log("category_id_list:", category_id_list)
   let vhtml = restore_ad_content_from_UEditor(to_save_content_noencode, category_id_list, ad_idRef.value)
-  // console.log("ad vhtml=>", vhtml)
 
-  // replace custom-tag
   vhtml = replaceMPCardToWechat(vhtml, mpExsRef.value.mps_obj)
   vhtml = replaceMiniAppCardToWechat(vhtml, mpExsRef.value.miniappcard_obj)
   vhtml = replaceMPVContentToWechat(vhtml, mpExsRef.value.mpvcontent_obj)
 
-  // console.log("vhtml=>", vhtml)
   currentArticleRef.value.content_noencode = vhtml
 
-  console.log("abc")
+  console.log("abc",currentArticleRef.value)
   const idx = mp_msgsRef.value.findIndex(v => v.msg_id === msg_id)
   if (idx !== -1) {
     mp_msgsRef.value[idx] = currentArticleRef.value
@@ -1720,16 +1708,13 @@ const _saveAppMsg = async (push_to_remote) => {
   }
 
   const msg_id = msg_idRef.value
-  // console.log("mp_msgsRef before saveCurrentToList=>", mp_msgsRef.value[0].content_noencode)
   let selected_idx = saveCurrentToList(msg_id)
-  console.log("mp_msgsRef after saveCurrentToList=>", mp_msgsRef.value[0].content_noencode)
   saveOthersToListForCustomTag(msg_id)
 
-  // console.log("mp_msgsRef after saveOthersToListForCustomTag=>", mp_msgsRef.value[0].content_noencode)
-  // console.log("save all mp_msgsRef.value=>", mp_msgsRef.value)
   // const appmsgid =  appmsgidRef.value
   let appmsgid = _getAppMsgId()
 
+  console.log(mp_msgsRef.value)
   const postData = {
     cookies: serializeCookie(JSON.parse(session_id)["cookie"]),
     token: parseInt(token),
@@ -1751,7 +1736,6 @@ const _saveAppMsg = async (push_to_remote) => {
       type: 'success',
       duration: 2 * 1000
     })
-    console.log("saveArticleDraft res=>", res)
     res.data.data.mp_msgs.forEach(gen_picture_page_info_list)
     mp_msgsRef.value = res.data.data.mp_msgs
     // ### todo: mp_msg_exs
@@ -1825,7 +1809,6 @@ const checkQuota = (date) => {
 
 const confirmOpenPublishToWechatDialog = async () => {
   const publish_flag = currentAppmsgRef.value.publish_flag;
-  console.log("publish_flag=>", publish_flag)
   if (publish_flag === 1) {
     ElMessageBox.confirm(
       '当前消息列表已发布，除非在公众号后台撤销，否则操作会引发错误, 是否继续?',
@@ -1947,6 +1930,7 @@ const handlePublishNext = async () => {
     })
     publishLoadingRef.value = false
     // console.log("step data=>", o)
+    console.log('打印是否是原创',stepRet)
     if (stepRet.copyright === 1) {
       // <el-step title="设置发表参数" />
       //   <el-step title="确认发表方式" />
@@ -2324,19 +2308,19 @@ const emitChangeForPublishTimingDate = async (val) => {
   // });
 }
 
-const triggerFileInput = () => {
-  cdnFileInputRef.value.click()
-}
+// const triggerFileInput = () => {
+//   cdnFileInputRef.value.click()
+// }
 
-const handleImage = async (e) => {
-  const selectedImage = e.target.files[0]; // get first file
-  if (selectedImage) {
-    await createBase64Image(selectedImage);
-  } else {
-    selectedCdnImageRef.value = null
-    cdnFileInputRef.value.value = ""
-  }
-}
+// const handleImage = async (e) => {
+//   const selectedImage = e.target.files[0]; // get first file
+//   if (selectedImage) {
+//     await createBase64Image(selectedImage);
+//   } else {
+//     selectedCdnImageRef.value = null
+//     cdnFileInputRef.value.value = ""
+//   }
+// }
 
 const checkTitles = () => {
 
