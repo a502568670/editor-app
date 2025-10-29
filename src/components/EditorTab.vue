@@ -2256,17 +2256,15 @@ const handleSendToOtherAccount = async () => {
   //   target_wechat_ids: otherAccountsChoosedRef.value
   // })
   const { wechat_id } = selectedAccount.value
-  let stepRetsend_to_other_accounts_events
-  await ({
+  let stepRet
+  await send_to_other_accounts_events({
     source_wechat_id: wechat_id,
     soruce_appmsgid: appmsgid,
     target_wechat_ids: otherAccountsChoosedRef.value
   }, (data) => {
-    // console.log("step raw=>", data)
     try {
       const v = data.replaceAll(/data: /gi, "")
       stepRet = JSON5.parse(v)
-      // console.log("step data=>", o)
       percentRef.value = stepRet.percent
       progressDescRef.value = stepRet.desc
     } catch {
