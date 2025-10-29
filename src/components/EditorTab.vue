@@ -318,8 +318,8 @@
               <el-col :span="24">
                 <p class="set-title">评论区广告</p>
                 <el-radio-group v-model="commentAreaAdvertise">
-                  <el-radio label="0">开启</el-radio>
-                  <el-radio label="1">关闭</el-radio>
+                  <el-radio :label="1">开启</el-radio>
+                  <el-radio :label="2">关闭</el-radio>
                 </el-radio-group>
               </el-col>
             </el-row>
@@ -1014,7 +1014,7 @@ const copyrightRef = ref(false)
 // 留言
 const needOpenCommentRef = ref(false)
 const commentTypeRef = ref("0") // 0-全部 1-只有粉丝
-const commentAreaAdvertise = ref('0')
+const commentAreaAdvertise = ref(1)
 
 // 创作来源
 const claim_source_typesRef = ref(claim_source_types)
@@ -1622,24 +1622,18 @@ const saveCurrentToList = (msg_id) => {
   // 创作来源
   currentArticleRef.value.claim_source_type = selected_claim_source_typeRef.value.id
 
-
-  // console.log("adCategoryChoosedRef=>", adCategoryChoosedRef.value)
-
+  // 评论区广告
+  currentArticleRef.value.open_comment_ad = commentAreaAdvertise.value
 
   const to_save_content_noencode = currentArticleRef.value.content_noencode;
-  // console.log("to_save_content_noencode:", to_save_content_noencode)
 
   const category_id_list = adCategoryChoosedRef.value.join("|")
-  // console.log("category_id_list:", category_id_list)
   let vhtml = restore_ad_content_from_UEditor(to_save_content_noencode, category_id_list, ad_idRef.value)
-  // console.log("ad vhtml=>", vhtml)
 
-  // replace custom-tag
   vhtml = replaceMPCardToWechat(vhtml, mpExsRef.value.mps_obj)
   vhtml = replaceMiniAppCardToWechat(vhtml, mpExsRef.value.miniappcard_obj)
   vhtml = replaceMPVContentToWechat(vhtml, mpExsRef.value.mpvcontent_obj)
 
-  // console.log("vhtml=>", vhtml)
   currentArticleRef.value.content_noencode = vhtml
 
   console.log("abc",currentArticleRef.value)
@@ -1714,16 +1708,13 @@ const _saveAppMsg = async (push_to_remote) => {
   }
 
   const msg_id = msg_idRef.value
-  // console.log("mp_msgsRef before saveCurrentToList=>", mp_msgsRef.value[0].content_noencode)
   let selected_idx = saveCurrentToList(msg_id)
-  console.log("mp_msgsRef after saveCurrentToList=>", mp_msgsRef.value[0].content_noencode)
   saveOthersToListForCustomTag(msg_id)
 
-  // console.log("mp_msgsRef after saveOthersToListForCustomTag=>", mp_msgsRef.value[0].content_noencode)
-  // console.log("save all mp_msgsRef.value=>", mp_msgsRef.value)
   // const appmsgid =  appmsgidRef.value
   let appmsgid = _getAppMsgId()
 
+  console.log(mp_msgsRef.value)
   const postData = {
     cookies: serializeCookie(JSON.parse(session_id)["cookie"]),
     token: parseInt(token),
@@ -1745,7 +1736,6 @@ const _saveAppMsg = async (push_to_remote) => {
       type: 'success',
       duration: 2 * 1000
     })
-    console.log("saveArticleDraft res=>", res)
     res.data.data.mp_msgs.forEach(gen_picture_page_info_list)
     mp_msgsRef.value = res.data.data.mp_msgs
     // ### todo: mp_msg_exs
