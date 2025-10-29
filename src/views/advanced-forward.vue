@@ -1166,19 +1166,9 @@ const startProcessingTasks = async (tasks) => {
       }
 
       // =============================================
-      // 第二步：原创性检测
-      // 注意：只有设置了"声明原创"的草稿才进行原创性检测
+      // 第二步：原创性检测（强制检测所有草稿）
       // =============================================
-      // 检查草稿是否声明了原创 (copyright_type: 1 表示声明原创)
-      const hasCopyright = task.articleData?.draftData?.multi_item?.some(
-        item => item.copyright_type === 1
-      )
-      progressMessages.value.unshift({
-                type: 'info',
-                text: `${hasCopyright ? '声明原创' : '未声明原创'}`,
-                subtext: `《${task.title}》- 「${task.accountName}」`
-      })
-      if (syncSuccess && newMsgIds && hasCopyright) {
+      if (syncSuccess && newMsgIds) {
         progressStatusText.value = '正在原创性检测…'
         
         try {
@@ -1267,9 +1257,6 @@ const startProcessingTasks = async (tasks) => {
             subtext: `《${task.title}》- 「${task.accountName}」`
           })
         }
-      } else if (syncSuccess && newMsgIds && !hasCopyright) {
-        // 未声明原创，跳过原创性检测
-        console.log(`《${task.title}》未声明原创，跳过原创性检测`)
       }
 
       // 在步骤之间检查取消标志
@@ -1537,6 +1524,7 @@ const startProcessingTasks = async (tasks) => {
           })
           progressSuccessCount.value++
         } else {
+          console.log("发布失败,原因：",ret)
           const reason = (ret && (ret.msg || ret.code)) ? `${ret.msg || ''}${ret.code ? ` (code:${ret.code})` : ''}` : '未知错误'
           progressMessages.value.unshift({
             type: 'error',
