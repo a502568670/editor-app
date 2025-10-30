@@ -1835,7 +1835,7 @@ const confirmOpenPublishToWechatDialog = async () => {
 const openPublishToWechatDialog = async () => {
   // 发布调试完毕需要先将appmsg同步到草稿箱
   await _saveAppMsg(1)
-  if (!currentArticleRef.value.cdn_url) return
+  if (!currentArticleRef.value.cdn_url && ![8,10].includes(currentArticleRef.value.item_show_type)) return
   dialogPublishArticleVisibleRef.value = true
   const today = new Date()
   publishTimingDatesRef.value = Array.from({ length: 7 }, (_, i) => {
