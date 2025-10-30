@@ -1719,12 +1719,27 @@ const _saveAppMsg = async (push_to_remote) => {
   // const appmsgid =  appmsgidRef.value
   let appmsgid = _getAppMsgId()
 
-  console.log(mp_msgsRef.value)
+  const material_list = mp_msgsRef.value.map((item) => {
+    // 清空文章中的垂直制表符，防止出现空白行
+    if(item.content_noencode) {
+      item.content_noencode = item.content_noencode.replace(/<p>\u000b<\/p>$/, '')
+    }
+    // 小绿书处理有图片和无图片的类型
+    if([8, 10].includes(item.item_show_type)) {
+      item.content_noencode = item.guide_words
+      if (item.cdn_url === ''){
+        item.item_show_type = 10
+      } else {
+        item.item_show_type = 8
+      }
+    }
+    return item
+  })
   const postData = {
     cookies: serializeCookie(JSON.parse(session_id)["cookie"]),
     token: parseInt(token),
     appmsgid,
-    material_list: toRaw(mp_msgsRef.value),
+    material_list: toRaw(material_list),
     wechat_id,
     push_to_remote,
   }
@@ -3477,7 +3492,6 @@ watch(() => [props.mainMsg], async (newVal) => {
   if (typeof msg === 'object' && Object.prototype.hasOwnProperty.call(msg, 'tag')) {
     const tag = msg.tag;
     if (tag === "appmsg-ret:localExtractMpArticleUrlResult") {
-      console.log(`tag:${msg.tag}`, typeof msg.data)
       const { ret } = msg.data
       console.log("ret=>", ret)
       if (ret.code == 101) {

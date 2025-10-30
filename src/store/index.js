@@ -88,7 +88,6 @@ export default createStore({
     // 分页获取账号数据(目前按照100条先不分页)
     async ListAccounts({ commit, state, dispatch }, { page = 1, num = 500 } = { page: 1, num: 500 }) {
       const response = await listAccount({ page, num });
-      console.log('123123123',response.data.data.list);
       response.data.data.list?.forEach(v => {
         v.expired = checkWxSession(v);
       });
