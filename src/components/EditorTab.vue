@@ -153,7 +153,7 @@
           clearable
           placeholder="请输入文章标题"
           @input="syncToList('title')"
-          v-if="![5, 8].includes(currentArticleRef.item_show_type)"
+          v-if="![5, 8, 10].includes(currentArticleRef.item_show_type)"
         />
         <div ref="ueditor_wrapper" class="flex-1">
           <vue-ueditor-wrap class="h-full ueditor-wrapper flex items-stretch"
@@ -187,7 +187,7 @@
             </el-row>
           </div>
           <!-- 这里是小绿书的编辑区 -->
-          <div v-if="msg_idRef !== 0 && currentArticleRef.item_show_type === 8"
+          <div v-if="msg_idRef !== 0 && (currentArticleRef.item_show_type === 8 || currentArticleRef.item_show_type === 10)"
             class="w-full p-2 pb-5 flex-col h-full overflow-auto">
             <el-row :gutter="4" class="mb-1 w-full">
               <el-col :span="24">
@@ -215,7 +215,7 @@
             </el-row>
           </div>
           <!-- 纯文字的编辑区，不排除其他类型 -->
-          <div v-if="msg_idRef !== 0 && currentArticleRef.item_show_type === 10"
+          <!-- <div v-if="msg_idRef !== 0 && currentArticleRef.item_show_type === 10"
             class="w-full p-2 pb-5 flex-col h-full overflow-auto">
             <el-row :gutter="4" class="mb-1 w-full">
               <el-col :span="24">
@@ -224,13 +224,13 @@
               </el-col>
             </el-row>
             <el-row :gutter="4" class="mb-1 w-full ">
-              <el-col :span="24" class="flex w-full">
+              <el-col :span="24" class="flex w-full"> -->
                 <!-- <el-input v-model="currentArticleRef.author" clearable class="w-full" placeholder="请输入视频介绍,可以不填" /> -->
-                <el-mention v-model="currentArticleRef.guide_words" type="textarea" class="w-full h-96"
+                <!-- <el-mention v-model="currentArticleRef.guide_words" type="textarea" class="w-full h-96"
                   placeholder="填写描述信息，让大家了解更多内容" />
               </el-col>
             </el-row>
-          </div>
+          </div> -->
         </div>
       </div>
       <div class="bg-white">
@@ -253,13 +253,13 @@
       <el-tabs type="border-card" class="editor-inner-tabs w-[300px]">
         <el-tab-pane label="发布设置" class="h-full">
           <div class="overflow-y-auto h-full">
-            <el-row :gutter="4" class="mb-6" v-if="false&&![5, 8].includes(currentArticleRef.item_show_type)">
+            <el-row :gutter="4" class="mb-6" v-if="false&&![5, 8, 10].includes(currentArticleRef.item_show_type)">
               <el-col :span="24">
                 <el-input v-model="currentArticleRef.title" clearable class="grid-content-control" placeholder="请输入文章标题"
                   @input="syncToList('title')" />
               </el-col>
             </el-row>
-            <el-row :gutter="4" class="mb-6" v-if="![8].includes(currentArticleRef.item_show_type)">
+            <el-row :gutter="4" class="mb-6" v-if="![8, 10].includes(currentArticleRef.item_show_type)">
               <el-col :span="24">
                 <p class="set-title">作者</p>
                 <el-input v-model="currentArticleRef.author" clearable placeholder="请输入文章作者" />
@@ -268,7 +268,7 @@
             <el-row :gutter="4" class="mb-6">
               <el-col :span="24">
                 <p class="set-title">封面设置</p>
-                <ImgPicker v-show="currentArticleRef.item_show_type !== 10" ref="refImgPicker" v-model="pickerQuery"
+                <ImgPicker ref="refImgPicker" v-model="pickerQuery"
                   :pageInfo="pickerPageInfo" :imgSrc="currentArticleRef.cdn_url" placeholder="设置封面图"
                   @change="handleImageUpload" @confirm="onImgPick" :editorInst="editorRef" />
               </el-col>
@@ -898,7 +898,10 @@ import { useDraggable } from 'vue-draggable-plus'
 
 const props = defineProps(['account', 'appmsg', 'mode', 'mainMsg']);
 const emitEvents = defineEmits(['titleChange', 'createAppmsg', 'msgidChange'])
-const is_xiaolvshu = computed(() => (props.appmsg?.multi_item[0] || currentArticleRef.value)?.item_show_type === 8);
+const is_xiaolvshu = computed(() => {
+  const type = (props.appmsg?.multi_item[0] || currentArticleRef.value)?.item_show_type
+  return type === 8 || type === 10
+});
 
 const { all_accounts } = toRefs(store.getters)
 // console.log('envVars.backend_url=>', envVars.backend_url)
@@ -1665,6 +1668,7 @@ const saveOthersToListForCustomTag = (msg_id) => {
 
 const validateMsgData = () => {
   return mp_msgsRef.value.every(v => {
+    if ([8, 10].includes(v.item_show_type)) return true
     if (!v.title) {
       ElMessage({
         message: `请输入标题`,
@@ -1690,6 +1694,7 @@ const _saveAppMsg = async (push_to_remote) => {
     return false
   }
 
+  // 检查是否添加了标题和封面
   if (!validateMsgData()) {
     return false
   }
@@ -1777,7 +1782,6 @@ const handleSaveAppMsg = async () => {
 
 const handleSyncToWechatDraftBox = async () => {
   const publish_flag = currentAppmsgRef.value.publish_flag;
-  console.log("publish_flag=>", publish_flag)
   if (publish_flag === 1) {
     ElMessageBox.confirm(
       '当前消息列表已发布，除非在公众号后台撤销，否则操作会引发错误, 是否继续?',
