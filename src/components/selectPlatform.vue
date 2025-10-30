@@ -1,7 +1,7 @@
 <template>
   <el-select :value="value" clearable filterable :placeholder="placeholder" @input="emitInput" @change="emitChange">
     <el-option
-      v-for="(item,index) in platform_list"
+      v-for="(item,index) in platformList"
       :key="index"
       :label="item.platform_name"
       :value="item[itemKey]"
@@ -10,14 +10,18 @@
 </template>
 
 <script type="text/babel">
-import { listPlatform } from '@/api/platform'
-
 export default {
   name: 'SelectPlatform',
   componentName: 'SelectPlatform',
   props: {
     value: {
       required: false
+    },
+    platformList:{
+      type: Array,
+      default() {
+        return []
+      }
     },
     itemKey: {
       type: String,
@@ -33,18 +37,8 @@ export default {
     }
   },
   data() {
-    return {
-      platform_list: []
-    }
+    return {}
   },
-
-  created() {
-    listPlatform({  }).then(response => {
-      this.platform_list = response.data.data.list || []
-    }).catch(() => {
-    })
-  },
-
   methods: {
     emitInput(val) {
       this.$emit('input', val)
