@@ -36,8 +36,7 @@ onMounted(async ()=>{
     if(list.length){
       account.update(list)
     }else{
-      var res=await account.fetch()
-      store.commit('SET_ACCOUNTS', res)
+      await store.dispatch('ListAccounts')
     }
     dog('App account', account.list)
   }
