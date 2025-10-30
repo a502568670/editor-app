@@ -17,7 +17,7 @@
 
     <!-- 搜索框 -->
     <el-input v-model="listQuery.keyword" clearable placeholder="输入关键词" @input="handleInput" />
-    
+
     <div class="account-list_list">
       <!-- 分组模式 -->
       <div class="grouped-view">
@@ -300,6 +300,7 @@ const addUniversal = async () => {
     if (valid) {
       const platform = {
         platform_id: 6,
+        platform_name: '通用平台',
         originalUsername: Math.floor(Date.now() / 1000),
         session_id: '',
         name: universalForm.value.name,
