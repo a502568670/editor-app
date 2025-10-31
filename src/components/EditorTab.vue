@@ -1726,7 +1726,6 @@ const _saveAppMsg = async (push_to_remote) => {
     }
     // 小绿书处理有图片和无图片的类型
     if([8, 10].includes(item.item_show_type)) {
-      item.content_noencode = item.guide_words
       if (item.cdn_url === ''){
         item.item_show_type = 10
       } else {
