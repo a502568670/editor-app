@@ -220,28 +220,7 @@
               
               <!-- 群发通知内容区域 -->
               <div v-if="settings.sendNotification" class="group-notify-content">
-                <div class="text-sm text-gray-600 mb-2">分组通知</div>
-                <div class="flex space-x-2">
-                  <el-cascader 
-                    v-model="notifyArea" 
-                    :options="areaOpts" 
-                    :props="areaProps" 
-                    placeholder="请选择地区" 
-                    clearable 
-                    filterable
-                    style="width: 230px"
-                  />
-                  <el-select 
-                    v-model="notifySex" 
-                    placeholder="请选择性别" 
-                    clearable
-                    style="width: 100px"
-                  >
-                    <el-option label="全部" value="-1" />
-                    <el-option label="男" value="1" />
-                    <el-option label="女" value="2" />
-                  </el-select>
-                </div>
+                <GroupNotifySelect v-model="groupNotifyParams" :show-tag-select="false" />
               </div>
             </div>
             
@@ -358,7 +337,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, onBeforeUnmount, computed } from 'vue'
+import { ref, reactive, onMounted, onBeforeUnmount, computed, provide } from 'vue'
 import { 
   Plus, 
   QuestionFilled, 
@@ -371,11 +350,11 @@ import AccountPickerModal from '@/components/AccountPickerModal.vue'
 import DraftPickerModal from '@/components/DraftPickerModal.vue'
 import PreviewTaskList from '@/dlgs/previewTaskList.vue'
 import ProgressToast from '@/dlgs/progressToast.vue'
+import GroupNotifySelect from '@/components/editor/GroupNotifySelect.vue'
 import { ElMessage } from 'element-plus'
 import { useRouter } from 'vue-router'
 import { createDateByDays, formatDate } from '@/utils/date'
 import { HOUSRS, MINUTES } from '@/utils/constants'
-import city from '@/assets/city.json'
 import { send_to_other_accounts_events } from '@/api/appmsg'
 import { stat_appmsg_copyright_stat_events, getMasssendInfo, getQrcodeMobileValidate, query_appmsg_publish_qrcode_validate_events } from '@/api/mp_wechat'
 import { serializeCookie } from '@/utils/cookie'
@@ -457,8 +436,24 @@ const selectedPublishDate = ref(null)
 const publishTime = ref(null)
 
 // 群发通知相关数据
-const notifyArea = ref([-1])
-const notifySex = ref('-1')
+const groupNotifyParams = ref('')
+
+// 为 GroupNotifySelect 组件提供一个默认账号（可选）
+const defaultSelectedAccount = computed(() => {
+  // 优先使用自选账号的第一个
+  if (customAccounts.value.length > 0) {
+    return customAccounts.value[0]
+  }
+  // 否则使用文章中的第一个账号
+  if (articles.value.length > 0 && articles.value[0].accountData) {
+    return articles.value[0].accountData
+  }
+  // getRegions 接口不需要账号，所以返回 null 也可以
+  return null
+})
+
+// 提供给子组件
+provide('selectedAccount', defaultSelectedAccount)
 
 // 预览任务列表计算属性
 const previewTasks = computed(() => {
@@ -1166,7 +1161,7 @@ const startProcessingTasks = async (tasks) => {
       }
 
       // =============================================
-      // 第二步：原创性检测（强制检测所有草稿）
+      // 第二步：原创性检测
       // =============================================
       if (syncSuccess && newMsgIds) {
         progressStatusText.value = '正在原创性检测…'
@@ -1505,7 +1500,7 @@ const startProcessingTasks = async (tasks) => {
             isFreePublish,
             hasNotify,
             list,
-            groupstr: '',
+            groupstr: groupNotifyParams.value || '',
             reprint_info,
             appmsgid: (syncResult?.success_accounts?.find(v => (v.original_id === targetAccount.account_id || v.original_id === targetAccount.original_id || v.name === targetAccount.name))?.new_appmsgid) || appmsgid,
             appmsg_item_count: task.articleData?.draftData?.multi_item?.length || 1,
@@ -1635,38 +1630,6 @@ const disableMinutes = (role, comparingDate) => {
   return MINUTES.slice(0, idx)
 }
 
-// 群发通知相关配置
-const city2options = (city) => {
-  var res = []
-  for (var k in city) {
-    var opt = {
-      label: city[k][0].province,
-      value: city[k][0].province,
-      children: []
-    }
-    for (var item of city[k]) {
-      if (item.name === '市辖区') {
-        break // Skip '市辖区' as it is not a valid city
-      }
-      opt.children.push({
-        label: item.name,
-        value: item.name
-      })
-    }
-    res.push(opt)
-  }
-  return res
-}
-
-const areaProps = {
-  expandTrigger: 'hover',
-}
-
-const areaOpts = [
-  { label: '全部', value: -1 },
-  { label: '中国', value: '中国', children: city2options(city) },
-]
-
 // 组件挂载时初始化
 onMounted(() => {
   initPublishDates()
@@ -1789,15 +1752,7 @@ onBeforeUnmount(() => {
 
 /* 群发通知样式 */
 .group-notify-content {
-  padding: 12px 0;
-  border-top: 1px solid #f3f4f6;
-}
-
-.group-notify-content .el-cascader {
-  width: 120px;
-}
-
-.group-notify-content .el-select {
-  width: 100px;
+  padding: 0;
+  border-top: none;
 }
 </style>

@@ -32,6 +32,7 @@ const verbose_log = global.utils.verbose_log;
 const verbose_error = global.utils.verbose_error;
 const get_backend_url_old = global.utils.get_backend_url_old;
 var { batchWechatData, getWxGroupList, batchWxUploadImg, batchWxAggregate, batchWxAggregateSafe } = require('./mp_stat-tasks.js');
+var { getRegions } = require('./mp_appmsg-tasks.js');
 var dog=require('debug')('editor')
 
 
@@ -803,6 +804,10 @@ function initRpc() {
     switch (name) {
       case 'getWxGroupList': {
         return getWxGroupList(data.account);
+      }
+      case 'getRegions': {
+        const cookies = data.account ? serializeCookie(JSON.parse(data.account.session_id).cookie) : '';
+        return getRegions({ cookies, id: data.id || 0 });
       }
       case 'batchWxUploadImg': {
         return batchWxUploadImg(data.account, data.urls);
