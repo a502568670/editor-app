@@ -53,6 +53,16 @@
           <div><Icon icon="stash:arrow-left" @click="goBack" /></div>
           <div><Icon icon="stash:arrow-right" @click="goForward" /></div>
           <div><Icon icon="stash:arrow-retry" @click="refresh" /></div>
+          <!-- 私信 -->
+          <div class="action-bar_btn" @click="goToMessage">
+            <Icon icon="lets-icons:message" />
+            <span>私信</span>
+          </div>  
+          <!-- 评论 -->
+          <div class="action-bar_btn" @click="goToComment">
+            <Icon icon="ant-design:comment-outlined" />
+            <span>评论</span>
+          </div>
         </div>
         <div class="action-bar_url">
           <p>{{ currentTab.url }}</p>
@@ -122,13 +132,130 @@ const handleAddMPAccount = (platform) => {
 var account = useAccountStore()
 
 const refresh = () => {
+  console.log('refresh 被调用')
   window.ipcRenderer.send('refresh-tab', currentTabId.value)
 }
 const goBack = () => {
+  console.log('goBack 被调用')
   window.ipcRenderer.send('back-tab', currentTabId.value)
 }
 const goForward = () => {
+  console.log('goForward 被调用')
   window.ipcRenderer.send('forward-tab', currentTabId.value)
+}
+
+/** 根据当前标签页URL判断所在平台 */
+const getPlatformType = () => {
+  const url = currentTab.value.url || ''
+  
+  // 使用正则表达式精确匹配各平台域名
+  if (/https?:\/\/(mp\.)?weixin\.qq\.com/i.test(url)) {
+    return 'wechat'
+  } else if (/https?:\/\/([a-z0-9-]+\.)?douyin\.com/i.test(url)) {
+    return 'douyin'
+  } else if (/https?:\/\/([a-z0-9-]+\.)?xiaohongshu\.com/i.test(url)) {
+    return 'xiaohongshu'
+  } else if (/https?:\/\/([a-z0-9-]+\.)?kuaishou\.com/i.test(url)) {
+    return 'kuaishou'
+  } else if (/https?:\/\/([a-z0-9-]+\.)?bilibili\.com/i.test(url)) {
+    return 'bilibili'
+  }
+  return 'unknown'
+}
+
+/** 提取URL中的token参数 */
+const getTokenFromUrl = () => {
+  try {
+    const url = currentTab.value.url || ''
+    const urlObj = new URL(url)
+    return urlObj.searchParams.get('token') || ''
+  } catch (e) {
+    return ''
+  }
+}
+
+/** 跳转到私信页面 */
+const goToMessage = () => {
+  console.log('goToMessage 被调用')
+  console.log('currentTab:', currentTab.value)
+  console.log('currentTab.url:', currentTab.value?.url)
+  
+  const platform = getPlatformType()
+  console.log("platform:", platform)
+  let url = ''
+  
+  switch(platform) {
+    case 'wechat':
+      const token = getTokenFromUrl()
+      url = `https://mp.weixin.qq.com/cgi-bin/message?t=message/list&count=20&day=7&token=${token}&lang=zh_CN`
+      break
+    case 'douyin':
+      url = 'https://creator.douyin.com/creator-micro/data/following/chat'
+      break
+    case 'xiaohongshu':
+      url = 'https://sxt.xiaohongshu.com/im/login'
+      break
+    case 'kuaishou':
+      ElNotification({
+        type: 'info',
+        title: '提示',
+        message: '快手网页版暂无私信功能'
+      })
+      return
+    case 'bilibili':
+      url = 'https://message.bilibili.com/#/whisper'
+      break
+    default:
+      ElNotification({
+        type: 'warning',
+        title: '提示',
+        message: '当前平台不支持跳转到私信页面'
+      })
+      return
+  }
+  
+  // 发送消息到主进程，加载新URL
+  window.ipcRenderer.send('load-url', { tabId: currentTabId.value, url })
+}
+
+/** 跳转到评论页面 */
+const goToComment = () => {
+  console.log('goToComment 被调用')
+  console.log('currentTab:', currentTab.value)
+  console.log('currentTab.url:', currentTab.value?.url)
+  
+  const platform = getPlatformType()
+  console.log("platform:", platform)
+  let url = ''
+  
+  switch(platform) {
+    case 'wechat':
+      const token = getTokenFromUrl()
+      url = `https://mp.weixin.qq.com/misc/appmsgcomment?action=list_latest_comment&begin=0&count=10&sendtype=MASSSEND&scene=1&token=${token}&lang=zh_CN`
+      break
+    case 'douyin':
+      url = 'https://creator.douyin.com/creator-micro/interactive/comment'
+      break
+    case 'xiaohongshu':
+      url = 'https://www.xiaohongshu.com/notification'
+      break
+    case 'kuaishou':
+      url = 'https://cp.kuaishou.com/article/comment'
+      break
+    case 'bilibili':
+      url = 'https://message.bilibili.com/#/reply'
+      break
+    default:
+      ElNotification({
+        type: 'warning',
+        title: '提示',
+        message: '当前平台不支持跳转到评论页面'
+      })
+      return
+  }
+  
+  // 发送消息到主进程，加载新URL
+  window.ipcRenderer.send('load-url', { tabId: currentTabId.value, url })
 }
 const copy = (text) => {
   navigator.clipboard.writeText(text)
@@ -450,6 +577,17 @@ window.ipcRenderer.send('control-ready')
 .action-bar_navigation>div:hover{
   background-color: var(--jzl-hover-bg-color);
   cursor: pointer;
+}
+.action-bar_btn{
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px !important;
+}
+.action-bar_btn span{
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
 }
 .action-bar_url{
   flex: 0 1 800px;
