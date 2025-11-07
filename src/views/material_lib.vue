@@ -2,7 +2,6 @@
   <div class="w-full h-full flex">
     <AccountList
       ref="AccountListRef"
-      :selectId="selectedIndexRef"
       :showAdd="false"
       :showDel="false"
       @clickAccountTrigger="handleAccountSelect"
@@ -270,7 +269,6 @@ const queryRef = ref("")
 
 const selectedAccountRef = ref(null)
 provide('selectedAccount', selectedAccountRef)
-const selectedIndexRef = ref()
 const otherAccountsRef = ref([])
 const dataLoadingRef = ref(false)
 const currentOperateName = ref("")
@@ -335,7 +333,6 @@ const currentAccountId = ref()
 const handleAccountSelect = async (account) => {
   currentAccountId.value = account.id
   selectedAccountRef.value = account
-  selectedIndexRef.value = account.id
   // 未排序的公众号列表
   const not_sort = toDeepRaw(all_accounts.value.list.filter(v => v.id !== account.id))
   otherAccountsRef.value = not_sort

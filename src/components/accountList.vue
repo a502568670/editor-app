@@ -43,7 +43,7 @@
                 @click="clickAccount(account)"
                 class="account-list_item hover:bg-zinc-100 group transition duration-500"
                 :class="{
-                  '!bg-zinc-200': $props.selectId === account.id && !isAccountManagementPage,
+                  '!bg-zinc-200': getCurrentAccount?.id === account.id && !isAccountManagementPage,
                   grayscale: account.expired
                 }"
               >
@@ -52,7 +52,8 @@
                   <div
                     class="truncate flex-1 w-0"
                     :class="{
-                      'text-[var(--jzl-primary-color)]': $props.selectId === account.id && !isAccountManagementPage
+                      'text-[var(--jzl-primary-color)]':
+                        getCurrentAccount?.id === account.id && !isAccountManagementPage
                     }"
                   >
                     {{ account.name }}
@@ -119,7 +120,7 @@
 </template>
 
 <script setup>
-import { ref, toRefs, computed, onActivated } from 'vue';
+import { ref, toRefs, computed, onActivated, nextTick } from 'vue';
 import store from '@/store';
 import { toDeepRaw } from '@/utils/convert';
 import { sortByOrder, debounceFn } from '@/utils/index';
@@ -132,7 +133,6 @@ import { VueDraggable } from 'vue-draggable-plus';
 import { getAccountGroupList } from '@/api/account-group';
 
 const props = defineProps({
-  selectId: {},
   showAdd: {
     type: Boolean,
     default: true
@@ -156,7 +156,7 @@ const props = defineProps({
 });
 const emit = defineEmits(['clickAccountTrigger', 'delAccountTrigger', 'addAccountTrigger', 'userManagementTrigger']);
 
-const { all_accounts, account_orders } = toRefs(store.getters);
+const { all_accounts, account_orders, getCurrentAccount, getPreviousWxAccount } = toRefs(store.getters);
 
 const platforms = [
   {
@@ -328,9 +328,12 @@ const clickAccount = account => {
   console.log('clickAccount', account);
   const { token, session_id, platform_id } = account;
   if (platform_id === 6 && !props.isSupportUniversal) {
-    ElMessageBox.alert('该平台不支持此操作', '错误', {
+    ElMessageBox.alert('该平台不支持此操作，已重新选择为公众号', '提示', {
       confirmButtonText: '确定',
-      type: 'error'
+      type: 'warning'
+    }).then(()=>{
+      if (getCurrentAccount.value.platform_id === 4) return
+      clickAccount(getPreviousWxAccount.value)
     });
     return;
   }
@@ -341,6 +344,7 @@ const clickAccount = account => {
     });
     return;
   }
+  store.commit('SET_CURRENT_ACCOUNT', account);
   emit('clickAccountTrigger', account);
 };
 
@@ -377,7 +381,11 @@ const handleDragEnd = e => {
 // 组件挂载时加载分组列表
 onActivated(async () => {
   await loadAccountGroups();
-  setGroupedAccounts();
+  await setGroupedAccounts();
+
+  if(getCurrentAccount.value){
+    clickAccount(getCurrentAccount.value)
+  }
 });
 
 defineExpose({

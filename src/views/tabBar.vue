@@ -68,7 +68,7 @@
 </template>
 
 <script setup>
-import { nextTick, onMounted, onActivated, ref, onDeactivated, onBeforeUnmount, watch, provide } from 'vue'
+import { nextTick, onMounted, onActivated, ref, onDeactivated, onBeforeUnmount, watch, provide, toRefs } from 'vue'
 import { ElNotification } from 'element-plus'
 import { useRoute } from 'vue-router'
 import { getToken } from "@/utils/auth";
@@ -80,6 +80,8 @@ import { listPlatform } from '@/api/platform'
 import { useAccountStore } from '@/store/piniaStore';
 import AccountList from '@/components/accountList.vue'
 import AccountManagement from './account-management.vue'
+
+const { all_accounts } = toRefs(store.getters);
 
 const AccountListRef = ref()
 const route = useRoute()
@@ -309,7 +311,9 @@ onMounted(() => {
       }
       for (let a of accounts_mapping_tabs.value) {
         if (a.tabId == currentTabId.value) {
+          const account = all_accounts.value.list.find((item)=> item.id === a.accountId)
           selected_account_id.value = a.accountId
+          store.commit('SET_CURRENT_ACCOUNT', account);
           break
         }
       }
@@ -362,10 +366,10 @@ const handleOpenAccountFromRoute = () => {
   }
 }
 
-onActivated(() => {
-  // handleFilter();
-  nextTick(()=>changeTab(currentTabId.value))
-})
+// onActivated(() => {
+//   handleFilter();
+//   nextTick(()=>changeTab(currentTabId.value))
+// })
 
 // 监听路由参数变化（用于在 tabBar 页面内部通过路由打开账号）
 watch(() => route.query.open_account_id, (newAccountId) => {
