@@ -43,6 +43,7 @@ contextBridge.exposeInMainWorld('ipcRenderer', {
         'refresh-tab',
         'back-tab',
         'forward-tab',
+        'load-url',
         'control-ready',
         'webBounds'
       ].includes(channel)

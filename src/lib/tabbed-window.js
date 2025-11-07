@@ -484,6 +484,7 @@ export class TabbedWindow extends EventEmitter {
         this.switchTab(id);
       },
       'refresh-tab': (e, id) => {
+        verbose_log('===== 主进程收到 refresh-tab 请求 =====', id);
         this.refresh(id);
       },
       'back-tab': (e, id) => {
@@ -495,6 +496,21 @@ export class TabbedWindow extends EventEmitter {
         if (this.currentView && !this.currentView.webContents.isDestroyed()) {
           this.currentView.webContents.goForward();
         }
+      },
+      'load-url': (e, { tabId, url }) => {
+        verbose_log('===== 主进程收到 load-url 请求 =====', url);
+        if (tabId && url) {
+          const view = this.views[tabId];
+          if (view && !view.webContents.isDestroyed()) {
+            console.log('开始加载URL:', url);
+            view.webContents.loadURL(url);
+          } else {
+            console.log('view不存在或已销毁');
+          }
+        } else {
+          console.log('tabId或url为空');
+        }
+        console.log('===================================');
       },
       'url-change': (e, url) => {
         this.setTabConfig(this.currentViewId, { url });

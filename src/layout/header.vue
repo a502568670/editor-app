@@ -39,6 +39,10 @@
           <el-icon :size="20"><ImagePlay/></el-icon>
           <span class="mt-1">素材库</span>
         </router-link>
+        <router-link class="menu" to="/message" active-class="active" replace>
+          <el-icon :size="20"><ChatDotRound/></el-icon>
+          <span class="mt-1">私信评论</span>
+        </router-link>
       </div>
     </el-col>
     <el-col :span="4">
@@ -72,7 +76,7 @@ import { ref, reactive, toRefs, computed, toRaw } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useStore } from 'vuex'
 import {ImagePlay, Newspaper, Share} from 'lucide-vue-next'
-import { ArrowDown } from '@element-plus/icons-vue'
+import { ArrowDown,ChatDotRound } from '@element-plus/icons-vue'
 import { gotoExternal } from "@/utils/openWindow"
 import Hydrate from '@/components/Hydrate.vue';
 import { useAccountStore } from '@/store/piniaStore'

@@ -269,10 +269,17 @@
   <el-dialog :close-on-click-modal="false" title="提取文章链接内容" v-model="dialogExtractMpAritcleUrlRef" width="600px">
     <el-row :gutter="40" class="w-full">
       <el-col :span="18" class="w-full">
-        <el-input v-model="extractArticleUrlRef" clearable placeholder="请输入文章提取地址" />
+        <el-input v-model="extractArticleUrlRef" clearable placeholder="请输入文章提取地址" :disabled="extractLoadingRef" />
       </el-col>
       <el-col :span="6">
-        <el-button @click="handleLocalExtractMpArticleUrl" type="primary">提取链接内容</el-button>
+        <el-button @click="handleLocalExtractMpArticleUrl" type="primary" :loading="extractLoadingRef" :disabled="extractLoadingRef">
+          {{ extractLoadingRef ? '提取中...' : '提取链接内容' }}
+        </el-button>
+      </el-col>
+    </el-row>
+    <el-row :gutter="40" class="w-full mt-4" v-if="extractStatusRef">
+      <el-col :span="24">
+        <el-alert :title="extractStatusRef" :type="extractStatusTypeRef" :closable="false" show-icon />
       </el-col>
     </el-row>
   </el-dialog>
@@ -763,7 +770,10 @@ const timeoutSendToOneAccount = 30 * 1000; // ms
 // const extractArticleUrlRef = ref("https://mp.weixin.qq.com/s/riiYjv8HUqyUZz_-IQKe9g")
 const extractArticleUrlRef = ref("")
 const dialogExtractMpAritcleUrlRef = ref(false)
-const timeoutExtract = 3 * 1000; // ms
+const extractLoadingRef = ref(false)
+const extractStatusRef = ref("")
+const extractStatusTypeRef = ref("info") // success, warning, info, error
+const timeoutExtract = 30 * 1000; // ms
 
 // 视频素材
 const dialogVideoMaterialRef = ref(false)
@@ -2112,6 +2122,9 @@ const handleImage = async (e) => {
 }
 
 const openExtractMpArticleUrlDialog = () => {
+  extractLoadingRef.value = false
+  extractStatusRef.value = ""
+  extractStatusTypeRef.value = "info"
   dialogExtractMpAritcleUrlRef.value = true
 }
 
@@ -2179,7 +2192,18 @@ const handleLocalExtractMpArticleUrl = async () => {
     return
   }
 
-  globalLoadingRef.value = true
+  if (!selectedAccount.value) {
+    ElMessageBox.alert('请先选择公众账号', '警告', {
+      confirmButtonText: '确定',
+      type: 'warning'
+    }).catch(() => { })
+    return
+  }
+
+  extractLoadingRef.value = true
+  extractStatusRef.value = "正在提取文章内容，请稍候..."
+  extractStatusTypeRef.value = "info"
+
   window.ipcRenderer.send('toMain', {
     tag: 'appmsg:localExtractMpArticleUrl',
     source: channelSource,
@@ -2187,9 +2211,13 @@ const handleLocalExtractMpArticleUrl = async () => {
     extractArticleUrl: extractArticleUrlRef.value,
   })
 
+  // 超时处理
   setTimeout(() => {
-    globalLoadingRef.value = false
-    dialogExtractMpAritcleUrlRef.value = false
+    if (extractLoadingRef.value) {
+      extractLoadingRef.value = false
+      extractStatusRef.value = "请求超时，请检查网络或稍后再试"
+      extractStatusTypeRef.value = "error"
+    }
   }, timeoutExtract)
 }
 
@@ -2578,6 +2606,21 @@ onActivated(async () => {
       const tag = msg.tag;
       if (tag === "appmsg-ret:localExtractMpArticleUrlResult") {
         console.log(`tag:${msg.tag}`, typeof msg.data)
+        extractLoadingRef.value = false
+        
+        const { success, error } = msg.data
+        
+        // 处理错误情况
+        if (success === false) {
+          extractStatusRef.value = error || "提取文章内容失败"
+          extractStatusTypeRef.value = "error"
+          ElMessageBox.alert(error || "提取文章内容失败", '错误', {
+            confirmButtonText: '确定',
+            type: 'error'
+          }).catch(() => { })
+          return
+        }
+        
         const { title, nick_name, copyright_stat, cdn_url, item_show_type, video_page_info } = ret
         let { content_noencode, content_text } = ret
         console.log("ret=>", ret)
@@ -2613,8 +2656,16 @@ onActivated(async () => {
         if (idx !== -1) {
           mp_msgsRef.value[idx] = currentArticleRef.value
         }
+        
+        extractStatusRef.value = "提取成功！"
+        extractStatusTypeRef.value = "success"
         extractArticleUrlRef.value = ""
-        dialogExtractMpAritcleUrlRef.value = false
+        
+        // 延迟关闭弹窗和清空状态
+        setTimeout(() => {
+          dialogExtractMpAritcleUrlRef.value = false
+          extractStatusRef.value = ""
+        }, 1500)
       } else if (tag === "appmsg-ret:publishToWechat") {
         console.log("publishToWechatResult ret=>", ret)
         const { success, msg: retmsg } = ret
