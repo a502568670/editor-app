@@ -513,8 +513,8 @@ async function reactToIpcObjectData(data, tabbedWin, viewContents) {
     }
     case 'appmsg:localExtractMpArticleUrl': {
       verbose_log("===== listen localExtractMpArticleUrl in main ====", data)
-      const { source, extractArticleUrl } = data
-      const html = await localExtractMpArticleUrlUseRequest(extractArticleUrl)
+      const { source, extractArticleUrl, token } = data
+      const html = await localExtractMpArticleUrlUseRequest(extractArticleUrl, undefined, token)
         .catch((err) => {
           verbose_error("reject localExtractMpArticleUrl for reason:", err)
         });
@@ -528,13 +528,13 @@ async function reactToIpcObjectData(data, tabbedWin, viewContents) {
     }
     case 'appmsg:batchExtractMpArticleUrls': {
       verbose_log("===== listen localExtractMpArticleUrl in main ====", data)
-      const { source, extractArticleUrls } = data
+      const { source, extractArticleUrls, token } = data
 
       const ret = []
       // 同步顺序调用
       //
       // for await (const extractArticleUrl of extractArticleUrls) {
-      //   const html = await localExtractMpArticleUrlUseRequest(extractArticleUrl)
+      //   const html = await localExtractMpArticleUrlUseRequest(extractArticleUrl, undefined, token)
       //     .catch((err) => {
       //       verbose_error("reject localExtractMpArticleUrl for reason:", err)
       //     });
@@ -550,7 +550,7 @@ async function reactToIpcObjectData(data, tabbedWin, viewContents) {
       const promises = []
       for (const extractArticleUrl of extractArticleUrls) {
         promises.push(new Promise((resolve, reject) => {
-          localExtractMpArticleUrlUseRequest(extractArticleUrl)
+          localExtractMpArticleUrlUseRequest(extractArticleUrl, undefined, token)
             .then((html) => {
               postJsonToJZLApi(`/prase_html_to_json?api_key=${encodeURIComponent("du&cgIYuosQcaSm6")}`, { html })
                 .then(resolve).catch(reject)
@@ -813,8 +813,9 @@ function initRpc() {
         return batchWxUploadImg(data.account, data.urls);
       };
       case 'batchExtractMpUrls': {
+        const token = data.token;
         return Promise.allSettled(data.urls.map(v=>
-          localExtractMpArticleUrlUseRequest(v)
+          localExtractMpArticleUrlUseRequest(v, undefined, token)
             .then(html => postJsonToJZLApi(`/prase_html_to_json?api_key=${encodeURIComponent("du&cgIYuosQcaSm6")}`, { html }))
             .then(async (res)=>{
               if(res.code!==0){

@@ -337,13 +337,15 @@
       </el-tabs>
     </div>
   </div>
-  <el-dialog :close-on-click-modal="false" title="提取文章链接内容" v-model="dialogExtractMpAritcleUrlRef" width="720px" @close="extractLinkClose">
+  <el-dialog :close-on-click-modal="false" title="提取文章链接内容" v-model="dialogExtractMpAritcleUrlRef" width="720px" @close="extractLinkClose" v-loading="extractLoadingRef" element-loading-text="提取中，请稍候...">
     <el-tabs style="width: 100%;" v-model="extractLink" @tab-change="handleChange">
       <el-tab-pane label="单个提取" name="single">
         <div>
           <div class="flex">
             <el-input class="mr-2" v-model="extractArticleUrlRef" clearable placeholder="请输入文章提取地址 Ctrl + v 粘贴" />
-            <el-button @click="handleLocalExtractMpArticleUrl" type="primary">提取链接内容</el-button>
+            <el-button @click="handleLocalExtractMpArticleUrl" type="primary" :loading="extractLoadingRef" :disabled="extractLoadingRef">
+              {{ extractLoadingRef ? '提取中...' : '提取链接内容' }}
+            </el-button>
           </div>
           <el-checkbox label="仅视频" v-model="import_settings.only_video_flag" />
           <el-row :gutter="40">
@@ -376,7 +378,9 @@
             <template #prepend>#{{ idx + mp_msgsRef.length+1 }}</template>
           </el-input>
           <div class="flex justify-end mt-4 space-x-2">
-            <el-button type="primary" @click="onConfirm">批量提取</el-button>
+            <el-button type="primary" @click="onConfirm" :loading="extractLoadingRef" :disabled="extractLoadingRef">
+              {{ extractLoadingRef ? '提取中...' : '批量提取' }}
+            </el-button>
           </div>
         </div>
       </el-tab-pane>
@@ -1091,11 +1095,13 @@ function onConfirm(){
     return;
   }
   onBatchExtractMp(data)
-  dialogExtractMpAritcleUrlRef.value = false
+  // 批量提取时不立即关闭对话框，等提取完成后再关闭
+  // dialogExtractMpAritcleUrlRef.value = false
 }
 const extractLinkClose = () => {
   extractLink.value = 'single'
   inputs.value = []
+  extractLoadingRef.value = false
 }
 
 // 提取链接
@@ -1103,6 +1109,7 @@ const extractLinkClose = () => {
 // const extractArticleUrlRef = ref("https://mp.weixin.qq.com/s/riiYjv8HUqyUZz_-IQKe9g")
 const extractArticleUrlRef = ref("")
 const dialogExtractMpAritcleUrlRef = ref(false)
+const extractLoadingRef = ref(false)
 const timeoutExtract = 60 * 1000; // ms
 
 const setMiniAppRef = ref(null)
@@ -2206,6 +2213,7 @@ const removeArticle = async (msg_id) => {
     }).finally(() => {
       loader.close()
     })
+    
     ElMessage({
       message: `文章删除成功`,
       type: 'success',
@@ -2252,7 +2260,7 @@ const handleSendToOtherAccount = async () => {
   percentRef.value = 0
   progressDescRef.value = "开始处理"
   progressResultRef.value = null
-
+  
   let timeoutId = setTimeout(() => {
     globalLoadingRef.value = false
     dialogPercentVisbleRef.value = false
@@ -2267,6 +2275,7 @@ const handleSendToOtherAccount = async () => {
   //   soruce_appmsgid: appmsgid,
   //   target_wechat_ids: otherAccountsChoosedRef.value
   // })
+
   const { wechat_id } = selectedAccount.value
   let stepRet
   await send_to_other_accounts_events({
@@ -2434,7 +2443,7 @@ const handleLocalExtractMpArticleUrl = async () => {
     return
   }
 
-  globalLoadingRef.value = true
+  extractLoadingRef.value = true
   window.ipcRenderer.send('toMain', {
     tag: 'appmsg:localExtractMpArticleUrl',
     source: `${props.appmsg.appmsgid}`,
@@ -2443,7 +2452,7 @@ const handleLocalExtractMpArticleUrl = async () => {
   })
 
   setTimeout(() => {
-    globalLoadingRef.value = false
+    extractLoadingRef.value = false
     dialogExtractMpAritcleUrlRef.value = false
   }, timeoutExtract)
 }
@@ -2463,7 +2472,7 @@ async function onBatchExtractMpOld(list) {
 }
 
 async function onBatchExtractMp(list) {
-  globalLoadingRef.value = true
+  extractLoadingRef.value = true
   // await newArticle(true, item.type)
   window.ipcRenderer.send('toMain', {
     tag: 'appmsg:batchExtractMpArticleUrls',
@@ -2472,7 +2481,10 @@ async function onBatchExtractMp(list) {
     extractArticleUrls: list.map(item => item.url),
   })
 
-  globalLoadingRef.value = false
+  setTimeout(() => {
+    extractLoadingRef.value = false
+    dialogExtractMpAritcleUrlRef.value = false
+  }, timeoutExtract * list.length)
 }
 
 // type: 0-server 1-local init 2-local query
@@ -3497,6 +3509,7 @@ watch(() => [props.mainMsg], async (newVal) => {
     if (tag === "appmsg-ret:localExtractMpArticleUrlResult") {
       const { ret } = msg.data
       console.log("ret=>", ret)
+      extractLoadingRef.value = false
       if (ret.code == 101) {
         ElMessage({ type: 'error', message: ret.msg })
         return
@@ -3540,6 +3553,7 @@ watch(() => [props.mainMsg], async (newVal) => {
       const { ret, failed } = msg.data
       console.log("ret=>", ret)
       console.log("failed=>", failed)
+      extractLoadingRef.value = false
       if (ret.code == 101) {
         ElMessage({ type: 'error', message: ret.msg })
         return
@@ -3559,6 +3573,7 @@ watch(() => [props.mainMsg], async (newVal) => {
 
         // ### todo mp_msg_exs
       }
+      dialogExtractMpAritcleUrlRef.value = false
 
     } else if (tag === "appmsg-ret:publishToWechat") {
       console.log("publishToWechatResult msg=>", msg)
