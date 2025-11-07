@@ -13,7 +13,6 @@
     <div v-show="editableTabs.length === 0" class="flex w-full h-full">
       <AccountList
         ref="AccountListRef"
-        :selectId="selectedIndexRef"
         :showAdd="false"
         :showDel="false"
         @clickAccountTrigger="handleAccountSelect"
@@ -100,7 +99,7 @@ const { all_accounts } = toRefs(store.getters)
 
 const selectedAccountRef = ref(null)
 provide('selectedAccount', selectedAccountRef)
-const selectedIndexRef = ref()
+// const selectedIndexRef = ref()
 
 const dialogChooseAccountVisibleRef = ref(false)
 
@@ -151,7 +150,7 @@ onActivated(async () => {
       var i = all_accounts.value.list.findIndex(a => a.id === id)
       if (i>-1) {
         selectedAccountRef.value = all_accounts.value.list[i]
-        selectedIndexRef.value = selectedAccountRef.value.id
+        // selectedIndexRef.value = selectedAccountRef.value.id
     addTab(selectedAccountRef.value, appmsg, { icon: selectedAccountRef.value.avatar, mode: 'hydrate' })
       }
     }
@@ -179,7 +178,7 @@ onDeactivated(() => {
 
 const handleAccountSelect = async (account) => {
   selectedAccountRef.value = account
-  selectedIndexRef.value = account.id
+  // selectedIndexRef.value = account.id
 }
 
 // const formatTitleSuffix = (account_name) => {

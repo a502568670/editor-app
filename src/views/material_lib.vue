@@ -2,7 +2,6 @@
   <div class="w-full h-full flex">
     <AccountList
       ref="AccountListRef"
-      :selectId="selectedIndexRef"
       :showAdd="false"
       :showDel="false"
       @clickAccountTrigger="handleAccountSelect"
@@ -270,7 +269,6 @@ const queryRef = ref("")
 
 const selectedAccountRef = ref(null)
 provide('selectedAccount', selectedAccountRef)
-const selectedIndexRef = ref()
 const otherAccountsRef = ref([])
 const dataLoadingRef = ref(false)
 const currentOperateName = ref("")
@@ -335,7 +333,6 @@ const currentAccountId = ref()
 const handleAccountSelect = async (account) => {
   currentAccountId.value = account.id
   selectedAccountRef.value = account
-  selectedIndexRef.value = account.id
   // 未排序的公众号列表
   const not_sort = toDeepRaw(all_accounts.value.list.filter(v => v.id !== account.id))
   otherAccountsRef.value = not_sort
@@ -509,12 +506,13 @@ const handleRemoveAppmsg = async (appmsg) => {
   ).then(async () => {
     dataLoadingRef.value = true
     await removeAppMsg(appmsg.app_id)
-    if (materialTypeRef.value === 0) {
-      await listAppMsgIds(id)
-      await _listAppmsgsInDraftBox()
-    } else {
-      await _listAppmsgsInLocal()
-    }
+    await handleAppMsgRefresh()
+    // if (materialTypeRef.value === 0) {
+    //   await listAppMsgIds(id)
+    //   await _listAppmsgsInDraftBox()
+    // } else {
+    //   await _listAppmsgsInLocal()
+    // }
     // await _listAppmsgsInDraftBox()
     dataLoadingRef.value = false
   }).catch(() => {
@@ -920,9 +918,8 @@ const registerChannels = () => {
           const postData = {
             appmsgids: items.map(it => it.appmsgid),
           }
-          console.log("delete appmsg locally postData=>", postData)
           batchDeleteLocalAppMsg(postData).then(() => {
-            _listAppmsgsInDraftBox()
+            handleAppMsgRefresh()
             ElMessage({
               message: `批量删除成功`,
               type: 'success',
