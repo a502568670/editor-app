@@ -1557,9 +1557,12 @@ const newArticle = async (before_save = true, item_show_type = 0, hydrateMsgIdx 
   // console.log('elListMsgsRef.value.scrollHeight=>', elListMsgsRef.value.scrollHeight)
   // elListMsgsRef.value.scrollTop = elListMsgsRef.value.scrollHeight
   await nextTick()
-  var { clientHeight } = elListMsgsRef.value.children[elListMsgsRef.value.children.length - 2]
-  var top = clientHeight + elListMsgsRef.value.scrollTop
-  elListMsgsRef.value.scrollTo({ top, behavior: 'smooth' })
+
+  if(elListMsgsRef.value.children.length - 2 > 0){
+    var { clientHeight } = elListMsgsRef.value.children[elListMsgsRef.value.children.length - 2]
+    var top = clientHeight + elListMsgsRef.value.scrollTop
+    elListMsgsRef.value.scrollTo({ top, behavior: 'smooth' })
+  }
   // elListMsgsRef.value.lastElementChild?.scrollIntoView({ behavior: 'smooth' })
   // nextTick(() => {
   //   elListMsgsRef.value.scrollTop = elListMsgsRef.value.scrollHeight
@@ -2213,7 +2216,7 @@ const removeArticle = async (msg_id) => {
     }).finally(() => {
       loader.close()
     })
-    
+
     ElMessage({
       message: `文章删除成功`,
       type: 'success',
@@ -2260,7 +2263,7 @@ const handleSendToOtherAccount = async () => {
   percentRef.value = 0
   progressDescRef.value = "开始处理"
   progressResultRef.value = null
-  
+
   let timeoutId = setTimeout(() => {
     globalLoadingRef.value = false
     dialogPercentVisbleRef.value = false
