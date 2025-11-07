@@ -16,6 +16,9 @@
   --jzl-border-color-hover: var(--jzl-primary-color);
   /* 遮罩层背景颜色 */
   --jzl-overlay-bg-color: rgba(0, 0, 0, 0.5);
+  /* 划入背景色 */
+  --jzl-hover-bg-color: #dddddd;
+  --jzl-hover-bg-color-1: #bbbbbb;
 
   /* elment-plus重置变量 */
   --el-color-primary: var(--jzl-primary-color);

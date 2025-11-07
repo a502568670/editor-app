@@ -11,7 +11,24 @@
       @userManagementTrigger="handleUserManagement"
     />
     <div class="flex flex-col flex-1 w-0">
-      <el-tabs
+      <div v-show="tabs.length > 0 && !showAccountManagement" class="tab-pages">
+        <div
+          class="tab-pages_tab"
+          :class="{ 'bg-[var(--jzl-hover-bg-color)]': item.tabId === currentTabId }"
+          v-for="item in tabs"
+          :key="item.tabId"
+          @click="changeTab(item.tabId)"
+        >
+          <p
+            class="tab-pages_title"
+            :class="{ '!text-[var(--jzl-primary-color)]': item.tabId === currentTabId }"
+          >
+            {{ item.title }}
+          </p>
+          <Icon class="tab-pages_clear" icon="ic:round-clear" @click="removeTab(item.tabId)" />
+        </div>
+      </div>
+      <!-- <el-tabs
         v-model="currentTabId"
         v-show="tabs.length > 0 && !showAccountManagement"
         ref="elTabsRef"
@@ -30,20 +47,17 @@
             </span>
           </template>
         </el-tab-pane>
-      </el-tabs>
-      <div v-show="isDebugRef && tabs.length > 0 && !showAccountManagement"
-        style="height: auto;display: flex;align-items: center;justify-content: space-between;padding: 10px;background-color: #FFF;z-index: 1000">
-        <div v-if="isDebugRef">
-          <el-button @click="goBack">后退</el-button>
-          <el-button @click="goForward">前进</el-button>
+      </el-tabs> -->
+      <div v-show="tabs.length > 0 && !showAccountManagement" class="action-bar">
+        <div class="action-bar_navigation">
+          <div><Icon icon="stash:arrow-left" @click="goBack" /></div>
+          <div><Icon icon="stash:arrow-right" @click="goForward" /></div>
+          <div><Icon icon="stash:arrow-retry" @click="refresh" /></div>
         </div>
-        <div v-if="isDebugRef" style="flex: 1;padding: 0 15px;width: 0;overflow: scroll;white-space: nowrap;">{{
-          currentTab.url }}</div>
-        <div v-if="isDebugRef">
-          <el-button @click="refresh()">刷新</el-button>
-          <el-button @click="copy(currentTab.url)">复制链接</el-button>
+        <div class="action-bar_url">
+          <p>{{ currentTab.url }}</p>
+          <div><Icon icon="stash:copy" @click="copy(currentTab.url)" /></div>
         </div>
-        <div v-if="!isDebugRef">&nbsp;</div>
       </div>
       <div ref="webRef" v-show="!showAccountManagement" style="flex: 1;"></div>
 
@@ -149,7 +163,6 @@ const handleUserManagement = () => {
 
 /** 添加新标签页 */
 const addNewTab = (account) => {
-  console.log(account)
   // 关闭账号管理视图，显示正常的 tab 视图
   const wasShowingManagement = showAccountManagement.value
   // 保存旧的选中账号ID用于判断
@@ -172,7 +185,6 @@ const addNewTab = (account) => {
   })
 
   let a = Object.assign({ userToken: getToken() }, account)
-  console.log(a)
   window.ipcRenderer.send('new-tab', a)
 }
 // 对函数进行 节流
@@ -234,8 +246,6 @@ onMounted(() => {
   })
 
   var c3=window.ipcRenderer.receive('refresh-account-session', async (wechat_id, session_id) => {
-    console.log("== refresh-account-session ==")
-    console.log("param => ", wechat_id, session_id)
     if (wechat_id && session_id) {
       await refreshAccountSession({ wechat_id, session_id })
       handleFilter();
@@ -286,7 +296,6 @@ onMounted(() => {
 
   // 用户切换标签页时，主进程会发送 fromMain 消息，通知当前选中的标签页 ID。
   var c5=window.ipcRenderer.receive('fromMain', (data) => {
-    console.log('发送数据了',data)
     if (typeof data === 'object' && Object.prototype.hasOwnProperty.call(data, 'currentTabId')) {
       currentTabId.value = parseInt(data.currentTabId)
       for (let a of tabs.value) {
@@ -378,6 +387,96 @@ window.ipcRenderer.send('control-ready')
 </script>
 
 <style scoped>
+.tab-pages{
+  height: 45px;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  background-color: #fff;
+  border-bottom: 1px solid #eee;
+}
+.tab-pages_tab{
+  flex: 0 1 150px;
+  height: 30px;
+  border-radius: var(--jzl-border-radius-large);
+  padding: 0px 10px;
+  margin: 0 1px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  transition: 0.3s;
+  overflow: hidden;
+}
+.tab-pages_tab:hover{
+  background-color: var(--jzl-hover-bg-color);
+  cursor: pointer;
+}
+.tab-pages_title{
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 14px;
+  color: #606266;
+}
+.tab-pages_clear{
+  padding: 1px;
+  border-radius: 50%;
+  transition: 0.2s;
+}
+.tab-pages_clear:hover{
+  background-color: var(--jzl-hover-bg-color-1);
+  transform: scale(1.2);
+}
+
+.action-bar,
+.action-bar_navigation,
+.action-bar_url{
+  display: flex;
+  align-items: center;
+}
+.action-bar{
+  background-color: #fff;
+  padding: 6px 5px;
+  border-bottom: 1px solid #eee;
+}
+.action-bar_navigation>div{
+  font-size: 22px;
+  border-radius: var(--jzl-border-radius-large);
+  padding: 2px;
+  transition: 0.2s;
+}
+.action-bar_navigation>div:hover{
+  background-color: var(--jzl-hover-bg-color);
+  cursor: pointer;
+}
+.action-bar_url{
+  flex: 0 1 800px;
+  padding: 2px 10px;
+  background-color: var(--jzl-hover-bg-color);
+  border-radius: var(--jzl-border-radius-large);
+  font-size: 14px;
+  user-select: none;
+  margin-left: 10px;
+  white-space: nowrap;
+  justify-content: space-between;
+}
+.action-bar_url>p{
+  flex: 1;
+  width: 0px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.action-bar_url>div{
+  padding: 2px;
+  font-size: 22px;
+}
+.action-bar_url>div:hover{
+  cursor: pointer;
+}
+
 .tab-control-wrap {
   width: 100%;
   background-color: #ededed;

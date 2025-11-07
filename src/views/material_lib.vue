@@ -141,8 +141,15 @@
       </div>
     </div>
   </div>
-  <SyncToOtherAccountsDialog :dialogVisible="dialogSyncToOtherAccountsVisibleRef" :accounts="otherAccountsRef"
-    @instant-send="handleInstantSend" @dialog-closed="dialogSyncToOtherAccountsVisibleRef = false" />
+  <!-- 公众号选择弹窗 -->
+  <AccountPickerModal
+    v-model="dialogSyncToOtherAccountsVisibleRef"
+    :multiple="true"
+    :hideAccount="[currentAccountId]"
+    @confirm="handleInstantSend"
+  />
+  <!-- <SyncToOtherAccountsDialog :dialogVisible="dialogSyncToOtherAccountsVisibleRef" :accounts="otherAccountsRef"
+    @instant-send="handleInstantSend" @dialog-closed="dialogSyncToOtherAccountsVisibleRef = false" /> -->
   <OperateProgressDialog :dialogVisible="dialogOperateProgressVisbleRef" :percent="percentRef"
     :progressDesc="progressDescRef" :progressResult="progressResultRef"
     @dialog-closed="dialogOperateProgressVisbleRef = false" />
@@ -207,6 +214,7 @@ import { useHydrateStore } from '@/store/piniaStore';
 import { newlistArticlesByAppMsg } from '@/api/mp_msg';
 import { format_to_UEditor_html } from "@/utils/dom";
 import AccountList from '@/components/accountList.vue'
+import AccountPickerModal from '@/components/AccountPickerModal.vue'
 
 const AccountListRef = ref()
 
@@ -323,7 +331,9 @@ async function loadMore(params) {
   }
 }
 
+const currentAccountId = ref()
 const handleAccountSelect = async (account) => {
+  currentAccountId.value = account.id
   selectedAccountRef.value = account
   selectedIndexRef.value = account.id
   // 未排序的公众号列表
@@ -469,22 +479,21 @@ const handleOpenPublish = async (appmsg) => {
 }
 
 const handleSyncAppmsgToOtherAccounts = async (appmsg) => {
-  console.log("--handleSyncAppmsgToOtherAccounts--", appmsg)
   currentOperateAppMsgRef.value = appmsg
   currentOperateName.value = "syncToOther"
   if (!checkIsLocal(appmsg.app_id)) {
-    console.warn("appmsg not exist local, sync..")
     await _getAppmsgInDraftBox(appmsg.app_id)
   } else {
     dialogSyncToOtherAccountsVisibleRef.value = true
   }
 }
 
-const handleInstantSend = async ({ otherAccountsChoosed }) => {
-  console.log("--handleInstantSend--", otherAccountsChoosed)
+const handleInstantSend = async (accounts) => {
+  console.log("--handleInstantSend--", accounts)
+  const ids = accounts.map((item) => item.id)
   const appmsgid = currentOperateAppMsgRef.value.app_id
-  await sendToOtherAccount(appmsgid, otherAccountsChoosed)
-  // dialogSyncToOtherAccountsVisibleRef.value = false
+  await sendToOtherAccount(appmsgid, ids)
+  dialogSyncToOtherAccountsVisibleRef.value = false
 }
 
 const handleRemoveAppmsg = async (appmsg) => {

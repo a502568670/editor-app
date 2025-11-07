@@ -1,15 +1,18 @@
 <template>
-  <el-dialog 
-    v-model="visible" 
-    title="选择公众号" 
-    width="900px" 
+  <el-dialog
+    v-model="visible"
+    title="选择公众号"
+    width="900px"
     :before-close="handleClose"
     append-to-body
     class="account-picker-modal"
   >
     <div class="account-picker-content">
+      <p v-if="$props.multiple" class="text-right text-base">
+        共选择 <span class="text-[var(--jzl-primary-color)] font-bold">{{ selectedAccountIds.length }}</span> 个账号
+      </p>
       <!-- 搜索和筛选区域 -->
-      <div class="search-section mb-4">
+      <div class="search-section">
         <div class="flex items-center gap-3">
           <div class="flex-1">
             <el-input
@@ -46,20 +49,20 @@
       <!-- 公众号列表 -->
       <div class="account-list" v-loading="loading">
         <div class="grid grid-cols-3 gap-4">
-          <div 
-            v-for="account in filteredAccounts" 
+          <div
+            v-for="account in filteredAccounts"
             :key="account.id"
             class="account-card"
-            :class="{ 
-              'selected': props.multiple ? selectedAccountIds.includes(account.id) : selectedAccountId === account.id, 
-              'disabled': account.expired 
+            :class="{
+              'selected': props.multiple ? selectedAccountIds.includes(account.id) : selectedAccountId === account.id,
+              'disabled': account.expired
             }"
             @click="selectAccount(account)"
           >
             <div class="account-avatar">
-              <img 
-                :src="account.avatar || '/favicon.ico'" 
-                :alt="account.name" 
+              <img
+                :src="account.avatar || '/favicon.ico'"
+                :alt="account.name"
                 class="w-12 h-12 rounded-full object-cover"
               />
             </div>
@@ -86,8 +89,8 @@
     <template #footer>
       <div class="dialog-footer">
         <el-button @click="handleCancel">取消</el-button>
-        <el-button 
-          type="primary" 
+        <el-button
+          type="primary"
           @click="handleConfirm"
           :disabled="props.multiple ? selectedAccountIds.length === 0 : !selectedAccountId"
         >
@@ -99,11 +102,11 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, computed, watch, onMounted, toRefs } from 'vue'
 import { Search, Check, User } from '@element-plus/icons-vue'
-import { useAccountStore } from '@/store/piniaStore'
 import { ElMessage } from 'element-plus'
 import { getAccountGroupList } from '@/api/account-group'
+import store from '@/store';
 
 // Props
 const props = defineProps({
@@ -118,14 +121,17 @@ const props = defineProps({
   selectedAccounts: {
     type: Array,
     default: () => []
+  },
+  hideAccount:{
+    type:Array,
+    default: () => []
   }
 })
 
+const { all_accounts } = toRefs(store.getters);
+
 // Emits
 const emit = defineEmits(['update:modelValue', 'confirm'])
-
-// Store
-const accountStore = useAccountStore()
 
 // 响应式数据
 const visible = ref(false)
@@ -139,8 +145,14 @@ const flatGroupList = ref([])
 
 // 计算属性
 const filteredAccounts = computed(() => {
-  let accounts = accountStore.list || []
-  
+  let accounts = all_accounts.value.list
+
+  if(props.hideAccount.length){
+    accounts = accounts.filter(account => {
+      return !props.hideAccount.includes(account.id)
+    })
+  }
+
   // 分组过滤（使用 != null 同时检查 null 和 undefined）
   if (selectedGroupId.value != null) {
     accounts = accounts.filter(account => {
@@ -148,15 +160,15 @@ const filteredAccounts = computed(() => {
       return accountGroupId === selectedGroupId.value
     })
   }
-  
+
   // 搜索过滤
   if (searchKeyword.value) {
-    accounts = accounts.filter(account => 
+    accounts = accounts.filter(account =>
       account.name?.includes(searchKeyword.value) ||
       account.account_id?.includes(searchKeyword.value)
     )
   }
-  
+
   // 排序：已登录的账号优先显示
   accounts.sort((a, b) => {
     // 已登录的账号排在前面
@@ -164,7 +176,7 @@ const filteredAccounts = computed(() => {
     if (a.expired && !b.expired) return 1
     return 0
   })
-  
+
   return accounts
 })
 
@@ -179,13 +191,6 @@ watch(() => props.modelValue, (newVal) => {
       selectedAccountIds.value = [...props.selectedAccounts]
     } else {
       selectedAccountId.value = ''
-    }
-    // 确保账号数据已加载
-    if (!accountStore.list.length) {
-      loading.value = true
-      accountStore.fetch().finally(() => {
-        loading.value = false
-      })
     }
     // 加载分组列表
     loadGroups()
@@ -202,7 +207,11 @@ const selectAccount = (account) => {
     ElMessage.warning('该账号未登录，无法选择')
     return
   }
-  
+  if (account.platform_id !== 4) {
+    ElMessage.warning('该平台不支持此操作');
+    return;
+  }
+
   if (props.multiple) {
     // 多选模式
     const index = selectedAccountIds.value.findIndex(id => id === account.id)
@@ -224,8 +233,8 @@ const handleConfirm = () => {
       ElMessage.warning('请至少选择一个公众号')
       return
     }
-    
-    const selectedAccounts = accountStore.list.filter(account => 
+
+    const selectedAccounts = all_accounts.value.list.filter(account =>
       selectedAccountIds.value.includes(account.id)
     )
     emit('confirm', selectedAccounts)
@@ -235,11 +244,11 @@ const handleConfirm = () => {
       ElMessage.warning('请选择一个公众号')
       return
     }
-    
-    const selectedAccount = accountStore.list.find(account => account.id === selectedAccountId.value)
+
+    const selectedAccount = all_accounts.value.list.find(account => account.id === selectedAccountId.value)
     emit('confirm', selectedAccount)
   }
-  
+
   handleClose()
 }
 
@@ -274,7 +283,7 @@ const flattenGroupTree = (tree, level = 0, result = []) => {
       displayName: prefix + node.name,
       level: level
     })
-    
+
     if (node.children && node.children.length > 0) {
       flattenGroupTree(node.children, level + 1, result)
     }
@@ -284,13 +293,6 @@ const flattenGroupTree = (tree, level = 0, result = []) => {
 
 // 生命周期
 onMounted(() => {
-  // 确保账号数据已加载
-  if (!accountStore.list.length) {
-    loading.value = true
-    accountStore.fetch().finally(() => {
-      loading.value = false
-    })
-  }
   // 加载分组列表
   loadGroups()
 })
@@ -300,12 +302,10 @@ onMounted(() => {
 .account-picker-modal {
   .account-picker-content {
     width: 100%;
-    max-height: 600px;
-    overflow-y: auto;
   }
 
   .search-section {
-    padding: 16px 0;
+    padding: 10px 0;
     border-bottom: 1px solid #f0f0f0;
   }
 
@@ -314,7 +314,9 @@ onMounted(() => {
   }
 
   .account-list {
-    padding: 16px 0;
+    padding: 5px 0;
+    max-height: 500px;
+    overflow-y: auto;
   }
 
   .account-card {

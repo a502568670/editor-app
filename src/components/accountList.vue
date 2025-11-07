@@ -101,7 +101,7 @@
               <el-form-item label="昵称" prop="name">
                 <el-input v-model="universalForm.name" />
               </el-form-item>
-              <el-form-item label="平台首页" prop="url">
+              <el-form-item label="平台首页网址(url)" prop="url">
                 <el-input v-model="universalForm.url" />
               </el-form-item>
               <el-form-item>
