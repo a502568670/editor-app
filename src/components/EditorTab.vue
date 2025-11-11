@@ -337,10 +337,10 @@
       </el-tabs>
     </div>
   </div>
-  <el-dialog :close-on-click-modal="false" title="提取文章链接内容" v-model="dialogExtractMpAritcleUrlRef" width="720px" @close="extractLinkClose" v-loading="extractLoadingRef" element-loading-text="提取中，请稍候...">
+  <el-dialog :close-on-click-modal="false" title="提取文章链接内容" v-model="dialogExtractMpAritcleUrlRef" width="720px" @close="extractLinkClose">
     <el-tabs style="width: 100%;" v-model="extractLink" @tab-change="handleChange">
       <el-tab-pane label="单个提取" name="single">
-        <div>
+        <div v-loading="extractLoadingRef" element-loading-text="提取中，请稍候...">
           <div class="flex">
             <el-input class="mr-2" v-model="extractArticleUrlRef" clearable placeholder="请输入文章提取地址 Ctrl + v 粘贴" />
             <el-button @click="handleLocalExtractMpArticleUrl" type="primary" :loading="extractLoadingRef" :disabled="extractLoadingRef">
