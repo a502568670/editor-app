@@ -1187,6 +1187,9 @@ const currentArticleRef = ref({
   picture_page_info_list: [],
 })
 
+watch(()=>currentArticleRef.value.content_noencode,(nv)=>{
+  console.log(nv)
+})
 
 /// ueditor methods
 
