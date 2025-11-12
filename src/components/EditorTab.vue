@@ -1702,6 +1702,104 @@ const validateMsgData = () => {
   })
 }
 
+const warningMsg = ref('')
+const automaticSaveExamine = () => {
+  if (!selectedAccount.value) {
+    warningMsg.value = '发布的公众账号不存在'
+    return false;
+  }
+  return mp_msgsRef.value.every(v => {
+    if ([8, 10].includes(v.item_show_type)) return true
+    if (!v.title) {
+      warningMsg.value = '未设置标题'
+      return false
+    }
+    if (!v.cdn_url) {
+      warningMsg.value = '未设置封面'
+      return false
+    }
+    return true
+  })
+}
+const automaticSave = async (push_to_remote) => {
+  // 检查是否添加了标题和封面
+  if (!automaticSaveExamine()) {
+    return
+  }
+
+  const { token, name, session_id, wechat_id } = selectedAccount.value
+  if (!session_id) {
+    warningMsg.value = apperrmsg.invalid_session
+    return
+  }
+
+  const msg_id = msg_idRef.value
+  let selected_idx = saveCurrentToList(msg_id)
+  saveOthersToListForCustomTag(msg_id)
+
+  let appmsgid = _getAppMsgId()
+
+  const material_list = mp_msgsRef.value.map((item) => {
+    // 清空文章中的垂直制表符，防止出现空白行
+    if(item.content_noencode) {
+      item.content_noencode = item.content_noencode.replace(/<p>\u000b<\/p>$/, '')
+    }
+    // 小绿书处理有图片和无图片的类型
+    if([8, 10].includes(item.item_show_type)) {
+      if (item.cdn_url === '' && !item.picture_page_info_list?.length){
+        item.item_show_type = 10
+        item.content_noencode = item.guide_words
+      } else {
+        item.item_show_type = 8
+        if(item.cdn_url == null || item.cdn_url === ''){
+          item.cdn_url = item.picture_page_info_list[0].url
+        }
+      }
+    }
+    return item
+  })
+  const postData = {
+    cookies: serializeCookie(JSON.parse(session_id)["cookie"]),
+    token: parseInt(token),
+    appmsgid,
+    material_list: toRaw(material_list),
+    wechat_id,
+    push_to_remote,
+  }
+
+  await saveAppMsg(postData).then(async (res) => {
+    warningMsg.value = ''
+    res.data.data.mp_msgs.forEach(gen_picture_page_info_list)
+    mp_msgsRef.value = res.data.data.mp_msgs
+
+    const isCreateNewAppMsg = appmsgid <= 0 && res.data.data.appmsgid > 0
+    appmsgid = res.data.data.appmsgid
+    if (isCreateNewAppMsg) {
+      // 新列表 需要更新currentAppmsgRef
+      currentAppmsgRef.value.appmsgid = appmsgid
+      currentAppmsgRef.value.title = mp_msgsRef.value[0].title
+      emitEvents('msgidChange', appmsgid)
+    }
+
+    // await listArticles()
+    // const msg_ids = res.data.data.msg_ids
+    if (selected_idx === -1) {
+      selected_idx = 0
+    }
+    if (isCreateNewAppMsg) {
+      mp_msgsRef.value[selected_idx].appmsgid = appmsgid
+    }
+    loadArticle(mp_msgsRef.value[selected_idx])
+    saveSuccess = true
+  }).catch((e) => {
+    console.log('saveAppMsg catched e:', e)
+    handleActionErr(name, e)
+    console.log("=========")
+  })
+
+  return saveSuccess
+}
+
 const _saveAppMsg = async (push_to_remote) => {
   if (!validateAccount()) {
     return false
