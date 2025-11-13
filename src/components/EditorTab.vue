@@ -156,10 +156,14 @@
           v-if="![5, 8, 10].includes(currentArticleRef.item_show_type)"
         />
         <div ref="ueditor_wrapper" class="flex-1">
-          <vue-ueditor-wrap class="h-full ueditor-wrapper flex items-stretch"
-            v-if="msg_idRef !== 0 && currentArticleRef.item_show_type === 0"
-            v-model="currentArticleRef.content_noencode" :editor-id="editorIdRef" @ready="ready"
-            :config="editorConfigRef" :editorDependencies="['ueditor.config.js', 'ueditor.all.js']" />
+          <div class="h-full flex flex-col" v-if="msg_idRef !== 0 && currentArticleRef.item_show_type === 0">
+            <vue-ueditor-wrap class="ueditor-wrapper flex-1 flex items-stretch"
+              v-model="currentArticleRef.content_noencode" :editor-id="editorIdRef" @ready="ready"
+              :config="editorConfigRef" :editorDependencies="['ueditor.config.js', 'ueditor.all.js']" />
+            <p v-if="warningMsg != null" class="automatic-save-msg">
+              {{ warningMsg === '' ? `自动保存成功 ${lastSaveTime}` : `自动保存失败：${warningMsg}` }}
+            </p>
+          </div>
           <!-- 这里是视频的编辑区 -->
           <div v-if="msg_idRef !== 0 && currentArticleRef.item_show_type === 5" class="w-full p-2">
             <el-row :gutter="4" class="mb-1 w-full">
@@ -838,6 +842,14 @@
 
 .ueditor-wrapper :deep(.edui-default .edui-editor) {
   border: none !important;     /* 去掉边框 */
+  border-bottom: 1px solid #eee !important;
+}
+
+.automatic-save-msg{
+  font-size: 12px;
+  color: var(--jzl-primary-color);
+  font-weight: 600;
+  text-align: end;
 }
 </style>
 <script setup>
@@ -990,7 +1002,8 @@ const editorConfigRef = ref({
     }
     call();
   },
-  elementPathEnabled: false
+  elementPathEnabled: false,
+  wordCount: false
 })
 
 // component
@@ -1185,10 +1198,6 @@ const currentArticleRef = ref({
   // content_noencode: "<section>hello</section>",
   content_noencode: "",
   picture_page_info_list: [],
-})
-
-watch(()=>currentArticleRef.value.content_noencode,(nv)=>{
-  console.log(nv)
 })
 
 /// ueditor methods
@@ -1702,7 +1711,8 @@ const validateMsgData = () => {
   })
 }
 
-const warningMsg = ref('')
+const warningMsg = ref(null)
+const lastSaveTime = ref('')
 const automaticSaveExamine = () => {
   if (!selectedAccount.value) {
     warningMsg.value = '发布的公众账号不存在'
@@ -1727,7 +1737,7 @@ const automaticSave = async (push_to_remote) => {
     return
   }
 
-  const { token, name, session_id, wechat_id } = selectedAccount.value
+  const { token, session_id, wechat_id } = selectedAccount.value
   if (!session_id) {
     warningMsg.value = apperrmsg.invalid_session
     return
@@ -1768,7 +1778,6 @@ const automaticSave = async (push_to_remote) => {
   }
 
   await saveAppMsg(postData).then(async (res) => {
-    warningMsg.value = ''
     res.data.data.mp_msgs.forEach(gen_picture_page_info_list)
     mp_msgsRef.value = res.data.data.mp_msgs
 
@@ -1790,15 +1799,30 @@ const automaticSave = async (push_to_remote) => {
       mp_msgsRef.value[selected_idx].appmsgid = appmsgid
     }
     loadArticle(mp_msgsRef.value[selected_idx])
-    saveSuccess = true
+
+    lastSaveTime.value = new Date().toTimeString().slice(0, 8)
+    warningMsg.value = ''
   }).catch((e) => {
     console.log('saveAppMsg catched e:', e)
-    handleActionErr(name, e)
+    warningMsg.value = e
     console.log("=========")
   })
-
-  return saveSuccess
 }
+const throttle = (fn, delay = 200) => {
+  let last = 0
+  return function (...args) {
+    const now = Date.now()
+    if (now - last >= delay) {
+      last = now
+      console.log('123123123123')
+      fn.apply(this, args)
+    }
+  }
+}
+const throttledAutoSave = throttle(automaticSave, 5000) // 只创建一次
+watch(()=>currentArticleRef.value.content_noencode,()=>{
+  throttledAutoSave(0)
+})
 
 const _saveAppMsg = async (push_to_remote) => {
   if (!validateAccount()) {
