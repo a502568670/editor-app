@@ -39,10 +39,10 @@
           <el-icon :size="20"><ImagePlay/></el-icon>
           <span class="mt-1">素材库</span>
         </router-link>
-        <router-link class="menu" to="/message" active-class="active" replace>
+        <!-- <router-link class="menu" to="/message" active-class="active" replace>
           <el-icon :size="20"><ChatDotRound/></el-icon>
           <span class="mt-1">私信评论</span>
-        </router-link>
+        </router-link> -->
       </div>
     </el-col>
     <el-col :span="4">

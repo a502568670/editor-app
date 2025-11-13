@@ -131,7 +131,7 @@ const props = defineProps({
 const { all_accounts } = toRefs(store.getters);
 
 // Emits
-const emit = defineEmits(['update:modelValue', 'confirm'])
+const emit = defineEmits(['update:modelValue', 'confirm', 'before-close'])
 
 // 响应式数据
 const visible = ref(false)
@@ -258,6 +258,7 @@ const handleCancel = () => {
 
 const handleClose = () => {
   visible.value = false
+  emit('before-close')
 }
 
 // 加载分组列表
