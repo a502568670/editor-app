@@ -298,10 +298,28 @@
             </el-row>
             <el-row :gutter="4" class="mb-6" v-if="selected_claim_source_typeRef.id === 2">
               <el-col :span="24">
-                <p class="set-title">来源文链接</p>
+                <p class="set-title">素材来源</p>
+                <el-radio-group v-model="materialSourceRef">
+                  <el-radio label="official_account">公众号/服务号</el-radio>
+                  <el-radio label="other">其他来源</el-radio>
+                </el-radio-group>
+              </el-col>
+            </el-row>
+            <el-row :gutter="4" class="mb-6"
+              v-if="selected_claim_source_typeRef.id === 2 && materialSourceRef === 'official_account'">
+              <el-col :span="24">
+                <p class="set-title">来源文章链接</p>
                 <el-input v-model="claimSourceLinkRef" clearable placeholder="请填写政/媒体/事业单位等官方组织机构发表的内容" />
               </el-col>
             </el-row>
+            <el-row :gutter="4" class="mb-6"
+              v-if="selected_claim_source_typeRef.id === 2 && materialSourceRef === 'other'">
+              <el-col :span="24">
+                <p class="set-title">来源账号/平台</p>
+                <el-input v-model="claimSourceLinkRef" clearable placeholder="请填写具体来源全称 (如“北京发布”、“中国地震台网”)" />
+              </el-col>
+            </el-row>
+
             <el-row :gutter="4" class="mb-6">
               <el-col :span="24">
                 <p class="set-title">原创设置</p>
@@ -1250,6 +1268,9 @@ const commentAreaAdvertise = ref(1)
 const claim_source_typesRef = ref(claim_source_types)
 const selected_claim_source_typeRef = ref(claim_source_types[0])
 const claimSourceLinkRef = ref('')
+
+// 素材来源
+const materialSourceRef = ref('official_account') // 默认选中"公众号/服务号"
 
 // 广告
 const ad_idRef = ref(0)
