@@ -1814,14 +1814,13 @@ const throttle = (fn, delay = 200) => {
     const now = Date.now()
     if (now - last >= delay) {
       last = now
-      console.log('123123123123')
       fn.apply(this, args)
     }
   }
 }
 const throttledAutoSave = throttle(automaticSave, 5000) // 只创建一次
 watch(()=>currentArticleRef.value.content_noencode,()=>{
-  throttledAutoSave(0)
+  throttledAutoSave(1)
 })
 
 const _saveAppMsg = async (push_to_remote) => {
