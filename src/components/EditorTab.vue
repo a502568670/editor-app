@@ -296,6 +296,12 @@
                 </el-select>
               </el-col>
             </el-row>
+            <el-row :gutter="4" class="mb-6" v-if="selected_claim_source_typeRef.id === 2">
+              <el-col :span="24">
+                <p class="set-title">来源文链接</p>
+                <el-input v-model="claimSourceLinkRef" clearable placeholder="请填写政/媒体/事业单位等官方组织机构发表的内容" />
+              </el-col>
+            </el-row>
             <el-row :gutter="4" class="mb-6">
               <el-col :span="24">
                 <p class="set-title">原创设置</p>
@@ -654,6 +660,193 @@
       </el-col>
     </el-row>
   </el-dialog>
+  <el-dialog :close-on-click-modal="false" title="敏感性检测" v-model="dialogSensitiveCheckVisibleRef" width="720px">
+    <div class="sensitive-check-dialog" v-loading="sensitiveCheckLoadingRef" element-loading-text="检测中，请稍候...">
+      <div class="flex items-center space-x-3 mb-5">
+        <el-button plain @click="handleOpenSensitiveManage">
+          敏感词管理
+        </el-button>
+        <el-select
+          v-model="selectedSensitiveCustomGroupRef"
+          multiple
+          collapse-tags
+          collapse-tags-tooltip
+          class="flex-1"
+          clearable
+          filterable
+          placeholder="请选择自定义敏感词组"
+        >
+          <el-option
+            v-for="item in sensitiveCustomGroupOptionsRef"
+            :key="item.value"
+            :label="item.label"
+            :value="item.value"
+          />
+        </el-select>
+        <el-button type="primary" plain @click="handleSensitiveRetry">
+          重新检测
+        </el-button>
+      </div>
+      <div class="mb-5">
+        <div class="font-medium text-gray-700 mb-2">处理方案</div>
+        <el-radio-group v-model="sensitiveHandleStrategyRef" class="flex flex-wrap gap-4">
+          <el-radio label="none">不处理</el-radio>
+          <el-radio label="remove">删除敏感词</el-radio>
+          <el-radio label="replace">替换为自定义字符</el-radio>
+          <el-radio label="insert">字符中插入自定义字符</el-radio>
+        </el-radio-group>
+        <div v-if="sensitiveHandleStrategyRef === 'replace' || sensitiveHandleStrategyRef === 'insert'" class="mt-3">
+          <el-input
+            v-model="sensitiveCustomCharRef"
+            placeholder="请输入自定义字符"
+            maxlength="10"
+            class="w-full"
+          />
+        </div>
+      </div>
+      <div class="space-y-4 max-h-72 overflow-y-auto pr-1">
+        <template v-if="sensitiveCheckDraftsRef.length">
+          <div
+            v-for="item in sensitiveCheckDraftsRef"
+            :key="item.id"
+            class="border border-gray-200 rounded-md bg-gray-50 px-4 py-3"
+          >
+            <div class="flex items-center text-base text-gray-800 font-medium">
+              <span class="px-2 py-0.5 bg-blue-100 text-blue-600 rounded mr-3 text-xs">{{ item.label }}</span>
+              <span class="truncate">{{ item.title }}</span>
+            </div>
+            <div class="text-sm text-gray-600 mt-1">{{ item.description }}</div>
+            <div class="text-xs text-gray-400 mt-2">共 {{ item.words.length }} 个敏感词</div>
+            <div class="flex flex-wrap gap-2 mt-3">
+              <el-tag
+                v-for="word in item.words"
+                :key="word"
+                closable
+                size="small"
+                type="danger"
+                @close="handleRemoveSensitiveWord(item.id, word)"
+              >
+                {{ word }}
+              </el-tag>
+            </div>
+          </div>
+        </template>
+        <el-empty v-else description="暂无敏感词记录" />
+      </div>
+    </div>
+    <template #footer>
+      <div class="dialog-footer">
+        <el-button @click="dialogSensitiveCheckVisibleRef = false">取消</el-button>
+        <el-button type="primary" @click="handleSensitiveDialogConfirm">确定</el-button>
+      </div>
+    </template>
+  </el-dialog>
+  <el-dialog :close-on-click-modal="false" title="敏感词管理" v-model="dialogSensitiveManageVisibleRef" width="820px">
+    <div class="sensitive-manage-dialog space-y-4" v-loading="sensitiveManageLoadingRef">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center space-x-3">
+          <el-input
+            v-model="sensitiveManageKeywordQueryRef"
+            placeholder="关键词搜索"
+            class="w-56"
+            clearable
+          />
+
+        </div>
+        <el-button type="primary" @click="handleSensitiveManageCreate">
+          新建自定义敏感词组
+        </el-button>
+      </div>
+      <el-table
+        :data="sensitiveKeywordGroupsRef"
+        border
+        stripe
+        class="sensitive-manage-table"
+      >
+        <el-table-column type="expand">
+          <template #default="{ row }">
+            <div class="px-6 py-3 flex flex-wrap gap-2">
+              <el-tag
+                v-for="word in row.words"
+                :key="`${row.id}-${word}`"
+                size="small"
+                type="info"
+              >
+                {{ word }}
+              </el-tag>
+            </div>
+          </template>
+        </el-table-column>
+        <el-table-column label="敏感词组" prop="name" min-width="160" />
+        <el-table-column label="描述" prop="description" min-width="160" />
+        <el-table-column label="创建时间" prop="createdAt" min-width="180" />
+        <el-table-column label="操作" width="150">
+          <template #default="{ row }">
+            <el-button
+              type="primary"
+              link
+              :disabled="row.userId !== currentUserIdRef"
+              @click="handleSensitiveManageEdit(row)"
+            >
+              编辑
+            </el-button>
+            <el-button
+              type="danger"
+              link
+              :disabled="row.userId !== currentUserIdRef"
+              @click="handleSensitiveManageDelete(row)"
+            >
+              删除
+            </el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+      <div class="flex justify-end">
+        <el-pagination
+          layout="prev, pager, next"
+          :total="sensitiveManagePaginationRef.total"
+          :page-size="sensitiveManagePaginationRef.pageSize"
+          :current-page="sensitiveManagePaginationRef.page"
+          small
+          @current-change="handleSensitiveManagePageChange"
+        />
+      </div>
+    </div>
+    <template #footer>
+      <div class="dialog-footer">
+        <el-button @click="dialogSensitiveManageVisibleRef = false">关闭</el-button>
+      </div>
+    </template>
+  </el-dialog>
+  <el-dialog :close-on-click-modal="false" title="编辑敏感词组" v-model="dialogSensitiveManageEditVisibleRef" width="620px">
+    <el-form :model="sensitiveManageEditFormRef" label-width="120px" class="sensitive-manage-edit-dialog">
+      <el-form-item label="敏感词组名称">
+        <el-input v-model="sensitiveManageEditFormRef.name" placeholder="请输入敏感词组名称" />
+      </el-form-item>
+      <el-form-item label="敏感词组描述">
+        <el-input
+          v-model="sensitiveManageEditFormRef.description"
+          type="textarea"
+          :autosize="{ minRows: 2, maxRows: 4 }"
+          placeholder="请输入敏感词组描述"
+        />
+      </el-form-item>
+      <el-form-item label="敏感词组">
+        <el-input
+          v-model="sensitiveManageEditFormRef.words"
+          type="textarea"
+          :autosize="{ minRows: 8, maxRows: 10 }"
+          placeholder="换行分隔每个敏感词"
+        />
+      </el-form-item>
+    </el-form>
+    <template #footer>
+      <div class="dialog-footer">
+        <el-button @click="handleSensitiveManageEditCancel">取消</el-button>
+        <el-button type="primary" :loading="sensitiveManageEditSubmittingRef" @click="handleSensitiveManageEditConfirm">确定</el-button>
+      </div>
+    </template>
+  </el-dialog>
   <el-dialog :close-on-click-modal="false" title="调试信息" v-model="dialogDebugVisibleRef" width="600px">
     <div class="w-full h-[300px] bg-gray-900 text-green-500 flex flex-col space-y-4">
       <el-row :gutter="40" class="p-1 flex-none">
@@ -777,6 +970,12 @@
   max-width: 180px;
 }
 
+.sensitive-check-dialog,
+.sensitive-manage-dialog,
+.sensitive-manage-edit-dialog {
+  width: 100%;
+}
+
 #edui1 {
   height: 100%;
 }
@@ -853,7 +1052,7 @@
 }
 </style>
 <script setup>
-import { ref, toRefs, shallowRef, onMounted, onBeforeUnmount, nextTick, onActivated, onDeactivated, onUnmounted, watch, computed, provide, toRaw, unref } from 'vue';
+import { ref, toRefs, shallowRef, onMounted, onBeforeUnmount, nextTick, onActivated, onDeactivated, onUnmounted, watch, computed, provide, toRaw, unref, reactive } from 'vue';
 // import { listAccount } from '@/api/account'
 import store from '@/store'
 import { getToken } from "@/utils/auth";
@@ -870,6 +1069,13 @@ import {
 } from "@/api/mp_wechat"
 import { format_to_UEditor_html, clearContentUrl, clearWeApp, restore_from_UEditor_html } from "@/utils/dom";
 import { uploadImage } from "@/api/img"
+import {
+  listSensitiveWordGroups,
+  createSensitiveWordGroup,
+  updateSensitiveWordGroup,
+  deleteSensitiveWordGroup,
+  checkSensitiveWords
+} from "@/api/sensitiveWords"
 import {gen_unique_id} from "@/utils/msic"
 import { toDeepRaw, toPicPageInfo, gen_picture_page_info_list } from "@/utils/convert"
 import { fmtImageUrl } from "@/utils/format"
@@ -920,6 +1126,10 @@ const is_xiaolvshu = computed(() => {
 });
 
 const { all_accounts } = toRefs(store.getters)
+const currentUserIdRef = computed(() => {
+  const user = store.getters.getUserData || {}
+  return user.user_id ?? user.userId ?? null
+})
 // console.log('envVars.backend_url=>', envVars.backend_url)
 // editor
 const isDebugRef = ref(envVars.is_debug)
@@ -1039,6 +1249,7 @@ const commentAreaAdvertise = ref(1)
 // 创作来源
 const claim_source_typesRef = ref(claim_source_types)
 const selected_claim_source_typeRef = ref(claim_source_types[0])
+const claimSourceLinkRef = ref('')
 
 // 广告
 const ad_idRef = ref(0)
@@ -1046,7 +1257,6 @@ const dialogAdVisibleRef = ref(false)
 const adCategoryRef = ref(ad_categorys)
 const adCategoryChoosedRef = ref([])
 const insertAdTypeRef = ref("1") // 0-不插入 1-手动 2-智能
-
 
 // 进度
 const dialogPercentVisbleRef = ref(false)
@@ -1057,6 +1267,39 @@ const failReasonVisibleRef = ref(false)
 
 // 调试信息
 const dialogDebugVisibleRef = ref(false)
+
+// 敏感性检测
+const dialogSensitiveCheckVisibleRef = ref(false)
+const sensitiveCheckLoadingRef = ref(false)
+const baseSensitiveGroupOptions = [
+]
+const sensitiveCustomGroupOptionsRef = ref([...baseSensitiveGroupOptions])
+const selectedSensitiveCustomGroupRef = ref([])
+const sensitiveHandleStrategyRef = ref('none')
+const sensitiveCustomCharRef = ref('')
+const sensitiveCheckDraftsRef = ref([])
+const dialogSensitiveManageVisibleRef = ref(false)
+const sensitiveManageOnlyMineRef = ref(true)
+const sensitiveManageKeywordQueryRef = ref('')
+const sensitiveKeywordGroupsRef = ref([])
+const sensitiveManageLoadingRef = ref(false)
+const sensitiveManagePaginationRef = reactive({
+  page: 1,
+  pageSize: 10,
+  total: 0,
+})
+const sensitiveManageLoadedOnceRef = ref(false)
+const dialogSensitiveManageEditVisibleRef = ref(false)
+const sensitiveManageEditFormRef = reactive({
+  id: '',
+  name: '',
+  description: '',
+  words: '',
+  createdAt: '',
+  isPrivate: true,
+})
+const sensitiveManageEditIsNewRef = ref(false)
+const sensitiveManageEditSubmittingRef = ref(false)
 
 // 原创性检测
 const dialogCopyrightCheckVisibleRef = ref(false)
@@ -1521,6 +1764,7 @@ const newArticle = async (before_save = true, item_show_type = 0, hydrateMsgIdx 
     if (preIdx !== -1) {
       console.log("preIdx=>", preIdx, mp_msgsRef.value[preIdx])
       mp_msgsRef.value[preIdx] = { ...mp_msgsRef.value[preIdx], ...currentArticleRef.value }
+      console.log("剩余的所有文章=>", mp_msgsRef.value)
     }
   }
 
@@ -1931,7 +2175,6 @@ const handleSaveAppMsg = async () => {
   await _saveAppMsg(0)
 }
 
-
 const handleSyncToWechatDraftBox = async () => {
   const publish_flag = currentAppmsgRef.value.publish_flag;
   if (publish_flag === 1) {
@@ -2049,6 +2292,7 @@ const disableHours = (role, comparingDate) => {
   console.log("idx=>", idx)
   return HOUSRS.slice(0, idx)
 }
+
 const disableMinutes = (role, comparingDate) => {
   const todayStr = new Date().toISOString().split('T')[0]
   if (selectedPublishTimingDateRef.value.id !== todayStr) {
@@ -2187,6 +2431,427 @@ const handleCopyrightCheck = async () => {
     dialogCopyrightCheckVisibleRef.value = false
   }
 }
+
+const htmlToPlainText = (value) => {
+  if (!value) return ''
+  return String(value)
+    .replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, ' ')
+    .replace(/<style[\s\S]*?>[\s\S]*?<\/style>/gi, ' ')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+const buildArticleCheckText = (article) => {
+  if (!article) return ''
+  const segments = []
+  const plainFields = ['title', 'digest', 'abstract', 'guide_words']
+  plainFields.forEach((field) => {
+    const value = article[field]
+    if (value) {
+      segments.push(htmlToPlainText(value))
+    }
+  })
+  const content = article.content_noencode || article.content || ''
+  if (content) {
+    segments.push(htmlToPlainText(content))
+  }
+  return segments.join('\n').replace(/\s+/g, ' ').trim()
+}
+
+const getSelectedCustomWords = () => {
+  if (!Array.isArray(selectedSensitiveCustomGroupRef.value) || !selectedSensitiveCustomGroupRef.value.length) {
+    return []
+  }
+  const words = new Set()
+  const groupMap = new Map(sensitiveKeywordGroupsRef.value.map((item) => [item.id, item.words || []]))
+  selectedSensitiveCustomGroupRef.value.forEach((value) => {
+    const groupId = typeof value === 'number' ? value : Number(value)
+    if (Number.isInteger(groupId) && groupMap.has(groupId)) {
+      const groupWords = groupMap.get(groupId) || []
+      groupWords.forEach((word) => {
+        if (word) {
+          words.add(String(word))
+        }
+      })
+    }
+  })
+  return Array.from(words)
+}
+
+const matchCustomWordsInText = (text, words) => {
+  if (!text || !words.length) return []
+  const matches = new Set()
+  words.forEach((word) => {
+    if (!word) return
+    if (text.includes(word)) {
+      matches.add(word)
+    }
+  })
+  return Array.from(matches)
+}
+
+const runSensitiveWordCheck = async () => {
+  sensitiveCheckLoadingRef.value = true
+  console.log("mp_msgsRef",mp_msgsRef.value)
+  try {
+    if (!sensitiveManageLoadedOnceRef.value) {
+      await fetchSensitiveWordGroups()
+    }
+    const articlesRaw = toDeepRaw(mp_msgsRef.value) || []
+    if (!articlesRaw.length) {
+      sensitiveCheckDraftsRef.value = []
+      return
+    }
+
+    const customWords = getSelectedCustomWords()
+    const articlePayloads = articlesRaw.map((item, index) => {
+      const text = buildArticleCheckText(item)
+      return {
+        id: item.msg_id ?? item.id ?? index,
+        label: `第${index + 1}稿`,
+        title: item.title || '',
+        description: item.digest || item.abstract || '',
+        text,
+      }
+    })
+
+    const results = await Promise.all(articlePayloads.map(async (article) => {
+      let backendWords = []
+      if (article.text) {
+        const response = await checkSensitiveWords({ text: article.text })
+        backendWords = response?.data?.sensitive_words || []
+      }
+      const customMatches = matchCustomWordsInText(article.text, customWords)
+      const words = Array.from(new Set([...backendWords, ...customMatches]))
+      return {
+        id: article.id,
+        label: article.label,
+        title: article.title,
+        description: article.description,
+        words,
+      }
+    }))
+
+    sensitiveCheckDraftsRef.value = results
+  } catch (error) {
+    console.error('敏感词检测失败', error)
+    const message = error?.response?.data?.detail || error?.message || '敏感性检测失败，请稍后重试'
+    ElMessage.error(message)
+  } finally {
+    sensitiveCheckLoadingRef.value = false
+  }
+}
+
+const handleSensitiveCheck = async () => {
+  // 先同步当前编辑的文章内容到 mp_msgsRef
+  const idx = mp_msgsRef.value.findIndex(v => v.msg_id === msg_idRef.value)
+  if (idx !== -1) {
+    mp_msgsRef.value[idx] = { ...mp_msgsRef.value[idx], ...currentArticleRef.value }
+  }
+
+  dialogSensitiveCheckVisibleRef.value = true
+  await nextTick()
+  await runSensitiveWordCheck()
+}
+
+const handleSensitiveRetry = async () => {
+  // 先同步当前编辑的文章内容到 mp_msgsRef
+  const idx = mp_msgsRef.value.findIndex(v => v.msg_id === msg_idRef.value)
+  if (idx !== -1) {
+    mp_msgsRef.value[idx] = { ...mp_msgsRef.value[idx], ...currentArticleRef.value }
+  }
+
+  await runSensitiveWordCheck()
+}
+
+const handleRemoveSensitiveWord = (draftId, word) => {
+  sensitiveCheckDraftsRef.value = sensitiveCheckDraftsRef.value.map((item) => {
+    if (item.id !== draftId) return item
+    return {
+      ...item,
+      words: item.words.filter((w) => w !== word)
+    }
+  })
+}
+
+// 处理敏感词的辅助函数
+const processSensitiveWords = (text, words, strategy, customChar = '') => {
+  if (!text || !words.length) return text
+
+  let processedText = text
+
+  switch (strategy) {
+    case 'none':
+      return processedText
+    case 'remove':
+      words.forEach(word => {
+        const regex = new RegExp(word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi')
+        processedText = processedText.replace(regex, '')
+      })
+      break
+    case 'replace':
+      words.forEach(word => {
+        const regex = new RegExp(word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi')
+        processedText = processedText.replace(regex, customChar)
+      })
+      break
+    case 'insert':
+      words.forEach(word => {
+        const regex = new RegExp(word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi')
+        const chars = word.split('')
+        const replacement = chars.join(customChar)
+        processedText = processedText.replace(regex, replacement)
+      })
+      break
+  }
+
+  return processedText
+}
+
+const handleSensitiveDialogConfirm = async () => {
+  const strategy = sensitiveHandleStrategyRef.value
+  const customChar = sensitiveCustomCharRef.value || ''
+
+  if (strategy === 'none') {
+    dialogSensitiveCheckVisibleRef.value = false
+    return
+  }
+
+  try {
+    // 处理每篇稿件中的敏感词
+    sensitiveCheckDraftsRef.value.forEach(draft => {
+      const articleIndex = mp_msgsRef.value.findIndex(item => item.msg_id === draft.id)
+      if (articleIndex !== -1) {
+        const article = mp_msgsRef.value[articleIndex]
+
+        // 处理标题
+        if (article.title) {
+          article.title = processSensitiveWords(article.title, draft.words, strategy, customChar)
+        }
+
+        // 处理摘要
+        if (article.digest) {
+          article.digest = processSensitiveWords(article.digest, draft.words, strategy, customChar)
+        }
+
+        // 处理正文内容
+        if (article.content_noencode) {
+          article.content_noencode = processSensitiveWords(article.content_noencode, draft.words, strategy, customChar)
+        }
+
+        // 更新到 currentArticleRef（如果当前正在编辑这篇文章）
+        if (msg_idRef.value === draft.id) {
+          currentArticleRef.value = { ...article }
+        }
+      }
+    })
+
+    ElMessage.success('敏感词处理完成')
+    dialogSensitiveCheckVisibleRef.value = false
+  } catch (error) {
+    console.error('敏感词处理失败', error)
+    ElMessage.error('敏感词处理失败，请重试')
+  }
+}
+
+const updateSensitiveGroupOptions = (groups) => {
+  sensitiveCustomGroupOptionsRef.value = [
+    ...baseSensitiveGroupOptions,
+    ...groups.map((item) => ({
+      label: item.name,
+      value: item.id,
+    })),
+  ]
+}
+
+const fetchSensitiveWordGroups = async () => {
+  sensitiveManageLoadingRef.value = true
+  try {
+    const { data } = await listSensitiveWordGroups({
+      keyword: sensitiveManageKeywordQueryRef.value || undefined,
+      only_self: sensitiveManageOnlyMineRef.value,
+      page: sensitiveManagePaginationRef.page,
+      page_size: sensitiveManagePaginationRef.pageSize,
+    })
+    const payload = data?.data || {}
+    sensitiveKeywordGroupsRef.value = payload.list || []
+    sensitiveManagePaginationRef.total = payload.total || 0
+    sensitiveManagePaginationRef.page = payload.page || sensitiveManagePaginationRef.page
+    sensitiveManagePaginationRef.pageSize = payload.page_size || sensitiveManagePaginationRef.pageSize
+    updateSensitiveGroupOptions(sensitiveKeywordGroupsRef.value)
+    sensitiveManageLoadedOnceRef.value = true
+    if (Array.isArray(selectedSensitiveCustomGroupRef.value)) {
+      const preservedValues = selectedSensitiveCustomGroupRef.value.filter((value) => {
+        if (typeof value === 'number') {
+          return sensitiveKeywordGroupsRef.value.some((item) => item.id === value)
+        }
+        return true
+      })
+      if (preservedValues.length !== selectedSensitiveCustomGroupRef.value.length) {
+        selectedSensitiveCustomGroupRef.value = preservedValues
+      }
+    }
+  } catch (error) {
+    console.error('加载敏感词组失败', error)
+    const message = error?.response?.data?.detail || '加载敏感词组失败'
+    ElMessage.error(message)
+  } finally {
+    sensitiveManageLoadingRef.value = false
+  }
+}
+
+const handleOpenSensitiveManage = async () => {
+  dialogSensitiveManageVisibleRef.value = true
+}
+
+const resetSensitiveManageEditForm = (payload = null) => {
+  sensitiveManageEditFormRef.id = payload?.id ?? ''
+  sensitiveManageEditFormRef.name = payload?.name ?? ''
+  sensitiveManageEditFormRef.description = payload?.description ?? ''
+  sensitiveManageEditFormRef.words = payload?.words?.join?.('\n') ?? ''
+  sensitiveManageEditFormRef.createdAt = payload?.createdAt ?? ''
+  sensitiveManageEditFormRef.isPrivate = payload?.isPrivate ?? true
+}
+
+const handleSensitiveManageCreate = () => {
+  sensitiveManageEditIsNewRef.value = true
+  resetSensitiveManageEditForm({
+    id: '',
+    name: '',
+    description: '',
+    words: [],
+    createdAt: '',
+    isPrivate: true,
+  })
+  dialogSensitiveManageEditVisibleRef.value = true
+}
+
+const handleSensitiveManageEdit = (row) => {
+  sensitiveManageEditIsNewRef.value = false
+  resetSensitiveManageEditForm(row)
+  dialogSensitiveManageEditVisibleRef.value = true
+}
+
+const handleSensitiveManageDelete = (row) => {
+  ElMessageBox.confirm(`确定删除敏感词组「${row.name}」吗？`, '提示', {
+    confirmButtonText: '删除',
+    cancelButtonText: '取消',
+    type: 'warning',
+  }).then(async () => {
+    try {
+      await deleteSensitiveWordGroup(row.id)
+      ElMessage.success('删除成功')
+      if (Array.isArray(selectedSensitiveCustomGroupRef.value)) {
+        selectedSensitiveCustomGroupRef.value = selectedSensitiveCustomGroupRef.value.filter((id) => id !== row.id)
+      }
+      if (
+        sensitiveKeywordGroupsRef.value.length === 1 &&
+        sensitiveManagePaginationRef.page > 1
+      ) {
+        sensitiveManagePaginationRef.page -= 1
+      }
+      await fetchSensitiveWordGroups()
+    } catch (error) {
+      console.error('删除敏感词组失败', error)
+      const message = error?.response?.data?.detail || '删除敏感词组失败'
+      ElMessage.error(message)
+    }
+  }).catch(() => {})
+}
+
+const handleSensitiveManageEditCancel = () => {
+  dialogSensitiveManageEditVisibleRef.value = false
+}
+
+const parseSensitiveWordsInput = (value) => {
+  return value
+    .split('\n')
+    .map((word) => word.trim())
+    .filter(Boolean)
+}
+
+const handleSensitiveManageEditConfirm = async () => {
+  if (!sensitiveManageEditFormRef.name.trim()) {
+    ElMessage.warning('请填写敏感词组名称')
+    return
+  }
+
+  const words = parseSensitiveWordsInput(sensitiveManageEditFormRef.words)
+
+  const payload = {
+    name: sensitiveManageEditFormRef.name.trim(),
+    description: (sensitiveManageEditFormRef.description || '').trim(),
+    words,
+    is_private: sensitiveManageEditFormRef.isPrivate,
+  }
+
+  sensitiveManageEditSubmittingRef.value = true
+  try {
+    let response
+    if (sensitiveManageEditIsNewRef.value || !sensitiveManageEditFormRef.id) {
+      response = await createSensitiveWordGroup(payload)
+      ElMessage.success('创建成功')
+    } else {
+      response = await updateSensitiveWordGroup(sensitiveManageEditFormRef.id, payload)
+      ElMessage.success('更新成功')
+    }
+    const groupData = response?.data?.data
+    if (groupData?.id) {
+      if (!Array.isArray(selectedSensitiveCustomGroupRef.value)) {
+        selectedSensitiveCustomGroupRef.value = []
+      }
+      if (!selectedSensitiveCustomGroupRef.value.includes(groupData.id)) {
+        selectedSensitiveCustomGroupRef.value = [...selectedSensitiveCustomGroupRef.value, groupData.id]
+      }
+    }
+    dialogSensitiveManageEditVisibleRef.value = false
+    await fetchSensitiveWordGroups()
+  } catch (error) {
+    console.error('保存敏感词组失败', error)
+    const message = error?.response?.data?.detail || '保存敏感词组失败'
+    ElMessage.error(message)
+  } finally {
+    sensitiveManageEditSubmittingRef.value = false
+  }
+}
+
+const handleSensitiveManagePageChange = (page) => {
+  sensitiveManagePaginationRef.page = page
+  fetchSensitiveWordGroups()
+}
+
+const triggerSensitiveManageSearch = debounce(() => {
+  if (dialogSensitiveManageVisibleRef.value) {
+    fetchSensitiveWordGroups()
+  }
+}, 300)
+
+watch(dialogSensitiveManageVisibleRef, (visible) => {
+  if (visible) {
+    sensitiveManagePaginationRef.page = 1
+    fetchSensitiveWordGroups()
+  }
+})
+
+watch(sensitiveManageOnlyMineRef, () => {
+  sensitiveManagePaginationRef.page = 1
+  if (dialogSensitiveManageVisibleRef.value) {
+    fetchSensitiveWordGroups()
+  }
+})
+
+watch(sensitiveManageKeywordQueryRef, () => {
+  sensitiveManagePaginationRef.page = 1
+  triggerSensitiveManageSearch()
+})
+
+watch(dialogSensitiveManageEditVisibleRef, (visible) => {
+  if (!visible) {
+    sensitiveManageEditSubmittingRef.value = false
+  }
+})
 
 var groupstr = ref("")
 const handlePublishToWechat = async () => {
@@ -2346,7 +3011,7 @@ const removeArticle = async (msg_id) => {
       type: 'success',
       duration: 2 * 1000
     })
-
+    
     await listArticles()
     console.log("mp_msgsRef.value=>", mp_msgsRef.value)
     if (mp_msgsRef.value.length === 0) {
@@ -2583,6 +3248,7 @@ const handleLocalExtractMpArticleUrl = async () => {
     dialogExtractMpAritcleUrlRef.value = false
   }, timeoutExtract)
 }
+
 async function onBatchExtractMpOld(list) {
   for (var item of list) {
     globalLoadingRef.value = true
@@ -3953,6 +4619,11 @@ const operationList = [
     action: () => { handleCopyrightCheck() }
   },
   {
+    title: '敏感性检测',
+    icon: 'mdi:shield-alert-outline',
+    action: () => { handleSensitiveCheck() }
+  },
+  {
     title: '消息手机预览',
     icon: 'mdi:mobile-phone-message',
     action: () => { openAppMsgMobilePreviewDialog() }
@@ -4002,8 +4673,9 @@ onUnmounted(async () => {
     console.log(`cleanup channel ${channelName} for editor4`)
     channelCleans[channelName]()
   }
+  dialogSensitiveManageVisibleRef.value = false
+  dialogSensitiveManageEditVisibleRef.value = false
 })
-
 
 
 // onActivated(async () => {
@@ -4023,3 +4695,4 @@ onUnmounted(async () => {
 
 
 </script>
+
