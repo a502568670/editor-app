@@ -1,64 +1,79 @@
 <template>
-  <div class="flex w-ful h-full">
-    <el-tabs v-show="editableTabs.length > 0" v-model="editableTabsValue" type="card" class="editor-tabs w-full h-full"
-      closable @tab-remove="handleCloseTab">
-      <el-tab-pane v-for="(item, idx) in editableTabs" :key="idx" :name="item.name" class="h-full">
-        <template #label><i><img class="w-6 h-6 rounded-full mr-2" :src="item.icon" /></i> {{ item.title }}</template>
-        <!-- <EditorTab :key="appmsgRef.appmsgid+''" :account="selectedAccountRef" :appmsg="appmsgRef" /> -->
-        <component :key="item.tabKey" :is="EditorTab" :account="item.account" :appmsg="item.appmsg" :mode="item.mode"
-          :mainMsg="item.mainMsg" @title-change="handleTitleChange" @create-appmsg="handleCreateAppMsg"
-          @msgid-change="id => onMsgidChange(id, idx)"></component>
-      </el-tab-pane>
-    </el-tabs>
-    <div v-show="editableTabs.length === 0" class="flex w-full h-full">
-      <AccountList
-        ref="AccountListRef"
-        :showAdd="false"
-        :showDel="false"
-        @clickAccountTrigger="handleAccountSelect"
-      />
-      <div class="flex flex-1 justify-center items-center">
-        <el-card style="width: 480px">
-          <div class="flex flex-col w-full space-y-10">
-            <div class="flex flex-col justify-center space-y-1">
-              <div class="text-2xl font-bold text-center">强大的图文编辑功能</div>
-              <div class="text-gray-400 text-center">给你的素材创造更多可能性</div>
-            </div>
-            <img src="@/assets/image/create_material.png" style="width: 100%" />
-            <div class="flex justify-center items-center">
-              <!-- <el-button @click="handleCreateAppMsg({ type: 0, account_id: selectedAccountRef?.id })" size="large"
-                type="primary">
-                <div class="w-[180px] py-5 ">
-                  <el-icon>
-                    <Plus />
-                  </el-icon>
-                  <span class="ml-5 text-lg">创建素材</span>
-                </div>
-              </el-button> -->
-              <div class="w-[180px] py-5 ">
-                <el-dropdown>
-                  <el-button type="primary" size="large" class="text-lg">
+    <div class="w-full h-full flex flex-col">
+      <div class="flex p-2">
+        <div class="flex" @click="dialogVisible = true">
+          <img class="w-7 h-7 rounded-full" :src="selectedAccountRef?.avatar" />
+          <div class="flex-1 flex justify-start text-left items-center pl-1 min-w-[190px]">
+            {{ selectedAccountRef?.name }}
+          </div>
+        </div>
+        <div>
+          <el-button type="success" @click="handleCreateAppMsg({ type: 0, account_id: selectedAccountRef?.id, item_show_type: 8 })">发小绿书</el-button>
+          <el-button type="success" @click="handleCreateAppMsg({ type: 0, account_id: selectedAccountRef?.id })">发图文</el-button>
+          <el-button type="success" @click="handleCreateAppMsg({ type: 0, account_id: selectedAccountRef?.id, item_show_type: 5 })">发视频</el-button>
+        </div>
+      </div>
+      <el-tabs v-model="editableTabsValue" type="card" class="editor-tabs w-full h-0 flex-1"
+        closable @tab-remove="handleCloseTab">
+        <el-tab-pane v-for="(item, idx) in editableTabs" :key="idx" :name="item.name" class="h-full">
+          <template #label><i><img class="w-6 h-6 rounded-full mr-2" :src="item.icon" /></i> {{ item.title }}</template>
+          <!-- <EditorTab :key="appmsgRef.appmsgid+''" :account="selectedAccountRef" :appmsg="appmsgRef" /> -->
+          <component :key="item.tabKey" :is="EditorTab" :account="item.account" :appmsg="item.appmsg" :mode="item.mode"
+            :mainMsg="item.mainMsg" @title-change="handleTitleChange" @create-appmsg="handleCreateAppMsg"
+            @msgid-change="id => onMsgidChange(id, idx)"></component>
+        </el-tab-pane>
+      </el-tabs>
+      <!-- 公众号选择弹窗 -->
+      <AccountPickerModal v-model="dialogVisible" @confirm="handleInstantSend" />
+      <!-- <div v-show="editableTabs.length === 0" class="flex w-full h-full">
+        <AccountList
+          ref="AccountListRef"
+          :showAdd="false"
+          :showDel="false"
+          @clickAccountTrigger="handleAccountSelect"
+        />
+        <div class="flex flex-1 justify-center items-center">
+          <el-card style="width: 480px">
+            <div class="flex flex-col w-full space-y-10">
+              <div class="flex flex-col justify-center space-y-1">
+                <div class="text-2xl font-bold text-center">强大的图文编辑功能</div>
+                <div class="text-gray-400 text-center">给你的素材创造更多可能性</div>
+              </div>
+              <img src="@/assets/image/create_material.png" style="width: 100%" />
+              <div class="flex justify-center items-center"> -->
+                <!-- <el-button @click="handleCreateAppMsg({ type: 0, account_id: selectedAccountRef?.id })" size="large"
+                  type="primary">
+                  <div class="w-[180px] py-5 ">
                     <el-icon>
                       <Plus />
-                    </el-icon><span class="ml-5 text-lg">创建素材</span>
-                  </el-button>
-                  <template #dropdown>
-                    <el-dropdown-menu>
-                      <el-dropdown-item @click="handleCreateAppMsg({ type: 0, account_id: selectedAccountRef?.id })">创建图文素材</el-dropdown-item>
-                      <el-dropdown-item @click="handleCreateAppMsg({ type: 0, account_id: selectedAccountRef?.id, item_show_type: 8 })">创建小绿书</el-dropdown-item>
-                      <el-dropdown-item @click="handleCreateAppMsg({ type: 0, account_id: selectedAccountRef?.id, item_show_type: 5 })">创建视频素材</el-dropdown-item>
-                    </el-dropdown-menu>
-                  </template>
-                </el-dropdown>
+                    </el-icon>
+                    <span class="ml-5 text-lg">创建素材</span>
+                  </div>
+                </el-button> -->
+                <!-- <div class="w-[180px] py-5 ">
+                  <el-dropdown>
+                    <el-button type="primary" size="large" class="text-lg">
+                      <el-icon>
+                        <Plus />
+                      </el-icon><span class="ml-5 text-lg">创建素材</span>
+                    </el-button>
+                    <template #dropdown>
+                      <el-dropdown-menu>
+                        <el-dropdown-item @click="handleCreateAppMsg({ type: 0, account_id: selectedAccountRef?.id })">创建图文素材</el-dropdown-item>
+                        <el-dropdown-item @click="handleCreateAppMsg({ type: 0, account_id: selectedAccountRef?.id, item_show_type: 8 })">创建小绿书</el-dropdown-item>
+                        <el-dropdown-item @click="handleCreateAppMsg({ type: 0, account_id: selectedAccountRef?.id, item_show_type: 5 })">创建视频素材</el-dropdown-item>
+                      </el-dropdown-menu>
+                    </template>
+                  </el-dropdown>
+                </div>
               </div>
             </div>
-          </div>
-        </el-card>
-      </div>
+          </el-card> -->
+        <!-- </div>
+      </div> -->
     </div>
-  </div>
-  <ChooseAccountDialog :dialogVisible="dialogChooseAccountVisibleRef"
-    @dialog-closed="dialogChooseAccountVisibleRef = false" @account-choose="handleAccountChoose" />
+    <!-- <ChooseAccountDialog :dialogVisible="dialogChooseAccountVisibleRef"
+      @dialog-closed="dialogChooseAccountVisibleRef = false" @account-choose="handleAccountChoose" /> -->
 </template>
 <style>
 .editor-tabs>.el-tabs__content {
@@ -84,8 +99,14 @@ import { v4 as uuidv4 } from 'uuid';
 import { useRoute } from 'vue-router'
 import { useStore } from 'vuex'
 import { dog } from '@/utils'
+import AccountPickerModal from '@/components/AccountPickerModal.vue'
 
 const AccountListRef = ref()
+
+const dialogVisible = ref(false)
+const handleInstantSend = async (accounts) => {
+  selectedAccountRef.value = accounts
+}
 
 const store = useStore()
 const route = useRoute()
@@ -95,7 +116,7 @@ const channelCleans = {}
 const channelName = 'fromMain'
 const channelSource = 'editor3'
 
-const { all_accounts } = toRefs(store.getters)
+const { all_accounts, getPreviousWxAccount } = toRefs(store.getters)
 
 const selectedAccountRef = ref(null)
 provide('selectedAccount', selectedAccountRef)
@@ -343,4 +364,11 @@ function onMsgidChange(id, index) {
   editableTabs.value[index].appmsg.multi_item[0].msg_id = id
 }
 
+onMounted(() => {
+  if(getPreviousWxAccount.value){
+    selectedAccountRef.value = getPreviousWxAccount.value
+  }else{
+    selectedAccountRef.value = all_accounts.value.list.find((item)=> item.platform_id === 4)
+  }
+})
 </script>

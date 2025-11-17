@@ -7,19 +7,19 @@
       @clickAccountTrigger="handleAccountSelect"
     />
     <div class="flex-1 flex flex-col h-full" v-loading="dataLoadingRef">
-      <!-- <div class="flex space-x-2 items-center border-b p-3">
-        <el-button @click="handleCreateNewMaterial" type="success">
+      <div class="flex space-x-2 items-center border-b p-3">
+        <!-- <el-button @click="handleCreateNewMaterial" type="success">
           <el-icon>
             <Plus />
           </el-icon>
           <span class="ml-1">创建新素材</span>
-        </el-button>
-        <el-button v-if="materialTypeRef === 0" @click="handleSwitchToLocal">
+        </el-button> -->
+        <!-- <el-button v-if="materialTypeRef === 0" @click="handleSwitchToLocal">
           <el-icon>
             <Files />
           </el-icon>
           <span class="ml-1">本地素材</span>
-        </el-button>
+        </el-button> -->
         <el-button v-if="materialTypeRef === 1" @click="handleSwitchToDraftBox">
           <el-icon>
             <Files />
@@ -27,7 +27,7 @@
           <span class="ml-1">返回草稿箱</span>
         </el-button>
         <Hydrate />
-      </div> -->
+      </div>
       <div class="flex flex-1 h-0 flex-col" v-show="selectedAccountRef !== null  && !selectedAccountRef.expired">
         <div class="flex space-x-2 items-center p-3 shadow z-10">
           <div class="text-gray-500">{{ materialTypeRef === 0 ? '草稿箱' : '本地素材' }}</div>
@@ -71,14 +71,14 @@
               </div>
               <div v-for="(subitem, index) in item.multi_item" :key="subitem.msg_index_id"
                 class="flex items-center px-4 py-2 w-full relative material-item" @click="toggleItemId(`${i}-${index}`)">
-                <!-- <div class="material-item-actions">
+                <div class="material-item-actions">
                   <el-tooltip content="添加到素材合成器" v-if="subitem.item_show_type !== 8 && subitem.share_page_type !== 8">
                     <el-icon class="bg-white rounded-full p-1 mr-1 cursor-pointer" size="24"
                       @click="hydrateAdd(item, index)">
                       <FolderAdd />
                     </el-icon>
                   </el-tooltip>
-                </div> -->
+                </div>
                 <div v-if="index === 0" class='w-full flex h-32 relative justify-between items-end bg-[#e6e6e6]'>
                   <img v-if="subitem.cdn_url" class="w-full h-full  object-cover rounded-sm" :src="subitem.cdn_url"
                     referrerpolicy="no-referrer" />
