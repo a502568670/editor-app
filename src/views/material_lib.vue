@@ -7,7 +7,7 @@
       @clickAccountTrigger="handleAccountSelect"
     />
     <div class="flex-1 flex flex-col h-full" v-loading="dataLoadingRef">
-      <!-- <div class="flex space-x-2 items-center border-b p-3">
+      <div class="flex space-x-2 items-center border-b p-3">
         <el-button @click="handleCreateNewMaterial" type="success">
           <el-icon>
             <Plus />
@@ -27,7 +27,7 @@
           <span class="ml-1">返回草稿箱</span>
         </el-button>
         <Hydrate />
-      </div> -->
+      </div>
       <div class="flex flex-1 h-0 flex-col" v-show="selectedAccountRef !== null  && !selectedAccountRef.expired">
         <div class="flex space-x-2 items-center p-3 shadow z-10">
           <div class="text-gray-500">{{ materialTypeRef === 0 ? '草稿箱' : '本地素材' }}</div>

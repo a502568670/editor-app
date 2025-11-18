@@ -309,17 +309,88 @@
               v-if="selected_claim_source_typeRef.id === 2 && materialSourceRef === 'official_account'">
               <el-col :span="24">
                 <p class="set-title">来源文章链接</p>
-                <el-input v-model="claimSourceLinkRef" clearable placeholder="请填写政/媒体/事业单位等官方组织机构发表的内容" />
+                <el-input 
+                  v-model="claimSourceLinkRef" 
+                  clearable 
+                  placeholder="请填写政/媒体/事业单位等官方组织机构发表的内容"
+                  @blur="handleClaimSourceLinkChange"
+                  :loading="claimSourceLinkLoadingRef"
+                />
+                <div v-if="claimSourceAccountRef || claimSourceTimeRef" class="mt-3 space-y-2">
+                  <div v-if="claimSourceAccountRef" class="flex items-center text-sm">
+                    <span class="text-gray-600 min-w-[80px]">来源账号</span>
+                    <div class="flex items-center space-x-2">
+                      <img 
+                        v-if="claimSourceAccountAvatarRef" 
+                        :src="claimSourceAccountAvatarRef" 
+                        class="w-5 h-5 rounded-full object-cover"
+                        referrerpolicy="no-referrer"
+                        alt="账号头像"
+                      />
+                      <span class="text-gray-800 font-medium">{{ claimSourceAccountRef }}</span>
+                    </div>
+                  </div>
+                  <div class="flex items-center text-sm">
+                    <span class="text-gray-600 min-w-[80px]">事件时间</span>
+                    <el-date-picker
+                      v-model="claimSourceTimeRef"
+                      type="date"
+                      placeholder="选择事件时间"
+                      format="YYYY/MM/DD"
+                      value-format="YYYY/MM/DD"
+                      :disabled-date="(time) => time.getTime() >= Date.now()"
+                      style="width: 180px"
+                    />
+                  </div>
+                  <div v-if="claimSourceTimeRef" class="flex items-center text-sm">
+                    <span class="text-gray-600 min-w-[80px]">事件地点</span>
+                    <el-cascader 
+                      v-model="claimSourceLocationRef" 
+                      :options="eventLocationOpts" 
+                      :props="eventLocationProps" 
+                      placeholder="选择该事件发生的地点" 
+                      clearable 
+                      filterable
+                      style="width: 100%"
+                    />
+                  </div>
+                </div>
               </el-col>
             </el-row>
             <el-row :gutter="4" class="mb-6"
               v-if="selected_claim_source_typeRef.id === 2 && materialSourceRef === 'other'">
               <el-col :span="24">
                 <p class="set-title">来源账号/平台</p>
-                <el-input v-model="claimSourceLinkRef" clearable placeholder="请填写具体来源全称 (如“北京发布”、“中国地震台网”)" />
+                <el-input v-model="claimSourcePlatformRef" clearable placeholder="请填写具体来源全称 (如北京发布、中国地震台网)" />
+                <div class="mt-3 space-y-2">
+                  <div class="flex items-center text-sm">
+                    <span class="text-gray-600 min-w-[80px]">事件时间</span>
+                    <el-date-picker
+                      v-model="claimSourceTimeRef"
+                      type="date"
+                      placeholder="选择事件时间"
+                      format="YYYY/MM/DD"
+                      value-format="YYYY/MM/DD"
+                      :disabled-date="(time) => time.getTime() >= Date.now()"
+                      style="width: 180px"
+                    />
+                  </div>
+                  <div class="flex items-center text-sm">
+                    <span class="text-gray-600 min-w-[80px]">事件地点</span>
+                    <el-cascader 
+                      v-model="claimSourceLocationRef" 
+                      :options="eventLocationOpts" 
+                      :props="eventLocationProps" 
+                      placeholder="选择该事件发生的地点" 
+                      clearable 
+                      filterable
+                      style="width: 100%"
+                    />
+                  </div>
+                </div>
               </el-col>
             </el-row>
-
+            <!-- 在这里显示 -->
             <el-row :gutter="4" class="mb-6">
               <el-col :span="24">
                 <p class="set-title">原创设置</p>
@@ -1243,6 +1314,20 @@ const DeleteRef = shallowRef(Delete);
 // mp_msgs
 const msg_idRef = ref(0)
 const mp_msgsRef = ref([])
+const normalizeClaimSourceInfo = (mpMsgs) => {
+  if (!Array.isArray(mpMsgs)) return
+  mpMsgs.forEach((item) => {
+    if (!item || !item.claim_source_info) return
+    if (typeof item.claim_source_info === 'string') {
+      try {
+        item.claim_source_info = JSON.parse(item.claim_source_info)
+      } catch (e) {
+        console.error('claim_source_info解析失败:', e)
+        item.claim_source_info = null
+      }
+    }
+  })
+}
 const mpExsRef = ref({
   mps_obj: {},
   miniappcard_obj: {},
@@ -1267,7 +1352,13 @@ const commentAreaAdvertise = ref(1)
 // 创作来源
 const claim_source_typesRef = ref(claim_source_types)
 const selected_claim_source_typeRef = ref(claim_source_types[0])
-const claimSourceLinkRef = ref('')
+const claimSourceLinkRef = ref('') // 来源文章链接
+const claimSourcePlatformRef = ref('') // 来源账号/平台
+const claimSourceAccountRef = ref('') // 来源账号（从链接获取）
+const claimSourceAccountAvatarRef = ref('') // 来源账号头像
+const claimSourceTimeRef = ref('') // 事件时间
+const claimSourceLocationRef = ref([]) // 事件地点
+const claimSourceLinkLoadingRef = ref(false) // 加载状态
 
 // 素材来源
 const materialSourceRef = ref('official_account') // 默认选中"公众号/服务号"
@@ -1625,6 +1716,7 @@ const listArticles = async () => {
     const { wechat_id } = selectedAccount.value
     mp_msgsRef.value = await newlistArticlesByAppMsg(wechat_id, appmsgid).catch((err) => { }).then(response => {
       response.data.forEach(gen_picture_page_info_list)
+      normalizeClaimSourceInfo(response.data)
       console.log('aaa',response)
       return response.data;
     })
@@ -1704,6 +1796,95 @@ const loadArticle = (mp_msg, before_save) => {
   const find_claim_source_type = claim_source_types.find(v => v.id === currentArticleRef.value.claim_source_type)
   if (find_claim_source_type) {
     selected_claim_source_typeRef.value = find_claim_source_type
+  }
+  
+  // 解析并还原claim_source_info
+  if (currentArticleRef.value.claim_source_info) {
+    let claimSourceInfo = currentArticleRef.value.claim_source_info
+    // 如果是字符串，需要解析JSON
+    if (typeof claimSourceInfo === 'string') {
+      try {
+        claimSourceInfo = JSON.parse(claimSourceInfo)
+      } catch (e) {
+        console.error('解析claim_source_info失败:', e)
+        claimSourceInfo = null
+      }
+    }
+    
+    if (claimSourceInfo && claimSourceInfo.media_source_type_info) {
+      const mediaInfo = claimSourceInfo.media_source_type_info
+      
+      // 还原素材来源类型
+      if (mediaInfo.media_source_from === "1") {
+        materialSourceRef.value = 'official_account'
+        // 还原公众号/服务号相关字段
+        claimSourceLinkRef.value = mediaInfo.biz_link_url || ''
+        claimSourceAccountRef.value = mediaInfo.biz_nickname || ''
+        claimSourceAccountAvatarRef.value = mediaInfo.biz_headimgurl || ''
+      } else if (mediaInfo.media_source_from === "2") {
+        materialSourceRef.value = 'other'
+        // 还原其他来源相关字段
+        claimSourcePlatformRef.value = mediaInfo.other_from_account || ''
+      }
+      
+      // 还原事件时间（时间戳转日期字符串）
+      if (mediaInfo.news_time) {
+        try {
+          const timestamp = parseInt(mediaInfo.news_time)
+          if (timestamp > 0) {
+            const date = new Date(timestamp * 1000)
+            const year = date.getFullYear()
+            const month = String(date.getMonth() + 1).padStart(2, '0')
+            const day = String(date.getDate()).padStart(2, '0')
+            claimSourceTimeRef.value = `${year}/${month}/${day}`
+          }
+        } catch (e) {
+          console.error('解析事件时间失败:', e)
+          claimSourceTimeRef.value = ''
+        }
+      } else {
+        claimSourceTimeRef.value = ''
+      }
+      
+      // 还原事件地点
+      if (mediaInfo.news_position_info) {
+        const posInfo = mediaInfo.news_position_info
+        if (posInfo.country === "中国" && posInfo.province) {
+          // 中国地区
+          const location = ['china', posInfo.province]
+          if (posInfo.city) {
+            location.push(posInfo.city)
+          }
+          claimSourceLocationRef.value = location
+        } else if (posInfo.country && posInfo.country !== "中国") {
+          // 国际地区
+          claimSourceLocationRef.value = ['international', posInfo.country]
+        } else {
+          // 无确切地点或空
+          claimSourceLocationRef.value = []
+        }
+      } else {
+        claimSourceLocationRef.value = []
+      }
+    } else {
+      // 重置所有字段
+      materialSourceRef.value = 'official_account'
+      claimSourceLinkRef.value = ''
+      claimSourcePlatformRef.value = ''
+      claimSourceAccountRef.value = ''
+      claimSourceAccountAvatarRef.value = ''
+      claimSourceTimeRef.value = ''
+      claimSourceLocationRef.value = []
+    }
+  } else {
+    // 没有claim_source_info，重置所有字段
+    materialSourceRef.value = 'official_account'
+    claimSourceLinkRef.value = ''
+    claimSourcePlatformRef.value = ''
+    claimSourceAccountRef.value = ''
+    claimSourceAccountAvatarRef.value = ''
+    claimSourceTimeRef.value = ''
+    claimSourceLocationRef.value = []
   }
 
   // const toolbar = DomEditor.getToolbar(editorRef.value);
@@ -1911,6 +2092,75 @@ const saveCurrentToList = (msg_id) => {
 
   // 创作来源
   currentArticleRef.value.claim_source_type = selected_claim_source_typeRef.value.id
+  
+  // 新增创作来源json体保存
+  if (selected_claim_source_typeRef.value.id === 2) {
+    // 构建claim_source_info对象
+    const claimSourceInfo = {
+      claim_source_type: String(selected_claim_source_typeRef.value.id),
+      claim_source: selected_claim_source_typeRef.value.name,
+      aigc_type: "",
+      aigc_wording: "",
+      media_source_type_info: {}
+    }
+    
+    // 构建media_source_type_info
+    if (materialSourceRef.value === 'official_account') {
+      // 公众号/服务号
+      claimSourceInfo.media_source_type_info = {
+        media_source_from: "1",
+        biz_nickname: claimSourceAccountRef.value || "",
+        news_time: claimSourceTimeRef.value ? String(Math.floor(new Date(claimSourceTimeRef.value).getTime() / 1000)) : "",
+        biz_link_url: claimSourceLinkRef.value || "",
+        biz_headimgurl: claimSourceAccountAvatarRef.value || "",
+        other_from_account: "",
+        news_position_info: {}
+      }
+    } else {
+      // 其他来源
+      claimSourceInfo.media_source_type_info = {
+        media_source_from: "2",
+        biz_nickname: "",
+        news_time: claimSourceTimeRef.value ? String(Math.floor(new Date(claimSourceTimeRef.value).getTime() / 1000)) : "",
+        biz_link_url: "",
+        biz_headimgurl: "",
+        other_from_account: claimSourcePlatformRef.value || "",
+        news_position_info: {}
+      }
+    }
+    
+    // 处理地点信息
+    if (claimSourceLocationRef.value && claimSourceLocationRef.value.length > 0) {
+      const location = claimSourceLocationRef.value
+      if (location[0] === 'china' && location.length >= 2) {
+        // 中国地区
+        claimSourceInfo.media_source_type_info.news_position_info = {
+          country: "中国",
+          province: location[1] || "",
+          city: location.length >= 3 ? location[2] : ""
+        }
+      } else if (location[0] === 'international' && location.length >= 2) {
+        // 国际地区
+        claimSourceInfo.media_source_type_info.news_position_info = {
+          country: location[1] || "",
+          province: "",
+          city: ""
+        }
+      } else if (location[0] === 'no_location') {
+        // 无确切地点
+        claimSourceInfo.media_source_type_info.news_position_info = {
+          country: "",
+          province: "",
+          city: ""
+        }
+      }
+    }
+    
+    currentArticleRef.value.claim_source_info = claimSourceInfo
+  } else {
+    // 其他创作来源类型，不保存claim_source_info或保存空对象
+    currentArticleRef.value.claim_source_info = null
+  }
 
   // 评论区广告
   currentArticleRef.value.open_comment_ad = commentAreaAdvertise.value
@@ -2044,6 +2294,7 @@ const automaticSave = async (push_to_remote) => {
 
   await saveAppMsg(postData).then(async (res) => {
     res.data.data.mp_msgs.forEach(gen_picture_page_info_list)
+    normalizeClaimSourceInfo(res.data.data.mp_msgs)
     mp_msgsRef.value = res.data.data.mp_msgs
 
     const isCreateNewAppMsg = appmsgid <= 0 && res.data.data.appmsgid > 0
@@ -2159,6 +2410,7 @@ const _saveAppMsg = async (push_to_remote) => {
       duration: 2 * 1000
     })
     res.data.data.mp_msgs.forEach(gen_picture_page_info_list)
+    normalizeClaimSourceInfo(res.data.data.mp_msgs)
     mp_msgsRef.value = res.data.data.mp_msgs
     // ### todo: mp_msg_exs
 
@@ -4556,6 +4808,32 @@ watch(() => [props.mainMsg], async (newVal) => {
       if (success) {
         setMPVRef.value.setMPVs('live', mpv_lives)
       }
+    } else if (tag === "appmsg-ret:getLinkInfo") {
+      const { ret } = msg.data
+      console.log("getLinkInfo ret=>", ret)
+      claimSourceLinkLoadingRef.value = false
+      if (ret.success && ret.detail_info) {
+        const { biz_nickname, publish_time, biz_headimgurl } = ret.detail_info
+        claimSourceAccountRef.value = biz_nickname || ''
+        claimSourceAccountAvatarRef.value = biz_headimgurl || ''
+        if (publish_time) {
+          // 将时间戳转换为日期字符串，格式为 YYYY/MM/DD 以匹配日期选择器
+          const date = new Date(publish_time * 1000)
+          const year = date.getFullYear()
+          const month = String(date.getMonth() + 1).padStart(2, '0')
+          const day = String(date.getDate()).padStart(2, '0')
+          claimSourceTimeRef.value = `${year}/${month}/${day}`
+        } else {
+          claimSourceTimeRef.value = ''
+        }
+      } else {
+        claimSourceAccountRef.value = ''
+        claimSourceAccountAvatarRef.value = ''
+        claimSourceTimeRef.value = ''
+        if (!ret.success) {
+          ElMessage.warning(ret.err_msg || '获取链接信息失败')
+        }
+      }
     }
 
     if (globalLoadingRef.value) {
@@ -4571,6 +4849,178 @@ const { start } = useDraggable(elListMsgsRef, mp_msgsRef, {
   animation: 150,
   ghostClass: 'ghost'
 })
+
+// 事件地点相关
+const eventLocationOpts = ref([])
+
+// 获取地区数据的函数
+async function fetchEventLocationData(id = 0) {
+  try {
+    if (!selectedAccount.value) {
+      return []
+    }
+    const res = await window.webBridge.callRpc('getRegions', {
+      account: selectedAccount.value ? toRaw(selectedAccount.value) : null,
+      id: id
+    })
+    if (res?.success) {
+      return res.data || []
+    }
+  } catch (error) {
+    console.error('获取地区数据失败:', error)
+  }
+  return []
+}
+
+// 事件地点级联选择器配置
+const eventLocationProps = {
+  expandTrigger: 'click',
+  checkStrictly: true, // 允许选择任意级别的节点
+  lazy: true,
+  lazyLoad: async (node, resolve) => {
+    if (node.level === 0) {
+      // 第一级：中国、国际、无确切地点
+      const options = [
+        { label: '中国', value: 'china', leaf: false },
+        { label: '国际', value: 'international', leaf: false },
+        { label: '无确切地点', value: 'no_location', leaf: true }
+      ]
+      resolve(options)
+    } else if (node.level === 1) {
+      // 第二级：根据第一级的选择加载数据
+      if (node.value === 'china') {
+        // 加载中国的省份，以及香港、澳门、台湾
+        const regions = await fetchEventLocationData(0)
+        const chinaRegion = regions.find(r => r.name === '中国')
+        const hongkongRegion = regions.find(r => r.name === '中国香港')
+        const macaoRegion = regions.find(r => r.name === '中国澳门')
+        const taiwanRegion = regions.find(r => r.name === '中国台湾')
+        
+        const options = []
+        
+        // 添加香港、澳门、台湾（直接选择，leaf: true）
+        if (hongkongRegion) {
+          options.push({
+            label: hongkongRegion.name,
+            value: hongkongRegion.name,
+            regionId: hongkongRegion.id,
+            leaf: true // 直接选择，不加载下一级
+          })
+        }
+        if (macaoRegion) {
+          options.push({
+            label: macaoRegion.name,
+            value: macaoRegion.name,
+            regionId: macaoRegion.id,
+            leaf: true // 直接选择，不加载下一级
+          })
+        }
+        if (taiwanRegion) {
+          options.push({
+            label: taiwanRegion.name,
+            value: taiwanRegion.name,
+            regionId: taiwanRegion.id,
+            leaf: true // 直接选择，不加载下一级
+          })
+        }
+        
+        // 加载中国的省份
+        if (chinaRegion) {
+          const provinces = await fetchEventLocationData(chinaRegion.id)
+          // 直辖市列表：北京、上海、天津、重庆
+          const municipalities = ['北京', '上海', '天津', '重庆']
+          provinces.forEach(province => {
+            const isMunicipality = municipalities.includes(province.name)
+            options.push({
+              label: province.name,
+              value: province.name,
+              regionId: province.id,
+              leaf: isMunicipality // 直辖市直接选择，其他省份可以继续加载市
+            })
+          })
+        }
+        
+        resolve(options)
+      } else if (node.value === 'international') {
+        // 加载国际地区（排除中国相关），直接选择，不加载下一级
+        const regions = await fetchEventLocationData(0)
+        const internationalRegions = regions.filter(r => 
+          r.name !== '中国' && 
+          r.name !== '中国台湾' && 
+          r.name !== '中国澳门' && 
+          r.name !== '中国香港'
+        )
+        const options = internationalRegions.map(region => ({
+          label: region.name,
+          value: region.name,
+          regionId: region.id,
+          leaf: true // 国际国家直接选择，不加载下一级
+        }))
+        resolve(options)
+      } else {
+        resolve([])
+      }
+    } else if (node.level === 2) {
+      // 第三级：加载省份下的市（最多到市，设为leaf: true）
+      const parentId = node.data?.regionId
+      if (parentId) {
+        const cities = await fetchEventLocationData(parentId)
+        const options = cities.map(city => ({
+          label: city.name,
+          value: city.name,
+          regionId: city.id,
+          leaf: true // 市是最后一级，不能再往下
+        }))
+        resolve(options)
+      } else {
+        resolve([])
+      }
+    } else {
+      // 超过第三级，不再加载
+      resolve([])
+    }
+  }
+}
+
+// 处理来源文章链接变化
+const handleClaimSourceLinkChange = () => {
+  const link = claimSourceLinkRef.value?.trim()
+  if (!link) {
+    claimSourceAccountRef.value = ''
+    claimSourceAccountAvatarRef.value = ''
+    claimSourceTimeRef.value = ''
+    return
+  }
+  
+  // 检查是否是微信公众号文章链接
+  if (!link.startsWith('https://mp.weixin.qq.com/s/')) {
+    claimSourceAccountRef.value = ''
+    claimSourceAccountAvatarRef.value = ''
+    claimSourceTimeRef.value = ''
+    return
+  }
+  
+  // 调用接口获取链接信息
+  if (!selectedAccount.value || !selectedAccount.value.session_id) {
+    ElMessage.warning('请先选择账号')
+    return
+  }
+  
+  const { token, session_id } = selectedAccount.value
+  const cookies = serializeCookie(JSON.parse(session_id)["cookie"])
+  
+  claimSourceLinkLoadingRef.value = true
+  window.ipcRenderer.send('toMain', {
+    tag: 'appmsg:getLinkInfo',
+    source: `${props.appmsg.appmsgid}`,
+    token: getToken(),
+    linkData: {
+      cookies,
+      token: parseInt(token),
+      link: link
+    }
+  })
+}
 
 // 使用默认模板触发，填充当前文章作者及来源链接
 const handleUseTemplate = (data) => {
@@ -4667,6 +5117,7 @@ onMounted(async () => {
   currentAppmsgRef.value = props.appmsg
   editorIdRef.value = `editor-${props.appmsg.appmsgid}`
   mp_msgsRef.value = props.appmsg.multi_item
+  normalizeClaimSourceInfo(mp_msgsRef.value)
   if (props.mode === 'create') {
     loadArticleByMsgId(mp_msgsRef.value[0].msg_id)
   } else if (props.mode === 'hydrate') {
