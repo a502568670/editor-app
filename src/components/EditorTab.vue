@@ -1,6 +1,6 @@
 <template>
   <div class="flex flex-col h-full">
-    <div class="p-2 flex space-x-2 items-center border-b shadow-md">
+    <!-- <div class="p-2 flex space-x-2 items-center border-b shadow-md">
       <div class="flex items-center pl-1">
         <img class="w-7 h-7 rounded-full" :src="selectedAccount?.avatar" />
         <div class="flex-1 flex justify-start text-left items-center pl-1 min-w-[190px]">
@@ -30,11 +30,7 @@
           </el-dropdown>
         </div>
       </div>
-      <el-button @click="handleSaveAppMsg" type="success">暂存</el-button>
-      <el-button @click="handleSyncToWechatDraftBox" type="success">保存到公众号草稿箱</el-button>
-      <el-button @click="openSendArticleDialog" type="success">同步到其他账号</el-button>
-      <el-button @click="confirmOpenPublishToWechatDialog" type="danger">发表</el-button>
-    </div>
+    </div> -->
     <div class="flex-1 items-stretch h-0 flex">
       <div class="bg-white shadow-xl w-[300px] p-3">
         <div v-if="mp_msgsRef" class="h-full flex flex-col">
@@ -160,9 +156,6 @@
             <vue-ueditor-wrap class="ueditor-wrapper flex-1 flex items-stretch"
               v-model="currentArticleRef.content_noencode" :editor-id="editorIdRef" @ready="ready"
               :config="editorConfigRef" :editorDependencies="['ueditor.config.js', 'ueditor.all.js']" />
-            <p v-if="warningMsg != null" class="automatic-save-msg">
-              {{ warningMsg === '' ? `自动保存成功 ${lastSaveTime}` : `自动保存失败：${warningMsg}` }}
-            </p>
           </div>
           <!-- 这里是视频的编辑区 -->
           <div v-if="msg_idRef !== 0 && currentArticleRef.item_show_type === 5" class="w-full p-2">
@@ -235,6 +228,20 @@
               </el-col>
             </el-row>
           </div> -->
+        </div>
+        <div class="flex items-center justify-between pt-2">
+          <div>
+            <p v-if="warningMsg != null" class="automatic-save-msg">
+              {{ warningMsg === '' ? `自动保存成功 ${lastSaveTime}` : `自动保存失败：${warningMsg}` }}
+            </p>
+          </div>
+          <div>
+            <!-- <el-button @click="handleSaveAppMsg" type="success">保存到本地草稿</el-button>
+            <el-button @click="handleSyncToWechatDraftBox" type="success">保存到公众号草稿箱</el-button> -->
+            <el-button @click="openSendArticleDialog" type="success">同步到其他账号</el-button>
+            <el-button @click="handleSyncToWechatDraftBox" type="success">保存</el-button>
+            <el-button @click="confirmOpenPublishToWechatDialog" type="danger">发表</el-button>
+          </div>
         </div>
       </div>
       <div class="bg-white">
@@ -2294,8 +2301,12 @@ const automaticSave = async (push_to_remote) => {
 
   await saveAppMsg(postData).then(async (res) => {
     res.data.data.mp_msgs.forEach(gen_picture_page_info_list)
+    mp_msgsRef.value = res.data.data.mp_msgs.map((item, index)=>({
+      ...item,
+      content_noencode: mp_msgsRef.value[index].content_noencode
+    }))
     normalizeClaimSourceInfo(res.data.data.mp_msgs)
-    mp_msgsRef.value = res.data.data.mp_msgs
+
 
     const isCreateNewAppMsg = appmsgid <= 0 && res.data.data.appmsgid > 0
     appmsgid = res.data.data.appmsgid
@@ -3284,7 +3295,7 @@ const removeArticle = async (msg_id) => {
       type: 'success',
       duration: 2 * 1000
     })
-    
+
     await listArticles()
     console.log("mp_msgsRef.value=>", mp_msgsRef.value)
     if (mp_msgsRef.value.length === 0) {
