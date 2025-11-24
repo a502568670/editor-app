@@ -8,18 +8,18 @@
     />
     <div class="flex-1 flex flex-col h-full" v-loading="dataLoadingRef">
       <div class="flex space-x-2 items-center border-b p-3">
-        <!-- <el-button @click="handleCreateNewMaterial" type="success">
+        <el-button @click="handleCreateNewMaterial" type="success">
           <el-icon>
             <Plus />
           </el-icon>
           <span class="ml-1">创建新素材</span>
-        </el-button> -->
-        <!-- <el-button v-if="materialTypeRef === 0" @click="handleSwitchToLocal">
+        </el-button>
+        <el-button v-if="materialTypeRef === 0" @click="handleSwitchToLocal">
           <el-icon>
             <Files />
           </el-icon>
           <span class="ml-1">本地素材</span>
-        </el-button> -->
+        </el-button>
         <el-button v-if="materialTypeRef === 1" @click="handleSwitchToDraftBox">
           <el-icon>
             <Files />
