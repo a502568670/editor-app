@@ -40,7 +40,10 @@ const api = {
   search_in_publish: (tk, query, begin, count, fakeid) => `${baseUrl}/cgi-bin/appmsgpublish?sub=search&begin=${begin}&count=${count}&query=${query}&token=${tk}&lang=zh_CN&f=json${fakeid ? `&fakeid=${fakeid}` : ''}`,
 
   // 获取分组通知地区列表
-  get_regions: (id = 0) => `${baseUrl}/cgi-bin/getregions?t=setting/ajax-getregions&id=${id}&lang=zh_CN&f=json&ajax=1`
+  get_regions: (id = 0) => `${baseUrl}/cgi-bin/getregions?t=setting/ajax-getregions&id=${id}&lang=zh_CN&f=json&ajax=1`,
+
+  // 获取文章链接信息
+  get_linkinfo: () => `${baseUrl}/cgi-bin/getlinkinfo`
   
 };
 // &is_release_publish_page=1
@@ -318,6 +321,54 @@ const getRegions = async ({ cookies, id = 0 }) => {
   }
 }
 
+const getLinkInfo = async ({ cookies, token, link, scene = 4 }) => {
+  const opts = {
+    method: "POST",
+    headers: { ...getDefaultHeader(), cookie: cookies }
+  };
+  let url = api.get_linkinfo()
+  verbose_log('get_linkinfo api url:', url)
+  
+  // 构造请求数据
+  const dataObj = {
+    scene: scene,
+    link: link
+  }
+  const formdata = `data=${encodeURIComponent(JSON.stringify(dataObj))}&token=${token}&lang=zh_CN&f=json&ajax=1`
+  
+  verbose_log('get_linkinfo api opts:', opts)
+  verbose_log('get_linkinfo formdata:', formdata)
+  
+  let res = (await netFetch(url, { ...opts, body: formdata }))
+  verbose_log("get_linkinfo res:", typeof res, res)
+  
+  res = JSON.parse(res)
+  let base_resp = res.base_resp
+  if (base_resp.ret !== 0) {
+    return {
+      success: false,
+      err_msg: base_resp.err_msg
+    }
+  }
+
+  // 解析 detail_info JSON 字符串
+  let detail_info = null
+  if (res.detail_info) {
+    try {
+      detail_info = JSON.parse(res.detail_info)
+    } catch (e) {
+      verbose_error("解析 detail_info 失败:", e)
+      detail_info = res.detail_info
+    }
+  }
+
+  return {
+    success: true,
+    link_type: res.link_type,
+    detail_info: detail_info
+  }
+}
+
 exports.publishAppmsg = publishAppmsg;
 exports.deleteAppmsg = deleteAppmsg;
 exports.listAppmsgsInDraftBox = listAppmsgsInDraftBox;
@@ -325,3 +376,4 @@ exports.getAppmsgInDraftBox = getAppmsgInDraftBox;
 exports.listAppmsgsInPublishForQuerys = listAppmsgsInPublishForQuerys
 exports.searchAppmsgsInPublishForQuerys = searchAppmsgsInPublishForQuerys
 exports.getRegions = getRegions
+exports.getLinkInfo = getLinkInfo
