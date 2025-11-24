@@ -40,8 +40,13 @@ const api = {
   search_in_publish: (tk, query, begin, count, fakeid) => `${baseUrl}/cgi-bin/appmsgpublish?sub=search&begin=${begin}&count=${count}&query=${query}&token=${tk}&lang=zh_CN&f=json${fakeid ? `&fakeid=${fakeid}` : ''}`,
 
   // 获取分组通知地区列表
-  get_regions: (id = 0) => `${baseUrl}/cgi-bin/getregions?t=setting/ajax-getregions&id=${id}&lang=zh_CN&f=json&ajax=1`
-  
+  get_regions: (id = 0) => `${baseUrl}/cgi-bin/getregions?t=setting/ajax-getregions&id=${id}&lang=zh_CN&f=json&ajax=1`,
+
+  // 获取小店返佣商品
+  get_shop_commodity: (tk) => `${baseUrl}/shop-faas/mmeckolnode/mp/listTalentSelectionSpuItems?token=${tk}&lang=zh_CN`
+  ,
+  // 获取 windowproduct (product_encrypt_key)
+  get_windowproduct: () => `${baseUrl}/cgi-bin/windowproduct?action=get_windowproduct`
 };
 // &is_release_publish_page=1
 
@@ -151,7 +156,7 @@ const deleteAppmsg = async ({ cookies, token, appmsgids }) => {
   verbose_log("urls=>", urls)
   verbose_log("formdatas=>", formdatas)
   const netFetchs = urls.map((url, idx) => netFetch(url, { ...opts, body: formdatas[idx] }))
-
+  console.log('123123123',netFetchs);
   const data = await Promise.allSettled(netFetchs);
   const items = data.map((ret, idx) => {
     // verbose_log("ret:", ret)
@@ -318,6 +323,71 @@ const getRegions = async ({ cookies, id = 0 }) => {
   }
 }
 
+const getShopCommodity = async (data) => {
+  const listCondition = JSON.parse(data.listCondition);
+  const opts = {
+    method: 'POST',
+    headers: {
+      ...getDefaultHeader(),
+      cookie: data.cookie,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ listCondition })
+  };
+  let url = api.get_shop_commodity(data.token);
+  verbose_log('api url:', url);
+  verbose_log('api opts:', opts);
+  let res = await netFetch(url, { ...opts });
+  console.log('res',res)
+  res = JSON.parse(res);
+  if (res.respStatusCode) {
+    return {
+      success: false,
+      err_msg: res.msg
+    };
+  }
+  if (res.code === 0) {
+    return {
+      success: true,
+      talentSpuItems: res.talentSpuItems ? res.talentSpuItems : [],
+      pageContextResp: res.pageContextResp ? res.pageContextResp : {}
+    };
+  } else {
+    return {
+      success: false,
+      err_msg: '请求商品失败，未知错误'
+    };
+  }
+}
+
+const getWindowProduct = async ({ cookies, token, product_id, fingerprint = '' }) => {
+  const opts = {
+    method: 'POST',
+    headers: {
+      ...getDefaultHeader(),
+      cookie: cookies,
+      'Content-Type': 'application/x-www-form-urlencoded'
+    }
+  };
+
+  // 构造 data 字段，保持与 Python 示例一致
+  const dataField = `{"base_req":{"action":"GetCpsProductEncryptKey"},"ext_info":"{\\"product_id\\":[${product_id}],\\"cps_id\\":[]}"}`;
+  const formdata = `data=${encodeURIComponent(dataField)}&fingerprint=${fingerprint}&token=${token}&lang=zh_CN&f=json&ajax=1`;
+
+  let url = api.get_windowproduct();
+  verbose_log('getWindowProduct api url:', url);
+  verbose_log('getWindowProduct opts:', opts);
+  verbose_log('getWindowProduct formdata:', formdata);
+
+  let res = await netFetch(url, { ...opts, body: formdata });
+  try {
+    return JSON.parse(res);
+  } catch (e) {
+    verbose_error('getWindowProduct parse error', e, res);
+    return res;
+  }
+}
+
 exports.publishAppmsg = publishAppmsg;
 exports.deleteAppmsg = deleteAppmsg;
 exports.listAppmsgsInDraftBox = listAppmsgsInDraftBox;
@@ -325,3 +395,5 @@ exports.getAppmsgInDraftBox = getAppmsgInDraftBox;
 exports.listAppmsgsInPublishForQuerys = listAppmsgsInPublishForQuerys
 exports.searchAppmsgsInPublishForQuerys = searchAppmsgsInPublishForQuerys
 exports.getRegions = getRegions
+exports.getShopCommodity = getShopCommodity
+exports.getWindowProduct = getWindowProduct

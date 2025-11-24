@@ -10,7 +10,7 @@ import { nativeTheme, screen, dialog, Notification, app, ipcMain, webContents, n
 import { localExtractMpArticleUrlUseRequest } from "./mp_account-tasks.js"
 import {
   publishAppmsg, deleteAppmsg, listAppmsgsInDraftBox, getAppmsgInDraftBox,
-  searchAppmsgsInPublishForQuerys, listAppmsgsInPublishForQuerys
+  searchAppmsgsInPublishForQuerys, listAppmsgsInPublishForQuerys, getShopCommodity, getWindowProduct
 } from "./mp_appmsg-tasks.js"
 import { deleteFile, deleteVideo, listFiles, listVideos } from "./mp_file-tasks.js"
 import { searchMiniApp } from "./mpa-tasks.js"
@@ -787,6 +787,21 @@ async function reactToIpcObjectData(data, tabbedWin, viewContents) {
         });
       }
       break;
+    }
+    case 'appmsg:getShopCommodity': {
+      verbose_log('===== getShopCommodity ====', data);
+      const res = await getShopCommodity(data);
+      viewContents.send('fromMain', { tag: 'appmsg-ret:getShopCommodity', data: res });
+    }
+    case 'appmsg:getWindowProduct': {
+      verbose_log('===== getWindowProduct ====', data);
+      try {
+        const res = await getWindowProduct(data);
+        viewContents.send('fromMain', { tag: 'appmsg-ret:getWindowProduct', data: res });
+      } catch (e) {
+        verbose_error('getWindowProduct error', e);
+        viewContents.send('fromMain', { tag: 'appmsg-ret:getWindowProduct', data: { success: false, err: e && e.message ? e.message : e } });
+      }
     }
 
     default: {

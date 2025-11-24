@@ -740,6 +740,10 @@
       </div>
     </template>
   </el-dialog>
+
+  <el-dialog destroy-on-close :close-on-click-modal="false" title="小店返佣商品" v-model="rebateProductsVisible" width="900px">
+    <RebateProducts :selectedAccount="selectedAccount" @insert-commission="insertCommission" @close="rebateProductsVisible=false"/>
+  </el-dialog>
 </template>
 <style>
 .edui-editor {
@@ -871,6 +875,7 @@ import {
  } from "@/utils/miniapp"
 import {hasMPCardInEditor, replaceMPCardToWechat, tplMPCardInEditor, replaceMPCardFromWechat} from "@/utils/mpcard"
 import {hasMPVContentInEditor, replaceMPVContentToWechat, tplMPVContentInEditor, replaceMPVContentFromWechat} from "@/utils/mpvcontent"
+import { tplCommissionInEditor, tplWithCommission, hasCommissionInEditor, replaceCommissionToWechat, replaceCommissionFromWechat } from "@/utils/mpcommission"
 import { ElMessage, ElMessageBox, ElLoading } from 'element-plus'
 import { ArrowUp, ArrowDown, Delete, CircleCheckFilled, CircleCloseFilled, InfoFilled, Search, Plus, BrushFilled, Close, WarningFilled } from '@element-plus/icons-vue'
 import { Link, Link2, RadioTower, DollarSign, SquareTerminal, Eye, ScanEye, Minus, Smartphone, Video } from 'lucide-vue-next';
@@ -899,6 +904,7 @@ import SetMPCard from "@/components/editor/SetMPCard.vue"
 import SetMPV from './editor/SetMPV.vue';
 import InsertMPLink from './editor/InsertMPLink.vue';
 import { useDraggable } from 'vue-draggable-plus'
+import RebateProducts from "@/components/editor/RebateProducts.vue"
 
 const props = defineProps(['account', 'appmsg', 'mode', 'mainMsg']);
 const emitEvents = defineEmits(['titleChange', 'createAppmsg', 'msgidChange'])
@@ -1006,6 +1012,7 @@ const mpExsRef = ref({
   mps_obj: {},
   miniappcard_obj: {},
   mpvcontent_obj: {},
+  mpcommission_obj: {},
 })
 const mp_msg_groupsRef = ref([])
 const currentAppmsgRef = ref(null)
@@ -1387,6 +1394,9 @@ const loadArticle = (mp_msg, before_save) => {
   // 视频号内容
   const mpvcontent_obj = toDeepRaw(mpExsRef.value.mpvcontent_obj)
   vhtml = replaceMPVContentFromWechat(vhtml, mpvcontent_obj)
+  // 小店返佣商品
+  const mpcommission_obj = toDeepRaw(mpExsRef.value.mpcommission_obj)
+  vhtml = replaceCommissionFromWechat(vhtml, mpcommission_obj)
 
   mp_msg.content_noencode = vhtml
 
@@ -1646,6 +1656,7 @@ const saveCurrentToList = (msg_id) => {
   vhtml = replaceMPCardToWechat(vhtml, mpExsRef.value.mps_obj)
   vhtml = replaceMiniAppCardToWechat(vhtml, mpExsRef.value.miniappcard_obj)
   vhtml = replaceMPVContentToWechat(vhtml, mpExsRef.value.mpvcontent_obj)
+  vhtml = replaceCommissionToWechat(vhtml, mpExsRef.value.mpcommission_obj)
 
   currentArticleRef.value.content_noencode = vhtml
 
@@ -1663,6 +1674,7 @@ const saveOthersToListForCustomTag = (msg_id) => {
   const mps_obj = toDeepRaw(mpExsRef.value.mps_obj)
   const miniappcard_obj = toDeepRaw(mpExsRef.value.miniappcard_obj)
   const mpvcontent_obj = toDeepRaw(mpExsRef.value.mpvcontent_obj)
+  const mpcommission_obj = toDeepRaw(mpExsRef.value.mpcommission_obj)
   targetItems.forEach(v => {
     if (hasMPCardInEditor(v.content_noencode)) {
       v.content_noencode = replaceMPCardToWechat(v.content_noencode, mps_obj)
@@ -1672,6 +1684,9 @@ const saveOthersToListForCustomTag = (msg_id) => {
     }
     if (hasMPVContentInEditor(v.content_noencode)) {
       v.content_noencode = replaceMPVContentToWechat(v.content_noencode, mpvcontent_obj)
+    }
+    if (hasCommissionInEditor(v.content_noencode)) {
+      v.content_noencode = replaceCommissionToWechat(v.content_noencode, mpcommission_obj)
     }
   })
 }
@@ -2749,6 +2764,24 @@ const insertMPCard = (val) => {
   setMPCardRef.value.closeDialog()
 }
 
+const insertCommission = (val) => {
+  const editor = editorRef.value;
+  if (editor == null) return;
+  // 支持单项或数组
+  const items = Array.isArray(val) ? val : [val];
+  let combinedHtml = '';
+  const mpcommissionObj = { ...mpExsRef.value.mpcommission_obj };
+  for (const item of items) {
+    const uniqid = gen_unique_id();
+    mpcommissionObj[uniqid] = item;
+    combinedHtml += tplCommissionInEditor(uniqid, item);
+  }
+  mpExsRef.value.mpcommission_obj = mpcommissionObj;
+  editor.execCommand('inserthtml', combinedHtml);
+  // 关闭弹窗
+  rebateProductsVisible.value = false;
+}
+
 const openMPVDialog = () => {
   setMPVRef.value.openDialog()
 }
@@ -3814,6 +3847,13 @@ const operationList = [
     action: () => { openMPVDialog() }
   },
   {
+    title: '小店返佣商品',
+    icon: 'solar:shop-linear',
+    action: () => {
+      rebateProductsVisible.value = true
+    }
+  },
+  {
     title: '文章预览',
     icon: 'mdi:eye-outline',
     action: () => { handlePreview() }
@@ -3840,6 +3880,9 @@ const operationList = [
     isShow: !isDebugRef.value
   }
 ]
+
+// 小店分佣商品的弹框
+const rebateProductsVisible = ref(false)
 
 // 组件生命周期
 onMounted(async () => {
