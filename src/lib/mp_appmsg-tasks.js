@@ -37,8 +37,11 @@ const api = {
   list_in_draftbox: (tk, query, begin, count) => `${baseUrl}/cgi-bin/appmsg?begin=${begin}&count=${count}&type=77&action=list_card&token=${tk}&lang=zh_CN&f=json&query=${query}`,
   get_in_draftbox: (tk, appmsgid) => `${baseUrl}/cgi-bin/appmsg?t=media/appmsg_edit&action=edit&type=77&appmsgid=${appmsgid}&isMul=1&replaceScene=0&isSend=0&isFreePublish=0&token=${tk}&lang=zh_CN&timestamp=${+new Date()}&f=json`,
   list_in_publish: (tk, query, begin, count, fakeid) => `${baseUrl}/cgi-bin/appmsgpublish?sub=list&begin=${begin}&count=${count}&query=${query}&token=${tk}&lang=zh_CN&f=json${fakeid ? `&fakeid=${fakeid}` : ''}`,
-  search_in_publish: (tk, query, begin, count, fakeid) => `${baseUrl}/cgi-bin/appmsgpublish?sub=search&begin=${begin}&count=${count}&query=${query}&token=${tk}&lang=zh_CN&f=json${fakeid ? `&fakeid=${fakeid}` : ''}`
+  search_in_publish: (tk, query, begin, count, fakeid) => `${baseUrl}/cgi-bin/appmsgpublish?sub=search&begin=${begin}&count=${count}&query=${query}&token=${tk}&lang=zh_CN&f=json${fakeid ? `&fakeid=${fakeid}` : ''}`,
 
+  // 获取分组通知地区列表
+  get_regions: (id = 0) => `${baseUrl}/cgi-bin/getregions?t=setting/ajax-getregions&id=${id}&lang=zh_CN&f=json&ajax=1`
+  
 };
 // &is_release_publish_page=1
 
@@ -53,6 +56,7 @@ const publishAppmsg = async ({ cookies, token, send_time, hasNotify, isFreePubli
 
   if (!operation_seq_val) {
     formdata = `token=${token}&lang=zh_CN&f=json&ajax=1&random=${Math.random()}&action=get_ticket` + groupstr
+    verbose_log("operation_seq formdata:", formdata)
     res = (await netFetch(api.operation_seq(token), { ...opts, body: formdata }))
     verbose_log("operation_seq res:", typeof res, res)
     res = JSON.parse(res)
@@ -288,9 +292,36 @@ const searchAppmsgsInPublishForQuerys = async ({ cookies, token, querys, begin, 
   }
 }
 
+const getRegions = async ({ cookies, id = 0 }) => {
+  const opts = {
+    headers: { ...getDefaultHeader(), cookie: cookies }
+  };
+  let url = api.get_regions(id)
+  verbose_log('get_regions api url:', url)
+  verbose_log('get_regions api opts:', opts)
+  let res = (await netFetch(url, { ...opts }))
+  verbose_log("get_regions res:", typeof res, res)
+  res = JSON.parse(res)
+  let base_resp = res.base_resp
+  if (base_resp.ret !== 0) {
+    return {
+      success: false,
+      err_msg: base_resp.err_msg
+    }
+  }
+
+  return {
+    success: true,
+    num: res.num,
+    data: res.data,
+    claim_source_extra_country: res.claim_source_extra_country || []
+  }
+}
+
 exports.publishAppmsg = publishAppmsg;
 exports.deleteAppmsg = deleteAppmsg;
 exports.listAppmsgsInDraftBox = listAppmsgsInDraftBox;
 exports.getAppmsgInDraftBox = getAppmsgInDraftBox;
 exports.listAppmsgsInPublishForQuerys = listAppmsgsInPublishForQuerys
 exports.searchAppmsgsInPublishForQuerys = searchAppmsgsInPublishForQuerys
+exports.getRegions = getRegions

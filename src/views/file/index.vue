@@ -2,7 +2,6 @@
 <div class="filepage h-full flex">
   <AccountList
     ref="AccountListRef"
-    :selectId="selectIdx"
     :showAdd="false"
     :showDel="false"
     @clickAccountTrigger="handleAccountSelect"
@@ -152,11 +151,9 @@ function selectable(row, index) {
   return true;
 }
 var actMenu=ref('img')
-var selectIdx=ref()
 var account=shallowRef({})
 function handleAccountSelect(data){
   account.value = data
-  selectIdx.value = data.id
   getList()
 }
 var query=ref({group_id:0,page:1,limit:12})

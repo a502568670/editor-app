@@ -16,13 +16,13 @@
             </el-col>
             <el-col :span="6">
               <el-form-item label="平台">
-                <SelectPlatform v-model="listQuery.platform_id" />
+                <SelectPlatform v-model="listQuery.platform_id" :platformList="platform_list" />
               </el-form-item>
             </el-col>
             <el-col :span="6">
               <el-form-item label="分组">
-                <el-select 
-                  v-model="listQuery.group_id" 
+                <el-select
+                  v-model="listQuery.group_id"
                   clearable
                   filterable
                   placeholder="全部分组"
@@ -40,7 +40,12 @@
             </el-col>
           </el-row>
           <div class="filters-actions">
-            <div></div>
+            <div>
+              <el-button type="primary" @click="handleRefresh" :loading="listLoading" plain>
+                <el-icon style="margin-right: 4px;"><Refresh /></el-icon>
+                刷新
+              </el-button>
+            </div>
             <div>
               <el-button type="success" @click="openBatchGroup" plain>批量修改分组</el-button>
             </div>
@@ -72,10 +77,10 @@
             </template>
           </el-table-column>
           <el-table-column label="平台" prop="platform_name" width="160">
-            <template #default="scope">
+            <template #default="{row}">
               <div class="plat-cell">
                 <!-- <img class="plat-icon" :src="scope.row.image" /> -->
-                <span>{{ scope.row.platform_name || '公众号' }}</span>
+                <span>{{ getCurrentPlatform(row) }}</span>
               </div>
             </template>
           </el-table-column>
@@ -164,10 +169,10 @@
       </el-dialog>
 
       <!-- 编辑账号分组 -->
-      <el-dialog 
-        :close-on-click-modal="false" 
-        title="编辑账号分组" 
-        v-model="dialogEditGroupVisible" 
+      <el-dialog
+        :close-on-click-modal="false"
+        title="编辑账号分组"
+        v-model="dialogEditGroupVisible"
         width="450px"
       >
         <el-form style="width: 100%;padding: 0 20px;" :model="editForm" label-position="left" label-width="100px">
@@ -211,18 +216,30 @@
 
 <script setup>
 import { ref, reactive, onMounted, computed, watch, inject } from 'vue'
-import { useRouter } from 'vue-router'
+import { Refresh } from '@element-plus/icons-vue'
 import Pagination from '@/components/Pagination'
 import SelectPlatform from '@/components/selectPlatform'
 import SelectUser from '@/components/selectUser'
-import { listAccount, deleteAccount, setCate, moveAccountsToGroup, setOperator } from '@/api/account'
+import { listAccount, moveAccountsToGroup, setOperator } from '@/api/account'
 import { getAccountGroupList, addAccountGroup } from '@/api/account-group'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import store from '@/store'
 import { useAccountStore } from '@/store/piniaStore'
+import { listPlatform } from '@/api/platform'
 
-const router = useRouter()
 const accountStore = useAccountStore()
+
+// 平台列表
+const platform_list = ref([])
+const getPlatformList = async () => {
+  const data = await listPlatform()
+  platform_list.value = data.data.data.list || []
+}
+// 获取当前账号的平台
+const getCurrentPlatform = (account) => {
+  const currentPlatform = platform_list.value.find(item => item.platform_id === account.platform_id)
+  return currentPlatform ? currentPlatform.platform_name : '通用平台'
+}
 
 // 获取父组件提供的刷新方法（如果有）
 const refreshAccountList = inject('refreshAccountList', null)
@@ -286,6 +303,7 @@ const groupIdToName = ref({})
 onMounted(() => {
   getList()
   loadAllGroups()
+  getPlatformList()
 })
 
 // 监听筛选条件变化，自动触发搜索
@@ -303,7 +321,7 @@ function getList(pagination) {
     if (pagination.page) listQuery.page = pagination.page
     if (pagination.limit) listQuery.num = pagination.limit
   }
-  
+
   listLoading.value = true
   const payload = { ...listQuery }
   listAccount(payload)
@@ -323,7 +341,7 @@ function getList(pagination) {
       console.error('获取账号列表失败:', error)
       list.value = []
       total.value = 0
-      
+
       // 检查是否是业务错误（响应拦截器返回的response对象）
       if (error && error.data) {
         const { msg } = error.data
@@ -336,6 +354,13 @@ function getList(pagination) {
       }
     })
     .finally(() => (listLoading.value = false))
+}
+
+// 刷新按钮处理函数
+function handleRefresh() {
+  listQuery.page = 1 // 重置到第一页
+  getList()
+  ElMessage.success('刷新成功')
 }
 
 // 刷新全局账号数据
@@ -374,7 +399,7 @@ async function setAccountGroup() {
     ElMessage.warning('请先选择要修改分组的账号')
     return
   }
-  
+
   // 允许未分组（group_name 为 null 且 group_id 为 0）
   if (batchForm.group_name === null && batchForm.group_id === 0) {
     // 清除选择，设为未分组，直接执行移动操作
@@ -382,12 +407,12 @@ async function setAccountGroup() {
     ElMessage.warning('请选择或输入分组名称')
     return
   }
-  
+
   batchLoading.value = true
-  
+
   try {
     let targetGroupId = batchForm.group_id
-    
+
     // 如果清除选择，设为未分组
     if (batchForm.group_name === null) {
       targetGroupId = 0
@@ -399,7 +424,7 @@ async function setAccountGroup() {
         parent_id: 0,
         sort_order: 0
       })
-      
+
       if (createRes && createRes.data && createRes.data.code === 1) {
         targetGroupId = createRes.data.data.id
         ElMessage.success(`已创建新分组"${batchForm.group_name}"`)
@@ -408,33 +433,33 @@ async function setAccountGroup() {
         throw new Error(createRes?.data?.msg || '创建分组失败')
       }
     }
-    
+
     const ids = multipleSelection.value.map((x) => x.id)
-    
+
     // 移动账号到分组
-    const moveRes = await moveAccountsToGroup({ 
-      wechat_ids: ids.join(','), 
-      group_id: targetGroupId 
+    const moveRes = await moveAccountsToGroup({
+      wechat_ids: ids.join(','),
+      group_id: targetGroupId
     })
-    
+
     if (moveRes && moveRes.data && moveRes.data.code === 1) {
       ElMessage.success(moveRes.data.msg || '移动到分组成功')
       dialogSetGroupVisible.value = false
-      
+
       // 检查当前筛选的分组是否被删除了
       const deletedGroups = moveRes.data.data?.deleted_groups || []
       if (deletedGroups.length > 0 && listQuery.group_id && deletedGroups.includes(listQuery.group_id)) {
         // 如果当前筛选的分组被删除了，重置筛选条件
         listQuery.group_id = undefined
       }
-      
+
       // 刷新数据
       await Promise.all([
         getList(),
         loadAllGroups(),
         refreshGlobalAccountData() // 同步全局账号数据（会触发 AccountList 刷新分组）
       ])
-      
+
       // 注意：不需要再调用 filterGroupRef.value.refresh()，因为 loadAllGroups() 已经更新了 flatGroupList
     } else {
       throw new Error(moveRes?.data?.msg || '移动到分组失败')
@@ -466,7 +491,7 @@ async function loadAllGroups() {
     if (response && response.data && response.data.code === 1) {
       const groupTree = response.data.data.list || []
       flatGroupList.value = flattenGroupTree(groupTree)
-      
+
       // 构建分组名称和ID的映射
       groupNameToId.value = {}
       groupIdToName.value = {}
@@ -490,7 +515,7 @@ function flattenGroupTree(tree, level = 0, result = []) {
       displayName: prefix + node.name,
       level: level
     })
-    
+
     if (node.children && node.children.length > 0) {
       flattenGroupTree(node.children, level + 1, result)
     }
@@ -502,7 +527,7 @@ function flattenGroupTree(tree, level = 0, result = []) {
 function handleEdit(row) {
   editForm.accountId = row.id
   editForm.accountName = row.name
-  
+
   // 设置当前分组
   if (row.group_id && row.group_id > 0) {
     editForm.group_name = groupIdToName.value[row.group_id] || ''
@@ -511,7 +536,7 @@ function handleEdit(row) {
     editForm.group_name = null  // 未分组，设为 null 以显示 placeholder
     editForm.group_id = 0
   }
-  
+
   dialogEditGroupVisible.value = true
 }
 
@@ -558,12 +583,12 @@ async function submitEditGroup() {
     ElMessage.warning('请选择或输入分组名称')
     return
   }
-  
+
   editLoading.value = true
-  
+
   try {
     let targetGroupId = editForm.group_id
-    
+
     // 如果清除选择，设为未分组
     if (editForm.group_name === null) {
       targetGroupId = 0
@@ -575,7 +600,7 @@ async function submitEditGroup() {
         parent_id: 0,
         sort_order: 0
       })
-      
+
       // 注意：API 返回的数据结构是 response.data，所以要检查 createRes.data.code
       if (createRes && createRes.data && createRes.data.code === 1) {
         targetGroupId = createRes.data.data.id
@@ -585,31 +610,31 @@ async function submitEditGroup() {
         throw new Error(createRes?.data?.msg || '创建分组失败')
       }
     }
-    
+
     // 移动账号到分组
     const moveRes = await moveAccountsToGroup({
       wechat_ids: String(editForm.accountId),
       group_id: targetGroupId
     })
-    
+
     if (moveRes && moveRes.data && moveRes.data.code === 1) {
       ElMessage.success(moveRes.data.msg || '修改分组成功')
       dialogEditGroupVisible.value = false
-      
+
       // 检查当前筛选的分组是否被删除了
       const deletedGroups = moveRes.data.data?.deleted_groups || []
       if (deletedGroups.length > 0 && listQuery.group_id && deletedGroups.includes(listQuery.group_id)) {
         // 如果当前筛选的分组被删除了，重置筛选条件
         listQuery.group_id = undefined
       }
-      
+
       // 刷新数据
       await Promise.all([
         getList(),
         loadAllGroups(),
         refreshGlobalAccountData() // 同步全局账号数据（会触发 AccountList 刷新分组）
       ])
-      
+
       // 注意：不需要再调用 filterGroupRef.value.refresh()，因为 loadAllGroups() 已经更新了 flatGroupList
     } else {
       throw new Error(moveRes?.data?.msg || '修改分组失败')
@@ -630,22 +655,22 @@ async function handleDelete(row) {
       confirmButtonText: '确定',
       cancelButtonText: '取消'
     })
-    
+
     // 参照 tabBar.vue 的 onDelMPAccount 实现
     await store.dispatch('DelAccount', row.id)
     accountStore.update(accountStore.list.filter(item => item.id !== row.id))
-    
+
     // 刷新数据
     await Promise.all([
       getList(),
       refreshGlobalAccountData() // 同步全局账号数据
     ])
-    
+
     // 通知父组件刷新
     if (refreshAccountList) {
       refreshAccountList()
     }
-    
+
     ElMessage.success('删除成功')
   } catch (error) {
     // 用户取消操作，不需要处理

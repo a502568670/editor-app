@@ -24,6 +24,12 @@
       </div>
     </div>
     <el-empty v-else description="在“素材库”或“统计>文章”中找到文章添加到合成器中"></el-empty>
+    <AccountPickerModal
+      v-model="dialogAccountPickerModal"
+      :multiple="true"
+      @confirm="handleInstantSend"
+      @before-close="loading = false"
+    />
   </div>
 </el-popover>
 </template>
@@ -35,6 +41,7 @@ import { ElMessage, ClickOutside as vClickOutside } from 'element-plus'
 import { watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { dog } from '@/utils';
+import AccountPickerModal from '@/components/AccountPickerModal.vue';
 
 var refButton = ref(null);
 const hydrateStore = useHydrateStore();
@@ -52,7 +59,7 @@ function checkDeactivated(node) {
 }
 watch(()=> hydrateStore.list.length, (newVal, val, oncleanup) => {
   if(newVal>val&&!checkDeactivated(inst)){
-    visible.value = true;        
+    visible.value = true;
   }
   oncleanup(() => {
     // visible.value = false;
@@ -80,10 +87,13 @@ function onDrop(evt, idx) {
 }
 var loading=ref(false);
 var router = useRouter();
+const dialogAccountPickerModal = ref(false)
 async function hydrate() {
   loading.value = true;
-  // console.log(toRaw(hydrateStore.list));
-  var accounts=await aotPickerStore.select();
+  dialogAccountPickerModal.value = true
+}
+const handleInstantSend = async (accounts) => {
+  accounts = accounts.map((item) => item.id)
   if(!accounts.length){
     ElMessage.warning('请选择公众号');
     loading.value = false;
@@ -91,7 +101,7 @@ async function hydrate() {
     return
   }
   dog('hydrate selected accounts:', toRaw(accounts));
-  try {    
+  try {
     var urls={};
     hydrateStore.list.forEach((v, i) => {
       if(!v.msg_id&&v.url){

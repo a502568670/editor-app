@@ -1,41 +1,43 @@
 <template>
 <div class="group-notify-select mt-2 pt-2">
-  <p class="text-lg mb-1">分组通知</p>
+  <p class="text-sm text-gray-600 mb-2">分组通知</p>
   <el-cascader class="mr-2" v-model="area" :options="areaOpts" :props="areaProps" placeholder="请选择地区" clearable filterable></el-cascader>
   <el-select class="mr-2" v-model="sex" placeholder="请选择性别" clearable>
     <el-option label="全部" value="-1"></el-option>
     <el-option label="男" value="1"></el-option>
     <el-option label="女" value="2"></el-option>
   </el-select>
-  <el-cascader v-model="groupid" :options="groupOpts" :props="groupProps" placeholder="请选择标签" :show-all-levels="false" clearable filterable></el-cascader>
+  <el-cascader v-if="showTagSelect" v-model="groupid" :options="groupOpts" :props="groupProps" placeholder="请选择标签" :show-all-levels="false" clearable filterable></el-cascader>
 </div>
 </template>
 <script setup>
 import { ref, onMounted, inject, unref, toRaw, watchEffect, shallowRef, watch } from 'vue';
 
-import city from '@/assets/city.json';
-import { serializeCookie, setCookie } from '@/utils/cookie';
-// console.log(city2options(city));
-function city2options(city) {
-  var res=[];
-  for (var k in city) {
-    var opt={
-      label: city[k][0].province,
-      value: city[k][0].province,
-      children: []
-    }
-    for (var item of city[k]) {
-      if(item.name === '市辖区') {
-        break; // Skip '市辖区' as it is not a valid city
-      }
-      opt.children.push({
-        label: item.name,
-        value: item.name
-      });
-    }
-    res.push(opt);
+const props = defineProps({
+  showTagSelect: {
+    type: Boolean,
+    default: true
   }
-  return res;
+});
+
+var selectedAccount=inject('selectedAccount');
+var area = ref([-1]);
+var sex=ref('-1');
+
+// 获取地区数据的函数
+async function fetchRegionData(id = 0) {
+  try {
+    var res = await window.webBridge.callRpc('getRegions', {
+      account: selectedAccount?.value ? toRaw(selectedAccount.value) : null,
+      id: id
+    });
+    if (res?.success) {
+      return res.data || [];
+    }
+  } catch (error) {
+    console.error('获取地区数据失败:', error);
+  }
+  return [];
 }
 
 /**
@@ -43,15 +45,44 @@ function city2options(city) {
  */
 /** @type {CascaderProps} */
 var areaProps = {
-  expandTrigger: 'hover',
+  expandTrigger: 'click',
+  checkStrictly: true, // 允许选择任意级别的节点，不仅限于叶子节点
+  lazy: true,
+  lazyLoad: async (node, resolve, reject) => {
+    if (node.level === 0) {
+      // 第一级：全部 + 从API获取的国家列表
+      const regions = await fetchRegionData(0);
+      const options = [
+        { label: '全部', value: -1, leaf: true }
+      ];
+      // 添加API返回的地区数据，value使用名称，同时保存ID用于加载子级
+      regions.forEach(region => {
+        options.push({
+          label: region.name,
+          value: region.name, // 使用名称作为值
+          regionId: region.id // 保存ID用于加载子级
+        });
+      });
+      resolve(options);
+    } else {
+      // 加载子级地区，使用保存的 regionId
+      const parentId = node.data.regionId || node.value;
+      const regions = await fetchRegionData(parentId);
+      if (regions.length > 0) {
+        // 有子节点数据，返回数据
+        const options = regions.map(region => ({
+          label: region.name,
+          value: region.name, // 使用名称作为值
+          regionId: region.id // 保存ID用于加载子级
+        }));
+        resolve(options);
+      } else {
+        resolve([]);
+      }
+    }
+  }
 };
-var areaOpts = [
-  {label:'全部',value:-1},
-  {label:'中国',value:'中国',children: city2options(city)},
-];
-var area = ref([areaOpts[0].value]);
-var sex=ref('-1');
-var selectedAccount=inject('selectedAccount');
+var areaOpts = [];
 async function fetchGroupData() {
   if (!selectedAccount?.value) {
     return [];
@@ -70,7 +101,7 @@ async function fetchGroupData() {
 var groupOpts=shallowRef([])
 watch(selectedAccount,()=>{
   groupOpts.value=[]
-  area.value = [areaOpts[0].value];
+  area.value = [-1];
   sex.value='-1';
   groupid.value=['-1'];
 })
@@ -99,8 +130,13 @@ watchEffect(() => {
   if(sex.value&&sex.value!=-1){
     s+=`&sex=${sex.value}`;
   }
-  if(area.value&&area.value[0]!=-1){
-    s+=`&country=${area.value[0]}&province=${area.value[1]}`;
+  if(area.value&&area.value.length>0&&area.value[0]!=-1){
+    // 使用地区名称构建参数
+    // 第一级是国家名称
+    s+=`&country=${area.value[0]}`;
+    if(area.value.length>1){
+      s+=`&province=${area.value[1]}`;
+    }
     if(area.value.length>2){
       s+=`&city=${area.value[2]}`;
     }

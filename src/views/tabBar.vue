@@ -11,7 +11,24 @@
       @userManagementTrigger="handleUserManagement"
     />
     <div class="flex flex-col flex-1 w-0">
-      <el-tabs
+      <div v-show="tabs.length > 0 && !showAccountManagement" class="tab-pages">
+        <div
+          class="tab-pages_tab"
+          :class="{ 'bg-[var(--jzl-hover-bg-color)]': item.tabId === currentTabId }"
+          v-for="item in tabs"
+          :key="item.tabId"
+          @click="changeTab(item.tabId)"
+        >
+          <p
+            class="tab-pages_title"
+            :class="{ '!text-[var(--jzl-primary-color)]': item.tabId === currentTabId }"
+          >
+            {{ item.title }}
+          </p>
+          <Icon class="tab-pages_clear" icon="ic:round-clear" @click="removeTab(item.tabId)" />
+        </div>
+      </div>
+      <!-- <el-tabs
         v-model="currentTabId"
         v-show="tabs.length > 0 && !showAccountManagement"
         ref="elTabsRef"
@@ -30,20 +47,27 @@
             </span>
           </template>
         </el-tab-pane>
-      </el-tabs>
-      <div v-show="isDebugRef && tabs.length > 0 && !showAccountManagement"
-        style="height: auto;display: flex;align-items: center;justify-content: space-between;padding: 10px;background-color: #FFF;z-index: 1000">
-        <div v-if="isDebugRef">
-          <el-button @click="goBack">后退</el-button>
-          <el-button @click="goForward">前进</el-button>
+      </el-tabs> -->
+      <div v-show="tabs.length > 0 && !showAccountManagement" class="action-bar">
+        <div class="action-bar_navigation">
+          <div><Icon icon="stash:arrow-left" @click="goBack" /></div>
+          <div><Icon icon="stash:arrow-right" @click="goForward" /></div>
+          <div><Icon icon="stash:arrow-retry" @click="refresh" /></div>
+          <!-- 私信 -->
+          <div class="action-bar_btn" @click="goToMessage">
+            <Icon icon="lets-icons:message" />
+            <span>私信</span>
+          </div>  
+          <!-- 评论 -->
+          <div class="action-bar_btn" @click="goToComment">
+            <Icon icon="ant-design:comment-outlined" />
+            <span>评论</span>
+          </div>
         </div>
-        <div v-if="isDebugRef" style="flex: 1;padding: 0 15px;width: 0;overflow: scroll;white-space: nowrap;">{{
-          currentTab.url }}</div>
-        <div v-if="isDebugRef">
-          <el-button @click="refresh()">刷新</el-button>
-          <el-button @click="copy(currentTab.url)">复制链接</el-button>
+        <div class="action-bar_url">
+          <p>{{ currentTab.url }}</p>
+          <div><Icon icon="stash:copy" @click="copy(currentTab.url)" /></div>
         </div>
-        <div v-if="!isDebugRef">&nbsp;</div>
       </div>
       <div ref="webRef" v-show="!showAccountManagement" style="flex: 1;"></div>
 
@@ -54,7 +78,7 @@
 </template>
 
 <script setup>
-import { nextTick, onMounted, onActivated, ref, onDeactivated, onBeforeUnmount, watch, provide } from 'vue'
+import { nextTick, onMounted, onActivated, ref, onDeactivated, onBeforeUnmount, watch, provide, toRefs } from 'vue'
 import { ElNotification } from 'element-plus'
 import { useRoute } from 'vue-router'
 import { getToken } from "@/utils/auth";
@@ -67,17 +91,17 @@ import { useAccountStore } from '@/store/piniaStore';
 import AccountList from '@/components/accountList.vue'
 import AccountManagement from './account-management.vue'
 
+const { all_accounts } = toRefs(store.getters);
+
 const AccountListRef = ref()
 const route = useRoute()
 
 // 提供刷新 AccountList 的方法给子组件
-provide('refreshAccountList', () => {
+provide('refreshAccountList',async () => {
   if (AccountListRef.value) {
-    AccountListRef.value.getList()
     // 同时刷新分组列表
-    if (AccountListRef.value.loadAccountGroups) {
-      AccountListRef.value.loadAccountGroups()
-    }
+    await AccountListRef.value.loadAccountGroups()
+    AccountListRef.value.getList()
   }
 })
 
@@ -110,13 +134,130 @@ const handleAddMPAccount = (platform) => {
 var account = useAccountStore()
 
 const refresh = () => {
+  console.log('refresh 被调用')
   window.ipcRenderer.send('refresh-tab', currentTabId.value)
 }
 const goBack = () => {
+  console.log('goBack 被调用')
   window.ipcRenderer.send('back-tab', currentTabId.value)
 }
 const goForward = () => {
+  console.log('goForward 被调用')
   window.ipcRenderer.send('forward-tab', currentTabId.value)
+}
+
+/** 根据当前标签页URL判断所在平台 */
+const getPlatformType = () => {
+  const url = currentTab.value.url || ''
+  
+  // 使用正则表达式精确匹配各平台域名
+  if (/https?:\/\/(mp\.)?weixin\.qq\.com/i.test(url)) {
+    return 'wechat'
+  } else if (/https?:\/\/([a-z0-9-]+\.)?douyin\.com/i.test(url)) {
+    return 'douyin'
+  } else if (/https?:\/\/([a-z0-9-]+\.)?xiaohongshu\.com/i.test(url)) {
+    return 'xiaohongshu'
+  } else if (/https?:\/\/([a-z0-9-]+\.)?kuaishou\.com/i.test(url)) {
+    return 'kuaishou'
+  } else if (/https?:\/\/([a-z0-9-]+\.)?bilibili\.com/i.test(url)) {
+    return 'bilibili'
+  }
+  return 'unknown'
+}
+
+/** 提取URL中的token参数 */
+const getTokenFromUrl = () => {
+  try {
+    const url = currentTab.value.url || ''
+    const urlObj = new URL(url)
+    return urlObj.searchParams.get('token') || ''
+  } catch (e) {
+    return ''
+  }
+}
+
+/** 跳转到私信页面 */
+const goToMessage = () => {
+  console.log('goToMessage 被调用')
+  console.log('currentTab:', currentTab.value)
+  console.log('currentTab.url:', currentTab.value?.url)
+  
+  const platform = getPlatformType()
+  console.log("platform:", platform)
+  let url = ''
+  
+  switch(platform) {
+    case 'wechat':
+      const token = getTokenFromUrl()
+      url = `https://mp.weixin.qq.com/cgi-bin/message?t=message/list&count=20&day=7&token=${token}&lang=zh_CN`
+      break
+    case 'douyin':
+      url = 'https://creator.douyin.com/creator-micro/data/following/chat'
+      break
+    case 'xiaohongshu':
+      url = 'https://sxt.xiaohongshu.com/im/login'
+      break
+    case 'kuaishou':
+      ElNotification({
+        type: 'info',
+        title: '提示',
+        message: '快手网页版暂无私信功能'
+      })
+      return
+    case 'bilibili':
+      url = 'https://message.bilibili.com/#/whisper'
+      break
+    default:
+      ElNotification({
+        type: 'warning',
+        title: '提示',
+        message: '当前平台不支持跳转到私信页面'
+      })
+      return
+  }
+  
+  // 发送消息到主进程，加载新URL
+  window.ipcRenderer.send('load-url', { tabId: currentTabId.value, url })
+}
+
+/** 跳转到评论页面 */
+const goToComment = () => {
+  console.log('goToComment 被调用')
+  console.log('currentTab:', currentTab.value)
+  console.log('currentTab.url:', currentTab.value?.url)
+  
+  const platform = getPlatformType()
+  console.log("platform:", platform)
+  let url = ''
+  
+  switch(platform) {
+    case 'wechat':
+      const token = getTokenFromUrl()
+      url = `https://mp.weixin.qq.com/misc/appmsgcomment?action=list_latest_comment&begin=0&count=10&sendtype=MASSSEND&scene=1&token=${token}&lang=zh_CN`
+      break
+    case 'douyin':
+      url = 'https://creator.douyin.com/creator-micro/interactive/comment'
+      break
+    case 'xiaohongshu':
+      url = 'https://www.xiaohongshu.com/notification'
+      break
+    case 'kuaishou':
+      url = 'https://cp.kuaishou.com/article/comment'
+      break
+    case 'bilibili':
+      url = 'https://message.bilibili.com/#/reply'
+      break
+    default:
+      ElNotification({
+        type: 'warning',
+        title: '提示',
+        message: '当前平台不支持跳转到评论页面'
+      })
+      return
+  }
+  
+  // 发送消息到主进程，加载新URL
+  window.ipcRenderer.send('load-url', { tabId: currentTabId.value, url })
 }
 const copy = (text) => {
   navigator.clipboard.writeText(text)
@@ -151,7 +292,6 @@ const handleUserManagement = () => {
 
 /** 添加新标签页 */
 const addNewTab = (account) => {
-  console.log(account)
   // 关闭账号管理视图，显示正常的 tab 视图
   const wasShowingManagement = showAccountManagement.value
   // 保存旧的选中账号ID用于判断
@@ -174,7 +314,6 @@ const addNewTab = (account) => {
   })
 
   let a = Object.assign({ userToken: getToken() }, account)
-  console.log(a)
   window.ipcRenderer.send('new-tab', a)
 }
 // 对函数进行 节流
@@ -236,8 +375,6 @@ onMounted(() => {
   })
 
   var c3=window.ipcRenderer.receive('refresh-account-session', async (wechat_id, session_id) => {
-    console.log("== refresh-account-session ==")
-    console.log("param => ", wechat_id, session_id)
     if (wechat_id && session_id) {
       await refreshAccountSession({ wechat_id, session_id })
       handleFilter();
@@ -288,7 +425,6 @@ onMounted(() => {
 
   // 用户切换标签页时，主进程会发送 fromMain 消息，通知当前选中的标签页 ID。
   var c5=window.ipcRenderer.receive('fromMain', (data) => {
-    console.log('发送数据了',data)
     if (typeof data === 'object' && Object.prototype.hasOwnProperty.call(data, 'currentTabId')) {
       currentTabId.value = parseInt(data.currentTabId)
       for (let a of tabs.value) {
@@ -302,7 +438,9 @@ onMounted(() => {
       }
       for (let a of accounts_mapping_tabs.value) {
         if (a.tabId == currentTabId.value) {
+          const account = all_accounts.value.list.find((item)=> item.id === a.accountId)
           selected_account_id.value = a.accountId
+          store.commit('SET_CURRENT_ACCOUNT', account);
           break
         }
       }
@@ -355,10 +493,10 @@ const handleOpenAccountFromRoute = () => {
   }
 }
 
-onActivated(() => {
-  // handleFilter();
-  nextTick(()=>changeTab(currentTabId.value))
-})
+// onActivated(() => {
+//   handleFilter();
+//   nextTick(()=>changeTab(currentTabId.value))
+// })
 
 // 监听路由参数变化（用于在 tabBar 页面内部通过路由打开账号）
 watch(() => route.query.open_account_id, (newAccountId) => {
@@ -380,6 +518,107 @@ window.ipcRenderer.send('control-ready')
 </script>
 
 <style scoped>
+.tab-pages{
+  height: 45px;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  background-color: #fff;
+  border-bottom: 1px solid #eee;
+}
+.tab-pages_tab{
+  flex: 0 1 150px;
+  height: 30px;
+  border-radius: var(--jzl-border-radius-large);
+  padding: 0px 10px;
+  margin: 0 1px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  transition: 0.3s;
+  overflow: hidden;
+}
+.tab-pages_tab:hover{
+  background-color: var(--jzl-hover-bg-color);
+  cursor: pointer;
+}
+.tab-pages_title{
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 14px;
+  color: #606266;
+}
+.tab-pages_clear{
+  padding: 1px;
+  border-radius: 50%;
+  transition: 0.2s;
+}
+.tab-pages_clear:hover{
+  background-color: var(--jzl-hover-bg-color-1);
+  transform: scale(1.2);
+}
+
+.action-bar,
+.action-bar_navigation,
+.action-bar_url{
+  display: flex;
+  align-items: center;
+}
+.action-bar{
+  background-color: #fff;
+  padding: 6px 5px;
+  border-bottom: 1px solid #eee;
+}
+.action-bar_navigation>div{
+  font-size: 22px;
+  border-radius: var(--jzl-border-radius-large);
+  padding: 2px;
+  transition: 0.2s;
+}
+.action-bar_navigation>div:hover{
+  background-color: var(--jzl-hover-bg-color);
+  cursor: pointer;
+}
+.action-bar_btn{
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px !important;
+}
+.action-bar_btn span{
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.action-bar_url{
+  flex: 0 1 800px;
+  padding: 2px 10px;
+  background-color: var(--jzl-hover-bg-color);
+  border-radius: var(--jzl-border-radius-large);
+  font-size: 14px;
+  user-select: none;
+  margin-left: 10px;
+  white-space: nowrap;
+  justify-content: space-between;
+}
+.action-bar_url>p{
+  flex: 1;
+  width: 0px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.action-bar_url>div{
+  padding: 2px;
+  font-size: 22px;
+}
+.action-bar_url>div:hover{
+  cursor: pointer;
+}
+
 .tab-control-wrap {
   width: 100%;
   background-color: #ededed;

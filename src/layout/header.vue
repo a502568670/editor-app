@@ -8,8 +8,11 @@
             <div style="display: flex;flex-direction: column;justify-content: center">
               <div style="font-size: 12px;margin-bottom: 5px;">{{$store.state.user?.mobile}}</div>
               <div v-if="$store.state.user?.vip_name" style="color:#999;font-size: 12px;">{{$store.state.user?.vip_name}}[{{$store.state.user?.vip_endtime}}]到期</div>
-              <div style="color:#999;font-size: 12px;" v-else>{{username}}</div>
+              <div style="color:#999;font-size: 14px;" v-else>{{username}}</div>
             </div>
+            <el-icon class="flex items-center ml-2">
+              <arrow-down />
+            </el-icon>
           </div>
           <template #dropdown>
             <el-dropdown-menu>
@@ -36,6 +39,10 @@
           <el-icon :size="20"><ImagePlay/></el-icon>
           <span class="mt-1">素材库</span>
         </router-link>
+        <!-- <router-link class="menu" to="/message" active-class="active" replace>
+          <el-icon :size="20"><ChatDotRound/></el-icon>
+          <span class="mt-1">私信评论</span>
+        </router-link> -->
       </div>
     </el-col>
     <el-col :span="4">
@@ -69,9 +76,7 @@ import { ref, reactive, toRefs, computed, toRaw } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useStore } from 'vuex'
 import {ImagePlay, Newspaper, Share} from 'lucide-vue-next'
-import {
-  SwitchButton,Menu
-} from '@element-plus/icons-vue'
+import { ArrowDown,ChatDotRound } from '@element-plus/icons-vue'
 import { gotoExternal } from "@/utils/openWindow"
 import Hydrate from '@/components/Hydrate.vue';
 import { useAccountStore } from '@/store/piniaStore'

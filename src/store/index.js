@@ -15,7 +15,9 @@ export default createStore({
         list: [],
         total: 0
       },
-      account_orders: {}
+      account_orders: {},
+      current_account: null,
+      previous_wx_account: null
     };
   },
   mutations: {
@@ -34,6 +36,12 @@ export default createStore({
     },
     SET_ACCOUNT_ORDERS: (state, { account_orders, group }) => {
       state.account_orders[group] = account_orders;
+    },
+    SET_CURRENT_ACCOUNT: (state, account) => {
+      if (state.current_account && state.current_account.platform_id === 4) {
+        state.previous_wx_account = state.current_account;
+      }
+      state.current_account = account;
     }
   },
   actions: {
@@ -90,9 +98,6 @@ export default createStore({
       const response = await listAccount({ page, num });
       response.data.data.list?.forEach(v => {
         v.expired = checkWxSession(v);
-        if (v.expired) {
-          v.session_id = '';
-        }
       });
       commit('SET_ACCOUNTS', response.data.data);
       const account_orders = JSON.parse(localStorage.getItem('account_group_orders'));
@@ -147,6 +152,8 @@ export default createStore({
   getters: {
     all_accounts: state => state.accounts,
     account_orders: state => state.account_orders,
-    getUserData: state => state.user
+    getUserData: state => state.user,
+    getCurrentAccount: state => state.current_account,
+    getPreviousWxAccount: state => state.previous_wx_account
   }
 });

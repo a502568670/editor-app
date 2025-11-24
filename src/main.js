@@ -159,6 +159,11 @@ const router = createRouter({
           path: '/account-management',
           name: 'account-management',
           component: () => import('./views/account-management')
+        },
+        {
+          path: '/message',
+          name: 'message',
+          component: () => import('./views/message')
         }
       ]
     }

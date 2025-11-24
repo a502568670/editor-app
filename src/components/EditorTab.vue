@@ -153,7 +153,7 @@
           clearable
           placeholder="请输入文章标题"
           @input="syncToList('title')"
-          v-if="![5, 8].includes(currentArticleRef.item_show_type)"
+          v-if="![5, 8, 10].includes(currentArticleRef.item_show_type)"
         />
         <div ref="ueditor_wrapper" class="flex-1">
           <vue-ueditor-wrap class="h-full ueditor-wrapper flex items-stretch"
@@ -187,7 +187,7 @@
             </el-row>
           </div>
           <!-- 这里是小绿书的编辑区 -->
-          <div v-if="msg_idRef !== 0 && currentArticleRef.item_show_type === 8"
+          <div v-if="msg_idRef !== 0 && (currentArticleRef.item_show_type === 8 || currentArticleRef.item_show_type === 10)"
             class="w-full p-2 pb-5 flex-col h-full overflow-auto">
             <el-row :gutter="4" class="mb-1 w-full">
               <el-col :span="24">
@@ -215,7 +215,7 @@
             </el-row>
           </div>
           <!-- 纯文字的编辑区，不排除其他类型 -->
-          <div v-if="msg_idRef !== 0 && currentArticleRef.item_show_type === 10"
+          <!-- <div v-if="msg_idRef !== 0 && currentArticleRef.item_show_type === 10"
             class="w-full p-2 pb-5 flex-col h-full overflow-auto">
             <el-row :gutter="4" class="mb-1 w-full">
               <el-col :span="24">
@@ -224,13 +224,13 @@
               </el-col>
             </el-row>
             <el-row :gutter="4" class="mb-1 w-full ">
-              <el-col :span="24" class="flex w-full">
+              <el-col :span="24" class="flex w-full"> -->
                 <!-- <el-input v-model="currentArticleRef.author" clearable class="w-full" placeholder="请输入视频介绍,可以不填" /> -->
-                <el-mention v-model="currentArticleRef.guide_words" type="textarea" class="w-full h-96"
+                <!-- <el-mention v-model="currentArticleRef.guide_words" type="textarea" class="w-full h-96"
                   placeholder="填写描述信息，让大家了解更多内容" />
               </el-col>
             </el-row>
-          </div>
+          </div> -->
         </div>
       </div>
       <div class="bg-white">
@@ -251,92 +251,79 @@
         </el-icon> -->
       </div>
       <el-tabs type="border-card" class="editor-inner-tabs w-[300px]">
-        <el-tab-pane label="发布设置">
-          <el-row :gutter="4" class="mb-1" v-if="false&&![5, 8].includes(currentArticleRef.item_show_type)">
-            <el-col :span="24">
-              <el-input v-model="currentArticleRef.title" clearable class="grid-content-control" placeholder="请输入文章标题"
-                @input="syncToList('title')" />
-            </el-col>
-          </el-row>
-          <el-row :gutter="4" class="mb-1" v-if="![8].includes(currentArticleRef.item_show_type)">
-            <el-col :span="24">
-              <el-input v-model="currentArticleRef.author" clearable class="grid-content-control"
-                placeholder="请输入文章作者" />
-            </el-col>
-          </el-row>
-          <el-row :gutter="4" class="mb-1 w-full">
-            <el-col :span="24" class="h-20 py-2 w-full flex justify-center items-center" style="display: none;">
-              <img class="cursor-pointer max-h-16 block" @click="triggerFileInput" v-if="selectedCdnImageRef"
-                :src="selectedCdnImageRef" alt="封面预览">
-              <img class="cursor-pointer max-h-16 block" @click="triggerFileInput"
-                v-else-if="currentArticleRef.cdn_url" :src="currentArticleRef.cdn_url" referrerpolicy="no-referrer"
-                alt="封面图" />
-              <div v-else @click="triggerFileInput"
-                class="cursor-pointer border h-16 w-[180px] flex justify-center items-center bg-[#8c8c8c]">设置封面图</div>
-              <input class="invisible" ref="cdnFileInputRef" @change="handleImage" type="file" accept="image/*">
-            </el-col>
-            <ImgPicker v-show="currentArticleRef.item_show_type !== 10" ref="refImgPicker" v-model="pickerQuery"
-              :pageInfo="pickerPageInfo" :imgSrc="currentArticleRef.cdn_url" placeholder="设置封面图"
-              @change="handleImageUpload" @confirm="onImgPick" :editorInst="editorRef" />
-            <!-- <ImgCrop :imgSrc="currentArticleRef.cdn_url" placeholder="设置封面图" @change="handleImageUpload"></ImgCrop> -->
-          </el-row>
-          <!-- <el-row :gutter="4" class="mb-1 invisible">
-      <el-col :span="24">
-
-      </el-col>
-    </el-row> -->
-          <el-row :gutter="4" class="my-2">
-            <el-col :span="24">
-              <hr />
-            </el-col>
-          </el-row>
-          <el-row :gutter="4" class="mb-1">
-            <el-col :span="24">
-              <!-- 创作来源 -->
-              <el-select v-model="selected_claim_source_typeRef" value-key="id" filterable placeholder="创作来源">
-                <el-option v-for="(item) in claim_source_typesRef" :key="item.id" :label="item.name" :value="item" />
-              </el-select>
-            </el-col>
-          </el-row>
-          <el-row :gutter="4" class="mb-1">
-            <el-col :span="24">
-              <el-checkbox label="声明原创" v-model="copyrightRef" />
-            </el-col>
-          </el-row>
-          <el-row :gutter="4" class="h-8 mb-1">
-            <el-col :span="24">
-              <el-input v-model="currentArticleRef.sourceurl" clearable class="grid-content-control"
-                placeholder="原文链接" />
-            </el-col>
-          </el-row>
-          <el-row :gutter="4" class="mb-1">
-            <el-col :span="24">
-              <el-checkbox label="打开留言" v-model="needOpenCommentRef" />
-              <el-radio-group :disabled="!needOpenCommentRef" v-model="commentTypeRef">
-                <!-- works when >=2.6.0, recommended ✔️ not work when <2.6.0 ❌ -->
-                <el-radio value="0">所有人可留言</el-radio>
-                <!-- works when <2.6.0, deprecated act as value when >=3.0.0 -->
-                <el-radio label="1">仅关注后可留言</el-radio>
-              </el-radio-group>
-            </el-col>
-          </el-row>
-
-          <!-- <el-row :gutter="4" class="my-2">
-        <el-col :span="24">
-          <hr />
-        </el-col>
-      </el-row>
-      <el-row :gutter="4" class="mb-1">
-        <el-col :span="24">
-
-        </el-col>
-      </el-row>
-      <el-row :gutter="4" class="h-8 mb-1">
-        <el-col :span="24"></el-col>
-      </el-row>
-      <el-row :gutter="4" class="h-8 mb-1">
-        <el-col :span="24"></el-col>
-      </el-row> -->
+        <el-tab-pane label="发布设置" class="h-full">
+          <div class="overflow-y-auto h-full">
+            <el-row :gutter="4" class="mb-6" v-if="false&&![5, 8, 10].includes(currentArticleRef.item_show_type)">
+              <el-col :span="24">
+                <el-input v-model="currentArticleRef.title" clearable class="grid-content-control" placeholder="请输入文章标题"
+                  @input="syncToList('title')" />
+              </el-col>
+            </el-row>
+            <el-row :gutter="4" class="mb-6" v-if="![8, 10].includes(currentArticleRef.item_show_type)">
+              <el-col :span="24">
+                <p class="set-title">作者</p>
+                <el-input v-model="currentArticleRef.author" clearable placeholder="请输入文章作者" />
+              </el-col>
+            </el-row>
+            <el-row :gutter="4" class="mb-6">
+              <el-col :span="24">
+                <p class="set-title">封面设置</p>
+                <ImgPicker ref="refImgPicker" v-model="pickerQuery"
+                  :pageInfo="pickerPageInfo" :imgSrc="currentArticleRef.cdn_url" placeholder="设置封面图"
+                  @change="handleImageUpload" @confirm="onImgPick" :editorInst="editorRef" />
+              </el-col>
+              <!-- <el-col :span="24" class="h-20 py-2 w-full flex justify-center items-center" style="display: none;">
+                <img class="cursor-pointer max-h-16 block" @click="triggerFileInput" v-if="selectedCdnImageRef"
+                  :src="selectedCdnImageRef" alt="封面预览">
+                <img class="cursor-pointer max-h-16 block" @click="triggerFileInput"
+                  v-else-if="currentArticleRef.cdn_url" :src="currentArticleRef.cdn_url" referrerpolicy="no-referrer"
+                  alt="封面图" />
+                <div v-else @click="triggerFileInput"
+                  class="cursor-pointer border h-16 w-[180px] flex justify-center items-center bg-[#8c8c8c]">设置封面图</div>
+                <input class="invisible" ref="cdnFileInputRef" @change="handleImage" type="file" accept="image/*">
+              </el-col> -->
+              <!-- <ImgCrop :imgSrc="currentArticleRef.cdn_url" placeholder="设置封面图" @change="handleImageUpload"></ImgCrop> -->
+            </el-row>
+            <el-row :gutter="4" class="mb-6">
+              <el-col :span="24">
+                <p class="set-title">创作来源</p>
+                <el-select v-model="selected_claim_source_typeRef" value-key="id" filterable placeholder="创作来源">
+                  <el-option v-for="(item) in claim_source_typesRef" :key="item.id" :label="item.name" :value="item" />
+                </el-select>
+              </el-col>
+            </el-row>
+            <el-row :gutter="4" class="mb-6">
+              <el-col :span="24">
+                <p class="set-title">原创设置</p>
+                <el-checkbox label="声明原创" v-model="copyrightRef" />
+              </el-col>
+            </el-row>
+            <el-row :gutter="4" class="mb-6">
+              <el-col :span="24">
+                <p class="set-title">原文链接</p>
+                <el-input v-model="currentArticleRef.sourceurl" clearable placeholder="原文链接" />
+              </el-col>
+            </el-row>
+            <el-row :gutter="4" class="mb-6">
+              <el-col :span="24">
+                <p class="set-title">留言设置</p>
+                <el-checkbox label="打开留言" v-model="needOpenCommentRef" />
+                <el-radio-group :disabled="!needOpenCommentRef" v-model="commentTypeRef">
+                  <el-radio label="0">所有人可留言</el-radio>
+                  <el-radio label="1">仅关注后可留言</el-radio>
+                </el-radio-group>
+              </el-col>
+            </el-row>
+            <el-row :gutter="4" class="mb-6">
+              <el-col :span="24">
+                <p class="set-title">评论区广告</p>
+                <el-radio-group v-model="commentAreaAdvertise">
+                  <el-radio :label="1">开启</el-radio>
+                  <el-radio :label="2">关闭</el-radio>
+                </el-radio-group>
+              </el-col>
+            </el-row>
+          </div>
         </el-tab-pane>
         <el-tab-pane label="样式中心" class="h-full">
           <SysTempl :editorInst="editorRef" />
@@ -350,13 +337,15 @@
       </el-tabs>
     </div>
   </div>
-  <el-dialog :close-on-click-modal="false" title="提取文章链接内容" v-model="dialogExtractMpAritcleUrlRef" width="720px" @close="extractLinkClose">
+  <el-dialog :close-on-click-modal="false" title="提取文章链接内容" v-model="dialogExtractMpAritcleUrlRef" width="720px" @close="extractLinkClose" v-loading="extractLoadingRef" element-loading-text="提取中，请稍候...">
     <el-tabs style="width: 100%;" v-model="extractLink" @tab-change="handleChange">
       <el-tab-pane label="单个提取" name="single">
         <div>
           <div class="flex">
             <el-input class="mr-2" v-model="extractArticleUrlRef" clearable placeholder="请输入文章提取地址 Ctrl + v 粘贴" />
-            <el-button @click="handleLocalExtractMpArticleUrl" type="primary">提取链接内容</el-button>
+            <el-button @click="handleLocalExtractMpArticleUrl" type="primary" :loading="extractLoadingRef" :disabled="extractLoadingRef">
+              {{ extractLoadingRef ? '提取中...' : '提取链接内容' }}
+            </el-button>
           </div>
           <el-checkbox label="仅视频" v-model="import_settings.only_video_flag" />
           <el-row :gutter="40">
@@ -389,7 +378,9 @@
             <template #prepend>#{{ idx + mp_msgsRef.length+1 }}</template>
           </el-input>
           <div class="flex justify-end mt-4 space-x-2">
-            <el-button type="primary" @click="onConfirm">批量提取</el-button>
+            <el-button type="primary" @click="onConfirm" :loading="extractLoadingRef" :disabled="extractLoadingRef">
+              {{ extractLoadingRef ? '提取中...' : '批量提取' }}
+            </el-button>
           </div>
         </div>
       </el-tab-pane>
@@ -795,6 +786,12 @@
 }
 </style>
 <style scoped>
+.set-title{
+  font-size: 14px;
+  color: #444;
+  margin-bottom: 5px;
+}
+
 .percentage-value {
   display: block;
   margin-top: 10px;
@@ -905,7 +902,10 @@ import { useDraggable } from 'vue-draggable-plus'
 
 const props = defineProps(['account', 'appmsg', 'mode', 'mainMsg']);
 const emitEvents = defineEmits(['titleChange', 'createAppmsg', 'msgidChange'])
-const is_xiaolvshu = computed(() => (props.appmsg?.multi_item[0] || currentArticleRef.value)?.item_show_type === 8);
+const is_xiaolvshu = computed(() => {
+  const type = (props.appmsg?.multi_item[0] || currentArticleRef.value)?.item_show_type
+  return type === 8 || type === 10
+});
 
 const { all_accounts } = toRefs(store.getters)
 // console.log('envVars.backend_url=>', envVars.backend_url)
@@ -1013,7 +1013,7 @@ const elListMsgsRef = ref(null)
 // 封面
 const cdnRef = ref(null)
 const selectedCdnImageRef = ref(null)
-const cdnFileInputRef = ref(null)
+// const cdnFileInputRef = ref(null)
 
 //声明原创
 const copyrightRef = ref(false)
@@ -1021,6 +1021,7 @@ const copyrightRef = ref(false)
 // 留言
 const needOpenCommentRef = ref(false)
 const commentTypeRef = ref("0") // 0-全部 1-只有粉丝
+const commentAreaAdvertise = ref(1)
 
 // 创作来源
 const claim_source_typesRef = ref(claim_source_types)
@@ -1094,11 +1095,13 @@ function onConfirm(){
     return;
   }
   onBatchExtractMp(data)
-  dialogExtractMpAritcleUrlRef.value = false
+  // 批量提取时不立即关闭对话框，等提取完成后再关闭
+  // dialogExtractMpAritcleUrlRef.value = false
 }
 const extractLinkClose = () => {
   extractLink.value = 'single'
   inputs.value = []
+  extractLoadingRef.value = false
 }
 
 // 提取链接
@@ -1106,6 +1109,7 @@ const extractLinkClose = () => {
 // const extractArticleUrlRef = ref("https://mp.weixin.qq.com/s/riiYjv8HUqyUZz_-IQKe9g")
 const extractArticleUrlRef = ref("")
 const dialogExtractMpAritcleUrlRef = ref(false)
+const extractLoadingRef = ref(false)
 const timeoutExtract = 60 * 1000; // ms
 
 const setMiniAppRef = ref(null)
@@ -1258,38 +1262,38 @@ const validateAccount = () => {
   return true
 }
 
-const createBase64Image = async (fileObject) => {
-  const reader = new FileReader();
-  const filename = fileObject.name;
+// const createBase64Image = async (fileObject) => {
+//   const reader = new FileReader();
+//   const filename = fileObject.name;
 
-  reader.onload = async (e) => {
-    const cover = e.target.result;
-    console.log("e", e)
-    console.log("e.target", e.target)
-    // console.log("cover:", cover);
-    const matches = cover.match(/data:(image\/.*);base64,(.*)/);
-    if (matches && matches.length >= 3) {
-      const cdn_content_type = matches[1];  // 图像MIME类型 (image/webp)
-      const cdn_base64_image = matches[2]; // Base64编码数据
+//   reader.onload = async (e) => {
+//     const cover = e.target.result;
+//     console.log("e", e)
+//     console.log("e.target", e.target)
+//     // console.log("cover:", cover);
+//     const matches = cover.match(/data:(image\/.*);base64,(.*)/);
+//     if (matches && matches.length >= 3) {
+//       const cdn_content_type = matches[1];  // 图像MIME类型 (image/webp)
+//       const cdn_base64_image = matches[2]; // Base64编码数据
 
-      // console.log("cdn_content_type:", cdn_content_type);
-      // console.log("cdn_base64_image:", cdn_base64_image);
-      cdnRef.value = { cdn_content_type, cdn_base64_image, cdn_filename: filename }
-      // 切换时上传图片获取cdn_url
-      await uploadCover()
-    } else {
-      ElMessage({
-        message: '无效的图片',
-        type: 'error',
-        duration: 2 * 1000
-      })
-    }
-    // console.log('image_base64:',cover.value)
-    // this.uploadImage();
-    selectedCdnImageRef.value = reader.result
-  };
-  reader.readAsDataURL(fileObject);
-}
+//       // console.log("cdn_content_type:", cdn_content_type);
+//       // console.log("cdn_base64_image:", cdn_base64_image);
+//       cdnRef.value = { cdn_content_type, cdn_base64_image, cdn_filename: filename }
+//       // 切换时上传图片获取cdn_url
+//       await uploadCover()
+//     } else {
+//       ElMessage({
+//         message: '无效的图片',
+//         type: 'error',
+//         duration: 2 * 1000
+//       })
+//     }
+//     // console.log('image_base64:',cover.value)
+//     // this.uploadImage();
+//     selectedCdnImageRef.value = reader.result
+//   };
+//   reader.readAsDataURL(fileObject);
+// }
 
 function handleImageUpload(info) {
   cdnRef.value = { cdn_content_type: info.type, cdn_base64_image: info.data, cdn_filename: info.name }
@@ -1401,7 +1405,7 @@ const loadArticle = (mp_msg, before_save) => {
   console.log("mpExsRef=>", mpExsRef.value)
 
   selectedCdnImageRef.value = null
-  cdnFileInputRef.value.value = ""
+  // cdnFileInputRef.value.value = ""
   console.log("loadArticle:", currentArticleRef.value)
   copyrightRef.value = currentArticleRef.value.copyright_type == 1
   needOpenCommentRef.value = currentArticleRef.value.need_open_comment == 1
@@ -1553,9 +1557,12 @@ const newArticle = async (before_save = true, item_show_type = 0, hydrateMsgIdx 
   // console.log('elListMsgsRef.value.scrollHeight=>', elListMsgsRef.value.scrollHeight)
   // elListMsgsRef.value.scrollTop = elListMsgsRef.value.scrollHeight
   await nextTick()
-  var { clientHeight } = elListMsgsRef.value.children[elListMsgsRef.value.children.length - 2]
-  var top = clientHeight + elListMsgsRef.value.scrollTop
-  elListMsgsRef.value.scrollTo({ top, behavior: 'smooth' })
+
+  if(elListMsgsRef.value.children.length - 2 > 0){
+    var { clientHeight } = elListMsgsRef.value.children[elListMsgsRef.value.children.length - 2]
+    var top = clientHeight + elListMsgsRef.value.scrollTop
+    elListMsgsRef.value.scrollTo({ top, behavior: 'smooth' })
+  }
   // elListMsgsRef.value.lastElementChild?.scrollIntoView({ behavior: 'smooth' })
   // nextTick(() => {
   //   elListMsgsRef.value.scrollTop = elListMsgsRef.value.scrollHeight
@@ -1628,27 +1635,21 @@ const saveCurrentToList = (msg_id) => {
   // 创作来源
   currentArticleRef.value.claim_source_type = selected_claim_source_typeRef.value.id
 
-
-  // console.log("adCategoryChoosedRef=>", adCategoryChoosedRef.value)
-
+  // 评论区广告
+  currentArticleRef.value.open_comment_ad = commentAreaAdvertise.value
 
   const to_save_content_noencode = currentArticleRef.value.content_noencode;
-  // console.log("to_save_content_noencode:", to_save_content_noencode)
 
   const category_id_list = adCategoryChoosedRef.value.join("|")
-  // console.log("category_id_list:", category_id_list)
   let vhtml = restore_ad_content_from_UEditor(to_save_content_noencode, category_id_list, ad_idRef.value)
-  // console.log("ad vhtml=>", vhtml)
 
-  // replace custom-tag
   vhtml = replaceMPCardToWechat(vhtml, mpExsRef.value.mps_obj)
   vhtml = replaceMiniAppCardToWechat(vhtml, mpExsRef.value.miniappcard_obj)
   vhtml = replaceMPVContentToWechat(vhtml, mpExsRef.value.mpvcontent_obj)
 
-  // console.log("vhtml=>", vhtml)
   currentArticleRef.value.content_noencode = vhtml
 
-  console.log("abc")
+  console.log("abc",currentArticleRef.value)
   const idx = mp_msgsRef.value.findIndex(v => v.msg_id === msg_id)
   if (idx !== -1) {
     mp_msgsRef.value[idx] = currentArticleRef.value
@@ -1677,6 +1678,7 @@ const saveOthersToListForCustomTag = (msg_id) => {
 
 const validateMsgData = () => {
   return mp_msgsRef.value.every(v => {
+    if ([8, 10].includes(v.item_show_type)) return true
     if (!v.title) {
       ElMessage({
         message: `请输入标题`,
@@ -1702,6 +1704,7 @@ const _saveAppMsg = async (push_to_remote) => {
     return false
   }
 
+  // 检查是否添加了标题和封面
   if (!validateMsgData()) {
     return false
   }
@@ -1720,21 +1723,36 @@ const _saveAppMsg = async (push_to_remote) => {
   }
 
   const msg_id = msg_idRef.value
-  // console.log("mp_msgsRef before saveCurrentToList=>", mp_msgsRef.value[0].content_noencode)
   let selected_idx = saveCurrentToList(msg_id)
-  console.log("mp_msgsRef after saveCurrentToList=>", mp_msgsRef.value[0].content_noencode)
   saveOthersToListForCustomTag(msg_id)
 
-  // console.log("mp_msgsRef after saveOthersToListForCustomTag=>", mp_msgsRef.value[0].content_noencode)
-  // console.log("save all mp_msgsRef.value=>", mp_msgsRef.value)
   // const appmsgid =  appmsgidRef.value
   let appmsgid = _getAppMsgId()
 
+  const material_list = mp_msgsRef.value.map((item) => {
+    // 清空文章中的垂直制表符，防止出现空白行
+    if(item.content_noencode) {
+      item.content_noencode = item.content_noencode.replace(/<p>\u000b<\/p>$/, '')
+    }
+    // 小绿书处理有图片和无图片的类型
+    if([8, 10].includes(item.item_show_type)) {
+      if (item.cdn_url === '' && !item.picture_page_info_list?.length){
+        item.item_show_type = 10
+        item.content_noencode = item.guide_words
+      } else {
+        item.item_show_type = 8
+        if(item.cdn_url == null || item.cdn_url === ''){
+          item.cdn_url = item.picture_page_info_list[0].url
+        }
+      }
+    }
+    return item
+  })
   const postData = {
     cookies: serializeCookie(JSON.parse(session_id)["cookie"]),
     token: parseInt(token),
     appmsgid,
-    material_list: toRaw(mp_msgsRef.value),
+    material_list: toRaw(material_list),
     wechat_id,
     push_to_remote,
   }
@@ -1751,7 +1769,6 @@ const _saveAppMsg = async (push_to_remote) => {
       type: 'success',
       duration: 2 * 1000
     })
-    console.log("saveArticleDraft res=>", res)
     res.data.data.mp_msgs.forEach(gen_picture_page_info_list)
     mp_msgsRef.value = res.data.data.mp_msgs
     // ### todo: mp_msg_exs
@@ -1793,7 +1810,6 @@ const handleSaveAppMsg = async () => {
 
 const handleSyncToWechatDraftBox = async () => {
   const publish_flag = currentAppmsgRef.value.publish_flag;
-  console.log("publish_flag=>", publish_flag)
   if (publish_flag === 1) {
     ElMessageBox.confirm(
       '当前消息列表已发布，除非在公众号后台撤销，否则操作会引发错误, 是否继续?',
@@ -1825,7 +1841,6 @@ const checkQuota = (date) => {
 
 const confirmOpenPublishToWechatDialog = async () => {
   const publish_flag = currentAppmsgRef.value.publish_flag;
-  console.log("publish_flag=>", publish_flag)
   if (publish_flag === 1) {
     ElMessageBox.confirm(
       '当前消息列表已发布，除非在公众号后台撤销，否则操作会引发错误, 是否继续?',
@@ -1848,7 +1863,7 @@ const confirmOpenPublishToWechatDialog = async () => {
 const openPublishToWechatDialog = async () => {
   // 发布调试完毕需要先将appmsg同步到草稿箱
   await _saveAppMsg(1)
-  if (!currentArticleRef.value.cdn_url) return
+  if (!currentArticleRef.value.cdn_url && ![8,10].includes(currentArticleRef.value.item_show_type)) return
   dialogPublishArticleVisibleRef.value = true
   const today = new Date()
   publishTimingDatesRef.value = Array.from({ length: 7 }, (_, i) => {
@@ -1947,6 +1962,7 @@ const handlePublishNext = async () => {
     })
     publishLoadingRef.value = false
     // console.log("step data=>", o)
+    console.log('打印是否是原创',stepRet)
     if (stepRet.copyright === 1) {
       // <el-step title="设置发表参数" />
       //   <el-step title="确认发表方式" />
@@ -2200,6 +2216,7 @@ const removeArticle = async (msg_id) => {
     }).finally(() => {
       loader.close()
     })
+
     ElMessage({
       message: `文章删除成功`,
       type: 'success',
@@ -2261,18 +2278,17 @@ const handleSendToOtherAccount = async () => {
   //   soruce_appmsgid: appmsgid,
   //   target_wechat_ids: otherAccountsChoosedRef.value
   // })
+
   const { wechat_id } = selectedAccount.value
-  let stepRetsend_to_other_accounts_events
-  await ({
+  let stepRet
+  await send_to_other_accounts_events({
     source_wechat_id: wechat_id,
     soruce_appmsgid: appmsgid,
     target_wechat_ids: otherAccountsChoosedRef.value
   }, (data) => {
-    // console.log("step raw=>", data)
     try {
       const v = data.replaceAll(/data: /gi, "")
       stepRet = JSON5.parse(v)
-      // console.log("step data=>", o)
       percentRef.value = stepRet.percent
       progressDescRef.value = stepRet.desc
     } catch {
@@ -2326,19 +2342,19 @@ const emitChangeForPublishTimingDate = async (val) => {
   // });
 }
 
-const triggerFileInput = () => {
-  cdnFileInputRef.value.click()
-}
+// const triggerFileInput = () => {
+//   cdnFileInputRef.value.click()
+// }
 
-const handleImage = async (e) => {
-  const selectedImage = e.target.files[0]; // get first file
-  if (selectedImage) {
-    await createBase64Image(selectedImage);
-  } else {
-    selectedCdnImageRef.value = null
-    cdnFileInputRef.value.value = ""
-  }
-}
+// const handleImage = async (e) => {
+//   const selectedImage = e.target.files[0]; // get first file
+//   if (selectedImage) {
+//     await createBase64Image(selectedImage);
+//   } else {
+//     selectedCdnImageRef.value = null
+//     cdnFileInputRef.value.value = ""
+//   }
+// }
 
 const checkTitles = () => {
 
@@ -2430,7 +2446,7 @@ const handleLocalExtractMpArticleUrl = async () => {
     return
   }
 
-  globalLoadingRef.value = true
+  extractLoadingRef.value = true
   window.ipcRenderer.send('toMain', {
     tag: 'appmsg:localExtractMpArticleUrl',
     source: `${props.appmsg.appmsgid}`,
@@ -2439,7 +2455,7 @@ const handleLocalExtractMpArticleUrl = async () => {
   })
 
   setTimeout(() => {
-    globalLoadingRef.value = false
+    extractLoadingRef.value = false
     dialogExtractMpAritcleUrlRef.value = false
   }, timeoutExtract)
 }
@@ -2459,7 +2475,7 @@ async function onBatchExtractMpOld(list) {
 }
 
 async function onBatchExtractMp(list) {
-  globalLoadingRef.value = true
+  extractLoadingRef.value = true
   // await newArticle(true, item.type)
   window.ipcRenderer.send('toMain', {
     tag: 'appmsg:batchExtractMpArticleUrls',
@@ -2468,7 +2484,10 @@ async function onBatchExtractMp(list) {
     extractArticleUrls: list.map(item => item.url),
   })
 
-  globalLoadingRef.value = false
+  setTimeout(() => {
+    extractLoadingRef.value = false
+    dialogExtractMpAritcleUrlRef.value = false
+  }, timeoutExtract * list.length)
 }
 
 // type: 0-server 1-local init 2-local query
@@ -3491,9 +3510,9 @@ watch(() => [props.mainMsg], async (newVal) => {
   if (typeof msg === 'object' && Object.prototype.hasOwnProperty.call(msg, 'tag')) {
     const tag = msg.tag;
     if (tag === "appmsg-ret:localExtractMpArticleUrlResult") {
-      console.log(`tag:${msg.tag}`, typeof msg.data)
       const { ret } = msg.data
       console.log("ret=>", ret)
+      extractLoadingRef.value = false
       if (ret.code == 101) {
         ElMessage({ type: 'error', message: ret.msg })
         return
@@ -3537,6 +3556,7 @@ watch(() => [props.mainMsg], async (newVal) => {
       const { ret, failed } = msg.data
       console.log("ret=>", ret)
       console.log("failed=>", failed)
+      extractLoadingRef.value = false
       if (ret.code == 101) {
         ElMessage({ type: 'error', message: ret.msg })
         return
@@ -3556,6 +3576,7 @@ watch(() => [props.mainMsg], async (newVal) => {
 
         // ### todo mp_msg_exs
       }
+      dialogExtractMpAritcleUrlRef.value = false
 
     } else if (tag === "appmsg-ret:publishToWechat") {
       console.log("publishToWechatResult msg=>", msg)
