@@ -1,6 +1,6 @@
 <template>
     <div class="w-full h-full flex flex-col">
-      <div class="flex p-2">
+      <!-- <div class="flex p-2">
         <div class="flex" @click="dialogVisible = true">
           <img class="w-7 h-7 rounded-full" :src="selectedAccountRef?.avatar" />
           <div class="flex-1 flex justify-start text-left items-center pl-1 min-w-[190px]">
@@ -12,7 +12,7 @@
           <el-button type="success" @click="handleCreateAppMsg({ type: 0, account_id: selectedAccountRef?.id })">发图文</el-button>
           <el-button type="success" @click="handleCreateAppMsg({ type: 0, account_id: selectedAccountRef?.id, item_show_type: 5 })">发视频</el-button>
         </div>
-      </div>
+      </div> -->
       <el-tabs v-model="editableTabsValue" type="card" class="editor-tabs w-full h-0 flex-1"
         closable @tab-remove="handleCloseTab">
         <el-tab-pane v-for="(item, idx) in editableTabs" :key="idx" :name="item.name" class="h-full">
@@ -25,7 +25,7 @@
       </el-tabs>
       <!-- 公众号选择弹窗 -->
       <AccountPickerModal v-model="dialogVisible" @confirm="handleInstantSend" />
-      <!-- <div v-show="editableTabs.length === 0" class="flex w-full h-full">
+      <div v-show="editableTabs.length === 0" class="flex w-full h-full">
         <AccountList
           ref="AccountListRef"
           :showAdd="false"
@@ -40,7 +40,7 @@
                 <div class="text-gray-400 text-center">给你的素材创造更多可能性</div>
               </div>
               <img src="@/assets/image/create_material.png" style="width: 100%" />
-              <div class="flex justify-center items-center"> -->
+              <div class="flex justify-center items-center">
                 <!-- <el-button @click="handleCreateAppMsg({ type: 0, account_id: selectedAccountRef?.id })" size="large"
                   type="primary">
                   <div class="w-[180px] py-5 ">
@@ -50,7 +50,7 @@
                     <span class="ml-5 text-lg">创建素材</span>
                   </div>
                 </el-button> -->
-                <!-- <div class="w-[180px] py-5 ">
+                <div class="w-[180px] py-5 ">
                   <el-dropdown>
                     <el-button type="primary" size="large" class="text-lg">
                       <el-icon>
@@ -68,12 +68,12 @@
                 </div>
               </div>
             </div>
-          </el-card> -->
-        <!-- </div>
-      </div> -->
+          </el-card>
+        </div>
+      </div>
     </div>
-    <!-- <ChooseAccountDialog :dialogVisible="dialogChooseAccountVisibleRef"
-      @dialog-closed="dialogChooseAccountVisibleRef = false" @account-choose="handleAccountChoose" /> -->
+    <ChooseAccountDialog :dialogVisible="dialogChooseAccountVisibleRef"
+      @dialog-closed="dialogChooseAccountVisibleRef = false" @account-choose="handleAccountChoose" />
 </template>
 <style>
 .editor-tabs>.el-tabs__content {

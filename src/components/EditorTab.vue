@@ -1,6 +1,6 @@
 <template>
   <div class="flex flex-col h-full">
-    <!-- <div class="p-2 flex space-x-2 items-center border-b shadow-md">
+    <div class="p-2 flex space-x-2 items-center border-b shadow-md">
       <div class="flex items-center pl-1">
         <img class="w-7 h-7 rounded-full" :src="selectedAccount?.avatar" />
         <div class="flex-1 flex justify-start text-left items-center pl-1 min-w-[190px]">
@@ -28,9 +28,13 @@
               </el-dropdown-menu>
             </template>
           </el-dropdown>
+          <el-button style="margin-left: 10px;" @click="handleSaveAppMsg" type="success">保存到本地草稿</el-button>
+          <el-button @click="handleSyncToWechatDraftBox" type="success">保存到公众号草稿箱</el-button>
+          <el-button @click="openSendArticleDialog" type="success">同步到其他账号</el-button>
+          <el-button @click="confirmOpenPublishToWechatDialog" type="danger">发表</el-button>
         </div>
       </div>
-    </div> -->
+    </div>
     <div class="flex-1 items-stretch h-0 flex">
       <div class="bg-white shadow-xl w-[300px] p-3">
         <div v-if="mp_msgsRef" class="h-full flex flex-col">
@@ -234,13 +238,6 @@
             <p v-if="warningMsg != null" class="automatic-save-msg">
               {{ warningMsg === '' ? `自动保存成功 ${lastSaveTime}` : `自动保存失败：${warningMsg}` }}
             </p>
-          </div>
-          <div>
-            <!-- <el-button @click="handleSaveAppMsg" type="success">保存到本地草稿</el-button>
-            <el-button @click="handleSyncToWechatDraftBox" type="success">保存到公众号草稿箱</el-button> -->
-            <el-button @click="openSendArticleDialog" type="success">同步到其他账号</el-button>
-            <el-button @click="handleSyncToWechatDraftBox" type="success">保存</el-button>
-            <el-button @click="confirmOpenPublishToWechatDialog" type="danger">发表</el-button>
           </div>
         </div>
       </div>
@@ -2095,7 +2092,7 @@ const throttle = (fn, delay = 200) => {
 }
 const throttledAutoSave = throttle(automaticSave, 5000) // 只创建一次
 watch(()=>currentArticleRef.value.content_noencode,()=>{
-  throttledAutoSave(1)
+  throttledAutoSave(0)
 })
 
 const _saveAppMsg = async (push_to_remote) => {
