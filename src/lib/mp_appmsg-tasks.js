@@ -338,7 +338,6 @@ const getShopCommodity = async (data) => {
   verbose_log('api url:', url);
   verbose_log('api opts:', opts);
   let res = await netFetch(url, { ...opts });
-  console.log('res',res)
   res = JSON.parse(res);
   if (res.respStatusCode) {
     return {
@@ -360,26 +359,48 @@ const getShopCommodity = async (data) => {
   }
 }
 
-const getWindowProduct = async ({ cookies, token, product_id, fingerprint = '' }) => {
+const getWindowProduct = async ({ cookie, token, product_id }) => {
+  // 构造 data 字段，保持与 Python 示例一致
+  const dataField = {
+    base_req:{"action":"GetCpsProductEncryptKey"},
+    ext_info:{
+      product_id:[...product_id],
+      cps_id:[]
+    }
+  };
+  const data = {
+    data: {
+      base_req: {
+        action: 'GetCpsProductEncryptKey'
+      },
+      ext_info: {
+        product_id: ['10000304080167'],
+        cps_id: ['10000304080167']
+      }
+    },
+    fingerprint: '6555fc3f05dcfff720e073c3c67d7c0a',
+    token,
+    lang: 'zh_CN',
+    f: 'json',
+    ajax: 1
+  };
+  const body = new URLSearchParams(data).toString();
   const opts = {
     method: 'POST',
     headers: {
       ...getDefaultHeader(),
-      cookie: cookies,
+      Cookie: cookie,
       'Content-Type': 'application/x-www-form-urlencoded'
-    }
+    },
+    body
   };
-
-  // 构造 data 字段，保持与 Python 示例一致
-  const dataField = `{"base_req":{"action":"GetCpsProductEncryptKey"},"ext_info":"{\\"product_id\\":[${product_id}],\\"cps_id\\":[]}"}`;
-  const formdata = `data=${encodeURIComponent(dataField)}&fingerprint=${fingerprint}&token=${token}&lang=zh_CN&f=json&ajax=1`;
 
   let url = api.get_windowproduct();
   verbose_log('getWindowProduct api url:', url);
   verbose_log('getWindowProduct opts:', opts);
-  verbose_log('getWindowProduct formdata:', formdata);
 
-  let res = await netFetch(url, { ...opts, body: formdata });
+  let res = await netFetch(url, { ...opts });
+  console.log('getWindowProduct res:', res);
   try {
     return JSON.parse(res);
   } catch (e) {

@@ -425,9 +425,10 @@ const handleNext = () => {
     ElMessage.warning('请先选择至少一个商品');
     return;
   }
+
   const { session_id, token } = props.selectedAccount;
   const cookie = serializeCookie(JSON.parse(session_id)['cookie']);
-  const product_id = selectedCommodities.value.map(it => it.spu.id).join(',');
+  const product_id = selectedCommodities.value.map(it => it.spu.id);
   // 标记为等待回包，收到后才打开样式弹窗
   awaitingWindowProduct.value = true;
   window.ipcRenderer.send('toMain', {
