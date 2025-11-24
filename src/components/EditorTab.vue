@@ -1083,6 +1083,28 @@
 .el-dialog__body {
   @apply flex justify-center;
 }
+
+/* 隐藏自动排版按钮的下拉箭头 */
+.edui-toolbar .edui-for-autotypeset .edui-splitborder,
+.edui-toolbar .edui-for-autotypeset .edui-arrow,
+.edui-toolbar .edui-for-autotypeset .edui-splitbutton-arrow,
+.edui-toolbar [data-command="autotypeset"] .edui-splitborder,
+.edui-toolbar [data-command="autotypeset"] .edui-arrow,
+.edui-toolbar [data-command="autotypeset"] .edui-splitbutton-arrow {
+  display: none !important;
+}
+
+/* 移除自动排版按钮的分割线样式 */
+.edui-toolbar .edui-for-autotypeset.edui-splitbutton,
+.edui-toolbar [data-command="autotypeset"].edui-splitbutton {
+  border-right: none !important;
+}
+
+/* 使自动排版按钮看起来像普通按钮 */
+.edui-toolbar .edui-for-autotypeset,
+.edui-toolbar [data-command="autotypeset"] {
+  cursor: pointer !important;
+}
 </style>
 <style scoped>
 .set-title{
@@ -1309,7 +1331,21 @@ const editorConfigRef = ref({
     call();
   },
   elementPathEnabled: false,
-  wordCount: false
+  wordCount: false,
+  // 自定义工具栏按钮点击回调
+  toolbarCallback: function (cmd, editor) {
+    // 处理自动排版按钮点击（拦截 autotypeset 命令）
+    if (cmd === 'autotypeset') {
+      // 延迟调用，确保 handleAutoFormat 已经定义
+      setTimeout(() => {
+        if (typeof handleAutoFormat === 'function') {
+          handleAutoFormat()
+        }
+      }, 0)
+      return true // 返回 true 表示已经处理，阻止默认行为
+    }
+    return false
+  }
 })
 
 // component
@@ -1568,10 +1604,88 @@ function ready(editorInstance) {
   console.log(`编辑器实例${editorInstance.key}: `, editorInstance);
   editorRef.value = editorInstance;
 
+  // 重写 execCommand 方法，完全阻止 autotypeset 命令的默认执行
+  const originalExecCommand = editorInstance.execCommand
+  editorInstance.execCommand = function(cmd, value) {
+    // 拦截 autotypeset 命令，使用自定义实现
+    if (cmd === 'autotypeset' || cmd === 'autotype') {
+      // 调用自定义的自动排版函数
+      if (typeof handleAutoFormat === 'function') {
+        handleAutoFormat()
+      }
+      return true // 返回 true 表示命令已处理
+    }
+    // 其他命令使用原始方法
+    try {
+      return originalExecCommand.call(this, cmd, value)
+    } catch (e) {
+      console.warn('执行命令失败:', cmd, e)
+      return false
+    }
+  }
+
+  // 设置自动排版按钮的点击事件，并移除下拉箭头
+  nextTick(() => {
+    // 使用 setTimeout 确保 DOM 完全渲染
+    setTimeout(() => {
+      // 查找自动排版按钮（autotypeset 命令对应的按钮）
+      const selectors = [
+        '[data-command="autotypeset"]',
+        '.edui-toolbar .edui-for-autotypeset',
+        '.edui-toolbar [title*="自动排版"]',
+        '.edui-toolbar [title*="排版"]',
+        '.edui-toolbar .edui-splitbutton[title*="排版"]'
+      ]
+      
+      let autoFormatBtn = null
+      for (const selector of selectors) {
+        autoFormatBtn = document.querySelector(selector)
+        if (autoFormatBtn) break
+      }
+      
+      if (autoFormatBtn) {
+        // 移除所有可能的下拉箭头元素
+        const arrowSelectors = ['.edui-splitborder', '.edui-arrow', '.edui-splitbutton-arrow', '.edui-menu']
+        arrowSelectors.forEach(selector => {
+          const arrows = autoFormatBtn.querySelectorAll(selector)
+          arrows.forEach(arrow => {
+            arrow.style.display = 'none'
+          })
+        })
+        
+        // 查找父级分割按钮容器
+        const splitButton = autoFormatBtn.closest('.edui-splitbutton') || autoFormatBtn.parentElement
+        if (splitButton && splitButton.classList.contains('edui-splitbutton')) {
+          // 移除分割按钮样式
+          splitButton.style.borderRight = 'none'
+          splitButton.style.paddingRight = '0'
+        }
+        
+        // 阻止下拉菜单的显示
+        const handleClick = function(e) {
+          e.preventDefault()
+          e.stopPropagation()
+          e.stopImmediatePropagation()
+          handleAutoFormat()
+          return false
+        }
+        
+        // 移除旧的事件监听器（如果存在）
+        autoFormatBtn.removeEventListener('click', handleClick)
+        autoFormatBtn.addEventListener('click', handleClick, true) // 使用捕获阶段
+        
+        // 阻止鼠标悬停时显示下拉菜单
+        autoFormatBtn.addEventListener('mouseenter', function(e) {
+          e.stopPropagation()
+        }, true)
+      }
+    }, 100) // 延迟 100ms 确保工具栏完全渲染
+  })
+
   const wrapprHeight = ueditor_wrapper.value.clientHeight
   console.log("wrapprHeight=>", wrapprHeight)
   // document.querySelector('#edui1_iframeholder').style.height = 'calc(100% - 100px)';
-  const toolbarHeight = document.querySelector(".edui-editor-toolbarbox .edui-default").clientHeight
+  const toolbarHeight = document.querySelector(".edui-editor-toolbarbox .edui-default")?.clientHeight
   // const conatinerHeight = document.querySelector("#edui1").clientHeight
   // console.log("toolbarHeight:", toolbarHeight)
   // console.log("conatinerHeight:", conatinerHeight)
@@ -1821,14 +1935,14 @@ const loadArticle = (mp_msg, before_save) => {
     if (claimSourceInfo && claimSourceInfo.media_source_type_info) {
       const mediaInfo = claimSourceInfo.media_source_type_info
       
-      // 还原素材来源类型
-      if (mediaInfo.media_source_from === "1") {
+      // 还原素材来源类型（兼容数字和字符串类型）
+      if (mediaInfo.media_source_from === 1 || mediaInfo.media_source_from === "1") {
         materialSourceRef.value = 'official_account'
         // 还原公众号/服务号相关字段
         claimSourceLinkRef.value = mediaInfo.biz_link_url || ''
         claimSourceAccountRef.value = mediaInfo.biz_nickname || ''
         claimSourceAccountAvatarRef.value = mediaInfo.biz_headimgurl || ''
-      } else if (mediaInfo.media_source_from === "2") {
+      } else if (mediaInfo.media_source_from === 2 || mediaInfo.media_source_from === "2") {
         materialSourceRef.value = 'other'
         // 还原其他来源相关字段
         claimSourcePlatformRef.value = mediaInfo.other_from_account || ''
@@ -1858,7 +1972,16 @@ const loadArticle = (mp_msg, before_save) => {
         const posInfo = mediaInfo.news_position_info
         if (posInfo.country === "中国" && posInfo.province) {
           // 中国地区
-          const location = ['china', posInfo.province]
+          let province = posInfo.province
+          // 对于香港、澳门、台湾，需要映射回"中国香港"、"中国澳门"、"中国台湾"以匹配级联选择器的 value
+          if (province === '香港') {
+            province = '中国香港'
+          } else if (province === '澳门') {
+            province = '中国澳门'
+          } else if (province === '台湾') {
+            province = '中国台湾'
+          }
+          const location = ['china', province]
           if (posInfo.city) {
             location.push(posInfo.city)
           }
@@ -2115,7 +2238,7 @@ const saveCurrentToList = (msg_id) => {
     if (materialSourceRef.value === 'official_account') {
       // 公众号/服务号
       claimSourceInfo.media_source_type_info = {
-        media_source_from: "1",
+        media_source_from: 1,
         biz_nickname: claimSourceAccountRef.value || "",
         news_time: claimSourceTimeRef.value ? String(Math.floor(new Date(claimSourceTimeRef.value).getTime() / 1000)) : "",
         biz_link_url: claimSourceLinkRef.value || "",
@@ -2126,7 +2249,7 @@ const saveCurrentToList = (msg_id) => {
     } else {
       // 其他来源
       claimSourceInfo.media_source_type_info = {
-        media_source_from: "2",
+        media_source_from: 2,
         biz_nickname: "",
         news_time: claimSourceTimeRef.value ? String(Math.floor(new Date(claimSourceTimeRef.value).getTime() / 1000)) : "",
         biz_link_url: "",
@@ -2141,9 +2264,18 @@ const saveCurrentToList = (msg_id) => {
       const location = claimSourceLocationRef.value
       if (location[0] === 'china' && location.length >= 2) {
         // 中国地区
+        let province = location[1] || ""
+        // 对于香港、澳门、台湾，去掉"中国"前缀
+        if (province === '中国香港') {
+          province = '香港'
+        } else if (province === '中国澳门') {
+          province = '澳门'
+        } else if (province === '中国台湾') {
+          province = '台湾'
+        }
         claimSourceInfo.media_source_type_info.news_position_info = {
           country: "中国",
-          province: location[1] || "",
+          province: province,
           city: location.length >= 3 ? location[2] : ""
         }
       } else if (location[0] === 'international' && location.length >= 2) {
@@ -2407,7 +2539,7 @@ const _saveAppMsg = async (push_to_remote) => {
     wechat_id,
     push_to_remote,
   }
-  // console.log("save appmsg postData=>", postData)
+  console.log("save appmsg postData=>", postData)
   // return
   const loader = ElLoading.service({
     target: '.main'
@@ -4602,7 +4734,8 @@ watch(() => [props.mainMsg], async (newVal) => {
       // 视频号内容
       const mpvcontent_obj = toDeepRaw(mpExsRef.value.mpvcontent_obj)
       parsed_data.content_noencode = replaceMPVContentFromWechat(parsed_data.content_noencode, mpvcontent_obj)
-
+      
+      
       console.log("parsed_data.content_noencode=>", parsed_data.content_noencode)
       console.log("mps_obj=>", mps_obj)
       console.log("miniappcard_obj=>", miniappcard_obj)
@@ -4902,6 +5035,7 @@ const eventLocationProps = {
       if (node.value === 'china') {
         // 加载中国的省份，以及香港、澳门、台湾
         const regions = await fetchEventLocationData(0)
+        console.log("regions",regions)
         const chinaRegion = regions.find(r => r.name === '中国')
         const hongkongRegion = regions.find(r => r.name === '中国香港')
         const macaoRegion = regions.find(r => r.name === '中国澳门')
@@ -4912,24 +5046,24 @@ const eventLocationProps = {
         // 添加香港、澳门、台湾（直接选择，leaf: true）
         if (hongkongRegion) {
           options.push({
-            label: hongkongRegion.name,
-            value: hongkongRegion.name,
+            label: '香港', // 显示时去掉"中国"前缀
+            value: hongkongRegion.name, // value 保持原值用于识别
             regionId: hongkongRegion.id,
             leaf: true // 直接选择，不加载下一级
           })
         }
         if (macaoRegion) {
           options.push({
-            label: macaoRegion.name,
-            value: macaoRegion.name,
+            label: '澳门', // 显示时去掉"中国"前缀
+            value: macaoRegion.name, // value 保持原值用于识别
             regionId: macaoRegion.id,
             leaf: true // 直接选择，不加载下一级
           })
         }
         if (taiwanRegion) {
           options.push({
-            label: taiwanRegion.name,
-            value: taiwanRegion.name,
+            label: '台湾', // 显示时去掉"中国"前缀
+            value: taiwanRegion.name, // value 保持原值用于识别
             regionId: taiwanRegion.id,
             leaf: true // 直接选择，不加载下一级
           })
@@ -5037,6 +5171,152 @@ const handleClaimSourceLinkChange = () => {
 const handleUseTemplate = (data) => {
   currentArticleRef.value.sourceurl = data.originalLink
   currentArticleRef.value.author = data.author
+}
+
+// 自动排版功能
+const handleAutoFormat = async () => {
+  if (!currentArticleRef.value || !currentArticleRef.value.content_noencode) {
+    ElMessage({
+      message: '编辑器内容为空',
+      type: 'warning',
+      duration: 2000
+    })
+    return
+  }
+
+  const loading = ElLoading.service({
+    lock: true,
+    text: '正在排版中，请稍候...',
+    background: 'rgba(0, 0, 0, 0.7)'
+  })
+
+  try {
+    // 获取编辑器纯文本内容（去除HTML标签）
+    const htmlContent = currentArticleRef.value.content_noencode || ''
+    const tempDiv = document.createElement('div')
+    tempDiv.innerHTML = htmlContent
+    const textContent = tempDiv.innerText || tempDiv.textContent || ''
+    
+    if (!textContent.trim()) {
+      ElMessage({
+        message: '编辑器内容为空',
+        type: 'warning',
+        duration: 2000
+      })
+      loading.close()
+      return
+    }
+
+    console.log('准备发送排版请求，文本长度:', textContent.length)
+
+    // 调用自动排版接口（流式响应）
+    const response = await axios.post('https://img.aiguidehub.com/api/v1/open-api/ai/', {
+      text: textContent,
+      service_type: 'dashscope',
+      categories: '现代布局',
+      theme_color: '#3B82F6',
+      platform: 'wechat',
+      auto_image: '0',
+      image_count: '0'
+    }, {
+      headers: {
+        'Content-Type': 'application/json',
+        'X-API-Key': 'dassd4a6sd4awea5s4da5sd4asre1d3f1sd3f1sadfa4sdsd'
+      },
+      responseType: 'text',
+      transformResponse: [(data) => data] // 禁用自动转换，保持原始文本
+    })
+    
+    console.log('收到响应，状态码:', response.status)
+
+    // 解析流式响应
+    let formattedContent = ''
+    
+    // 确保 response.data 是字符串
+    const responseText = typeof response.data === 'string' ? response.data : JSON.stringify(response.data)
+    const lines = responseText.split('\n')
+    
+    for (const line of lines) {
+      if (!line || typeof line !== 'string') continue
+      
+      const trimmedLine = line.trim()
+      if (trimmedLine.startsWith('data: ')) {
+        try {
+          const jsonStr = trimmedLine.substring(6)
+          if (!jsonStr) continue
+          
+          const data = JSON.parse(jsonStr)
+          
+          if (data.type === 'chunk' && data.content) {
+            formattedContent += data.content
+          } else if (data.type === 'complete') {
+            console.log('排版完成')
+            break
+          } else if (data.type === 'error') {
+            throw new Error(data.error || '排版失败')
+          }
+        } catch (e) {
+          console.warn('解析数据失败:', line, e)
+        }
+      }
+    }
+
+    // 提取 [doc]...[/doc] 标签内的内容
+    const docMatch = formattedContent.match(/\[doc\]([\s\S]*?)\[\/doc\]/)
+    if (docMatch && docMatch[1]) {
+      const cleanedContent = docMatch[1].trim()
+      
+      // 使用编辑器的 setContent 方法更新内容，避免直接修改 v-model 导致的状态不一致
+      if (editorRef.value) {
+        try {
+          // 先更新 v-model 绑定的内容
+          currentArticleRef.value.content_noencode = cleanedContent
+          
+          // 等待 DOM 更新
+          await nextTick()
+          
+          // 使用 setContent 方法更新编辑器内容（第二个参数 false 表示不触发内容变化事件）
+          editorRef.value.setContent(cleanedContent, false)
+          
+          // 再等待一下，确保编辑器内部状态更新完成
+          await new Promise(resolve => setTimeout(resolve, 100))
+          
+          ElMessage({
+            message: '排版成功',
+            type: 'success',
+            duration: 2000
+          })
+        } catch (e) {
+          console.error('更新编辑器内容失败:', e)
+          // 如果 setContent 失败，至少 v-model 已经更新了
+          ElMessage({
+            message: '排版成功（编辑器状态可能未完全更新）',
+            type: 'warning',
+            duration: 2000
+          })
+        }
+      } else {
+        // 编辑器未初始化，直接更新 v-model
+        currentArticleRef.value.content_noencode = cleanedContent
+        ElMessage({
+          message: '排版成功',
+          type: 'success',
+          duration: 2000
+        })
+      }
+    } else {
+      throw new Error('接口返回格式错误，未找到排版内容')
+    }
+  } catch (error) {
+    console.error('自动排版失败:', error)
+    ElMessage({
+      message: error.response?.data?.message || error.message || '自动排版失败，请稍后重试',
+      type: 'error',
+      duration: 3000
+    })
+  } finally {
+    loading.close()
+  }
 }
 
 const operationList = [
