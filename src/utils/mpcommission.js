@@ -18,19 +18,21 @@ export function tplWithCommission(data) {
   const type = data.type || 0;
   const cardtype = parseCardType(data);
 
+  const productInfo = JSON.stringify(data);
+
   // 基础商品标签
-  const productTag = `<mp-common-product data-windowproduct="${windowproduct}" data-cardtype="${cardtype}" data-title="${escapeAttr(
+  const productTag = `<mp-common-product product-obj='${productInfo}' data-windowproduct="${windowproduct}" data-cardtype="${cardtype}" data-title="${escapeAttr(
     title
   )}" data-type="${type}"></mp-common-product>`;
 
   // 图片链接样式（cardtype=12）
   if (cardtype === 12 && data.product_imageurl) {
-    return buildImageLinkTemplate(windowproduct, title, data.product_imageurl, productTag);
+    return buildImageLinkTemplate(windowproduct, title, data.product_imageurl, productTag, productInfo);
   }
 
   // 文字链接样式（cardtype=2）
   if (cardtype === 2) {
-    return `<span class="product_card_text_wrp" data-weui-theme="light">
+    return `<span product-obj='${productInfo}' class="product_card_text_wrp" data-weui-theme="light">
       <a href="javascript:void(0);" class="product_text_link" style="color: rgb(87, 107, 149);">
         ${escapeHtml(title)}
       </a>
@@ -46,20 +48,20 @@ export function tplWithCommission(data) {
 /**
  * 生成图片链接模板
  */
-function buildImageLinkTemplate(windowproduct, title, imageUrl, productTag) {
-  return `<section>
+function buildImageLinkTemplate(windowproduct, title, imageUrl, productTag, productInfo) {
+  return `<section product-obj='${productInfo}'>
     <span leaf="">${productTag}</span>
     <a class="product_image_link js_product_entry"
-       data-windowproduct="${windowproduct}"
-       data-cardtype="12"
-       data-title="${escapeAttr(title)}"
-       data-product-imageurl="${imageUrl}"
-       tagname="mp-common-product">
+      data-windowproduct="${windowproduct}"
+      data-cardtype="12"
+      data-title="${escapeAttr(title)}"
+      data-product-imageurl="${imageUrl}"
+      tagname="mp-common-product">
       <img class="rich_pages wxw-img"
-           data-ratio="1.33359375"
-           data-w="1280"
-           data-imgqrcoded="1"
-           data-src="${imageUrl}">
+          data-ratio="1.33359375"
+          data-w="1280"
+          data-imgqrcoded="1"
+          data-src="${imageUrl}">
     </a>
   </section>`;
 }
@@ -70,7 +72,9 @@ function buildImageLinkTemplate(windowproduct, title, imageUrl, productTag) {
  * 生成编辑器内的占位符标签
  */
 export function tplCommissionInEditor(uniqid, data) {
-  return `<section id="${uniqid}" role="gqs-mpcommission">${_buildEditorPreview(data)}</section>`;
+  return `<section id="${uniqid}" role="gqs-mpcommission" style="display: flex; justify-content: center;">${_buildEditorPreview(
+    data
+  )}</section>`;
 }
 
 /**
@@ -80,6 +84,7 @@ function _buildEditorPreview(data) {
   const cardtype = parseCardType(data);
   const title = data.title || '';
   const img = data.product_imageurl || data.img || '';
+  const windowproduct = data.windowproduct || '';
 
   switch (cardtype) {
     case 0:
@@ -89,7 +94,7 @@ function _buildEditorPreview(data) {
     case 2:
       return buildTextLinkPreview(title);
     case 12:
-      return buildImageLinkPreview(title, img);
+      return buildImageLinkPreview(title, img, windowproduct);
     default:
       return `<section class="unknown-card">未识别的商品卡片类型: ${cardtype}</section>`;
   }
@@ -244,16 +249,9 @@ function buildTextLinkPreview(title) {
 /**
  * 图片链接预览
  */
-function buildImageLinkPreview(title, img) {
-  return `<span class="product_card_text_wrp" data-weui-theme="light">
-    <a href="javascript:void(0);" class="product_text_link" style="color: rgb(87, 107, 149);">
-      ${escapeHtml(title)}
-    </a>
-    <iframe src="#" scrolling="no" frameborder="0" class="iframe_style" style="width: 350px; display: none;"></iframe>
-  </span>
-  <a class="product_image_link js_product_entry" style="">
-    <img src="${img}" class="rich_pages wxw-img" data-ratio="1" data-w="1024" data-imgqrcoded="1">
-  </a>`;
+function buildImageLinkPreview(title, img, windowproduct) {
+  return `
+  <a class="product_image_link js_product_entry" data-windowproduct="${windowproduct}" data-cardtype="12" data-title="${title}" style="" data-product-imageurl="${img}" tagname="mp-common-product"><img src="${img}" class="rich_pages wxw-img" contenteditable="false" data-ratio="1" data-w="1024" data-imgqrcoded="1"><img class="ProseMirror-separator" alt=""><br class="ProseMirror-trailingBreak"></a>`;
 }
 
 // ============ 双向转换函数 ============
@@ -269,6 +267,7 @@ export function hasCommissionInEditor(html) {
  * 编辑器格式 → 微信格式
  */
 export function replaceCommissionToWechat(html, deps) {
+  console.log('replaceCommissionToWechat deps:', deps);
   const tempDiv = document.createElement('div');
   tempDiv.innerHTML = html;
 
@@ -277,14 +276,23 @@ export function replaceCommissionToWechat(html, deps) {
 
   gqsSections.forEach(section => {
     const uniqid = section.getAttribute('id');
-    const dep = deps[uniqid];
+    let dep = deps && deps[uniqid];
+
+    // 如果 deps 中没有该商品数据，尝试从 DOM 中提取
+    if (!dep) {
+      const mpTag = section.querySelector('mp-common-product');
+      if (mpTag) {
+        dep = extractAttributes(mpTag, section);
+        console.log(`Extracted data from DOM for ${uniqid}:`, dep);
+      }
+    }
 
     if (!dep) {
       console.warn(`Missing data for commission card: ${uniqid}`);
       return;
     }
 
-    const replacement = document.createElement('div');
+    const replacement = document.createElement('section');
     replacement.innerHTML = tplWithCommission(dep);
     section.parentNode.replaceChild(replacement, section);
   });
@@ -308,9 +316,11 @@ export function replaceCommissionFromWechat(html, deps) {
     const replacement = document.createElement('section');
     replacement.setAttribute('id', uniqid);
     replacement.setAttribute('role', 'gqs-mpcommission');
+    replacement.setAttribute('style', 'display: flex; justify-content: center;');
 
     // 提取属性
     const dataAttrs = extractAttributes(ct, section);
+    console.log('Extracted dataAttrs:', dataAttrs);
 
     replacement.innerHTML = _buildEditorPreview(dataAttrs);
     section.parentNode.replaceChild(replacement, section);
@@ -324,15 +334,14 @@ export function replaceCommissionFromWechat(html, deps) {
  * 从微信标签中提取属性
  */
 function extractAttributes(ct, section) {
+  const productObj = JSON.parse(ct.getAttribute('product-obj') || '{}');
+  console.log('product-obj attribute:', productObj);
   const dataAttrs = {
-    windowproduct:
-      ct.getAttribute('data-windowproduct') ||
-      ct.getAttribute('data-windowProduct') ||
-      ct.getAttribute('data-window_product') ||
-      '',
-    cardtype: ct.getAttribute('data-cardtype') || ct.getAttribute('data-cardType') || '0',
+    windowproduct: ct.getAttribute('data-windowproduct') || ct.getAttribute('data-window_product') || '',
+    cardtype: ct.getAttribute('data-cardType') || '0',
     title: ct.getAttribute('data-title') || '',
-    type: ct.getAttribute('data-type') || '0'
+    type: ct.getAttribute('data-type') || '0',
+    product_imageurl: productObj.product_imageurl || ''
   };
 
   // 尝试提取图片链接

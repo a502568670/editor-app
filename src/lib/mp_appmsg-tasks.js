@@ -362,22 +362,16 @@ const getShopCommodity = async (data) => {
 const getWindowProduct = async ({ cookie, token, product_id }) => {
   // 构造 data 字段，保持与 Python 示例一致
   const dataField = {
-    base_req:{"action":"GetCpsProductEncryptKey"},
-    ext_info:{
-      product_id:[...product_id],
-      cps_id:[]
-    }
+    base_req: {
+      action: 'GetCpsProductEncryptKey'
+    },
+    ext_info: JSON.stringify({
+      product_id: [...product_id],
+      cps_id: []
+    })
   };
   const data = {
-    data: {
-      base_req: {
-        action: 'GetCpsProductEncryptKey'
-      },
-      ext_info: {
-        product_id: ['10000304080167'],
-        cps_id: ['10000304080167']
-      }
-    },
+    data: JSON.stringify(dataField),
     fingerprint: '6555fc3f05dcfff720e073c3c67d7c0a',
     token,
     lang: 'zh_CN',

@@ -7,7 +7,7 @@ import ImgPicker from '@/components/editor/ImgPicker.vue';
 import { tplCommissionInEditor } from '@/utils/mpcommission';
 import { gen_unique_id } from '@/utils/msic';
 
-const props = defineProps(['selectedAccount']);
+const props = defineProps(['selectedAccount','pickerPageInfo']);
 const emit = defineEmits(['insert-commission', 'close']);
 
 const selectedCommodities = ref([]);
@@ -384,7 +384,7 @@ const ipcOff = window.ipcRenderer.receive('fromMain', msg => {
     if (!awaitingWindowProduct.value) return;
     awaitingWindowProduct.value = false;
     // 返回 windowproduct 信息
-    windowProductResp.value = msg.data || {};
+    windowProductResp.value = JSON.parse(msg.data.ext_info) || {};
     // 打开选择样式弹窗
     stylesDialogVisible.value = true;
   }
@@ -443,14 +443,8 @@ const handleInsert = () => {
   // 从 windowProductResp 中解析 product_key 列表（兼容多种返回格式）
   let product_keys = [];
   try {
-    if (windowProductResp.value && windowProductResp.value.ext_info) {
-      const ext =
-        typeof windowProductResp.value.ext_info === 'string'
-          ? JSON.parse(windowProductResp.value.ext_info)
-          : windowProductResp.value.ext_info;
-      if (ext && ext.product_encrypt_key && ext.product_encrypt_key.length) {
-        product_keys = ext.product_encrypt_key;
-      }
+    if (windowProductResp.value && windowProductResp.value.product_encrypt_key && windowProductResp.value.product_encrypt_key.length) {
+      product_keys = windowProductResp.value.product_encrypt_key;
     }
   } catch (e) {
     console.error('解析windowproduct失败', e);
@@ -483,6 +477,8 @@ const handleInsert = () => {
 const onImgPick = urls => {
   if (urls && urls.length) selectedImage.value = urls[0];
 };
+
+const pickerQuery = defineModel()
 </script>
 
 <template>
@@ -712,16 +708,14 @@ const onImgPick = urls => {
             <div style="font-size: 16px; font-weight: bold">图片链接（点击选择图片）</div>
             <div style="margin-top:8px">
               <template v-if="selectedCommodities && selectedCommodities.length === 1">
-                <ImgPicker ref="refPicker" h="198" placeholder="设置链接图片" @confirm="onImgPick" />
+                <ImgPicker ref="refPicker" h="198" placeholder="设置链接图片" :imgSrc="selectedImage"
+                    v-model="pickerQuery" :pageInfo="$props.pickerPageInfo" @confirm="onImgPick" />
               </template>
               <template v-else>
                 <div style="height:198px; display:flex; align-items:center; justify-content:center; border:1px dashed #e6e6e6; color:#999; border-radius:4px">
                   多选时无法设置图片链接，请只选择 1 个商品后重试
                 </div>
               </template>
-              <div v-if="selectedImage" style="margin-top:8px">
-                <img :src="selectedImage" style="max-width: 200px; max-height: 120px; object-fit: contain" />
-              </div>
             </div>
           </div>
         </div>

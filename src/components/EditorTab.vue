@@ -742,7 +742,7 @@
   </el-dialog>
 
   <el-dialog destroy-on-close :close-on-click-modal="false" title="小店返佣商品" v-model="rebateProductsVisible" width="900px">
-    <RebateProducts :selectedAccount="selectedAccount" @insert-commission="insertCommission" @close="rebateProductsVisible=false"/>
+    <RebateProducts :pickerPageInfo="pickerPageInfo" :selectedAccount="selectedAccount" @insert-commission="insertCommission" @close="rebateProductsVisible=false" v-model="pickerQuery"/>
   </el-dialog>
 </template>
 <style>
@@ -1411,6 +1411,7 @@ const loadArticle = (mp_msg, before_save) => {
     mps_obj: mps_obj,
     miniappcard_obj: miniappcard_obj,
     mpvcontent_obj: mpvcontent_obj,
+    mpcommission_obj: mpcommission_obj,
   }
   console.log("mpExsRef=>", mpExsRef.value)
 
@@ -1653,6 +1654,7 @@ const saveCurrentToList = (msg_id) => {
   const category_id_list = adCategoryChoosedRef.value.join("|")
   let vhtml = restore_ad_content_from_UEditor(to_save_content_noencode, category_id_list, ad_idRef.value)
 
+  console.log('mpExsRef',mpExsRef.value)
   vhtml = replaceMPCardToWechat(vhtml, mpExsRef.value.mps_obj)
   vhtml = replaceMiniAppCardToWechat(vhtml, mpExsRef.value.miniappcard_obj)
   vhtml = replaceMPVContentToWechat(vhtml, mpExsRef.value.mpvcontent_obj)
@@ -1670,11 +1672,13 @@ const saveCurrentToList = (msg_id) => {
 }
 
 const saveOthersToListForCustomTag = (msg_id) => {
+  console.log('mpExsRef',mpExsRef.value)
   const targetItems = mp_msgsRef.value.filter(v => v.msg_id !== msg_id)
   const mps_obj = toDeepRaw(mpExsRef.value.mps_obj)
   const miniappcard_obj = toDeepRaw(mpExsRef.value.miniappcard_obj)
   const mpvcontent_obj = toDeepRaw(mpExsRef.value.mpvcontent_obj)
   const mpcommission_obj = toDeepRaw(mpExsRef.value.mpcommission_obj)
+  console.log('mpcommission_obj',mpcommission_obj)
   targetItems.forEach(v => {
     if (hasMPCardInEditor(v.content_noencode)) {
       v.content_noencode = replaceMPCardToWechat(v.content_noencode, mps_obj)
