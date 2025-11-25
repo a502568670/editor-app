@@ -127,13 +127,13 @@
                   </el-icon>
                 </el-tooltip>
               </div>
-              <div v-if="checkIsLocal(item.app_id)" class="absolute right-1 top-1 text-xs text-blue-400">
+              <!-- <div v-if="checkIsLocal(item.app_id)" class="absolute right-1 top-1 text-xs text-blue-400">
                 <el-tooltip class="box-item" effect="dark" content="本地" placement="top">
                   <el-icon :size="16" class="flex justify-center">
                     <MonitorDown />
                   </el-icon>
                 </el-tooltip>
-              </div>
+              </div> -->
             </div>
           </VueFlexWaterfall>
         </div>

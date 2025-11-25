@@ -40,8 +40,8 @@ const router = createRouter({
     },
     {
       path: '/update',
-      name: "update",
-      component: () => import('@/views/update'),
+      name: 'update',
+      component: () => import('@/views/update')
       // hidden: true
     },
     {
@@ -51,7 +51,7 @@ const router = createRouter({
     },
     {
       component: Layout,
-      path: "/",
+      path: '/',
       children: [
         {
           path: '/home2',
@@ -59,36 +59,36 @@ const router = createRouter({
           component: Home,
           children: [
             {
-              path: "/home",
-              name: "home",
-              component: () => import("./views/home")
+              path: '/home',
+              name: 'home',
+              component: () => import('./views/home')
             },
             {
-              path: "/account",
-              name: "account",
-              component: () => import("./views/account")
+              path: '/account',
+              name: 'account',
+              component: () => import('./views/account')
             },
             {
-              path: "/user",
-              name: "user",
-              component: () => import("./views/user")
+              path: '/user',
+              name: 'user',
+              component: () => import('./views/user')
             },
             {
-              path: "/group",
-              name: "group",
-              component: () => import("./views/group")
+              path: '/group',
+              name: 'group',
+              component: () => import('./views/group')
             },
             {
-              path: "/platform",
-              name: "platform",
-              component: () => import("./views/platform") // 添加平台管理路由
+              path: '/platform',
+              name: 'platform',
+              component: () => import('./views/platform') // 添加平台管理路由
             },
             {
-              path: "official_account",
-              name: "official_account",
-              component: () => import("./views/official_account")//添加公众号管理路由
+              path: 'official_account',
+              name: 'official_account',
+              component: () => import('./views/official_account') //添加公众号管理路由
             }
-          ],
+          ]
         },
         {
           path: '/buyVip',
@@ -164,6 +164,11 @@ const router = createRouter({
           path: '/message',
           name: 'message',
           component: () => import('./views/message')
+        },
+        {
+          path: '/notify',
+          name: 'Notify',
+          component: () => import('./views/notify') //添加通知页面
         }
       ]
     }
@@ -233,7 +238,7 @@ window.ResizeObserver = class ResizeObserver extends _ResizeObserver {
 
 // 捕获全局错误
 window.addEventListener('error', (e) => {
-  if (e.message === 'ResizeObserver loop limit exceeded' || 
+  if (e.message === 'ResizeObserver loop limit exceeded' ||
       e.message === 'ResizeObserver loop completed with undelivered notifications.') {
     e.stopImmediatePropagation()
     e.preventDefault()

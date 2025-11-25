@@ -133,12 +133,50 @@ watchEffect(() => {
   if(area.value&&area.value.length>0&&area.value[0]!=-1){
     // 使用地区名称构建参数
     // 第一级是国家名称
-    s+=`&country=${area.value[0]}`;
-    if(area.value.length>1){
-      s+=`&province=${area.value[1]}`;
+    let country = area.value[0];
+    let province = '';
+    let city = '';
+    
+    // 处理香港、澳门、台湾：如果第一级是"中国香港"、"中国澳门"或"中国台湾"
+    if (country === '中国香港') {
+      country = '中国';
+      province = '香港';
+    } else if (country === '中国澳门') {
+      country = '中国';
+      province = '澳门';
+    } else if (country === '中国台湾') {
+      country = '中国';
+      province = '台湾';
+    } else if (country === '中国' && area.value.length > 1) {
+      // 如果第一级是"中国"，第二级可能是"中国香港"、"中国澳门"或"中国台湾"
+      province = area.value[1];
+      // 对于香港、澳门、台湾，去掉"中国"前缀
+      if (province === '中国香港') {
+        province = '香港';
+      } else if (province === '中国澳门') {
+        province = '澳门';
+      } else if (province === '中国台湾') {
+        province = '台湾';
+      }
+      if (area.value.length > 2) {
+        city = area.value[2];
+      }
+    } else {
+      // 其他情况保持原逻辑
+      if (area.value.length > 1) {
+        province = area.value[1];
+      }
+      if (area.value.length > 2) {
+        city = area.value[2];
+      }
     }
-    if(area.value.length>2){
-      s+=`&city=${area.value[2]}`;
+    
+    s += `&country=${country}`;
+    if (province) {
+      s += `&province=${province}`;
+    }
+    if (city) {
+      s += `&city=${city}`;
     }
   }
   group.value = s;

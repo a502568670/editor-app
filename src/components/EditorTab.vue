@@ -28,12 +28,12 @@
               </el-dropdown-menu>
             </template>
           </el-dropdown>
+          <el-button style="margin-left: 10px;" @click="handleSaveAppMsg" type="success">保存到本地草稿</el-button>
+          <el-button @click="handleSyncToWechatDraftBox" type="success">保存到公众号草稿箱</el-button>
+          <el-button @click="openSendArticleDialog" type="success">同步到其他账号</el-button>
+          <el-button @click="confirmOpenPublishToWechatDialog" type="danger">发表</el-button>
         </div>
       </div>
-      <el-button @click="handleSaveAppMsg" type="success">暂存</el-button>
-      <el-button @click="handleSyncToWechatDraftBox" type="success">保存到公众号草稿箱</el-button>
-      <el-button @click="openSendArticleDialog" type="success">同步到其他账号</el-button>
-      <el-button @click="confirmOpenPublishToWechatDialog" type="danger">发表</el-button>
     </div>
     <div class="flex-1 items-stretch h-0 flex">
       <div class="bg-white shadow-xl w-[300px] p-3">
@@ -156,10 +156,11 @@
           v-if="![5, 8, 10].includes(currentArticleRef.item_show_type)"
         />
         <div ref="ueditor_wrapper" class="flex-1">
-          <vue-ueditor-wrap class="h-full ueditor-wrapper flex items-stretch"
-            v-if="msg_idRef !== 0 && currentArticleRef.item_show_type === 0"
-            v-model="currentArticleRef.content_noencode" :editor-id="editorIdRef" @ready="ready"
-            :config="editorConfigRef" :editorDependencies="['ueditor.config.js', 'ueditor.all.js']" />
+          <div class="h-full flex flex-col" v-if="msg_idRef !== 0 && currentArticleRef.item_show_type === 0">
+            <vue-ueditor-wrap class="ueditor-wrapper flex-1 flex items-stretch"
+              v-model="currentArticleRef.content_noencode" :editor-id="editorIdRef" @ready="ready"
+              :config="editorConfigRef" :editorDependencies="['ueditor.config.js', 'ueditor.all.js']" />
+          </div>
           <!-- 这里是视频的编辑区 -->
           <div v-if="msg_idRef !== 0 && currentArticleRef.item_show_type === 5" class="w-full p-2">
             <el-row :gutter="4" class="mb-1 w-full">
@@ -232,6 +233,13 @@
             </el-row>
           </div> -->
         </div>
+        <div class="flex items-center justify-between pt-2">
+          <div>
+            <p v-if="warningMsg != null" class="automatic-save-msg">
+              {{ warningMsg === '' ? `自动保存成功 ${lastSaveTime}` : `自动保存失败：${warningMsg}` }}
+            </p>
+          </div>
+        </div>
       </div>
       <div class="bg-white">
         <div v-for="(item,index) of operationList" :key="index">
@@ -292,6 +300,101 @@
                 </el-select>
               </el-col>
             </el-row>
+            <el-row :gutter="4" class="mb-6" v-if="selected_claim_source_typeRef.id === 2">
+              <el-col :span="24">
+                <p class="set-title">素材来源</p>
+                <el-radio-group v-model="materialSourceRef">
+                  <el-radio label="official_account">公众号/服务号</el-radio>
+                  <el-radio label="other">其他来源</el-radio>
+                </el-radio-group>
+              </el-col>
+            </el-row>
+            <el-row :gutter="4" class="mb-6"
+              v-if="selected_claim_source_typeRef.id === 2 && materialSourceRef === 'official_account'">
+              <el-col :span="24">
+                <p class="set-title">来源文章链接</p>
+                <el-input 
+                  v-model="claimSourceLinkRef" 
+                  clearable 
+                  placeholder="请填写政/媒体/事业单位等官方组织机构发表的内容"
+                  @blur="handleClaimSourceLinkChange"
+                  :loading="claimSourceLinkLoadingRef"
+                />
+                <div v-if="claimSourceAccountRef || claimSourceTimeRef" class="mt-3 space-y-2">
+                  <div v-if="claimSourceAccountRef" class="flex items-center text-sm">
+                    <span class="text-gray-600 min-w-[80px]">来源账号</span>
+                    <div class="flex items-center space-x-2">
+                      <img 
+                        v-if="claimSourceAccountAvatarRef" 
+                        :src="claimSourceAccountAvatarRef" 
+                        class="w-5 h-5 rounded-full object-cover"
+                        referrerpolicy="no-referrer"
+                        alt="账号头像"
+                      />
+                      <span class="text-gray-800 font-medium">{{ claimSourceAccountRef }}</span>
+                    </div>
+                  </div>
+                  <div class="flex items-center text-sm">
+                    <span class="text-gray-600 min-w-[80px]">事件时间</span>
+                    <el-date-picker
+                      v-model="claimSourceTimeRef"
+                      type="date"
+                      placeholder="选择事件时间"
+                      format="YYYY/MM/DD"
+                      value-format="YYYY/MM/DD"
+                      :disabled-date="(time) => time.getTime() >= Date.now()"
+                      style="width: 180px"
+                    />
+                  </div>
+                  <div v-if="claimSourceTimeRef" class="flex items-center text-sm">
+                    <span class="text-gray-600 min-w-[80px]">事件地点</span>
+                    <el-cascader 
+                      v-model="claimSourceLocationRef" 
+                      :options="eventLocationOpts" 
+                      :props="eventLocationProps" 
+                      placeholder="选择该事件发生的地点" 
+                      clearable 
+                      filterable
+                      style="width: 100%"
+                    />
+                  </div>
+                </div>
+              </el-col>
+            </el-row>
+            <el-row :gutter="4" class="mb-6"
+              v-if="selected_claim_source_typeRef.id === 2 && materialSourceRef === 'other'">
+              <el-col :span="24">
+                <p class="set-title">来源账号/平台</p>
+                <el-input v-model="claimSourcePlatformRef" clearable placeholder="请填写具体来源全称 (如北京发布、中国地震台网)" />
+                <div class="mt-3 space-y-2">
+                  <div class="flex items-center text-sm">
+                    <span class="text-gray-600 min-w-[80px]">事件时间</span>
+                    <el-date-picker
+                      v-model="claimSourceTimeRef"
+                      type="date"
+                      placeholder="选择事件时间"
+                      format="YYYY/MM/DD"
+                      value-format="YYYY/MM/DD"
+                      :disabled-date="(time) => time.getTime() >= Date.now()"
+                      style="width: 180px"
+                    />
+                  </div>
+                  <div class="flex items-center text-sm">
+                    <span class="text-gray-600 min-w-[80px]">事件地点</span>
+                    <el-cascader 
+                      v-model="claimSourceLocationRef" 
+                      :options="eventLocationOpts" 
+                      :props="eventLocationProps" 
+                      placeholder="选择该事件发生的地点" 
+                      clearable 
+                      filterable
+                      style="width: 100%"
+                    />
+                  </div>
+                </div>
+              </el-col>
+            </el-row>
+            <!-- 在这里显示 -->
             <el-row :gutter="4" class="mb-6">
               <el-col :span="24">
                 <p class="set-title">原创设置</p>
@@ -337,10 +440,10 @@
       </el-tabs>
     </div>
   </div>
-  <el-dialog :close-on-click-modal="false" title="提取文章链接内容" v-model="dialogExtractMpAritcleUrlRef" width="720px" @close="extractLinkClose" v-loading="extractLoadingRef" element-loading-text="提取中，请稍候...">
+  <el-dialog :close-on-click-modal="false" title="提取文章链接内容" v-model="dialogExtractMpAritcleUrlRef" width="720px" @close="extractLinkClose">
     <el-tabs style="width: 100%;" v-model="extractLink" @tab-change="handleChange">
       <el-tab-pane label="单个提取" name="single">
-        <div>
+        <div v-loading="extractLoadingRef" element-loading-text="提取中，请稍候...">
           <div class="flex">
             <el-input class="mr-2" v-model="extractArticleUrlRef" clearable placeholder="请输入文章提取地址 Ctrl + v 粘贴" />
             <el-button @click="handleLocalExtractMpArticleUrl" type="primary" :loading="extractLoadingRef" :disabled="extractLoadingRef">
@@ -650,6 +753,193 @@
       </el-col>
     </el-row>
   </el-dialog>
+  <el-dialog :close-on-click-modal="false" title="敏感性检测" v-model="dialogSensitiveCheckVisibleRef" width="720px">
+    <div class="sensitive-check-dialog" v-loading="sensitiveCheckLoadingRef" element-loading-text="检测中，请稍候...">
+      <div class="flex items-center space-x-3 mb-5">
+        <el-button plain @click="handleOpenSensitiveManage">
+          敏感词管理
+        </el-button>
+        <el-select
+          v-model="selectedSensitiveCustomGroupRef"
+          multiple
+          collapse-tags
+          collapse-tags-tooltip
+          class="flex-1"
+          clearable
+          filterable
+          placeholder="请选择自定义敏感词组"
+        >
+          <el-option
+            v-for="item in sensitiveCustomGroupOptionsRef"
+            :key="item.value"
+            :label="item.label"
+            :value="item.value"
+          />
+        </el-select>
+        <el-button type="primary" plain @click="handleSensitiveRetry">
+          重新检测
+        </el-button>
+      </div>
+      <div class="mb-5">
+        <div class="font-medium text-gray-700 mb-2">处理方案</div>
+        <el-radio-group v-model="sensitiveHandleStrategyRef" class="flex flex-wrap gap-4">
+          <el-radio label="none">不处理</el-radio>
+          <el-radio label="remove">删除敏感词</el-radio>
+          <el-radio label="replace">替换为自定义字符</el-radio>
+          <el-radio label="insert">字符中插入自定义字符</el-radio>
+        </el-radio-group>
+        <div v-if="sensitiveHandleStrategyRef === 'replace' || sensitiveHandleStrategyRef === 'insert'" class="mt-3">
+          <el-input
+            v-model="sensitiveCustomCharRef"
+            placeholder="请输入自定义字符"
+            maxlength="10"
+            class="w-full"
+          />
+        </div>
+      </div>
+      <div class="space-y-4 max-h-72 overflow-y-auto pr-1">
+        <template v-if="sensitiveCheckDraftsRef.length">
+          <div
+            v-for="item in sensitiveCheckDraftsRef"
+            :key="item.id"
+            class="border border-gray-200 rounded-md bg-gray-50 px-4 py-3"
+          >
+            <div class="flex items-center text-base text-gray-800 font-medium">
+              <span class="px-2 py-0.5 bg-blue-100 text-blue-600 rounded mr-3 text-xs">{{ item.label }}</span>
+              <span class="truncate">{{ item.title }}</span>
+            </div>
+            <div class="text-sm text-gray-600 mt-1">{{ item.description }}</div>
+            <div class="text-xs text-gray-400 mt-2">共 {{ item.words.length }} 个敏感词</div>
+            <div class="flex flex-wrap gap-2 mt-3">
+              <el-tag
+                v-for="word in item.words"
+                :key="word"
+                closable
+                size="small"
+                type="danger"
+                @close="handleRemoveSensitiveWord(item.id, word)"
+              >
+                {{ word }}
+              </el-tag>
+            </div>
+          </div>
+        </template>
+        <el-empty v-else description="暂无敏感词记录" />
+      </div>
+    </div>
+    <template #footer>
+      <div class="dialog-footer">
+        <el-button @click="dialogSensitiveCheckVisibleRef = false">取消</el-button>
+        <el-button type="primary" @click="handleSensitiveDialogConfirm">确定</el-button>
+      </div>
+    </template>
+  </el-dialog>
+  <el-dialog :close-on-click-modal="false" title="敏感词管理" v-model="dialogSensitiveManageVisibleRef" width="820px">
+    <div class="sensitive-manage-dialog space-y-4" v-loading="sensitiveManageLoadingRef">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center space-x-3">
+          <el-input
+            v-model="sensitiveManageKeywordQueryRef"
+            placeholder="关键词搜索"
+            class="w-56"
+            clearable
+          />
+
+        </div>
+        <el-button type="primary" @click="handleSensitiveManageCreate">
+          新建自定义敏感词组
+        </el-button>
+      </div>
+      <el-table
+        :data="sensitiveKeywordGroupsRef"
+        border
+        stripe
+        class="sensitive-manage-table"
+      >
+        <el-table-column type="expand">
+          <template #default="{ row }">
+            <div class="px-6 py-3 flex flex-wrap gap-2">
+              <el-tag
+                v-for="word in row.words"
+                :key="`${row.id}-${word}`"
+                size="small"
+                type="info"
+              >
+                {{ word }}
+              </el-tag>
+            </div>
+          </template>
+        </el-table-column>
+        <el-table-column label="敏感词组" prop="name" min-width="160" />
+        <el-table-column label="描述" prop="description" min-width="160" />
+        <el-table-column label="创建时间" prop="createdAt" min-width="180" />
+        <el-table-column label="操作" width="150">
+          <template #default="{ row }">
+            <el-button
+              type="primary"
+              link
+              :disabled="row.userId !== currentUserIdRef"
+              @click="handleSensitiveManageEdit(row)"
+            >
+              编辑
+            </el-button>
+            <el-button
+              type="danger"
+              link
+              :disabled="row.userId !== currentUserIdRef"
+              @click="handleSensitiveManageDelete(row)"
+            >
+              删除
+            </el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+      <div class="flex justify-end">
+        <el-pagination
+          layout="prev, pager, next"
+          :total="sensitiveManagePaginationRef.total"
+          :page-size="sensitiveManagePaginationRef.pageSize"
+          :current-page="sensitiveManagePaginationRef.page"
+          small
+          @current-change="handleSensitiveManagePageChange"
+        />
+      </div>
+    </div>
+    <template #footer>
+      <div class="dialog-footer">
+        <el-button @click="dialogSensitiveManageVisibleRef = false">关闭</el-button>
+      </div>
+    </template>
+  </el-dialog>
+  <el-dialog :close-on-click-modal="false" title="编辑敏感词组" v-model="dialogSensitiveManageEditVisibleRef" width="620px">
+    <el-form :model="sensitiveManageEditFormRef" label-width="120px" class="sensitive-manage-edit-dialog">
+      <el-form-item label="敏感词组名称">
+        <el-input v-model="sensitiveManageEditFormRef.name" placeholder="请输入敏感词组名称" />
+      </el-form-item>
+      <el-form-item label="敏感词组描述">
+        <el-input
+          v-model="sensitiveManageEditFormRef.description"
+          type="textarea"
+          :autosize="{ minRows: 2, maxRows: 4 }"
+          placeholder="请输入敏感词组描述"
+        />
+      </el-form-item>
+      <el-form-item label="敏感词组">
+        <el-input
+          v-model="sensitiveManageEditFormRef.words"
+          type="textarea"
+          :autosize="{ minRows: 8, maxRows: 10 }"
+          placeholder="换行分隔每个敏感词"
+        />
+      </el-form-item>
+    </el-form>
+    <template #footer>
+      <div class="dialog-footer">
+        <el-button @click="handleSensitiveManageEditCancel">取消</el-button>
+        <el-button type="primary" :loading="sensitiveManageEditSubmittingRef" @click="handleSensitiveManageEditConfirm">确定</el-button>
+      </div>
+    </template>
+  </el-dialog>
   <el-dialog :close-on-click-modal="false" title="调试信息" v-model="dialogDebugVisibleRef" width="600px">
     <div class="w-full h-[300px] bg-gray-900 text-green-500 flex flex-col space-y-4">
       <el-row :gutter="40" class="p-1 flex-none">
@@ -777,6 +1067,12 @@
   max-width: 180px;
 }
 
+.sensitive-check-dialog,
+.sensitive-manage-dialog,
+.sensitive-manage-edit-dialog {
+  width: 100%;
+}
+
 #edui1 {
   height: 100%;
 }
@@ -787,6 +1083,28 @@
 
 .el-dialog__body {
   @apply flex justify-center;
+}
+
+/* 隐藏自动排版按钮的下拉箭头 */
+.edui-toolbar .edui-for-autotypeset .edui-splitborder,
+.edui-toolbar .edui-for-autotypeset .edui-arrow,
+.edui-toolbar .edui-for-autotypeset .edui-splitbutton-arrow,
+.edui-toolbar [data-command="autotypeset"] .edui-splitborder,
+.edui-toolbar [data-command="autotypeset"] .edui-arrow,
+.edui-toolbar [data-command="autotypeset"] .edui-splitbutton-arrow {
+  display: none !important;
+}
+
+/* 移除自动排版按钮的分割线样式 */
+.edui-toolbar .edui-for-autotypeset.edui-splitbutton,
+.edui-toolbar [data-command="autotypeset"].edui-splitbutton {
+  border-right: none !important;
+}
+
+/* 使自动排版按钮看起来像普通按钮 */
+.edui-toolbar .edui-for-autotypeset,
+.edui-toolbar [data-command="autotypeset"] {
+  cursor: pointer !important;
 }
 </style>
 <style scoped>
@@ -842,10 +1160,18 @@
 
 .ueditor-wrapper :deep(.edui-default .edui-editor) {
   border: none !important;     /* 去掉边框 */
+  border-bottom: 1px solid #eee !important;
+}
+
+.automatic-save-msg{
+  font-size: 12px;
+  color: var(--jzl-primary-color);
+  font-weight: 600;
+  text-align: end;
 }
 </style>
 <script setup>
-import { ref, toRefs, shallowRef, onMounted, onBeforeUnmount, nextTick, onActivated, onDeactivated, onUnmounted, watch, computed, provide, toRaw, unref } from 'vue';
+import { ref, toRefs, shallowRef, onMounted, onBeforeUnmount, nextTick, onActivated, onDeactivated, onUnmounted, watch, computed, provide, toRaw, unref, reactive } from 'vue';
 // import { listAccount } from '@/api/account'
 import store from '@/store'
 import { getToken } from "@/utils/auth";
@@ -862,6 +1188,13 @@ import {
 } from "@/api/mp_wechat"
 import { format_to_UEditor_html, clearContentUrl, clearWeApp, restore_from_UEditor_html } from "@/utils/dom";
 import { uploadImage } from "@/api/img"
+import {
+  listSensitiveWordGroups,
+  createSensitiveWordGroup,
+  updateSensitiveWordGroup,
+  deleteSensitiveWordGroup,
+  checkSensitiveWords
+} from "@/api/sensitiveWords"
 import {gen_unique_id} from "@/utils/msic"
 import { toDeepRaw, toPicPageInfo, gen_picture_page_info_list } from "@/utils/convert"
 import { fmtImageUrl } from "@/utils/format"
@@ -914,6 +1247,10 @@ const is_xiaolvshu = computed(() => {
 });
 
 const { all_accounts } = toRefs(store.getters)
+const currentUserIdRef = computed(() => {
+  const user = store.getters.getUserData || {}
+  return user.user_id ?? user.userId ?? null
+})
 // console.log('envVars.backend_url=>', envVars.backend_url)
 // editor
 const isDebugRef = ref(envVars.is_debug)
@@ -996,7 +1333,22 @@ const editorConfigRef = ref({
     }
     call();
   },
-  elementPathEnabled: false
+  elementPathEnabled: false,
+  wordCount: false,
+  // 自定义工具栏按钮点击回调
+  toolbarCallback: function (cmd, editor) {
+    // 处理自动排版按钮点击（拦截 autotypeset 命令）
+    if (cmd === 'autotypeset') {
+      // 延迟调用，确保 handleAutoFormat 已经定义
+      setTimeout(() => {
+        if (typeof handleAutoFormat === 'function') {
+          handleAutoFormat()
+        }
+      }, 0)
+      return true // 返回 true 表示已经处理，阻止默认行为
+    }
+    return false
+  }
 })
 
 // component
@@ -1008,6 +1360,20 @@ const DeleteRef = shallowRef(Delete);
 // mp_msgs
 const msg_idRef = ref(0)
 const mp_msgsRef = ref([])
+const normalizeClaimSourceInfo = (mpMsgs) => {
+  if (!Array.isArray(mpMsgs)) return
+  mpMsgs.forEach((item) => {
+    if (!item || !item.claim_source_info) return
+    if (typeof item.claim_source_info === 'string') {
+      try {
+        item.claim_source_info = JSON.parse(item.claim_source_info)
+      } catch (e) {
+        console.error('claim_source_info解析失败:', e)
+        item.claim_source_info = null
+      }
+    }
+  })
+}
 const mpExsRef = ref({
   mps_obj: {},
   miniappcard_obj: {},
@@ -1033,6 +1399,16 @@ const commentAreaAdvertise = ref(1)
 // 创作来源
 const claim_source_typesRef = ref(claim_source_types)
 const selected_claim_source_typeRef = ref(claim_source_types[0])
+const claimSourceLinkRef = ref('') // 来源文章链接
+const claimSourcePlatformRef = ref('') // 来源账号/平台
+const claimSourceAccountRef = ref('') // 来源账号（从链接获取）
+const claimSourceAccountAvatarRef = ref('') // 来源账号头像
+const claimSourceTimeRef = ref('') // 事件时间
+const claimSourceLocationRef = ref([]) // 事件地点
+const claimSourceLinkLoadingRef = ref(false) // 加载状态
+
+// 素材来源
+const materialSourceRef = ref('official_account') // 默认选中"公众号/服务号"
 
 // 广告
 const ad_idRef = ref(0)
@@ -1040,7 +1416,6 @@ const dialogAdVisibleRef = ref(false)
 const adCategoryRef = ref(ad_categorys)
 const adCategoryChoosedRef = ref([])
 const insertAdTypeRef = ref("1") // 0-不插入 1-手动 2-智能
-
 
 // 进度
 const dialogPercentVisbleRef = ref(false)
@@ -1051,6 +1426,39 @@ const failReasonVisibleRef = ref(false)
 
 // 调试信息
 const dialogDebugVisibleRef = ref(false)
+
+// 敏感性检测
+const dialogSensitiveCheckVisibleRef = ref(false)
+const sensitiveCheckLoadingRef = ref(false)
+const baseSensitiveGroupOptions = [
+]
+const sensitiveCustomGroupOptionsRef = ref([...baseSensitiveGroupOptions])
+const selectedSensitiveCustomGroupRef = ref([])
+const sensitiveHandleStrategyRef = ref('none')
+const sensitiveCustomCharRef = ref('')
+const sensitiveCheckDraftsRef = ref([])
+const dialogSensitiveManageVisibleRef = ref(false)
+const sensitiveManageOnlyMineRef = ref(true)
+const sensitiveManageKeywordQueryRef = ref('')
+const sensitiveKeywordGroupsRef = ref([])
+const sensitiveManageLoadingRef = ref(false)
+const sensitiveManagePaginationRef = reactive({
+  page: 1,
+  pageSize: 10,
+  total: 0,
+})
+const sensitiveManageLoadedOnceRef = ref(false)
+const dialogSensitiveManageEditVisibleRef = ref(false)
+const sensitiveManageEditFormRef = reactive({
+  id: '',
+  name: '',
+  description: '',
+  words: '',
+  createdAt: '',
+  isPrivate: true,
+})
+const sensitiveManageEditIsNewRef = ref(false)
+const sensitiveManageEditSubmittingRef = ref(false)
 
 // 原创性检测
 const dialogCopyrightCheckVisibleRef = ref(false)
@@ -1194,17 +1602,94 @@ const currentArticleRef = ref({
   picture_page_info_list: [],
 })
 
-
 /// ueditor methods
 
 function ready(editorInstance) {
   console.log(`编辑器实例${editorInstance.key}: `, editorInstance);
   editorRef.value = editorInstance;
 
+  // 重写 execCommand 方法，完全阻止 autotypeset 命令的默认执行
+  const originalExecCommand = editorInstance.execCommand
+  editorInstance.execCommand = function(cmd, value) {
+    // 拦截 autotypeset 命令，使用自定义实现
+    if (cmd === 'autotypeset' || cmd === 'autotype') {
+      // 调用自定义的自动排版函数
+      if (typeof handleAutoFormat === 'function') {
+        handleAutoFormat()
+      }
+      return true // 返回 true 表示命令已处理
+    }
+    // 其他命令使用原始方法
+    try {
+      return originalExecCommand.call(this, cmd, value)
+    } catch (e) {
+      console.warn('执行命令失败:', cmd, e)
+      return false
+    }
+  }
+
+  // 设置自动排版按钮的点击事件，并移除下拉箭头
+  nextTick(() => {
+    // 使用 setTimeout 确保 DOM 完全渲染
+    setTimeout(() => {
+      // 查找自动排版按钮（autotypeset 命令对应的按钮）
+      const selectors = [
+        '[data-command="autotypeset"]',
+        '.edui-toolbar .edui-for-autotypeset',
+        '.edui-toolbar [title*="自动排版"]',
+        '.edui-toolbar [title*="排版"]',
+        '.edui-toolbar .edui-splitbutton[title*="排版"]'
+      ]
+      
+      let autoFormatBtn = null
+      for (const selector of selectors) {
+        autoFormatBtn = document.querySelector(selector)
+        if (autoFormatBtn) break
+      }
+      
+      if (autoFormatBtn) {
+        // 移除所有可能的下拉箭头元素
+        const arrowSelectors = ['.edui-splitborder', '.edui-arrow', '.edui-splitbutton-arrow', '.edui-menu']
+        arrowSelectors.forEach(selector => {
+          const arrows = autoFormatBtn.querySelectorAll(selector)
+          arrows.forEach(arrow => {
+            arrow.style.display = 'none'
+          })
+        })
+        
+        // 查找父级分割按钮容器
+        const splitButton = autoFormatBtn.closest('.edui-splitbutton') || autoFormatBtn.parentElement
+        if (splitButton && splitButton.classList.contains('edui-splitbutton')) {
+          // 移除分割按钮样式
+          splitButton.style.borderRight = 'none'
+          splitButton.style.paddingRight = '0'
+        }
+        
+        // 阻止下拉菜单的显示
+        const handleClick = function(e) {
+          e.preventDefault()
+          e.stopPropagation()
+          e.stopImmediatePropagation()
+          handleAutoFormat()
+          return false
+        }
+        
+        // 移除旧的事件监听器（如果存在）
+        autoFormatBtn.removeEventListener('click', handleClick)
+        autoFormatBtn.addEventListener('click', handleClick, true) // 使用捕获阶段
+        
+        // 阻止鼠标悬停时显示下拉菜单
+        autoFormatBtn.addEventListener('mouseenter', function(e) {
+          e.stopPropagation()
+        }, true)
+      }
+    }, 100) // 延迟 100ms 确保工具栏完全渲染
+  })
+
   const wrapprHeight = ueditor_wrapper.value.clientHeight
   console.log("wrapprHeight=>", wrapprHeight)
   // document.querySelector('#edui1_iframeholder').style.height = 'calc(100% - 100px)';
-  const toolbarHeight = document.querySelector(".edui-editor-toolbarbox .edui-default").clientHeight
+  const toolbarHeight = document.querySelector(".edui-editor-toolbarbox .edui-default")?.clientHeight
   // const conatinerHeight = document.querySelector("#edui1").clientHeight
   // console.log("toolbarHeight:", toolbarHeight)
   // console.log("conatinerHeight:", conatinerHeight)
@@ -1356,6 +1841,7 @@ const listArticles = async () => {
     const { wechat_id } = selectedAccount.value
     mp_msgsRef.value = await newlistArticlesByAppMsg(wechat_id, appmsgid).catch((err) => { }).then(response => {
       response.data.forEach(gen_picture_page_info_list)
+      normalizeClaimSourceInfo(response.data)
       console.log('aaa',response)
       return response.data;
     })
@@ -1440,6 +1926,104 @@ const loadArticle = (mp_msg, before_save) => {
   if (find_claim_source_type) {
     selected_claim_source_typeRef.value = find_claim_source_type
   }
+  
+  // 解析并还原claim_source_info
+  if (currentArticleRef.value.claim_source_info) {
+    let claimSourceInfo = currentArticleRef.value.claim_source_info
+    // 如果是字符串，需要解析JSON
+    if (typeof claimSourceInfo === 'string') {
+      try {
+        claimSourceInfo = JSON.parse(claimSourceInfo)
+      } catch (e) {
+        console.error('解析claim_source_info失败:', e)
+        claimSourceInfo = null
+      }
+    }
+    
+    if (claimSourceInfo && claimSourceInfo.media_source_type_info) {
+      const mediaInfo = claimSourceInfo.media_source_type_info
+      
+      // 还原素材来源类型（兼容数字和字符串类型）
+      if (mediaInfo.media_source_from === 1 || mediaInfo.media_source_from === "1") {
+        materialSourceRef.value = 'official_account'
+        // 还原公众号/服务号相关字段
+        claimSourceLinkRef.value = mediaInfo.biz_link_url || ''
+        claimSourceAccountRef.value = mediaInfo.biz_nickname || ''
+        claimSourceAccountAvatarRef.value = mediaInfo.biz_headimgurl || ''
+      } else if (mediaInfo.media_source_from === 2 || mediaInfo.media_source_from === "2") {
+        materialSourceRef.value = 'other'
+        // 还原其他来源相关字段
+        claimSourcePlatformRef.value = mediaInfo.other_from_account || ''
+      }
+      
+      // 还原事件时间（时间戳转日期字符串）
+      if (mediaInfo.news_time) {
+        try {
+          const timestamp = parseInt(mediaInfo.news_time)
+          if (timestamp > 0) {
+            const date = new Date(timestamp * 1000)
+            const year = date.getFullYear()
+            const month = String(date.getMonth() + 1).padStart(2, '0')
+            const day = String(date.getDate()).padStart(2, '0')
+            claimSourceTimeRef.value = `${year}/${month}/${day}`
+          }
+        } catch (e) {
+          console.error('解析事件时间失败:', e)
+          claimSourceTimeRef.value = ''
+        }
+      } else {
+        claimSourceTimeRef.value = ''
+      }
+      
+      // 还原事件地点
+      if (mediaInfo.news_position_info) {
+        const posInfo = mediaInfo.news_position_info
+        if (posInfo.country === "中国" && posInfo.province) {
+          // 中国地区
+          let province = posInfo.province
+          // 对于香港、澳门、台湾，需要映射回"中国香港"、"中国澳门"、"中国台湾"以匹配级联选择器的 value
+          if (province === '香港') {
+            province = '中国香港'
+          } else if (province === '澳门') {
+            province = '中国澳门'
+          } else if (province === '台湾') {
+            province = '中国台湾'
+          }
+          const location = ['china', province]
+          if (posInfo.city) {
+            location.push(posInfo.city)
+          }
+          claimSourceLocationRef.value = location
+        } else if (posInfo.country && posInfo.country !== "中国") {
+          // 国际地区
+          claimSourceLocationRef.value = ['international', posInfo.country]
+        } else {
+          // 无确切地点或空
+          claimSourceLocationRef.value = []
+        }
+      } else {
+        claimSourceLocationRef.value = []
+      }
+    } else {
+      // 重置所有字段
+      materialSourceRef.value = 'official_account'
+      claimSourceLinkRef.value = ''
+      claimSourcePlatformRef.value = ''
+      claimSourceAccountRef.value = ''
+      claimSourceAccountAvatarRef.value = ''
+      claimSourceTimeRef.value = ''
+      claimSourceLocationRef.value = []
+    }
+  } else {
+    // 没有claim_source_info，重置所有字段
+    materialSourceRef.value = 'official_account'
+    claimSourceLinkRef.value = ''
+    claimSourcePlatformRef.value = ''
+    claimSourceAccountRef.value = ''
+    claimSourceAccountAvatarRef.value = ''
+    claimSourceTimeRef.value = ''
+    claimSourceLocationRef.value = []
+  }
 
   // const toolbar = DomEditor.getToolbar(editorRef.value);
   // console.log("toolbar keys:", toolbar.getConfig().toolbarKeys)
@@ -1520,6 +2104,7 @@ const newArticle = async (before_save = true, item_show_type = 0, hydrateMsgIdx 
     if (preIdx !== -1) {
       console.log("preIdx=>", preIdx, mp_msgsRef.value[preIdx])
       mp_msgsRef.value[preIdx] = { ...mp_msgsRef.value[preIdx], ...currentArticleRef.value }
+      console.log("剩余的所有文章=>", mp_msgsRef.value)
     }
   }
 
@@ -1645,6 +2230,84 @@ const saveCurrentToList = (msg_id) => {
 
   // 创作来源
   currentArticleRef.value.claim_source_type = selected_claim_source_typeRef.value.id
+  
+  // 新增创作来源json体保存
+  if (selected_claim_source_typeRef.value.id === 2) {
+    // 构建claim_source_info对象
+    const claimSourceInfo = {
+      claim_source_type: String(selected_claim_source_typeRef.value.id),
+      claim_source: selected_claim_source_typeRef.value.name,
+      aigc_type: "",
+      aigc_wording: "",
+      media_source_type_info: {}
+    }
+    
+    // 构建media_source_type_info
+    if (materialSourceRef.value === 'official_account') {
+      // 公众号/服务号
+      claimSourceInfo.media_source_type_info = {
+        media_source_from: 1,
+        biz_nickname: claimSourceAccountRef.value || "",
+        news_time: claimSourceTimeRef.value ? String(Math.floor(new Date(claimSourceTimeRef.value).getTime() / 1000)) : "",
+        biz_link_url: claimSourceLinkRef.value || "",
+        biz_headimgurl: claimSourceAccountAvatarRef.value || "",
+        other_from_account: "",
+        news_position_info: {}
+      }
+    } else {
+      // 其他来源
+      claimSourceInfo.media_source_type_info = {
+        media_source_from: 2,
+        biz_nickname: "",
+        news_time: claimSourceTimeRef.value ? String(Math.floor(new Date(claimSourceTimeRef.value).getTime() / 1000)) : "",
+        biz_link_url: "",
+        biz_headimgurl: "",
+        other_from_account: claimSourcePlatformRef.value || "",
+        news_position_info: {}
+      }
+    }
+    
+    // 处理地点信息
+    if (claimSourceLocationRef.value && claimSourceLocationRef.value.length > 0) {
+      const location = claimSourceLocationRef.value
+      if (location[0] === 'china' && location.length >= 2) {
+        // 中国地区
+        let province = location[1] || ""
+        // 对于香港、澳门、台湾，去掉"中国"前缀
+        if (province === '中国香港') {
+          province = '香港'
+        } else if (province === '中国澳门') {
+          province = '澳门'
+        } else if (province === '中国台湾') {
+          province = '台湾'
+        }
+        claimSourceInfo.media_source_type_info.news_position_info = {
+          country: "中国",
+          province: province,
+          city: location.length >= 3 ? location[2] : ""
+        }
+      } else if (location[0] === 'international' && location.length >= 2) {
+        // 国际地区
+        claimSourceInfo.media_source_type_info.news_position_info = {
+          country: location[1] || "",
+          province: "",
+          city: ""
+        }
+      } else if (location[0] === 'no_location') {
+        // 无确切地点
+        claimSourceInfo.media_source_type_info.news_position_info = {
+          country: "",
+          province: "",
+          city: ""
+        }
+      }
+    }
+    
+    currentArticleRef.value.claim_source_info = claimSourceInfo
+  } else {
+    // 其他创作来源类型，不保存claim_source_info或保存空对象
+    currentArticleRef.value.claim_source_info = null
+  }
 
   // 评论区广告
   currentArticleRef.value.open_comment_ad = commentAreaAdvertise.value
@@ -1718,6 +2381,123 @@ const validateMsgData = () => {
   })
 }
 
+const warningMsg = ref(null)
+const lastSaveTime = ref('')
+const automaticSaveExamine = () => {
+  if (!selectedAccount.value) {
+    warningMsg.value = '发布的公众账号不存在'
+    return false;
+  }
+  return mp_msgsRef.value.every(v => {
+    if ([8, 10].includes(v.item_show_type)) return true
+    if (!v.title) {
+      warningMsg.value = '未设置标题'
+      return false
+    }
+    if (!v.cdn_url) {
+      warningMsg.value = '未设置封面'
+      return false
+    }
+    return true
+  })
+}
+const automaticSave = async (push_to_remote) => {
+  // 检查是否添加了标题和封面
+  if (!automaticSaveExamine()) {
+    return
+  }
+
+  const { token, session_id, wechat_id } = selectedAccount.value
+  if (!session_id) {
+    warningMsg.value = apperrmsg.invalid_session
+    return
+  }
+
+  const msg_id = msg_idRef.value
+  let selected_idx = saveCurrentToList(msg_id)
+  saveOthersToListForCustomTag(msg_id)
+
+  let appmsgid = _getAppMsgId()
+
+  const material_list = mp_msgsRef.value.map((item) => {
+    // 清空文章中的垂直制表符，防止出现空白行
+    if(item.content_noencode) {
+      item.content_noencode = item.content_noencode.replace(/<p>\u000b<\/p>$/, '')
+    }
+    // 小绿书处理有图片和无图片的类型
+    if([8, 10].includes(item.item_show_type)) {
+      if (item.cdn_url === '' && !item.picture_page_info_list?.length){
+        item.item_show_type = 10
+        item.content_noencode = item.guide_words
+      } else {
+        item.item_show_type = 8
+        if(item.cdn_url == null || item.cdn_url === ''){
+          item.cdn_url = item.picture_page_info_list[0].url
+        }
+      }
+    }
+    return item
+  })
+  const postData = {
+    cookies: serializeCookie(JSON.parse(session_id)["cookie"]),
+    token: parseInt(token),
+    appmsgid,
+    material_list: toRaw(material_list),
+    wechat_id,
+    push_to_remote,
+  }
+
+  await saveAppMsg(postData).then(async (res) => {
+    res.data.data.mp_msgs.forEach(gen_picture_page_info_list)
+    mp_msgsRef.value = res.data.data.mp_msgs.map((item, index)=>({
+      ...item,
+      content_noencode: mp_msgsRef.value[index].content_noencode
+    }))
+    normalizeClaimSourceInfo(res.data.data.mp_msgs)
+
+
+    const isCreateNewAppMsg = appmsgid <= 0 && res.data.data.appmsgid > 0
+    appmsgid = res.data.data.appmsgid
+    if (isCreateNewAppMsg) {
+      // 新列表 需要更新currentAppmsgRef
+      currentAppmsgRef.value.appmsgid = appmsgid
+      currentAppmsgRef.value.title = mp_msgsRef.value[0].title
+      emitEvents('msgidChange', appmsgid)
+    }
+
+    // await listArticles()
+    // const msg_ids = res.data.data.msg_ids
+    if (selected_idx === -1) {
+      selected_idx = 0
+    }
+    if (isCreateNewAppMsg) {
+      mp_msgsRef.value[selected_idx].appmsgid = appmsgid
+    }
+    loadArticle(mp_msgsRef.value[selected_idx])
+
+    lastSaveTime.value = new Date().toTimeString().slice(0, 8)
+    warningMsg.value = ''
+  }).catch((e) => {
+    console.log('saveAppMsg catched e:', e)
+    warningMsg.value = e
+    console.log("=========")
+  })
+}
+const throttle = (fn, delay = 200) => {
+  let last = 0
+  return function (...args) {
+    const now = Date.now()
+    if (now - last >= delay) {
+      last = now
+      fn.apply(this, args)
+    }
+  }
+}
+const throttledAutoSave = throttle(automaticSave, 5000) // 只创建一次
+watch(()=>currentArticleRef.value.content_noencode,()=>{
+  throttledAutoSave(0)
+})
+
 const _saveAppMsg = async (push_to_remote) => {
   if (!validateAccount()) {
     return false
@@ -1775,7 +2555,7 @@ const _saveAppMsg = async (push_to_remote) => {
     wechat_id,
     push_to_remote,
   }
-  // console.log("save appmsg postData=>", postData)
+  console.log("save appmsg postData=>", postData)
   // return
   const loader = ElLoading.service({
     target: '.main'
@@ -1789,6 +2569,7 @@ const _saveAppMsg = async (push_to_remote) => {
       duration: 2 * 1000
     })
     res.data.data.mp_msgs.forEach(gen_picture_page_info_list)
+    normalizeClaimSourceInfo(res.data.data.mp_msgs)
     mp_msgsRef.value = res.data.data.mp_msgs
     // ### todo: mp_msg_exs
 
@@ -1825,7 +2606,6 @@ const _saveAppMsg = async (push_to_remote) => {
 const handleSaveAppMsg = async () => {
   await _saveAppMsg(0)
 }
-
 
 const handleSyncToWechatDraftBox = async () => {
   const publish_flag = currentAppmsgRef.value.publish_flag;
@@ -1944,6 +2724,7 @@ const disableHours = (role, comparingDate) => {
   console.log("idx=>", idx)
   return HOUSRS.slice(0, idx)
 }
+
 const disableMinutes = (role, comparingDate) => {
   const todayStr = new Date().toISOString().split('T')[0]
   if (selectedPublishTimingDateRef.value.id !== todayStr) {
@@ -2082,6 +2863,427 @@ const handleCopyrightCheck = async () => {
     dialogCopyrightCheckVisibleRef.value = false
   }
 }
+
+const htmlToPlainText = (value) => {
+  if (!value) return ''
+  return String(value)
+    .replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, ' ')
+    .replace(/<style[\s\S]*?>[\s\S]*?<\/style>/gi, ' ')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+const buildArticleCheckText = (article) => {
+  if (!article) return ''
+  const segments = []
+  const plainFields = ['title', 'digest', 'abstract', 'guide_words']
+  plainFields.forEach((field) => {
+    const value = article[field]
+    if (value) {
+      segments.push(htmlToPlainText(value))
+    }
+  })
+  const content = article.content_noencode || article.content || ''
+  if (content) {
+    segments.push(htmlToPlainText(content))
+  }
+  return segments.join('\n').replace(/\s+/g, ' ').trim()
+}
+
+const getSelectedCustomWords = () => {
+  if (!Array.isArray(selectedSensitiveCustomGroupRef.value) || !selectedSensitiveCustomGroupRef.value.length) {
+    return []
+  }
+  const words = new Set()
+  const groupMap = new Map(sensitiveKeywordGroupsRef.value.map((item) => [item.id, item.words || []]))
+  selectedSensitiveCustomGroupRef.value.forEach((value) => {
+    const groupId = typeof value === 'number' ? value : Number(value)
+    if (Number.isInteger(groupId) && groupMap.has(groupId)) {
+      const groupWords = groupMap.get(groupId) || []
+      groupWords.forEach((word) => {
+        if (word) {
+          words.add(String(word))
+        }
+      })
+    }
+  })
+  return Array.from(words)
+}
+
+const matchCustomWordsInText = (text, words) => {
+  if (!text || !words.length) return []
+  const matches = new Set()
+  words.forEach((word) => {
+    if (!word) return
+    if (text.includes(word)) {
+      matches.add(word)
+    }
+  })
+  return Array.from(matches)
+}
+
+const runSensitiveWordCheck = async () => {
+  sensitiveCheckLoadingRef.value = true
+  console.log("mp_msgsRef",mp_msgsRef.value)
+  try {
+    if (!sensitiveManageLoadedOnceRef.value) {
+      await fetchSensitiveWordGroups()
+    }
+    const articlesRaw = toDeepRaw(mp_msgsRef.value) || []
+    if (!articlesRaw.length) {
+      sensitiveCheckDraftsRef.value = []
+      return
+    }
+
+    const customWords = getSelectedCustomWords()
+    const articlePayloads = articlesRaw.map((item, index) => {
+      const text = buildArticleCheckText(item)
+      return {
+        id: item.msg_id ?? item.id ?? index,
+        label: `第${index + 1}稿`,
+        title: item.title || '',
+        description: item.digest || item.abstract || '',
+        text,
+      }
+    })
+
+    const results = await Promise.all(articlePayloads.map(async (article) => {
+      let backendWords = []
+      if (article.text) {
+        const response = await checkSensitiveWords({ text: article.text })
+        backendWords = response?.data?.sensitive_words || []
+      }
+      const customMatches = matchCustomWordsInText(article.text, customWords)
+      const words = Array.from(new Set([...backendWords, ...customMatches]))
+      return {
+        id: article.id,
+        label: article.label,
+        title: article.title,
+        description: article.description,
+        words,
+      }
+    }))
+
+    sensitiveCheckDraftsRef.value = results
+  } catch (error) {
+    console.error('敏感词检测失败', error)
+    const message = error?.response?.data?.detail || error?.message || '敏感性检测失败，请稍后重试'
+    ElMessage.error(message)
+  } finally {
+    sensitiveCheckLoadingRef.value = false
+  }
+}
+
+const handleSensitiveCheck = async () => {
+  // 先同步当前编辑的文章内容到 mp_msgsRef
+  const idx = mp_msgsRef.value.findIndex(v => v.msg_id === msg_idRef.value)
+  if (idx !== -1) {
+    mp_msgsRef.value[idx] = { ...mp_msgsRef.value[idx], ...currentArticleRef.value }
+  }
+
+  dialogSensitiveCheckVisibleRef.value = true
+  await nextTick()
+  await runSensitiveWordCheck()
+}
+
+const handleSensitiveRetry = async () => {
+  // 先同步当前编辑的文章内容到 mp_msgsRef
+  const idx = mp_msgsRef.value.findIndex(v => v.msg_id === msg_idRef.value)
+  if (idx !== -1) {
+    mp_msgsRef.value[idx] = { ...mp_msgsRef.value[idx], ...currentArticleRef.value }
+  }
+
+  await runSensitiveWordCheck()
+}
+
+const handleRemoveSensitiveWord = (draftId, word) => {
+  sensitiveCheckDraftsRef.value = sensitiveCheckDraftsRef.value.map((item) => {
+    if (item.id !== draftId) return item
+    return {
+      ...item,
+      words: item.words.filter((w) => w !== word)
+    }
+  })
+}
+
+// 处理敏感词的辅助函数
+const processSensitiveWords = (text, words, strategy, customChar = '') => {
+  if (!text || !words.length) return text
+
+  let processedText = text
+
+  switch (strategy) {
+    case 'none':
+      return processedText
+    case 'remove':
+      words.forEach(word => {
+        const regex = new RegExp(word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi')
+        processedText = processedText.replace(regex, '')
+      })
+      break
+    case 'replace':
+      words.forEach(word => {
+        const regex = new RegExp(word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi')
+        processedText = processedText.replace(regex, customChar)
+      })
+      break
+    case 'insert':
+      words.forEach(word => {
+        const regex = new RegExp(word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi')
+        const chars = word.split('')
+        const replacement = chars.join(customChar)
+        processedText = processedText.replace(regex, replacement)
+      })
+      break
+  }
+
+  return processedText
+}
+
+const handleSensitiveDialogConfirm = async () => {
+  const strategy = sensitiveHandleStrategyRef.value
+  const customChar = sensitiveCustomCharRef.value || ''
+
+  if (strategy === 'none') {
+    dialogSensitiveCheckVisibleRef.value = false
+    return
+  }
+
+  try {
+    // 处理每篇稿件中的敏感词
+    sensitiveCheckDraftsRef.value.forEach(draft => {
+      const articleIndex = mp_msgsRef.value.findIndex(item => item.msg_id === draft.id)
+      if (articleIndex !== -1) {
+        const article = mp_msgsRef.value[articleIndex]
+
+        // 处理标题
+        if (article.title) {
+          article.title = processSensitiveWords(article.title, draft.words, strategy, customChar)
+        }
+
+        // 处理摘要
+        if (article.digest) {
+          article.digest = processSensitiveWords(article.digest, draft.words, strategy, customChar)
+        }
+
+        // 处理正文内容
+        if (article.content_noencode) {
+          article.content_noencode = processSensitiveWords(article.content_noencode, draft.words, strategy, customChar)
+        }
+
+        // 更新到 currentArticleRef（如果当前正在编辑这篇文章）
+        if (msg_idRef.value === draft.id) {
+          currentArticleRef.value = { ...article }
+        }
+      }
+    })
+
+    ElMessage.success('敏感词处理完成')
+    dialogSensitiveCheckVisibleRef.value = false
+  } catch (error) {
+    console.error('敏感词处理失败', error)
+    ElMessage.error('敏感词处理失败，请重试')
+  }
+}
+
+const updateSensitiveGroupOptions = (groups) => {
+  sensitiveCustomGroupOptionsRef.value = [
+    ...baseSensitiveGroupOptions,
+    ...groups.map((item) => ({
+      label: item.name,
+      value: item.id,
+    })),
+  ]
+}
+
+const fetchSensitiveWordGroups = async () => {
+  sensitiveManageLoadingRef.value = true
+  try {
+    const { data } = await listSensitiveWordGroups({
+      keyword: sensitiveManageKeywordQueryRef.value || undefined,
+      only_self: sensitiveManageOnlyMineRef.value,
+      page: sensitiveManagePaginationRef.page,
+      page_size: sensitiveManagePaginationRef.pageSize,
+    })
+    const payload = data?.data || {}
+    sensitiveKeywordGroupsRef.value = payload.list || []
+    sensitiveManagePaginationRef.total = payload.total || 0
+    sensitiveManagePaginationRef.page = payload.page || sensitiveManagePaginationRef.page
+    sensitiveManagePaginationRef.pageSize = payload.page_size || sensitiveManagePaginationRef.pageSize
+    updateSensitiveGroupOptions(sensitiveKeywordGroupsRef.value)
+    sensitiveManageLoadedOnceRef.value = true
+    if (Array.isArray(selectedSensitiveCustomGroupRef.value)) {
+      const preservedValues = selectedSensitiveCustomGroupRef.value.filter((value) => {
+        if (typeof value === 'number') {
+          return sensitiveKeywordGroupsRef.value.some((item) => item.id === value)
+        }
+        return true
+      })
+      if (preservedValues.length !== selectedSensitiveCustomGroupRef.value.length) {
+        selectedSensitiveCustomGroupRef.value = preservedValues
+      }
+    }
+  } catch (error) {
+    console.error('加载敏感词组失败', error)
+    const message = error?.response?.data?.detail || '加载敏感词组失败'
+    ElMessage.error(message)
+  } finally {
+    sensitiveManageLoadingRef.value = false
+  }
+}
+
+const handleOpenSensitiveManage = async () => {
+  dialogSensitiveManageVisibleRef.value = true
+}
+
+const resetSensitiveManageEditForm = (payload = null) => {
+  sensitiveManageEditFormRef.id = payload?.id ?? ''
+  sensitiveManageEditFormRef.name = payload?.name ?? ''
+  sensitiveManageEditFormRef.description = payload?.description ?? ''
+  sensitiveManageEditFormRef.words = payload?.words?.join?.('\n') ?? ''
+  sensitiveManageEditFormRef.createdAt = payload?.createdAt ?? ''
+  sensitiveManageEditFormRef.isPrivate = payload?.isPrivate ?? true
+}
+
+const handleSensitiveManageCreate = () => {
+  sensitiveManageEditIsNewRef.value = true
+  resetSensitiveManageEditForm({
+    id: '',
+    name: '',
+    description: '',
+    words: [],
+    createdAt: '',
+    isPrivate: true,
+  })
+  dialogSensitiveManageEditVisibleRef.value = true
+}
+
+const handleSensitiveManageEdit = (row) => {
+  sensitiveManageEditIsNewRef.value = false
+  resetSensitiveManageEditForm(row)
+  dialogSensitiveManageEditVisibleRef.value = true
+}
+
+const handleSensitiveManageDelete = (row) => {
+  ElMessageBox.confirm(`确定删除敏感词组「${row.name}」吗？`, '提示', {
+    confirmButtonText: '删除',
+    cancelButtonText: '取消',
+    type: 'warning',
+  }).then(async () => {
+    try {
+      await deleteSensitiveWordGroup(row.id)
+      ElMessage.success('删除成功')
+      if (Array.isArray(selectedSensitiveCustomGroupRef.value)) {
+        selectedSensitiveCustomGroupRef.value = selectedSensitiveCustomGroupRef.value.filter((id) => id !== row.id)
+      }
+      if (
+        sensitiveKeywordGroupsRef.value.length === 1 &&
+        sensitiveManagePaginationRef.page > 1
+      ) {
+        sensitiveManagePaginationRef.page -= 1
+      }
+      await fetchSensitiveWordGroups()
+    } catch (error) {
+      console.error('删除敏感词组失败', error)
+      const message = error?.response?.data?.detail || '删除敏感词组失败'
+      ElMessage.error(message)
+    }
+  }).catch(() => {})
+}
+
+const handleSensitiveManageEditCancel = () => {
+  dialogSensitiveManageEditVisibleRef.value = false
+}
+
+const parseSensitiveWordsInput = (value) => {
+  return value
+    .split('\n')
+    .map((word) => word.trim())
+    .filter(Boolean)
+}
+
+const handleSensitiveManageEditConfirm = async () => {
+  if (!sensitiveManageEditFormRef.name.trim()) {
+    ElMessage.warning('请填写敏感词组名称')
+    return
+  }
+
+  const words = parseSensitiveWordsInput(sensitiveManageEditFormRef.words)
+
+  const payload = {
+    name: sensitiveManageEditFormRef.name.trim(),
+    description: (sensitiveManageEditFormRef.description || '').trim(),
+    words,
+    is_private: sensitiveManageEditFormRef.isPrivate,
+  }
+
+  sensitiveManageEditSubmittingRef.value = true
+  try {
+    let response
+    if (sensitiveManageEditIsNewRef.value || !sensitiveManageEditFormRef.id) {
+      response = await createSensitiveWordGroup(payload)
+      ElMessage.success('创建成功')
+    } else {
+      response = await updateSensitiveWordGroup(sensitiveManageEditFormRef.id, payload)
+      ElMessage.success('更新成功')
+    }
+    const groupData = response?.data?.data
+    if (groupData?.id) {
+      if (!Array.isArray(selectedSensitiveCustomGroupRef.value)) {
+        selectedSensitiveCustomGroupRef.value = []
+      }
+      if (!selectedSensitiveCustomGroupRef.value.includes(groupData.id)) {
+        selectedSensitiveCustomGroupRef.value = [...selectedSensitiveCustomGroupRef.value, groupData.id]
+      }
+    }
+    dialogSensitiveManageEditVisibleRef.value = false
+    await fetchSensitiveWordGroups()
+  } catch (error) {
+    console.error('保存敏感词组失败', error)
+    const message = error?.response?.data?.detail || '保存敏感词组失败'
+    ElMessage.error(message)
+  } finally {
+    sensitiveManageEditSubmittingRef.value = false
+  }
+}
+
+const handleSensitiveManagePageChange = (page) => {
+  sensitiveManagePaginationRef.page = page
+  fetchSensitiveWordGroups()
+}
+
+const triggerSensitiveManageSearch = debounce(() => {
+  if (dialogSensitiveManageVisibleRef.value) {
+    fetchSensitiveWordGroups()
+  }
+}, 300)
+
+watch(dialogSensitiveManageVisibleRef, (visible) => {
+  if (visible) {
+    sensitiveManagePaginationRef.page = 1
+    fetchSensitiveWordGroups()
+  }
+})
+
+watch(sensitiveManageOnlyMineRef, () => {
+  sensitiveManagePaginationRef.page = 1
+  if (dialogSensitiveManageVisibleRef.value) {
+    fetchSensitiveWordGroups()
+  }
+})
+
+watch(sensitiveManageKeywordQueryRef, () => {
+  sensitiveManagePaginationRef.page = 1
+  triggerSensitiveManageSearch()
+})
+
+watch(dialogSensitiveManageEditVisibleRef, (visible) => {
+  if (!visible) {
+    sensitiveManageEditSubmittingRef.value = false
+  }
+})
 
 var groupstr = ref("")
 const handlePublishToWechat = async () => {
@@ -2478,6 +3680,7 @@ const handleLocalExtractMpArticleUrl = async () => {
     dialogExtractMpAritcleUrlRef.value = false
   }, timeoutExtract)
 }
+
 async function onBatchExtractMpOld(list) {
   for (var item of list) {
     globalLoadingRef.value = true
@@ -3565,7 +4768,8 @@ watch(() => [props.mainMsg], async (newVal) => {
       // 视频号内容
       const mpvcontent_obj = toDeepRaw(mpExsRef.value.mpvcontent_obj)
       parsed_data.content_noencode = replaceMPVContentFromWechat(parsed_data.content_noencode, mpvcontent_obj)
-
+      
+      
       console.log("parsed_data.content_noencode=>", parsed_data.content_noencode)
       console.log("mps_obj=>", mps_obj)
       console.log("miniappcard_obj=>", miniappcard_obj)
@@ -3782,6 +4986,32 @@ watch(() => [props.mainMsg], async (newVal) => {
       if (success) {
         setMPVRef.value.setMPVs('live', mpv_lives)
       }
+    } else if (tag === "appmsg-ret:getLinkInfo") {
+      const { ret } = msg.data
+      console.log("getLinkInfo ret=>", ret)
+      claimSourceLinkLoadingRef.value = false
+      if (ret.success && ret.detail_info) {
+        const { biz_nickname, publish_time, biz_headimgurl } = ret.detail_info
+        claimSourceAccountRef.value = biz_nickname || ''
+        claimSourceAccountAvatarRef.value = biz_headimgurl || ''
+        if (publish_time) {
+          // 将时间戳转换为日期字符串，格式为 YYYY/MM/DD 以匹配日期选择器
+          const date = new Date(publish_time * 1000)
+          const year = date.getFullYear()
+          const month = String(date.getMonth() + 1).padStart(2, '0')
+          const day = String(date.getDate()).padStart(2, '0')
+          claimSourceTimeRef.value = `${year}/${month}/${day}`
+        } else {
+          claimSourceTimeRef.value = ''
+        }
+      } else {
+        claimSourceAccountRef.value = ''
+        claimSourceAccountAvatarRef.value = ''
+        claimSourceTimeRef.value = ''
+        if (!ret.success) {
+          ElMessage.warning(ret.err_msg || '获取链接信息失败')
+        }
+      }
     }
 
     if (globalLoadingRef.value) {
@@ -3798,10 +5028,329 @@ const { start } = useDraggable(elListMsgsRef, mp_msgsRef, {
   ghostClass: 'ghost'
 })
 
+// 事件地点相关
+const eventLocationOpts = ref([])
+
+// 获取地区数据的函数
+async function fetchEventLocationData(id = 0) {
+  try {
+    if (!selectedAccount.value) {
+      return []
+    }
+    const res = await window.webBridge.callRpc('getRegions', {
+      account: selectedAccount.value ? toRaw(selectedAccount.value) : null,
+      id: id
+    })
+    if (res?.success) {
+      return res.data || []
+    }
+  } catch (error) {
+    console.error('获取地区数据失败:', error)
+  }
+  return []
+}
+
+// 事件地点级联选择器配置
+const eventLocationProps = {
+  expandTrigger: 'click',
+  checkStrictly: true, // 允许选择任意级别的节点
+  lazy: true,
+  lazyLoad: async (node, resolve) => {
+    if (node.level === 0) {
+      // 第一级：中国、国际、无确切地点
+      const options = [
+        { label: '中国', value: 'china', leaf: false },
+        { label: '国际', value: 'international', leaf: false },
+        { label: '无确切地点', value: 'no_location', leaf: true }
+      ]
+      resolve(options)
+    } else if (node.level === 1) {
+      // 第二级：根据第一级的选择加载数据
+      if (node.value === 'china') {
+        // 加载中国的省份，以及香港、澳门、台湾
+        const regions = await fetchEventLocationData(0)
+        console.log("regions",regions)
+        const chinaRegion = regions.find(r => r.name === '中国')
+        const hongkongRegion = regions.find(r => r.name === '中国香港')
+        const macaoRegion = regions.find(r => r.name === '中国澳门')
+        const taiwanRegion = regions.find(r => r.name === '中国台湾')
+        
+        const options = []
+        
+        // 添加香港、澳门、台湾（直接选择，leaf: true）
+        if (hongkongRegion) {
+          options.push({
+            label: '香港', // 显示时去掉"中国"前缀
+            value: hongkongRegion.name, // value 保持原值用于识别
+            regionId: hongkongRegion.id,
+            leaf: true // 直接选择，不加载下一级
+          })
+        }
+        if (macaoRegion) {
+          options.push({
+            label: '澳门', // 显示时去掉"中国"前缀
+            value: macaoRegion.name, // value 保持原值用于识别
+            regionId: macaoRegion.id,
+            leaf: true // 直接选择，不加载下一级
+          })
+        }
+        if (taiwanRegion) {
+          options.push({
+            label: '台湾', // 显示时去掉"中国"前缀
+            value: taiwanRegion.name, // value 保持原值用于识别
+            regionId: taiwanRegion.id,
+            leaf: true // 直接选择，不加载下一级
+          })
+        }
+        
+        // 加载中国的省份
+        if (chinaRegion) {
+          const provinces = await fetchEventLocationData(chinaRegion.id)
+          // 直辖市列表：北京、上海、天津、重庆
+          const municipalities = ['北京', '上海', '天津', '重庆']
+          provinces.forEach(province => {
+            const isMunicipality = municipalities.includes(province.name)
+            options.push({
+              label: province.name,
+              value: province.name,
+              regionId: province.id,
+              leaf: isMunicipality // 直辖市直接选择，其他省份可以继续加载市
+            })
+          })
+        }
+        
+        resolve(options)
+      } else if (node.value === 'international') {
+        // 加载国际地区（排除中国相关），直接选择，不加载下一级
+        const regions = await fetchEventLocationData(0)
+        const internationalRegions = regions.filter(r => 
+          r.name !== '中国' && 
+          r.name !== '中国台湾' && 
+          r.name !== '中国澳门' && 
+          r.name !== '中国香港'
+        )
+        const options = internationalRegions.map(region => ({
+          label: region.name,
+          value: region.name,
+          regionId: region.id,
+          leaf: true // 国际国家直接选择，不加载下一级
+        }))
+        resolve(options)
+      } else {
+        resolve([])
+      }
+    } else if (node.level === 2) {
+      // 第三级：加载省份下的市（最多到市，设为leaf: true）
+      const parentId = node.data?.regionId
+      if (parentId) {
+        const cities = await fetchEventLocationData(parentId)
+        const options = cities.map(city => ({
+          label: city.name,
+          value: city.name,
+          regionId: city.id,
+          leaf: true // 市是最后一级，不能再往下
+        }))
+        resolve(options)
+      } else {
+        resolve([])
+      }
+    } else {
+      // 超过第三级，不再加载
+      resolve([])
+    }
+  }
+}
+
+// 处理来源文章链接变化
+const handleClaimSourceLinkChange = () => {
+  const link = claimSourceLinkRef.value?.trim()
+  if (!link) {
+    claimSourceAccountRef.value = ''
+    claimSourceAccountAvatarRef.value = ''
+    claimSourceTimeRef.value = ''
+    return
+  }
+  
+  // 检查是否是微信公众号文章链接
+  if (!link.startsWith('https://mp.weixin.qq.com/s/')) {
+    claimSourceAccountRef.value = ''
+    claimSourceAccountAvatarRef.value = ''
+    claimSourceTimeRef.value = ''
+    return
+  }
+  
+  // 调用接口获取链接信息
+  if (!selectedAccount.value || !selectedAccount.value.session_id) {
+    ElMessage.warning('请先选择账号')
+    return
+  }
+  
+  const { token, session_id } = selectedAccount.value
+  const cookies = serializeCookie(JSON.parse(session_id)["cookie"])
+  
+  claimSourceLinkLoadingRef.value = true
+  window.ipcRenderer.send('toMain', {
+    tag: 'appmsg:getLinkInfo',
+    source: `${props.appmsg.appmsgid}`,
+    token: getToken(),
+    linkData: {
+      cookies,
+      token: parseInt(token),
+      link: link
+    }
+  })
+}
+
 // 使用默认模板触发，填充当前文章作者及来源链接
 const handleUseTemplate = (data) => {
   currentArticleRef.value.sourceurl = data.originalLink
   currentArticleRef.value.author = data.author
+}
+
+// 自动排版功能
+const handleAutoFormat = async () => {
+  if (!currentArticleRef.value || !currentArticleRef.value.content_noencode) {
+    ElMessage({
+      message: '编辑器内容为空',
+      type: 'warning',
+      duration: 2000
+    })
+    return
+  }
+
+  const loading = ElLoading.service({
+    lock: true,
+    text: '正在排版中，请稍候...',
+    background: 'rgba(0, 0, 0, 0.7)'
+  })
+
+  try {
+    // 获取编辑器纯文本内容（去除HTML标签）
+    const htmlContent = currentArticleRef.value.content_noencode || ''
+    const tempDiv = document.createElement('div')
+    tempDiv.innerHTML = htmlContent
+    const textContent = tempDiv.innerText || tempDiv.textContent || ''
+    
+    if (!textContent.trim()) {
+      ElMessage({
+        message: '编辑器内容为空',
+        type: 'warning',
+        duration: 2000
+      })
+      loading.close()
+      return
+    }
+
+    console.log('准备发送排版请求，文本长度:', textContent.length)
+
+    // 调用自动排版接口（流式响应）
+    const response = await axios.post('https://img.aiguidehub.com/api/v1/open-api/ai/', {
+      text: textContent,
+      service_type: 'dashscope',
+      categories: '现代布局',
+      theme_color: '#3B82F6',
+      platform: 'wechat',
+      auto_image: '0',
+      image_count: '0'
+    }, {
+      headers: {
+        'Content-Type': 'application/json',
+        'X-API-Key': 'dassd4a6sd4awea5s4da5sd4asre1d3f1sd3f1sadfa4sdsd'
+      },
+      responseType: 'text',
+      transformResponse: [(data) => data] // 禁用自动转换，保持原始文本
+    })
+    
+    console.log('收到响应，状态码:', response.status)
+
+    // 解析流式响应
+    let formattedContent = ''
+    
+    // 确保 response.data 是字符串
+    const responseText = typeof response.data === 'string' ? response.data : JSON.stringify(response.data)
+    const lines = responseText.split('\n')
+    
+    for (const line of lines) {
+      if (!line || typeof line !== 'string') continue
+      
+      const trimmedLine = line.trim()
+      if (trimmedLine.startsWith('data: ')) {
+        try {
+          const jsonStr = trimmedLine.substring(6)
+          if (!jsonStr) continue
+          
+          const data = JSON.parse(jsonStr)
+          
+          if (data.type === 'chunk' && data.content) {
+            formattedContent += data.content
+          } else if (data.type === 'complete') {
+            console.log('排版完成')
+            break
+          } else if (data.type === 'error') {
+            throw new Error(data.error || '排版失败')
+          }
+        } catch (e) {
+          console.warn('解析数据失败:', line, e)
+        }
+      }
+    }
+
+    // 提取 [doc]...[/doc] 标签内的内容
+    const docMatch = formattedContent.match(/\[doc\]([\s\S]*?)\[\/doc\]/)
+    if (docMatch && docMatch[1]) {
+      const cleanedContent = docMatch[1].trim()
+      
+      // 使用编辑器的 setContent 方法更新内容，避免直接修改 v-model 导致的状态不一致
+      if (editorRef.value) {
+        try {
+          // 先更新 v-model 绑定的内容
+          currentArticleRef.value.content_noencode = cleanedContent
+          
+          // 等待 DOM 更新
+          await nextTick()
+          
+          // 使用 setContent 方法更新编辑器内容（第二个参数 false 表示不触发内容变化事件）
+          editorRef.value.setContent(cleanedContent, false)
+          
+          // 再等待一下，确保编辑器内部状态更新完成
+          await new Promise(resolve => setTimeout(resolve, 100))
+          
+          ElMessage({
+            message: '排版成功',
+            type: 'success',
+            duration: 2000
+          })
+        } catch (e) {
+          console.error('更新编辑器内容失败:', e)
+          // 如果 setContent 失败，至少 v-model 已经更新了
+          ElMessage({
+            message: '排版成功（编辑器状态可能未完全更新）',
+            type: 'warning',
+            duration: 2000
+          })
+        }
+      } else {
+        // 编辑器未初始化，直接更新 v-model
+        currentArticleRef.value.content_noencode = cleanedContent
+        ElMessage({
+          message: '排版成功',
+          type: 'success',
+          duration: 2000
+        })
+      }
+    } else {
+      throw new Error('接口返回格式错误，未找到排版内容')
+    }
+  } catch (error) {
+    console.error('自动排版失败:', error)
+    ElMessage({
+      message: error.response?.data?.message || error.message || '自动排版失败，请稍后重试',
+      type: 'error',
+      duration: 3000
+    })
+  } finally {
+    loading.close()
+  }
 }
 
 const operationList = [
@@ -3873,6 +5422,11 @@ const operationList = [
     action: () => { handleCopyrightCheck() }
   },
   {
+    title: '敏感性检测',
+    icon: 'mdi:shield-alert-outline',
+    action: () => { handleSensitiveCheck() }
+  },
+  {
     title: '消息手机预览',
     icon: 'mdi:mobile-phone-message',
     action: () => { openAppMsgMobilePreviewDialog() }
@@ -3898,6 +5452,7 @@ onMounted(async () => {
   currentAppmsgRef.value = props.appmsg
   editorIdRef.value = `editor-${props.appmsg.appmsgid}`
   mp_msgsRef.value = props.appmsg.multi_item
+  normalizeClaimSourceInfo(mp_msgsRef.value)
   if (props.mode === 'create') {
     loadArticleByMsgId(mp_msgsRef.value[0].msg_id)
   } else if (props.mode === 'hydrate') {
@@ -3925,8 +5480,9 @@ onUnmounted(async () => {
     console.log(`cleanup channel ${channelName} for editor4`)
     channelCleans[channelName]()
   }
+  dialogSensitiveManageVisibleRef.value = false
+  dialogSensitiveManageEditVisibleRef.value = false
 })
-
 
 
 // onActivated(async () => {
@@ -3946,3 +5502,4 @@ onUnmounted(async () => {
 
 
 </script>
+
