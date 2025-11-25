@@ -7,7 +7,7 @@ import ImgPicker from '@/components/editor/ImgPicker.vue';
 import { tplCommissionInEditor } from '@/utils/mpcommission';
 import { gen_unique_id } from '@/utils/msic';
 
-const props = defineProps(['selectedAccount','pickerPageInfo']);
+const props = defineProps(['selectedAccount', 'pickerPageInfo']);
 const emit = defineEmits(['insert-commission', 'close']);
 
 const selectedCommodities = ref([]);
@@ -121,6 +121,7 @@ const selectCategory = value => {
   activeCategory.value = value;
 };
 
+const keyword = ref('');
 const pageContext = ref('');
 const spuSort = ref('commend_sort'); // 商品排序
 const guaranteeTags = ref([]);
@@ -132,20 +133,25 @@ const priceOrRate = ref({
   max: null
 }); // 价格和比例
 
+const againGet = () => {
+  // 重置分页参数
+  pageContext.value = '';
+  // 清空商品列表
+  commodityList.value = [];
+  // 获取商品
+  debounceGetCommodity();
+};
 watch(
   [spuSort, guaranteeTags, monthlySalesRange, goodEvaluationRatioRange, shopScoreRange, priceOrRate, activeCategory],
-  () => {
-    // 重置分页参数
-    pageContext.value = '';
-    // 清空商品列表
-    commodityList.value = [];
-    // 获取商品
-    debounceGetCommodity();
+  againGet,
+  {
+    deep: true
   }
 );
 /** 重置 */
 const reset = () => {
-  spuSort.value = ''; // 商品排序
+  keyword.value = '';
+  spuSort.value = 'commend_sort'; // 商品排序
   guaranteeTags.value = [];
   monthlySalesRange.value = ''; // 月销量
   goodEvaluationRatioRange.value = ''; // 好评率
@@ -320,7 +326,7 @@ const getCommodity = () => {
     spuCondition: {
       commissionRateRange: {},
       guaranteeTags: guaranteeTags.value,
-      shopScoreRange: shopScoreRange.value
+      shopScoreRange: shopScoreRange.value === '' ? {} : { min: shopScoreRange.value }
     },
     spuSort: SORT_ITEMS[spuSort.value]
   };
@@ -330,7 +336,7 @@ const getCommodity = () => {
     newBody.pageContextReq.pageContext = pageContext.value;
   }
   // 判断是否添加价格和比例
-  const { min, max } = filterType.value;
+  const { min, max } = priceOrRate.value;
   const range = {};
   const isPriceRange = filterType.value === 'sellingPriceRange';
   if (min) range.min = min * (isPriceRange ? 100 : 10000);
@@ -342,11 +348,11 @@ const getCommodity = () => {
   }
   // 判断是否添加好评率
   if (goodEvaluationRatioRange.value !== '') {
-    newBody.spuCondition.goodEvaluationRatioRange = goodEvaluationRatioRange.value;
+    newBody.spuCondition.goodEvaluationRatioRange = { min: goodEvaluationRatioRange.value };
   }
   // 判断是否添加月销量
   if (monthlySalesRange.value !== '') {
-    newBody.spuCondition.monthlySalesRange = monthlySalesRange.value;
+    newBody.spuCondition.monthlySalesRange = { min: monthlySalesRange.value };
   }
 
   window.ipcRenderer.send('toMain', {
@@ -354,7 +360,8 @@ const getCommodity = () => {
     token,
     cookie,
     keyword: '',
-    listCondition: JSON.stringify(newBody)
+    listCondition: JSON.stringify(newBody),
+    keyword: keyword.value
   });
 };
 
@@ -443,7 +450,11 @@ const handleInsert = () => {
   // 从 windowProductResp 中解析 product_key 列表（兼容多种返回格式）
   let product_keys = [];
   try {
-    if (windowProductResp.value && windowProductResp.value.product_encrypt_key && windowProductResp.value.product_encrypt_key.length) {
+    if (
+      windowProductResp.value &&
+      windowProductResp.value.product_encrypt_key &&
+      windowProductResp.value.product_encrypt_key.length
+    ) {
       product_keys = windowProductResp.value.product_encrypt_key;
     }
   } catch (e) {
@@ -478,12 +489,16 @@ const onImgPick = urls => {
   if (urls && urls.length) selectedImage.value = urls[0];
 };
 
-const pickerQuery = defineModel()
+const pickerQuery = defineModel();
 </script>
 
 <template>
   <div class="rebate-products">
-    <el-input class="rebate-products_input" :suffix-icon="Search"></el-input>
+    <el-input v-model="keyword" class="rebate-products_input">
+      <template #append>
+        <el-button :icon="Search" @click="againGet" />
+      </template>
+    </el-input>
     <div class="rebate-products_category">
       <ul>
         <li
@@ -706,13 +721,30 @@ const pickerQuery = defineModel()
             @click="selectedStyle = 3"
           >
             <div style="font-size: 16px; font-weight: bold">图片链接（点击选择图片）</div>
-            <div style="margin-top:8px">
+            <div style="margin-top: 8px">
               <template v-if="selectedCommodities && selectedCommodities.length === 1">
-                <ImgPicker ref="refPicker" h="198" placeholder="设置链接图片" :imgSrc="selectedImage"
-                    v-model="pickerQuery" :pageInfo="$props.pickerPageInfo" @confirm="onImgPick" />
+                <ImgPicker
+                  ref="refPicker"
+                  :h="198"
+                  placeholder="设置链接图片"
+                  :imgSrc="selectedImage"
+                  v-model="pickerQuery"
+                  :pageInfo="$props.pickerPageInfo"
+                  @confirm="onImgPick"
+                />
               </template>
               <template v-else>
-                <div style="height:198px; display:flex; align-items:center; justify-content:center; border:1px dashed #e6e6e6; color:#999; border-radius:4px">
+                <div
+                  style="
+                    height: 198px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    border: 1px dashed #e6e6e6;
+                    color: #999;
+                    border-radius: 4px;
+                  "
+                >
                   多选时无法设置图片链接，请只选择 1 个商品后重试
                 </div>
               </template>

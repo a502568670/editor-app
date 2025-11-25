@@ -236,7 +236,7 @@
         <div class="flex items-center justify-between pt-2">
           <div>
             <p v-if="warningMsg != null" class="automatic-save-msg">
-              {{ warningMsg === '' ? `自动保存成功 ${lastSaveTime}` : `自动保存失败：${warningMsg}` }}
+              {{ warningMsg === '' ? `自动保存到本地成功 ${lastSaveTime}` : `自动保存到本地失败：${warningMsg}` }}
             </p>
           </div>
         </div>
@@ -313,9 +313,9 @@
               v-if="selected_claim_source_typeRef.id === 2 && materialSourceRef === 'official_account'">
               <el-col :span="24">
                 <p class="set-title">来源文章链接</p>
-                <el-input 
-                  v-model="claimSourceLinkRef" 
-                  clearable 
+                <el-input
+                  v-model="claimSourceLinkRef"
+                  clearable
                   placeholder="请填写政/媒体/事业单位等官方组织机构发表的内容"
                   @blur="handleClaimSourceLinkChange"
                   :loading="claimSourceLinkLoadingRef"
@@ -324,9 +324,9 @@
                   <div v-if="claimSourceAccountRef" class="flex items-center text-sm">
                     <span class="text-gray-600 min-w-[80px]">来源账号</span>
                     <div class="flex items-center space-x-2">
-                      <img 
-                        v-if="claimSourceAccountAvatarRef" 
-                        :src="claimSourceAccountAvatarRef" 
+                      <img
+                        v-if="claimSourceAccountAvatarRef"
+                        :src="claimSourceAccountAvatarRef"
                         class="w-5 h-5 rounded-full object-cover"
                         referrerpolicy="no-referrer"
                         alt="账号头像"
@@ -348,12 +348,12 @@
                   </div>
                   <div v-if="claimSourceTimeRef" class="flex items-center text-sm">
                     <span class="text-gray-600 min-w-[80px]">事件地点</span>
-                    <el-cascader 
-                      v-model="claimSourceLocationRef" 
-                      :options="eventLocationOpts" 
-                      :props="eventLocationProps" 
-                      placeholder="选择该事件发生的地点" 
-                      clearable 
+                    <el-cascader
+                      v-model="claimSourceLocationRef"
+                      :options="eventLocationOpts"
+                      :props="eventLocationProps"
+                      placeholder="选择该事件发生的地点"
+                      clearable
                       filterable
                       style="width: 100%"
                     />
@@ -381,12 +381,12 @@
                   </div>
                   <div class="flex items-center text-sm">
                     <span class="text-gray-600 min-w-[80px]">事件地点</span>
-                    <el-cascader 
-                      v-model="claimSourceLocationRef" 
-                      :options="eventLocationOpts" 
-                      :props="eventLocationProps" 
-                      placeholder="选择该事件发生的地点" 
-                      clearable 
+                    <el-cascader
+                      v-model="claimSourceLocationRef"
+                      :options="eventLocationOpts"
+                      :props="eventLocationProps"
+                      placeholder="选择该事件发生的地点"
+                      clearable
                       filterable
                       style="width: 100%"
                     />
@@ -1640,13 +1640,13 @@ function ready(editorInstance) {
         '.edui-toolbar [title*="排版"]',
         '.edui-toolbar .edui-splitbutton[title*="排版"]'
       ]
-      
+
       let autoFormatBtn = null
       for (const selector of selectors) {
         autoFormatBtn = document.querySelector(selector)
         if (autoFormatBtn) break
       }
-      
+
       if (autoFormatBtn) {
         // 移除所有可能的下拉箭头元素
         const arrowSelectors = ['.edui-splitborder', '.edui-arrow', '.edui-splitbutton-arrow', '.edui-menu']
@@ -1656,7 +1656,7 @@ function ready(editorInstance) {
             arrow.style.display = 'none'
           })
         })
-        
+
         // 查找父级分割按钮容器
         const splitButton = autoFormatBtn.closest('.edui-splitbutton') || autoFormatBtn.parentElement
         if (splitButton && splitButton.classList.contains('edui-splitbutton')) {
@@ -1664,7 +1664,7 @@ function ready(editorInstance) {
           splitButton.style.borderRight = 'none'
           splitButton.style.paddingRight = '0'
         }
-        
+
         // 阻止下拉菜单的显示
         const handleClick = function(e) {
           e.preventDefault()
@@ -1673,11 +1673,11 @@ function ready(editorInstance) {
           handleAutoFormat()
           return false
         }
-        
+
         // 移除旧的事件监听器（如果存在）
         autoFormatBtn.removeEventListener('click', handleClick)
         autoFormatBtn.addEventListener('click', handleClick, true) // 使用捕获阶段
-        
+
         // 阻止鼠标悬停时显示下拉菜单
         autoFormatBtn.addEventListener('mouseenter', function(e) {
           e.stopPropagation()
@@ -1926,7 +1926,7 @@ const loadArticle = (mp_msg, before_save) => {
   if (find_claim_source_type) {
     selected_claim_source_typeRef.value = find_claim_source_type
   }
-  
+
   // 解析并还原claim_source_info
   if (currentArticleRef.value.claim_source_info) {
     let claimSourceInfo = currentArticleRef.value.claim_source_info
@@ -1939,10 +1939,10 @@ const loadArticle = (mp_msg, before_save) => {
         claimSourceInfo = null
       }
     }
-    
+
     if (claimSourceInfo && claimSourceInfo.media_source_type_info) {
       const mediaInfo = claimSourceInfo.media_source_type_info
-      
+
       // 还原素材来源类型（兼容数字和字符串类型）
       if (mediaInfo.media_source_from === 1 || mediaInfo.media_source_from === "1") {
         materialSourceRef.value = 'official_account'
@@ -1955,7 +1955,7 @@ const loadArticle = (mp_msg, before_save) => {
         // 还原其他来源相关字段
         claimSourcePlatformRef.value = mediaInfo.other_from_account || ''
       }
-      
+
       // 还原事件时间（时间戳转日期字符串）
       if (mediaInfo.news_time) {
         try {
@@ -1974,7 +1974,7 @@ const loadArticle = (mp_msg, before_save) => {
       } else {
         claimSourceTimeRef.value = ''
       }
-      
+
       // 还原事件地点
       if (mediaInfo.news_position_info) {
         const posInfo = mediaInfo.news_position_info
@@ -2230,7 +2230,7 @@ const saveCurrentToList = (msg_id) => {
 
   // 创作来源
   currentArticleRef.value.claim_source_type = selected_claim_source_typeRef.value.id
-  
+
   // 新增创作来源json体保存
   if (selected_claim_source_typeRef.value.id === 2) {
     // 构建claim_source_info对象
@@ -2241,7 +2241,7 @@ const saveCurrentToList = (msg_id) => {
       aigc_wording: "",
       media_source_type_info: {}
     }
-    
+
     // 构建media_source_type_info
     if (materialSourceRef.value === 'official_account') {
       // 公众号/服务号
@@ -2266,7 +2266,7 @@ const saveCurrentToList = (msg_id) => {
         news_position_info: {}
       }
     }
-    
+
     // 处理地点信息
     if (claimSourceLocationRef.value && claimSourceLocationRef.value.length > 0) {
       const location = claimSourceLocationRef.value
@@ -2302,7 +2302,7 @@ const saveCurrentToList = (msg_id) => {
         }
       }
     }
-    
+
     currentArticleRef.value.claim_source_info = claimSourceInfo
   } else {
     // 其他创作来源类型，不保存claim_source_info或保存空对象
@@ -4768,8 +4768,8 @@ watch(() => [props.mainMsg], async (newVal) => {
       // 视频号内容
       const mpvcontent_obj = toDeepRaw(mpExsRef.value.mpvcontent_obj)
       parsed_data.content_noencode = replaceMPVContentFromWechat(parsed_data.content_noencode, mpvcontent_obj)
-      
-      
+
+
       console.log("parsed_data.content_noencode=>", parsed_data.content_noencode)
       console.log("mps_obj=>", mps_obj)
       console.log("miniappcard_obj=>", miniappcard_obj)
@@ -5074,9 +5074,9 @@ const eventLocationProps = {
         const hongkongRegion = regions.find(r => r.name === '中国香港')
         const macaoRegion = regions.find(r => r.name === '中国澳门')
         const taiwanRegion = regions.find(r => r.name === '中国台湾')
-        
+
         const options = []
-        
+
         // 添加香港、澳门、台湾（直接选择，leaf: true）
         if (hongkongRegion) {
           options.push({
@@ -5102,7 +5102,7 @@ const eventLocationProps = {
             leaf: true // 直接选择，不加载下一级
           })
         }
-        
+
         // 加载中国的省份
         if (chinaRegion) {
           const provinces = await fetchEventLocationData(chinaRegion.id)
@@ -5118,15 +5118,15 @@ const eventLocationProps = {
             })
           })
         }
-        
+
         resolve(options)
       } else if (node.value === 'international') {
         // 加载国际地区（排除中国相关），直接选择，不加载下一级
         const regions = await fetchEventLocationData(0)
-        const internationalRegions = regions.filter(r => 
-          r.name !== '中国' && 
-          r.name !== '中国台湾' && 
-          r.name !== '中国澳门' && 
+        const internationalRegions = regions.filter(r =>
+          r.name !== '中国' &&
+          r.name !== '中国台湾' &&
+          r.name !== '中国澳门' &&
           r.name !== '中国香港'
         )
         const options = internationalRegions.map(region => ({
@@ -5170,7 +5170,7 @@ const handleClaimSourceLinkChange = () => {
     claimSourceTimeRef.value = ''
     return
   }
-  
+
   // 检查是否是微信公众号文章链接
   if (!link.startsWith('https://mp.weixin.qq.com/s/')) {
     claimSourceAccountRef.value = ''
@@ -5178,16 +5178,16 @@ const handleClaimSourceLinkChange = () => {
     claimSourceTimeRef.value = ''
     return
   }
-  
+
   // 调用接口获取链接信息
   if (!selectedAccount.value || !selectedAccount.value.session_id) {
     ElMessage.warning('请先选择账号')
     return
   }
-  
+
   const { token, session_id } = selectedAccount.value
   const cookies = serializeCookie(JSON.parse(session_id)["cookie"])
-  
+
   claimSourceLinkLoadingRef.value = true
   window.ipcRenderer.send('toMain', {
     tag: 'appmsg:getLinkInfo',
@@ -5230,7 +5230,7 @@ const handleAutoFormat = async () => {
     const tempDiv = document.createElement('div')
     tempDiv.innerHTML = htmlContent
     const textContent = tempDiv.innerText || tempDiv.textContent || ''
-    
+
     if (!textContent.trim()) {
       ElMessage({
         message: '编辑器内容为空',
@@ -5260,27 +5260,27 @@ const handleAutoFormat = async () => {
       responseType: 'text',
       transformResponse: [(data) => data] // 禁用自动转换，保持原始文本
     })
-    
+
     console.log('收到响应，状态码:', response.status)
 
     // 解析流式响应
     let formattedContent = ''
-    
+
     // 确保 response.data 是字符串
     const responseText = typeof response.data === 'string' ? response.data : JSON.stringify(response.data)
     const lines = responseText.split('\n')
-    
+
     for (const line of lines) {
       if (!line || typeof line !== 'string') continue
-      
+
       const trimmedLine = line.trim()
       if (trimmedLine.startsWith('data: ')) {
         try {
           const jsonStr = trimmedLine.substring(6)
           if (!jsonStr) continue
-          
+
           const data = JSON.parse(jsonStr)
-          
+
           if (data.type === 'chunk' && data.content) {
             formattedContent += data.content
           } else if (data.type === 'complete') {
@@ -5299,22 +5299,22 @@ const handleAutoFormat = async () => {
     const docMatch = formattedContent.match(/\[doc\]([\s\S]*?)\[\/doc\]/)
     if (docMatch && docMatch[1]) {
       const cleanedContent = docMatch[1].trim()
-      
+
       // 使用编辑器的 setContent 方法更新内容，避免直接修改 v-model 导致的状态不一致
       if (editorRef.value) {
         try {
           // 先更新 v-model 绑定的内容
           currentArticleRef.value.content_noencode = cleanedContent
-          
+
           // 等待 DOM 更新
           await nextTick()
-          
+
           // 使用 setContent 方法更新编辑器内容（第二个参数 false 表示不触发内容变化事件）
           editorRef.value.setContent(cleanedContent, false)
-          
+
           // 再等待一下，确保编辑器内部状态更新完成
           await new Promise(resolve => setTimeout(resolve, 100))
-          
+
           ElMessage({
             message: '排版成功',
             type: 'success',
