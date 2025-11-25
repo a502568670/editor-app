@@ -269,7 +269,7 @@ const handleTitleChange = ({ appmsgid, title }) => {
   if (idx !== -1) {
     // console.log("idx=>", idx, msg)
     // const split_str = '-<'
-    // const arr =  editableTabs.value[idx].title.split(split_str)
+    // const arr = editableTabs.value[idx].title.split(split_str)
     // console.log('arr=>', arr)
     // arr[0] = title
     // editableTabs.value[idx].title = arr.join(split_str)

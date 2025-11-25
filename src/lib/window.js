@@ -523,6 +523,7 @@ async function reactToIpcObjectData(data, tabbedWin, viewContents) {
       // verbose_log("extract html:", html)
       const ret = await postJsonToJZLApi(`/prase_html_to_json?api_key=${encodeURIComponent("du&cgIYuosQcaSm6")}`, { html })
       verbose_log("extract result:", ret)
+      // 返回链接抽取结果
       viewContents.send('fromMain', { tag: 'appmsg-ret:localExtractMpArticleUrlResult', data: { source, ret } })
       break;
     }
