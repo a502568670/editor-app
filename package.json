@@ -1,6 +1,6 @@
 {
   "name": "gaoqingsong",
-  "version": "0.5.2",
+  "version": "0.5.4",
   "private": true,
   "description": "稿轻松",
   "author": "gaoqingsong",
@@ -13,7 +13,7 @@
     "electron:dev": "cross-env BACKEND_URL=http://127.0.0.1:8000 VERBOSE=true vue-cli-service electron:serve",
     "electron:debug": "cross-env BACKEND_URL=http://47.96.22.8:8005 VERBOSE=true vue-cli-service electron:serve",
     "electron:prod": "cross-env BACKEND_URL=http://47.96.22.8:8006 vue-cli-service electron:serve",
-    "electron:test": "cross-env BACKEND_URL=https://frp-end.com:20396 VERBOSE=true vue-cli-service electron:serve",
+    "electron:test": "cross-env BACKEND_URL=http://192.168.1.7:8000 VERBOSE=true vue-cli-service electron:serve",
     "postinstall": "electron-builder install-app-deps",
     "postuninstall": "electron-builder install-app-deps"
   },

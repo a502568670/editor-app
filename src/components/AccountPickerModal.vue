@@ -14,6 +14,7 @@
       <!-- 搜索和筛选区域 -->
       <div class="search-section">
         <div class="flex items-center gap-3">
+          <el-button v-if="$props.multiple" type="primary" @click="selectAll"> 全选 </el-button>
           <div class="flex-1">
             <el-input
               v-model="searchKeyword"
@@ -290,6 +291,13 @@ const flattenGroupTree = (tree, level = 0, result = []) => {
     }
   })
   return result
+}
+
+const selectAll = () => {
+  if (props.multiple) {
+    const filtered = all_accounts.value.list.filter(item => !props.hideAccount.includes(item.id) && item.platform_id === 4 && !item.expired)
+    selectedAccountIds.value = filtered.map((item) => item.id)
+  }
 }
 
 // 生命周期
