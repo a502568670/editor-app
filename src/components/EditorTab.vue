@@ -160,7 +160,39 @@
             <vue-ueditor-wrap class="ueditor-wrapper flex-1 flex items-stretch"
               v-model="currentArticleRef.content_noencode" :editor-id="editorIdRef" @ready="ready"
               :config="editorConfigRef" :editorDependencies="['ueditor.config.js', 'ueditor.all.js']" />
+            <!-- 分享文章卡片 -->
+            <div v-if="currentArticleRef.share_info" class="mt-4 p-4 bg-white border border-gray-200 rounded-lg shadow-sm max-w-full">
+              <div class="flex items-start mb-3">
+                <img 
+                  :src="currentArticleRef.share_info.source_headimg" 
+                  class="w-10 h-10 rounded-full mr-3 flex-shrink-0 object-cover"
+                  alt="头像"
+                  @error="(e) => e.target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMjAiIGZpbGw9IiNlNWU3ZWIiLz48L3N2Zz4='"
+                />
+                <div class="flex-1 min-w-0">
+                  <div class="text-sm font-medium text-gray-900 mb-1">{{ currentArticleRef.share_info.platform }}</div>
+                  <div class="flex items-start gap-2 mb-2">
+                    <div class="text-sm text-gray-900 font-medium flex-1 break-words" 
+                      v-html="extractTitleFromContent(currentArticleRef.share_info.content_noencode)"></div>
+                    <span v-if="currentArticleRef.share_info.copyright_stat === '2'" 
+                      class="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded flex-shrink-0 whitespace-nowrap">原创</span>
+                  </div>
+                </div>
+              </div>
+              <div class="text-sm text-gray-700 mb-3 overflow-hidden" 
+                v-html="extractPreviewContent(currentArticleRef.share_info.content_noencode)"
+                style="display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; word-break: break-word;"></div>
+              <a 
+                :href="currentArticleRef.share_info.reprint_url" 
+                target="_blank"
+                class="text-blue-500 text-sm hover:text-blue-600 inline-block"
+              >
+                阅读全文
+              </a>
+            </div>
           </div>
+
+
           <!-- 这里是视频的编辑区 -->
           <div v-if="msg_idRef !== 0 && currentArticleRef.item_show_type === 5" class="w-full p-2">
             <el-row :gutter="4" class="mb-1 w-full">
@@ -1846,6 +1878,7 @@ const listArticles = async () => {
 }
 
 const loadArticle = (mp_msg, before_save) => {
+  console.log("loadArticle currentArticleRef.value=>!1", currentArticleRef.value)
   if (before_save) {
     if (msg_idRef.value === mp_msg.msg_id) {
       return
@@ -1880,6 +1913,7 @@ const loadArticle = (mp_msg, before_save) => {
   // gen_picture_page_info_list(mp_msg)
   // console.log("mp_msg2=>", mp_msg.picture_page_info_list)
   // appmsgidRef.value = mp_msg.appmsgid
+  console.log("mp_msg3=>", mp_msg)
   currentArticleRef.value = {
     ...mp_msg,
   }
@@ -4598,9 +4632,60 @@ const format_video_page_info = (page_info) => {
   }
 }
 
+// 从HTML内容中提取标题（第一个p标签的内容，去除br标签）
+const extractTitleFromContent = (html) => {
+  if (!html) return ''
+  try {
+    const parser = new DOMParser()
+    const doc = parser.parseFromString(html, 'text/html')
+    const firstP = doc.querySelector('p')
+    if (firstP) {
+      // 克隆节点以避免修改原始文档
+      const clonedP = firstP.cloneNode(true)
+      // 移除所有br标签
+      const brs = clonedP.querySelectorAll('br')
+      brs.forEach(br => br.remove())
+      return clonedP.innerHTML.trim()
+    }
+    // 如果没有p标签，尝试提取前100个字符
+    const text = doc.body.textContent || ''
+    return text.substring(0, 100)
+  } catch (e) {
+    console.error('提取标题失败:', e)
+    return ''
+  }
+}
+
+// 从HTML内容中提取预览内容（去除第一个p标签和所有img标签后的内容）
+const extractPreviewContent = (html) => {
+  if (!html) return ''
+  try {
+    const parser = new DOMParser()
+    const doc = parser.parseFromString(html, 'text/html')
+    const firstP = doc.querySelector('p')
+    if (firstP) {
+      // 移除第一个p标签
+      firstP.remove()
+    }
+    // 移除所有img标签
+    const imgs = doc.querySelectorAll('img')
+    imgs.forEach(img => img.remove())
+    // 移除所有br标签，用空格替换
+    const brs = doc.querySelectorAll('br')
+    brs.forEach(br => {
+      const space = doc.createTextNode(' ')
+      br.parentNode.replaceChild(space, br)
+    })
+    return doc.body.innerHTML.trim()
+  } catch (e) {
+    console.error('提取预览内容失败:', e)
+    return ''
+  }
+}
+
 const parseExtractMpArticleData = (ret, opts = {}) => {
 
-  let { nick_name, copyright_stat, cdn_url, item_show_type, video_page_info } = ret
+  let { nick_name, copyright_stat, cdn_url, item_show_type, video_page_info, share_info } = ret
   let { title, author, source_url, content_noencode, content_text, picture_page_info_list } = ret
   let guide_words = "", vid = ""
   console.log("item_show_type=>", item_show_type)
@@ -4704,6 +4789,7 @@ const parseExtractMpArticleData = (ret, opts = {}) => {
     vid,
     picture_page_info_list,
     sourceurl: source_url,
+    share_info: item_show_type === 0 && share_info ? share_info : undefined,
   }
 }
 
@@ -4713,6 +4799,7 @@ watch(() => [props.mainMsg], async (newVal) => {
   if (typeof msg === 'object' && Object.prototype.hasOwnProperty.call(msg, 'tag')) {
     const tag = msg.tag;
     if (tag === "appmsg-ret:localExtractMpArticleUrlResult") {
+      // 接收链接解析结果
       const { ret } = msg.data
       console.log("ret=>", ret)
       extractLoadingRef.value = false
@@ -4721,7 +4808,7 @@ watch(() => [props.mainMsg], async (newVal) => {
         return
       }
       let parsed_data = parseExtractMpArticleData(ret, { import_settings: import_settings.value })
-
+      console.log("parsed_data=>", parsed_data)
       // 公众号卡片
       const mps_obj = toDeepRaw(mpExsRef.value.mps_obj)
       parsed_data.content_noencode = replaceMPCardFromWechat(parsed_data.content_noencode, mps_obj)
@@ -4732,7 +4819,7 @@ watch(() => [props.mainMsg], async (newVal) => {
       const mpvcontent_obj = toDeepRaw(mpExsRef.value.mpvcontent_obj)
       parsed_data.content_noencode = replaceMPVContentFromWechat(parsed_data.content_noencode, mpvcontent_obj)
       
-      
+
       console.log("parsed_data.content_noencode=>", parsed_data.content_noencode)
       console.log("mps_obj=>", mps_obj)
       console.log("miniappcard_obj=>", miniappcard_obj)
@@ -4742,17 +4829,17 @@ watch(() => [props.mainMsg], async (newVal) => {
         miniappcard_obj: miniappcard_obj,
         mpvcontent_obj: mpvcontent_obj,
       }
-
       currentArticleRef.value = {
         ...currentArticleRef.value,
         ...parsed_data,
       }
-      console.log("currentArticleRef.value.content_noencode=>", currentArticleRef.value.content_noencode)
+
+      console.log("currentArticleRef.value=>1!", currentArticleRef.value)
       const idx = mp_msgsRef.value.findIndex(v => v.msg_id === currentArticleRef.value.msg_id)
       if (idx !== -1) {
         mp_msgsRef.value[idx] = currentArticleRef.value
       }
-
+      console.log("currentArticleRef.value=>2!", currentArticleRef.value)
       extractArticleUrlRef.value = ""
       dialogExtractMpAritcleUrlRef.value = false
     } else if (tag === "appmsg-ret:batchExtractMpArticleUrls") {

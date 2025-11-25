@@ -109,7 +109,6 @@ export const localExtractMpArticleUrlUseRequest = async function (url, timeout =
 
   verbose_log(`parsed protocol:${protocol} hostname:${hostname} port:${port} path:${pathname}, search:${search}`)
 
-
   let path = pathname + search
   if (searchParams.get("chksm")) {
     searchParams.delete("chksm")
@@ -124,7 +123,6 @@ export const localExtractMpArticleUrlUseRequest = async function (url, timeout =
       port, // 设为端口 8000
       path: path, // 直接使用传入的 url
       headers: headers
-
     });
 
     let isFinished = false;
