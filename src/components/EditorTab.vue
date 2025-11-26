@@ -2357,7 +2357,7 @@ const saveCurrentToList = (msg_id) => {
   vhtml = replaceMPVContentToWechat(vhtml, mpExsRef.value.mpvcontent_obj)
   vhtml = replaceCommissionToWechat(vhtml, mpExsRef.value.mpcommission_obj)
 
-  currentArticleRef.value.content_noencode = vhtml
+  currentArticleRef.value.new_content_noencode = vhtml
 
   console.log("abc",currentArticleRef.value)
   const idx = mp_msgsRef.value.findIndex(v => v.msg_id === msg_id)
@@ -2378,16 +2378,16 @@ const saveOthersToListForCustomTag = (msg_id) => {
   console.log('mpcommission_obj',mpcommission_obj)
   targetItems.forEach(v => {
     if (hasMPCardInEditor(v.content_noencode)) {
-      v.content_noencode = replaceMPCardToWechat(v.content_noencode, mps_obj)
+      v.new_content_noencode = replaceMPCardToWechat(v.content_noencode, mps_obj)
     }
     if (hasMiniAppCardInEditor(v.content_noencode)) {
-      v.content_noencode = replaceMiniAppCardToWechat(v.content_noencode, miniappcard_obj)
+      v.new_content_noencode = replaceMiniAppCardToWechat(v.content_noencode, miniappcard_obj)
     }
     if (hasMPVContentInEditor(v.content_noencode)) {
-      v.content_noencode = replaceMPVContentToWechat(v.content_noencode, mpvcontent_obj)
+      v.new_content_noencode = replaceMPVContentToWechat(v.content_noencode, mpvcontent_obj)
     }
     if (hasCommissionInEditor(v.content_noencode)) {
-      v.content_noencode = replaceCommissionToWechat(v.content_noencode, mpcommission_obj)
+      v.new_content_noencode = replaceCommissionToWechat(v.content_noencode, mpcommission_obj)
     }
   })
 }
@@ -2454,23 +2454,24 @@ const automaticSave = async (push_to_remote) => {
   let appmsgid = _getAppMsgId()
 
   const material_list = mp_msgsRef.value.map((item) => {
+    const newMaterial = { ...item }
     // 清空文章中的垂直制表符，防止出现空白行
-    if(item.content_noencode) {
-      item.content_noencode = item.content_noencode.replace(/<p>\u000b<\/p>$/, '')
+    if(newMaterial.new_content_noencode) {
+      newMaterial.content_noencode = newMaterial.new_content_noencode.replace(/<p>\u000b<\/p>$/, '')
     }
     // 小绿书处理有图片和无图片的类型
-    if([8, 10].includes(item.item_show_type)) {
-      if (item.cdn_url === '' && !item.picture_page_info_list?.length){
-        item.item_show_type = 10
-        item.content_noencode = item.guide_words
+    if([8, 10].includes(newMaterial.item_show_type)) {
+      if (newMaterial.cdn_url === '' && !newMaterial.picture_page_info_list?.length){
+        newMaterial.item_show_type = 10
+        newMaterial.content_noencode = newMaterial.guide_words
       } else {
-        item.item_show_type = 8
-        if(item.cdn_url == null || item.cdn_url === ''){
-          item.cdn_url = item.picture_page_info_list[0].url
+        newMaterial.item_show_type = 8
+        if(newMaterial.cdn_url == null || newMaterial.cdn_url === ''){
+          newMaterial.cdn_url = newMaterial.picture_page_info_list[0].url
         }
       }
     }
-    return item
+    return newMaterial
   })
   const postData = {
     cookies: serializeCookie(JSON.parse(session_id)["cookie"]),
@@ -2563,23 +2564,24 @@ const _saveAppMsg = async (push_to_remote) => {
   let appmsgid = _getAppMsgId()
 
   const material_list = mp_msgsRef.value.map((item) => {
+    const newMaterial = { ...item }
     // 清空文章中的垂直制表符，防止出现空白行
-    if(item.content_noencode) {
-      item.content_noencode = item.content_noencode.replace(/<p>\u000b<\/p>$/, '')
+    if(newMaterial.new_content_noencode) {
+      newMaterial.content_noencode = newMaterial.new_content_noencode.replace(/<p>\u000b<\/p>$/, '')
     }
     // 小绿书处理有图片和无图片的类型
-    if([8, 10].includes(item.item_show_type)) {
-      if (item.cdn_url === '' && !item.picture_page_info_list?.length){
-        item.item_show_type = 10
-        item.content_noencode = item.guide_words
+    if([8, 10].includes(newMaterial.item_show_type)) {
+      if (newMaterial.cdn_url === '' && !newMaterial.picture_page_info_list?.length){
+        newMaterial.item_show_type = 10
+        newMaterial.content_noencode = newMaterial.guide_words
       } else {
-        item.item_show_type = 8
-        if(item.cdn_url == null || item.cdn_url === ''){
-          item.cdn_url = item.picture_page_info_list[0].url
+        newMaterial.item_show_type = 8
+        if(newMaterial.cdn_url == null || newMaterial.cdn_url === ''){
+          newMaterial.cdn_url = newMaterial.picture_page_info_list[0].url
         }
       }
     }
-    return item
+    return newMaterial
   })
   const postData = {
     cookies: serializeCookie(JSON.parse(session_id)["cookie"]),
@@ -2602,6 +2604,7 @@ const _saveAppMsg = async (push_to_remote) => {
       type: 'success',
       duration: 2 * 1000
     })
+    console.log("saveAppMsg res=>", res)
     res.data.data.mp_msgs.forEach(gen_picture_page_info_list)
     normalizeClaimSourceInfo(res.data.data.mp_msgs)
     mp_msgsRef.value = res.data.data.mp_msgs

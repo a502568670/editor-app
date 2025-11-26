@@ -452,6 +452,8 @@ const handleSwitchToDraftBox = async () => {
 }
 
 const handleAppmsgEdit = async (appmsg) => {
+
+  console.log("localAppmsgsRef.value=>", localAppmsgsRef.value)
   console.log("handleAppmsgEdit=>", appmsg, checkIsLocal(appmsg.app_id))
   currentOperateAppMsgRef.value = appmsg
   currentOperateName.value = "edit"
@@ -568,6 +570,7 @@ const handlePublishToWechat = async ({ send_time, isFreePublish, hasNotify, repr
 }
 
 const checkIsLocal = (remote_appmsgid) => {
+  console.log("localAppmsgsRef.value=>", localAppmsgsRef.value)
   const idx = localAppmsgsRef.value.findIndex(v => v.appmsgid == remote_appmsgid)
   return idx !== -1
 }
@@ -945,6 +948,9 @@ const registerChannels = () => {
 
 onActivated(async () => {
   registerChannels()
+  if(materialTypeRef.value === 1){
+    handleSwitchToDraftBox()
+  }
 })
 
 onDeactivated(async () => {
