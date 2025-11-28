@@ -157,9 +157,28 @@
         />
         <div ref="ueditor_wrapper" class="flex-1">
           <div class="h-full flex flex-col" v-if="msg_idRef !== 0 && currentArticleRef.item_show_type === 0">
-            <vue-ueditor-wrap class="ueditor-wrapper flex-1 flex items-stretch"
-              v-model="currentArticleRef.content_noencode" :editor-id="editorIdRef" @ready="ready"
-              :config="editorConfigRef" :editorDependencies="['ueditor.config.js', 'ueditor.all.js']" />
+            <!-- 当 share_info 存在时，显示推荐语输入框而不是编辑器 -->
+            <div v-if="currentArticleRef.share_info" class="p-4">
+              <el-input
+                v-model="shareRecommendWords"
+                type="textarea"
+                :rows="4"
+                :maxlength="140"
+                show-word-limit
+                placeholder="可以输入140字以内的推荐语（选填）"
+                class="w-full"
+              />
+            </div>
+            <!-- 当 share_info 不存在时，显示编辑器 -->
+            <vue-ueditor-wrap 
+              v-else
+              class="ueditor-wrapper flex-1 flex items-stretch"
+              v-model="currentArticleRef.content_noencode" 
+              :editor-id="editorIdRef" 
+              @ready="ready"
+              :config="editorConfigRef" 
+              :editorDependencies="['ueditor.config.js', 'ueditor.all.js']" 
+            />
             <!-- 分享文章卡片 -->
             <div v-if="currentArticleRef.share_info" class="mt-4 p-4 bg-white border border-gray-200 rounded-lg shadow-sm max-w-full">
               <div class="flex items-start mb-3">
@@ -785,7 +804,7 @@
       </el-col>
     </el-row>
   </el-dialog>
-  <el-dialog :close-on-click-modal="false" title="敏感性检测" v-model="dialogSensitiveCheckVisibleRef" width="720px">
+  <el-dialog :close-on-click-modal="false" title="敏感词检测" v-model="dialogSensitiveCheckVisibleRef" width="720px">
     <div class="sensitive-check-dialog" v-loading="sensitiveCheckLoadingRef" element-loading-text="检测中，请稍候...">
       <div class="flex items-center space-x-3 mb-5">
         <el-button plain @click="handleOpenSensitiveManage">
@@ -1256,6 +1275,17 @@ const is_xiaolvshu = computed(() => {
   return type === 8 || type === 10
 });
 
+// 分享文章推荐语（当 share_info 存在时使用）
+const shareRecommendWords = computed({
+  get() {
+    return currentArticleRef.value.guide_words || ""
+  },
+  set(value) {
+    currentArticleRef.value.guide_words = value
+    syncToList('guide_words')
+  }
+})
+
 const { all_accounts } = toRefs(store.getters)
 const currentUserIdRef = computed(() => {
   const user = store.getters.getUserData || {}
@@ -1484,7 +1514,7 @@ const failReasonVisibleRef = ref(false)
 // 调试信息
 const dialogDebugVisibleRef = ref(false)
 
-// 敏感性检测
+// 敏感词检测
 const dialogSensitiveCheckVisibleRef = ref(false)
 const sensitiveCheckLoadingRef = ref(false)
 const baseSensitiveGroupOptions = [
@@ -1856,6 +1886,7 @@ const loadArticle = (mp_msg, before_save) => {
   // console.log("mp_msg2=>", mp_msg.picture_page_info_list)
   // appmsgidRef.value = mp_msg.appmsgid
   console.log("mp_msg3=>", mp_msg)
+  
   currentArticleRef.value = {
     ...mp_msg,
   }
@@ -2469,7 +2500,7 @@ const _saveAppMsg = async (push_to_remote) => {
   if (!validateAccount()) {
     return false
   }
-
+  
   // 检查是否添加了标题和封面
   if (!validateMsgData()) {
     return false
@@ -2501,6 +2532,12 @@ const _saveAppMsg = async (push_to_remote) => {
     if(newMaterial.new_content_noencode) {
       newMaterial.content_noencode = newMaterial.new_content_noencode.replace(/<p>\u000b<\/p>$/, '')
     }
+    // 分享文章处理：如果 share_info 存在且 guide_words 为空，使用默认值
+    if (item.share_info && item.item_show_type === 0) {
+      if (!item.guide_words || item.guide_words.trim() === '') {
+        item.guide_words = "分享一篇文章"
+      }
+    }
     // 小绿书处理有图片和无图片的类型
     if([8, 10].includes(newMaterial.item_show_type)) {
       if (newMaterial.cdn_url === '' && !newMaterial.picture_page_info_list?.length){
@@ -2523,7 +2560,6 @@ const _saveAppMsg = async (push_to_remote) => {
     wechat_id,
     push_to_remote,
   }
-  console.log("save appmsg postData=>", postData)
   // return
   const loader = ElLoading.service({
     target: '.main'
@@ -2938,7 +2974,7 @@ const runSensitiveWordCheck = async () => {
     sensitiveCheckDraftsRef.value = results
   } catch (error) {
     console.error('敏感词检测失败', error)
-    const message = error?.response?.data?.detail || error?.message || '敏感性检测失败，请稍后重试'
+    const message = error?.response?.data?.detail || error?.message || '敏感词检测失败，请稍后重试'
     ElMessage.error(message)
   } finally {
     sensitiveCheckLoadingRef.value = false
@@ -5443,7 +5479,7 @@ const operationList = [
     action: () => { handleCopyrightCheck() }
   },
   {
-    title: '敏感性检测',
+    title: '敏感词检测',
     icon: 'mdi:shield-alert-outline',
     action: () => { handleSensitiveCheck() }
   },
