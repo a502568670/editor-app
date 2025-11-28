@@ -44,6 +44,7 @@ const api = {
 
   // 获取小店返佣商品
   get_shop_commodity: (tk) => `${baseUrl}/shop-faas/mmeckolnode/mp/listTalentSelectionSpuItems?token=${tk}&lang=zh_CN`,
+  get_shop_commodity_search: (tk) => `${baseUrl}/shop-faas/mmeckolnode/mp/searchTalentSelectionSpuItems?token=${tk}&lang=zh_CN`,
   // 获取 windowproduct (product_encrypt_key)
   get_windowproduct: () => `${baseUrl}/cgi-bin/windowproduct?action=get_windowproduct`,
   // 获取文章链接信息
@@ -336,6 +337,7 @@ const getRegions = async ({ cookies, id = 0 }) => {
 
 const getShopCommodity = async (data) => {
   const listCondition = JSON.parse(data.listCondition);
+  const body = data.keyword === '' ? { listCondition } : { keyword: data.keyword, listCondition };
   const opts = {
     method: 'POST',
     headers: {
@@ -343,9 +345,10 @@ const getShopCommodity = async (data) => {
       cookie: data.cookie,
       'Content-Type': 'application/json'
     },
-    body: JSON.stringify({ listCondition })
+    body: JSON.stringify(body)
   };
-  let url = api.get_shop_commodity(data.token);
+  console.log('data.keyword', data);
+  let url = data.keyword === '' ? api.get_shop_commodity(data.token) : api.get_shop_commodity_search(data.token);
   verbose_log('api url:', url);
   verbose_log('api opts:', opts);
   let res = await netFetch(url, { ...opts });
@@ -420,20 +423,20 @@ const getLinkInfo = async ({ cookies, token, link, scene = 4 }) => {
   };
   let url = api.get_linkinfo()
   verbose_log('get_linkinfo api url:', url)
-  
+
   // 构造请求数据
   const dataObj = {
     scene: scene,
     link: link
   }
   const formdata = `data=${encodeURIComponent(JSON.stringify(dataObj))}&token=${token}&lang=zh_CN&f=json&ajax=1`
-  
+
   verbose_log('get_linkinfo api opts:', opts)
   verbose_log('get_linkinfo formdata:', formdata)
-  
+
   let res = (await netFetch(url, { ...opts, body: formdata }))
   verbose_log("get_linkinfo res:", typeof res, res)
-  
+
   res = JSON.parse(res)
   let base_resp = res.base_resp
   if (base_resp.ret !== 0) {

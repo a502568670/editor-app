@@ -182,8 +182,8 @@
             <!-- 分享文章卡片 -->
             <div v-if="currentArticleRef.share_info" class="mt-4 p-4 bg-white border border-gray-200 rounded-lg shadow-sm max-w-full">
               <div class="flex items-start mb-3">
-                <img 
-                  :src="currentArticleRef.share_info.source_headimg" 
+                <img
+                  :src="currentArticleRef.share_info.source_headimg"
                   class="w-10 h-10 rounded-full mr-3 flex-shrink-0 object-cover"
                   alt="头像"
                   @error="(e) => e.target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMjAiIGZpbGw9IiNlNWU3ZWIiLz48L3N2Zz4='"
@@ -191,18 +191,18 @@
                 <div class="flex-1 min-w-0">
                   <div class="text-sm font-medium text-gray-900 mb-1">{{ currentArticleRef.share_info.platform }}</div>
                   <div class="flex items-start gap-2 mb-2">
-                    <div class="text-sm text-gray-900 font-medium flex-1 break-words" 
+                    <div class="text-sm text-gray-900 font-medium flex-1 break-words"
                       v-html="extractTitleFromContent(currentArticleRef.share_info.content_noencode)"></div>
-                    <span v-if="currentArticleRef.share_info.copyright_stat === '2'" 
+                    <span v-if="currentArticleRef.share_info.copyright_stat === '2'"
                       class="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded flex-shrink-0 whitespace-nowrap">原创</span>
                   </div>
                 </div>
               </div>
-              <div class="text-sm text-gray-700 mb-3 overflow-hidden" 
+              <div class="text-sm text-gray-700 mb-3 overflow-hidden"
                 v-html="extractPreviewContent(currentArticleRef.share_info.content_noencode)"
                 style="display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; word-break: break-word;"></div>
-              <a 
-                :href="currentArticleRef.share_info.reprint_url" 
+              <a
+                :href="currentArticleRef.share_info.reprint_url"
                 target="_blank"
                 class="text-blue-500 text-sm hover:text-blue-600 inline-block"
               >
@@ -287,7 +287,7 @@
         <div class="flex items-center justify-between pt-2">
           <div>
             <p v-if="warningMsg != null" class="automatic-save-msg">
-              {{ warningMsg === '' ? `自动保存成功 ${lastSaveTime}` : `自动保存失败：${warningMsg}` }}
+              {{ warningMsg === '' ? `自动保存到本地成功 ${lastSaveTime}` : `自动保存到本地失败：${warningMsg}` }}
             </p>
           </div>
         </div>
@@ -364,9 +364,9 @@
               v-if="selected_claim_source_typeRef.id === 2 && materialSourceRef === 'official_account'">
               <el-col :span="24">
                 <p class="set-title">来源文章链接</p>
-                <el-input 
-                  v-model="claimSourceLinkRef" 
-                  clearable 
+                <el-input
+                  v-model="claimSourceLinkRef"
+                  clearable
                   placeholder="请填写政/媒体/事业单位等官方组织机构发表的内容"
                   @blur="handleClaimSourceLinkChange"
                   :loading="claimSourceLinkLoadingRef"
@@ -375,9 +375,9 @@
                   <div v-if="claimSourceAccountRef" class="flex items-center text-sm">
                     <span class="text-gray-600 min-w-[80px]">来源账号</span>
                     <div class="flex items-center space-x-2">
-                      <img 
-                        v-if="claimSourceAccountAvatarRef" 
-                        :src="claimSourceAccountAvatarRef" 
+                      <img
+                        v-if="claimSourceAccountAvatarRef"
+                        :src="claimSourceAccountAvatarRef"
                         class="w-5 h-5 rounded-full object-cover"
                         referrerpolicy="no-referrer"
                         alt="账号头像"
@@ -399,12 +399,12 @@
                   </div>
                   <div v-if="claimSourceTimeRef" class="flex items-center text-sm">
                     <span class="text-gray-600 min-w-[80px]">事件地点</span>
-                    <el-cascader 
-                      v-model="claimSourceLocationRef" 
-                      :options="eventLocationOpts" 
-                      :props="eventLocationProps" 
-                      placeholder="选择该事件发生的地点" 
-                      clearable 
+                    <el-cascader
+                      v-model="claimSourceLocationRef"
+                      :options="eventLocationOpts"
+                      :props="eventLocationProps"
+                      placeholder="选择该事件发生的地点"
+                      clearable
                       filterable
                       style="width: 100%"
                     />
@@ -432,12 +432,12 @@
                   </div>
                   <div class="flex items-center text-sm">
                     <span class="text-gray-600 min-w-[80px]">事件地点</span>
-                    <el-cascader 
-                      v-model="claimSourceLocationRef" 
-                      :options="eventLocationOpts" 
-                      :props="eventLocationProps" 
-                      placeholder="选择该事件发生的地点" 
-                      clearable 
+                    <el-cascader
+                      v-model="claimSourceLocationRef"
+                      :options="eventLocationOpts"
+                      :props="eventLocationProps"
+                      placeholder="选择该事件发生的地点"
+                      clearable
                       filterable
                       style="width: 100%"
                     />
@@ -1702,13 +1702,13 @@ function ready(editorInstance) {
         '.edui-toolbar [title*="排版"]',
         '.edui-toolbar .edui-splitbutton[title*="排版"]'
       ]
-      
+
       let autoFormatBtn = null
       for (const selector of selectors) {
         autoFormatBtn = document.querySelector(selector)
         if (autoFormatBtn) break
       }
-      
+
       if (autoFormatBtn) {
         // 移除所有可能的下拉箭头元素
         const arrowSelectors = ['.edui-splitborder', '.edui-arrow', '.edui-splitbutton-arrow', '.edui-menu']
@@ -1718,7 +1718,7 @@ function ready(editorInstance) {
             arrow.style.display = 'none'
           })
         })
-        
+
         // 查找父级分割按钮容器
         const splitButton = autoFormatBtn.closest('.edui-splitbutton') || autoFormatBtn.parentElement
         if (splitButton && splitButton.classList.contains('edui-splitbutton')) {
@@ -1726,7 +1726,7 @@ function ready(editorInstance) {
           splitButton.style.borderRight = 'none'
           splitButton.style.paddingRight = '0'
         }
-        
+
         // 阻止下拉菜单的显示
         const handleClick = function(e) {
           e.preventDefault()
@@ -1735,11 +1735,11 @@ function ready(editorInstance) {
           handleAutoFormat()
           return false
         }
-        
+
         // 移除旧的事件监听器（如果存在）
         autoFormatBtn.removeEventListener('click', handleClick)
         autoFormatBtn.addEventListener('click', handleClick, true) // 使用捕获阶段
-        
+
         // 阻止鼠标悬停时显示下拉菜单
         autoFormatBtn.addEventListener('mouseenter', function(e) {
           e.stopPropagation()
@@ -1991,7 +1991,7 @@ const loadArticle = (mp_msg, before_save) => {
   if (find_claim_source_type) {
     selected_claim_source_typeRef.value = find_claim_source_type
   }
-  
+
   // 解析并还原claim_source_info
   if (currentArticleRef.value.claim_source_info) {
     let claimSourceInfo = currentArticleRef.value.claim_source_info
@@ -2004,10 +2004,10 @@ const loadArticle = (mp_msg, before_save) => {
         claimSourceInfo = null
       }
     }
-    
+
     if (claimSourceInfo && claimSourceInfo.media_source_type_info) {
       const mediaInfo = claimSourceInfo.media_source_type_info
-      
+
       // 还原素材来源类型（兼容数字和字符串类型）
       if (mediaInfo.media_source_from === 1 || mediaInfo.media_source_from === "1") {
         materialSourceRef.value = 'official_account'
@@ -2020,7 +2020,7 @@ const loadArticle = (mp_msg, before_save) => {
         // 还原其他来源相关字段
         claimSourcePlatformRef.value = mediaInfo.other_from_account || ''
       }
-      
+
       // 还原事件时间（时间戳转日期字符串）
       if (mediaInfo.news_time) {
         try {
@@ -2039,7 +2039,7 @@ const loadArticle = (mp_msg, before_save) => {
       } else {
         claimSourceTimeRef.value = ''
       }
-      
+
       // 还原事件地点
       if (mediaInfo.news_position_info) {
         const posInfo = mediaInfo.news_position_info
@@ -2295,7 +2295,7 @@ const saveCurrentToList = (msg_id) => {
 
   // 创作来源
   currentArticleRef.value.claim_source_type = selected_claim_source_typeRef.value.id
-  
+
   // 新增创作来源json体保存
   if (selected_claim_source_typeRef.value.id === 2) {
     // 构建claim_source_info对象
@@ -2306,7 +2306,7 @@ const saveCurrentToList = (msg_id) => {
       aigc_wording: "",
       media_source_type_info: {}
     }
-    
+
     // 构建media_source_type_info
     if (materialSourceRef.value === 'official_account') {
       // 公众号/服务号
@@ -2331,7 +2331,7 @@ const saveCurrentToList = (msg_id) => {
         news_position_info: {}
       }
     }
-    
+
     // 处理地点信息
     if (claimSourceLocationRef.value && claimSourceLocationRef.value.length > 0) {
       const location = claimSourceLocationRef.value
@@ -2367,7 +2367,7 @@ const saveCurrentToList = (msg_id) => {
         }
       }
     }
-    
+
     currentArticleRef.value.claim_source_info = claimSourceInfo
   } else {
     // 其他创作来源类型，不保存claim_source_info或保存空对象
@@ -2388,7 +2388,7 @@ const saveCurrentToList = (msg_id) => {
   vhtml = replaceMPVContentToWechat(vhtml, mpExsRef.value.mpvcontent_obj)
   vhtml = replaceCommissionToWechat(vhtml, mpExsRef.value.mpcommission_obj)
 
-  currentArticleRef.value.content_noencode = vhtml
+  currentArticleRef.value.new_content_noencode = vhtml
 
   console.log("abc",currentArticleRef.value)
   const idx = mp_msgsRef.value.findIndex(v => v.msg_id === msg_id)
@@ -2409,16 +2409,16 @@ const saveOthersToListForCustomTag = (msg_id) => {
   console.log('mpcommission_obj',mpcommission_obj)
   targetItems.forEach(v => {
     if (hasMPCardInEditor(v.content_noencode)) {
-      v.content_noencode = replaceMPCardToWechat(v.content_noencode, mps_obj)
+      v.new_content_noencode = replaceMPCardToWechat(v.content_noencode, mps_obj)
     }
     if (hasMiniAppCardInEditor(v.content_noencode)) {
-      v.content_noencode = replaceMiniAppCardToWechat(v.content_noencode, miniappcard_obj)
+      v.new_content_noencode = replaceMiniAppCardToWechat(v.content_noencode, miniappcard_obj)
     }
     if (hasMPVContentInEditor(v.content_noencode)) {
-      v.content_noencode = replaceMPVContentToWechat(v.content_noencode, mpvcontent_obj)
+      v.new_content_noencode = replaceMPVContentToWechat(v.content_noencode, mpvcontent_obj)
     }
     if (hasCommissionInEditor(v.content_noencode)) {
-      v.content_noencode = replaceCommissionToWechat(v.content_noencode, mpcommission_obj)
+      v.new_content_noencode = replaceCommissionToWechat(v.content_noencode, mpcommission_obj)
     }
   })
 }
@@ -2485,23 +2485,24 @@ const automaticSave = async (push_to_remote) => {
   let appmsgid = _getAppMsgId()
 
   const material_list = mp_msgsRef.value.map((item) => {
+    const newMaterial = { ...item }
     // 清空文章中的垂直制表符，防止出现空白行
-    if(item.content_noencode) {
-      item.content_noencode = item.content_noencode.replace(/<p>\u000b<\/p>$/, '')
+    if(newMaterial.new_content_noencode) {
+      newMaterial.content_noencode = newMaterial.new_content_noencode.replace(/<p>\u000b<\/p>$/, '')
     }
     // 小绿书处理有图片和无图片的类型
-    if([8, 10].includes(item.item_show_type)) {
-      if (item.cdn_url === '' && !item.picture_page_info_list?.length){
-        item.item_show_type = 10
-        item.content_noencode = item.guide_words
+    if([8, 10].includes(newMaterial.item_show_type)) {
+      if (newMaterial.cdn_url === '' && !newMaterial.picture_page_info_list?.length){
+        newMaterial.item_show_type = 10
+        newMaterial.content_noencode = newMaterial.guide_words
       } else {
-        item.item_show_type = 8
-        if(item.cdn_url == null || item.cdn_url === ''){
-          item.cdn_url = item.picture_page_info_list[0].url
+        newMaterial.item_show_type = 8
+        if(newMaterial.cdn_url == null || newMaterial.cdn_url === ''){
+          newMaterial.cdn_url = newMaterial.picture_page_info_list[0].url
         }
       }
     }
-    return item
+    return newMaterial
   })
   const postData = {
     cookies: serializeCookie(JSON.parse(session_id)["cookie"]),
@@ -2594,9 +2595,10 @@ const _saveAppMsg = async (push_to_remote) => {
   let appmsgid = _getAppMsgId()
 
   const material_list = mp_msgsRef.value.map((item) => {
+    const newMaterial = { ...item }
     // 清空文章中的垂直制表符，防止出现空白行
-    if(item.content_noencode) {
-      item.content_noencode = item.content_noencode.replace(/<p>\u000b<\/p>$/, '')
+    if(newMaterial.new_content_noencode) {
+      newMaterial.content_noencode = newMaterial.new_content_noencode.replace(/<p>\u000b<\/p>$/, '')
     }
     // 分享文章处理：如果 share_info 存在且 guide_words 为空，使用默认值
     if (item.share_info && item.item_show_type === 0) {
@@ -2605,18 +2607,18 @@ const _saveAppMsg = async (push_to_remote) => {
       }
     }
     // 小绿书处理有图片和无图片的类型
-    if([8, 10].includes(item.item_show_type)) {
-      if (item.cdn_url === '' && !item.picture_page_info_list?.length){
-        item.item_show_type = 10
-        item.content_noencode = item.guide_words
+    if([8, 10].includes(newMaterial.item_show_type)) {
+      if (newMaterial.cdn_url === '' && !newMaterial.picture_page_info_list?.length){
+        newMaterial.item_show_type = 10
+        newMaterial.content_noencode = newMaterial.guide_words
       } else {
-        item.item_show_type = 8
-        if(item.cdn_url == null || item.cdn_url === ''){
-          item.cdn_url = item.picture_page_info_list[0].url
+        newMaterial.item_show_type = 8
+        if(newMaterial.cdn_url == null || newMaterial.cdn_url === ''){
+          newMaterial.cdn_url = newMaterial.picture_page_info_list[0].url
         }
       }
     }
-    return item
+    return newMaterial
   })
   const postData = {
     cookies: serializeCookie(JSON.parse(session_id)["cookie"]),
@@ -2638,6 +2640,7 @@ const _saveAppMsg = async (push_to_remote) => {
       type: 'success',
       duration: 2 * 1000
     })
+    console.log("saveAppMsg res=>", res)
     res.data.data.mp_msgs.forEach(gen_picture_page_info_list)
     normalizeClaimSourceInfo(res.data.data.mp_msgs)
     mp_msgsRef.value = res.data.data.mp_msgs
@@ -4891,7 +4894,6 @@ watch(() => [props.mainMsg], async (newVal) => {
       // 视频号内容
       const mpvcontent_obj = toDeepRaw(mpExsRef.value.mpvcontent_obj)
       parsed_data.content_noencode = replaceMPVContentFromWechat(parsed_data.content_noencode, mpvcontent_obj)
-      
 
       console.log("parsed_data.content_noencode=>", parsed_data.content_noencode)
       console.log("mps_obj=>", mps_obj)
@@ -5197,9 +5199,9 @@ const eventLocationProps = {
         const hongkongRegion = regions.find(r => r.name === '中国香港')
         const macaoRegion = regions.find(r => r.name === '中国澳门')
         const taiwanRegion = regions.find(r => r.name === '中国台湾')
-        
+
         const options = []
-        
+
         // 添加香港、澳门、台湾（直接选择，leaf: true）
         if (hongkongRegion) {
           options.push({
@@ -5225,7 +5227,7 @@ const eventLocationProps = {
             leaf: true // 直接选择，不加载下一级
           })
         }
-        
+
         // 加载中国的省份
         if (chinaRegion) {
           const provinces = await fetchEventLocationData(chinaRegion.id)
@@ -5241,15 +5243,15 @@ const eventLocationProps = {
             })
           })
         }
-        
+
         resolve(options)
       } else if (node.value === 'international') {
         // 加载国际地区（排除中国相关），直接选择，不加载下一级
         const regions = await fetchEventLocationData(0)
-        const internationalRegions = regions.filter(r => 
-          r.name !== '中国' && 
-          r.name !== '中国台湾' && 
-          r.name !== '中国澳门' && 
+        const internationalRegions = regions.filter(r =>
+          r.name !== '中国' &&
+          r.name !== '中国台湾' &&
+          r.name !== '中国澳门' &&
           r.name !== '中国香港'
         )
         const options = internationalRegions.map(region => ({
@@ -5293,7 +5295,7 @@ const handleClaimSourceLinkChange = () => {
     claimSourceTimeRef.value = ''
     return
   }
-  
+
   // 检查是否是微信公众号文章链接
   if (!link.startsWith('https://mp.weixin.qq.com/s/')) {
     claimSourceAccountRef.value = ''
@@ -5301,16 +5303,16 @@ const handleClaimSourceLinkChange = () => {
     claimSourceTimeRef.value = ''
     return
   }
-  
+
   // 调用接口获取链接信息
   if (!selectedAccount.value || !selectedAccount.value.session_id) {
     ElMessage.warning('请先选择账号')
     return
   }
-  
+
   const { token, session_id } = selectedAccount.value
   const cookies = serializeCookie(JSON.parse(session_id)["cookie"])
-  
+
   claimSourceLinkLoadingRef.value = true
   window.ipcRenderer.send('toMain', {
     tag: 'appmsg:getLinkInfo',
@@ -5353,7 +5355,7 @@ const handleAutoFormat = async () => {
     const tempDiv = document.createElement('div')
     tempDiv.innerHTML = htmlContent
     const textContent = tempDiv.innerText || tempDiv.textContent || ''
-    
+
     if (!textContent.trim()) {
       ElMessage({
         message: '编辑器内容为空',
@@ -5383,27 +5385,27 @@ const handleAutoFormat = async () => {
       responseType: 'text',
       transformResponse: [(data) => data] // 禁用自动转换，保持原始文本
     })
-    
+
     console.log('收到响应，状态码:', response.status)
 
     // 解析流式响应
     let formattedContent = ''
-    
+
     // 确保 response.data 是字符串
     const responseText = typeof response.data === 'string' ? response.data : JSON.stringify(response.data)
     const lines = responseText.split('\n')
-    
+
     for (const line of lines) {
       if (!line || typeof line !== 'string') continue
-      
+
       const trimmedLine = line.trim()
       if (trimmedLine.startsWith('data: ')) {
         try {
           const jsonStr = trimmedLine.substring(6)
           if (!jsonStr) continue
-          
+
           const data = JSON.parse(jsonStr)
-          
+
           if (data.type === 'chunk' && data.content) {
             formattedContent += data.content
           } else if (data.type === 'complete') {
@@ -5422,22 +5424,22 @@ const handleAutoFormat = async () => {
     const docMatch = formattedContent.match(/\[doc\]([\s\S]*?)\[\/doc\]/)
     if (docMatch && docMatch[1]) {
       const cleanedContent = docMatch[1].trim()
-      
+
       // 使用编辑器的 setContent 方法更新内容，避免直接修改 v-model 导致的状态不一致
       if (editorRef.value) {
         try {
           // 先更新 v-model 绑定的内容
           currentArticleRef.value.content_noencode = cleanedContent
-          
+
           // 等待 DOM 更新
           await nextTick()
-          
+
           // 使用 setContent 方法更新编辑器内容（第二个参数 false 表示不触发内容变化事件）
           editorRef.value.setContent(cleanedContent, false)
-          
+
           // 再等待一下，确保编辑器内部状态更新完成
           await new Promise(resolve => setTimeout(resolve, 100))
-          
+
           ElMessage({
             message: '排版成功',
             type: 'success',
