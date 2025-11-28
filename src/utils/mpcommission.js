@@ -29,15 +29,10 @@ export function tplWithCommission(data) {
   if (cardtype === 12 && data.product_imageurl) {
     return buildImageLinkTemplate(windowproduct, title, data.product_imageurl, productTag, productInfo);
   }
-
+  console.log(cardtype);
   // 文字链接样式（cardtype=2）
   if (cardtype === 2) {
-    return `<span product-obj='${productInfo}' class="product_card_text_wrp" data-weui-theme="light">
-      <a href="javascript:void(0);" class="product_text_link" style="color: rgb(87, 107, 149);">
-        ${escapeHtml(title)}
-      </a>
-      <iframe src="#" scrolling="no" frameborder="0" class="iframe_style" style="width: 350px; display: none;"></iframe>
-    </span>`;
+    return `<section product-obj='${productInfo}'><span leaf=""><mp-common-product data-windowproduct="${windowproduct}" data-cardtype="2" data-title="${escapeHtml(title)}" data-type="0"></mp-common-product></span></section>`;
   }
 
   // 默认：包装在 wrapper 中
