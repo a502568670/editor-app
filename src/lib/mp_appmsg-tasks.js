@@ -222,12 +222,22 @@ const getAppmsgInDraftBox = async ({ cookies, token, appmsgid }) => {
       err_msg: base_resp.err_msg
     }
   }
-
+  verbose_log("res=>",res)
   const appmsg_info = JSON.parse(res.app_msg_info)
   // verbose_log("------------appmsg_info begin---------------")
-  // verbose_log(appmsg_info)
   // verbose_log("------------appmsg_info end---------------")
-
+  verbose_log("appmsg_info=>!before",appmsg_info)
+  // 确保 multi_item 始终是数组格式
+  if (appmsg_info.item && Array.isArray(appmsg_info.item)) {
+    appmsg_info.item.forEach(item => {
+      if (item && !Array.isArray(item.multi_item)) {
+        // 如果 multi_item 不是数组，转换为数组或初始化为空数组
+        item.multi_item = item.multi_item ? [item.multi_item] : []
+      }
+    })
+  }
+  verbose_log("appmsg_info=>!",appmsg_info)
+  
   return {
     success: true,
     appmsg_info

@@ -588,6 +588,7 @@ async function reactToIpcObjectData(data, tabbedWin, viewContents) {
       break
     }
     case 'appmsg:getAppmsgInDraftBox': {
+      // 获取文章
       verbose_log("===== listen getAppmsgInDraftBox in main ====", data)
       const { source, token, getData } = data
       // token => userToken

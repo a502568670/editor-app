@@ -10,6 +10,7 @@ import { getToken } from '@/utils/auth'
 import { serializeCookie } from '@/utils/cookie'
 import { format_to_UEditor_html } from '@/utils/dom'
 import { getVideoFrameHtml } from '@/utils/video'
+import { mapShareInfoFromAppmsg } from '@/lib/share-info'
 
 export function useDraftSync(channelSource = 'draft_sync') {
   // 同步状态
@@ -70,11 +71,12 @@ export function useDraftSync(channelSource = 'draft_sync') {
   const syncRemoteToLocal = async (appmsg_info, account) => {
     const { token, id, session_id } = account
     
-    console.log("syncRemoteToLocal appmsg_info:", appmsg_info.item[0])
-    const appmsgid = appmsg_info.item[0].app_id
+    const firstItem = appmsg_info.item[0]
+    console.log("syncRemoteToLocal appmsg_info:", firstItem)
+    const appmsgid = firstItem.app_id
     
     // 转换数据格式
-    const material_list = appmsg_info.item[0].multi_item.map(mi => {
+    const material_list = firstItem.multi_item.map(mi => {
       const material_item = {
         msg_id: 0,
         item_show_type: mi.share_page_type,
@@ -90,7 +92,11 @@ export function useDraftSync(channelSource = 'draft_sync') {
         can_insert_ad: mi.can_insert_ad,
         claim_source_type: mi.claim_source_type,
       }
-      
+      const shareInfo = mapShareInfoFromAppmsg(mi)
+      if (shareInfo) {
+        material_item.share_info = shareInfo
+      }
+      console.log("material_list=>", material_list)
       // 根据不同类型处理内容
       if (material_item.item_show_type === 0) {
         // 图文消息
@@ -135,7 +141,7 @@ export function useDraftSync(channelSource = 'draft_sync') {
     try {
       const res = await saveAppMsg(postData)
       console.log("保存成功:", res)
-      return { success: true, appmsgid, data: appmsg_info.item[0] }
+      return { success: true, appmsgid, data: firstItem }
     } catch (error) {
       console.error("保存失败:", error)
       return { success: false, appmsgid, error }
@@ -178,7 +184,7 @@ export function useDraftSync(channelSource = 'draft_sync') {
           }
           
           // 获取成功，同步到本地
-          const appmsgid = appmsg_info.item[0].app_id
+          const appmsgid = firstItem.app_id
           const idx = pendingDraftsToSync.value.findIndex(p => p.appmsgid === appmsgid)
           
           if (idx > -1) {

@@ -214,6 +214,7 @@ import { newlistArticlesByAppMsg } from '@/api/mp_msg';
 import { format_to_UEditor_html } from "@/utils/dom";
 import AccountList from '@/components/accountList.vue'
 import AccountPickerModal from '@/components/AccountPickerModal.vue'
+import { mapShareInfoFromAppmsg } from '@/lib/share-info'
 
 const AccountListRef = ref()
 
@@ -663,9 +664,10 @@ const _getAppmsgInDraftBox = async (appmsgid) => {
 const syncRemoteToLocal = async (appmsg_info) => {
   const { token, id, session_id } = selectedAccountRef.value
 
-  console.log("syncRemoteToLocal appmsg_info to local:", appmsg_info.item[0])
-  const appmsgid = appmsg_info.item[0].app_id
-  const material_list = appmsg_info.item[0].multi_item.map(mi => {
+  console.log("syncRemoteToLocal appmsg_info to local:", appmsg_info)
+  const firstItem = appmsg_info.item[0]
+  const appmsgid = firstItem.app_id
+  const material_list = firstItem.multi_item.map(mi => {
     const material_item = {
       msg_id: 0,
       item_show_type: mi.share_page_type,
@@ -680,6 +682,10 @@ const syncRemoteToLocal = async (appmsg_info) => {
       insert_ad_mode: mi.insert_ad_mode,
       can_insert_ad: mi.can_insert_ad,
       claim_source_type: mi.claim_source_type,
+    }
+    const shareInfo = mapShareInfoFromAppmsg(mi)
+    if (shareInfo) {
+      material_item.share_info = shareInfo
     }
     if (material_item.item_show_type === 0) {
       material_item.content_noencode = format_to_UEditor_html(mi.content)
@@ -861,6 +867,7 @@ const registerChannels = () => {
         })
       } else if (tag === 'appmsg-ret:getAppmsgInDraftBox') {
         const { success, appmsg_info, err_msg } = ret
+        console.log("appmsg-ret:getAppmsgInDraftBox appmsg_info=>", appmsg_info)
         if (!success) {
           let message = err_msg === "invalid session" ? apperrmsg.invalid_session : err_msg
           ElMessageBox.alert(message, '错误', {
