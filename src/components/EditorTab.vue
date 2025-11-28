@@ -1116,28 +1116,6 @@
 .el-dialog__body {
   @apply flex justify-center;
 }
-
-/* 隐藏自动排版按钮的下拉箭头 */
-.edui-toolbar .edui-for-autotypeset .edui-splitborder,
-.edui-toolbar .edui-for-autotypeset .edui-arrow,
-.edui-toolbar .edui-for-autotypeset .edui-splitbutton-arrow,
-.edui-toolbar [data-command="autotypeset"] .edui-splitborder,
-.edui-toolbar [data-command="autotypeset"] .edui-arrow,
-.edui-toolbar [data-command="autotypeset"] .edui-splitbutton-arrow {
-  display: none !important;
-}
-
-/* 移除自动排版按钮的分割线样式 */
-.edui-toolbar .edui-for-autotypeset.edui-splitbutton,
-.edui-toolbar [data-command="autotypeset"].edui-splitbutton {
-  border-right: none !important;
-}
-
-/* 使自动排版按钮看起来像普通按钮 */
-.edui-toolbar .edui-for-autotypeset,
-.edui-toolbar [data-command="autotypeset"] {
-  cursor: pointer !important;
-}
 </style>
 <style scoped>
 .set-title{
@@ -1367,20 +1345,67 @@ const editorConfigRef = ref({
   },
   elementPathEnabled: false,
   wordCount: false,
-  // 自定义工具栏按钮点击回调
-  toolbarCallback: function (cmd, editor) {
-    // 处理自动排版按钮点击（拦截 autotypeset 命令）
-    if (cmd === 'autotypeset') {
-      // 延迟调用，确保 handleAutoFormat 已经定义
-      setTimeout(() => {
-        if (typeof handleAutoFormat === 'function') {
-          handleAutoFormat()
-        }
-      }, 0)
-      return true // 返回 true 表示已经处理，阻止默认行为
-    }
-    return false
-  }
+  toolbars:[[
+    "fullscreen",   // 全屏
+    "source",       // 源代码
+    "|",
+    "undo",         // 撤销
+    "redo",         // 重做
+    "|",
+    "bold",         // 加粗
+    "italic",       // 斜体
+    "underline",    // 下划线
+    "strikethrough",// 删除线
+    "removeformat", // 清除格式
+    "autotypeset",  // 自动排版（自定义实现）
+    "|",
+    "forecolor",    // 字体颜色
+    "backcolor",    // 背景色
+    "insertorderedlist",   // 有序列表
+    "insertunorderedlist", // 无序列表
+    "|",
+    "rowspacingtop",// 段前距
+    "rowspacingbottom",    // 段后距
+    "lineheight",          // 行间距
+    "letterspacing",          // 字间距
+    "|",
+    "fontsize",            // 字号
+    "|",
+    "justifyleft",         // 居左对齐
+    "justifycenter",       // 居中对齐
+    "justifyright",
+    "justifyjustify",      // 两端对齐
+    "|",
+    "link",                // 超链接
+    "unlink",              // 取消链接
+    "|",
+    "imagenone",           // 图片默认
+    "imageleft",           // 图片左浮动
+    "imagecenter",         // 图片居中
+    "imageright",          // 图片右浮动
+    "|",
+    "simpleupload",        // 单图上传
+    "insertimage",         // 多图上传
+    "emotion",             // 表情
+    "insertvideo",         // 视频
+    "|",
+    "horizontal",          // 分隔线
+    "|",
+    "preview",             // 预览
+    "searchreplace",       // 查询替换
+    "|",
+    "contentimport",
+  ]],
+  shortcutMenu:[
+    "fontsize",     // 字号
+    "bold",         // 加粗
+    "italic",       // 斜体
+    "underline",    // 下划线
+    "strikethrough",// 删除线
+    "forecolor",    // 字体颜色
+    "lineheight",        // 行间距
+    "letterspacing" ,    // 字间距
+  ]
 })
 
 // component
@@ -1635,103 +1660,10 @@ const currentArticleRef = ref({
 })
 
 /// ueditor methods
-
 function ready(editorInstance) {
-  console.log(`编辑器实例${editorInstance.key}: `, editorInstance);
+  console.log(`编辑器实例`, editorInstance);
   editorRef.value = editorInstance;
-
-  // 重写 execCommand 方法，完全阻止 autotypeset 命令的默认执行
-  const originalExecCommand = editorInstance.execCommand
-  editorInstance.execCommand = function(cmd, value) {
-    // 拦截 autotypeset 命令，使用自定义实现
-    if (cmd === 'autotypeset' || cmd === 'autotype') {
-      // 调用自定义的自动排版函数
-      if (typeof handleAutoFormat === 'function') {
-        handleAutoFormat()
-      }
-      return true // 返回 true 表示命令已处理
-    }
-    // 其他命令使用原始方法
-    try {
-      return originalExecCommand.call(this, cmd, value)
-    } catch (e) {
-      console.warn('执行命令失败:', cmd, e)
-      return false
-    }
-  }
-
-  // 设置自动排版按钮的点击事件，并移除下拉箭头
-  nextTick(() => {
-    // 使用 setTimeout 确保 DOM 完全渲染
-    setTimeout(() => {
-      // 查找自动排版按钮（autotypeset 命令对应的按钮）
-      const selectors = [
-        '[data-command="autotypeset"]',
-        '.edui-toolbar .edui-for-autotypeset',
-        '.edui-toolbar [title*="自动排版"]',
-        '.edui-toolbar [title*="排版"]',
-        '.edui-toolbar .edui-splitbutton[title*="排版"]'
-      ]
-
-      let autoFormatBtn = null
-      for (const selector of selectors) {
-        autoFormatBtn = document.querySelector(selector)
-        if (autoFormatBtn) break
-      }
-
-      if (autoFormatBtn) {
-        // 移除所有可能的下拉箭头元素
-        const arrowSelectors = ['.edui-splitborder', '.edui-arrow', '.edui-splitbutton-arrow', '.edui-menu']
-        arrowSelectors.forEach(selector => {
-          const arrows = autoFormatBtn.querySelectorAll(selector)
-          arrows.forEach(arrow => {
-            arrow.style.display = 'none'
-          })
-        })
-
-        // 查找父级分割按钮容器
-        const splitButton = autoFormatBtn.closest('.edui-splitbutton') || autoFormatBtn.parentElement
-        if (splitButton && splitButton.classList.contains('edui-splitbutton')) {
-          // 移除分割按钮样式
-          splitButton.style.borderRight = 'none'
-          splitButton.style.paddingRight = '0'
-        }
-
-        // 阻止下拉菜单的显示
-        const handleClick = function(e) {
-          e.preventDefault()
-          e.stopPropagation()
-          e.stopImmediatePropagation()
-          handleAutoFormat()
-          return false
-        }
-
-        // 移除旧的事件监听器（如果存在）
-        autoFormatBtn.removeEventListener('click', handleClick)
-        autoFormatBtn.addEventListener('click', handleClick, true) // 使用捕获阶段
-
-        // 阻止鼠标悬停时显示下拉菜单
-        autoFormatBtn.addEventListener('mouseenter', function(e) {
-          e.stopPropagation()
-        }, true)
-      }
-    }, 100) // 延迟 100ms 确保工具栏完全渲染
-  })
-
-  const wrapprHeight = ueditor_wrapper.value.clientHeight
-  console.log("wrapprHeight=>", wrapprHeight)
-  // document.querySelector('#edui1_iframeholder').style.height = 'calc(100% - 100px)';
-  const toolbarHeight = document.querySelector(".edui-editor-toolbarbox .edui-default")?.clientHeight
-  // const conatinerHeight = document.querySelector("#edui1").clientHeight
-  // console.log("toolbarHeight:", toolbarHeight)
-  // console.log("conatinerHeight:", conatinerHeight)
-  // editorInstance.setHeight(wrapprHeight - toolbarHeight - 40 + 1)
-  // listHeightRef.value = `${wrapprHeight-120}px`
-  // elListMsgsRef.value.style.height = `${wrapprHeight - 120}px`
-
 }
-
-
 
 // 帮助方法
 /** 获取appmsgid */

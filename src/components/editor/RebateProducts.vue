@@ -6,6 +6,7 @@ import { ElMessage } from 'element-plus';
 import ImgPicker from '@/components/editor/ImgPicker.vue';
 import { tplCommissionInEditor } from '@/utils/mpcommission';
 import { gen_unique_id } from '@/utils/msic';
+import { ElMessageBox } from 'element-plus';
 
 const props = defineProps(['selectedAccount', 'pickerPageInfo']);
 const emit = defineEmits(['insert-commission', 'close']);
