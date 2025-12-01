@@ -170,14 +170,14 @@
               />
             </div>
             <!-- 当 share_info 不存在时，显示编辑器 -->
-            <vue-ueditor-wrap 
+            <vue-ueditor-wrap
               v-else
               class="ueditor-wrapper flex-1 flex items-stretch"
-              v-model="currentArticleRef.content_noencode" 
-              :editor-id="editorIdRef" 
+              v-model="currentArticleRef.content_noencode"
+              :editor-id="editorIdRef"
               @ready="ready"
-              :config="editorConfigRef" 
-              :editorDependencies="['ueditor.config.js', 'ueditor.all.js']" 
+              :config="editorConfigRef"
+              :editorDependencies="['ueditor.config.js', 'ueditor.all.js']"
             />
             <!-- 分享文章卡片 -->
             <div v-if="currentArticleRef.share_info" class="mt-4 p-4 bg-white border border-gray-200 rounded-lg shadow-sm max-w-full">
@@ -1377,7 +1377,6 @@ const editorConfigRef = ref({
   wordCount: false,
   toolbars:[[
     "fullscreen",   // 全屏
-    "source",       // 源代码
     "|",
     "undo",         // 撤销
     "redo",         // 重做
@@ -1387,7 +1386,7 @@ const editorConfigRef = ref({
     "underline",    // 下划线
     "strikethrough",// 删除线
     "removeformat", // 清除格式
-    "autotypeset",  // 自动排版（自定义实现）
+    "autotypeset",  // 自动排版
     "|",
     "forecolor",    // 字体颜色
     "backcolor",    // 背景色
@@ -1886,7 +1885,7 @@ const loadArticle = (mp_msg, before_save) => {
   // console.log("mp_msg2=>", mp_msg.picture_page_info_list)
   // appmsgidRef.value = mp_msg.appmsgid
   console.log("mp_msg3=>", mp_msg)
-  
+
   currentArticleRef.value = {
     ...mp_msg,
   }
@@ -2500,7 +2499,7 @@ const _saveAppMsg = async (push_to_remote) => {
   if (!validateAccount()) {
     return false
   }
-  
+
   // 检查是否添加了标题和封面
   if (!validateMsgData()) {
     return false
