@@ -5264,7 +5264,7 @@ const handleUseTemplate = (data) => {
 }
 
 // 自动排版功能
-const handleAutoFormat = async () => {
+async function handleAutoFormat() {
   if (!currentArticleRef.value || !currentArticleRef.value.content_noencode) {
     ElMessage({
       message: '编辑器内容为空',
@@ -5281,7 +5281,6 @@ const handleAutoFormat = async () => {
   })
 
   try {
-    // 获取编辑器纯文本内容（去除HTML标签）
     const htmlContent = currentArticleRef.value.content_noencode || ''
     const tempDiv = document.createElement('div')
     tempDiv.innerHTML = htmlContent
@@ -5296,8 +5295,6 @@ const handleAutoFormat = async () => {
       loading.close()
       return
     }
-
-    console.log('准备发送排版请求，文本长度:', textContent.length)
 
     // 调用自动排版接口（流式响应）
     const response = await axios.post('https://img.aiguidehub.com/api/v1/open-api/ai/', {
@@ -5316,8 +5313,6 @@ const handleAutoFormat = async () => {
       responseType: 'text',
       transformResponse: [(data) => data] // 禁用自动转换，保持原始文本
     })
-
-    console.log('收到响应，状态码:', response.status)
 
     // 解析流式响应
     let formattedContent = ''
@@ -5355,50 +5350,17 @@ const handleAutoFormat = async () => {
     const docMatch = formattedContent.match(/\[doc\]([\s\S]*?)\[\/doc\]/)
     if (docMatch && docMatch[1]) {
       const cleanedContent = docMatch[1].trim()
+      currentArticleRef.value.content_noencode = `<div>${cleanedContent}</div>`
 
-      // 使用编辑器的 setContent 方法更新内容，避免直接修改 v-model 导致的状态不一致
-      if (editorRef.value) {
-        try {
-          // 先更新 v-model 绑定的内容
-          currentArticleRef.value.content_noencode = cleanedContent
-
-          // 等待 DOM 更新
-          await nextTick()
-
-          // 使用 setContent 方法更新编辑器内容（第二个参数 false 表示不触发内容变化事件）
-          editorRef.value.setContent(cleanedContent, false)
-
-          // 再等待一下，确保编辑器内部状态更新完成
-          await new Promise(resolve => setTimeout(resolve, 100))
-
-          ElMessage({
-            message: '排版成功',
-            type: 'success',
-            duration: 2000
-          })
-        } catch (e) {
-          console.error('更新编辑器内容失败:', e)
-          // 如果 setContent 失败，至少 v-model 已经更新了
-          ElMessage({
-            message: '排版成功（编辑器状态可能未完全更新）',
-            type: 'warning',
-            duration: 2000
-          })
-        }
-      } else {
-        // 编辑器未初始化，直接更新 v-model
-        currentArticleRef.value.content_noencode = cleanedContent
-        ElMessage({
-          message: '排版成功',
-          type: 'success',
-          duration: 2000
-        })
-      }
+      ElMessage({
+        message: '排版成功',
+        type: 'success',
+        duration: 2000
+      })
     } else {
       throw new Error('接口返回格式错误，未找到排版内容')
     }
   } catch (error) {
-    console.error('自动排版失败:', error)
     ElMessage({
       message: error.response?.data?.message || error.message || '自动排版失败，请稍后重试',
       type: 'error',
@@ -5410,7 +5372,7 @@ const handleAutoFormat = async () => {
 }
 
 const operationList = [
-{
+  {
     title: '提取链接内容',
     icon: 'ph:link-bold',
     action: () => { openExtractMpArticleUrlDialog() }
@@ -5420,16 +5382,6 @@ const operationList = [
     icon: 'tdesign:clear-formatting-1',
     action: () => { runEditorCMD('cleardoc') }
   },
-  // {
-  //   title: '批量提取链接内容',
-  //   icon: 'fluent:link-add-20-filled',
-  //   component: BatchExtractMpArticle,
-  //   componentProps: {
-  //     modelValue: mp_msgsRef,
-  //     'onUpdate:modelValue': (val) => { mp_msgsRef.value = val },
-  //     onConfirm: onBatchExtractMp
-  //   }
-  // },
   {
     title: '设置广告',
     icon: 'ic:sharp-attach-money',
@@ -5492,6 +5444,11 @@ const operationList = [
     icon: 'mdi:bug-outline',
     action: () => { openDebugDialog() },
     isShow: !isDebugRef.value
+  },
+  {
+    title: 'AI排版',
+    icon: 'bxs:magic-wand',
+    action: handleAutoFormat,
   }
 ]
 
