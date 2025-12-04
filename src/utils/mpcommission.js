@@ -112,13 +112,6 @@ function buildLargeCardPreview(title, img) {
               <span></span><span>${escapeHtml(title)}</span>
             </section>
           </section>
-          <section class="product-tag__outer large">
-            <section class="product-tag">
-              <section class="tag-body primary" style="visibility: visible;">先用后付</section>
-              <section class="tag-body primary" style="visibility: visible;">运费险</section>
-              <section class="tag-body primary" style="visibility: visible;">7天无理由</section>
-            </section>
-          </section>
           <section class="product-info__outer">
             <section class="product-info">
               <section class="left">
@@ -176,13 +169,6 @@ function buildSmallCardPreview(title, img) {
                 <section class="product-title__outer little">
                   <section class="product-title two-line">
                     <span></span><span>${escapeHtml(title)}</span>
-                  </section>
-                </section>
-                <section class="product-tag__outer little">
-                  <section class="product-tag">
-                    <section class="tag-body primary" style="visibility: visible;">先用后付</section>
-                    <section class="tag-body primary" style="visibility: visible;">运费险</section>
-                    <section class="tag-body primary" style="visibility: visible;">7天无理由</section>
                   </section>
                 </section>
                 <section class="history little">

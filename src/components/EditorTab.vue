@@ -1085,6 +1085,22 @@
   <el-dialog destroy-on-close :close-on-click-modal="false" title="小店返佣商品" v-model="rebateProductsVisible" width="900px">
     <RebateProducts :pickerPageInfo="pickerPageInfo" :selectedAccount="selectedAccount" @insert-commission="insertCommission" @close="rebateProductsVisible=false" v-model="pickerQuery"/>
   </el-dialog>
+
+  <el-dialog
+    v-model="screenshotVisible"
+    title="截图"
+    width="800"
+  >
+    <img :src="screenshotUrl">
+    <template #footer>
+      <div>
+        <el-button @click="screenshotVisible = false">取消</el-button>
+        <el-button type="primary" @click="saveScreenshot">
+          保存
+        </el-button>
+      </div>
+    </template>
+  </el-dialog>
 </template>
 <style>
 .edui-editor {
@@ -1267,6 +1283,7 @@ import SetMPV from './editor/SetMPV.vue';
 import InsertMPLink from './editor/InsertMPLink.vue';
 import { useDraggable } from 'vue-draggable-plus'
 import RebateProducts from "@/components/editor/RebateProducts.vue"
+import html2canvas from 'html2canvas';
 
 const props = defineProps(['account', 'appmsg', 'mode', 'mainMsg']);
 const emitEvents = defineEmits(['titleChange', 'createAppmsg', 'msgidChange'])
@@ -5449,8 +5466,32 @@ const operationList = [
     title: 'AI排版',
     icon: 'bxs:magic-wand',
     action: handleAutoFormat,
+  },
+  {
+    title: '截图',
+    icon: 'mingcute:screenshot-fill',
+    action: screenshot,
   }
 ]
+const screenshotUrl = ref()
+const screenshotVisible = ref(false)
+function screenshot() {
+  html2canvas(editorRef.value.body,{
+    useCORS: true, // 开启跨域支持
+    allowTaint: true, // 允许跨域图片
+    logging: true,     // 输出调试信息
+    scale: 2,          // 提高截图分辨率
+  }).then(function(canvas) {
+    screenshotUrl.value = canvas.toDataURL();
+    screenshotVisible.value = true
+  });
+}
+const saveScreenshot = () => {
+  const downloadLink = document.createElement('a');
+  downloadLink.href = screenshotUrl.value;
+  downloadLink.download = 'screenshot.png';
+  downloadLink.click()
+}
 
 // 小店分佣商品的弹框
 const rebateProductsVisible = ref(false)
