@@ -170,14 +170,14 @@
               />
             </div>
             <!-- 当 share_info 不存在时，显示编辑器 -->
-            <vue-ueditor-wrap 
+            <vue-ueditor-wrap
               v-else
               class="ueditor-wrapper flex-1 flex items-stretch"
-              v-model="currentArticleRef.content_noencode" 
-              :editor-id="editorIdRef" 
+              v-model="currentArticleRef.content_noencode"
+              :editor-id="editorIdRef"
               @ready="ready"
-              :config="editorConfigRef" 
-              :editorDependencies="['ueditor.config.js', 'ueditor.all.js']" 
+              :config="editorConfigRef"
+              :editorDependencies="['ueditor.config.js', 'ueditor.all.js']"
             />
             <!-- 分享文章卡片 -->
             <div v-if="currentArticleRef.share_info" class="mt-4 p-4 bg-white border border-gray-200 rounded-lg shadow-sm max-w-full">
@@ -1085,6 +1085,22 @@
   <el-dialog destroy-on-close :close-on-click-modal="false" title="小店返佣商品" v-model="rebateProductsVisible" width="900px">
     <RebateProducts :pickerPageInfo="pickerPageInfo" :selectedAccount="selectedAccount" @insert-commission="insertCommission" @close="rebateProductsVisible=false" v-model="pickerQuery"/>
   </el-dialog>
+
+  <el-dialog
+    v-model="screenshotVisible"
+    title="截图"
+    width="800"
+  >
+    <img :src="screenshotUrl">
+    <template #footer>
+      <div>
+        <el-button @click="screenshotVisible = false">取消</el-button>
+        <el-button type="primary" @click="saveScreenshot">
+          保存
+        </el-button>
+      </div>
+    </template>
+  </el-dialog>
 </template>
 <style>
 .edui-editor {
@@ -1134,28 +1150,6 @@
 
 .el-dialog__body {
   @apply flex justify-center;
-}
-
-/* 隐藏自动排版按钮的下拉箭头 */
-.edui-toolbar .edui-for-autotypeset .edui-splitborder,
-.edui-toolbar .edui-for-autotypeset .edui-arrow,
-.edui-toolbar .edui-for-autotypeset .edui-splitbutton-arrow,
-.edui-toolbar [data-command="autotypeset"] .edui-splitborder,
-.edui-toolbar [data-command="autotypeset"] .edui-arrow,
-.edui-toolbar [data-command="autotypeset"] .edui-splitbutton-arrow {
-  display: none !important;
-}
-
-/* 移除自动排版按钮的分割线样式 */
-.edui-toolbar .edui-for-autotypeset.edui-splitbutton,
-.edui-toolbar [data-command="autotypeset"].edui-splitbutton {
-  border-right: none !important;
-}
-
-/* 使自动排版按钮看起来像普通按钮 */
-.edui-toolbar .edui-for-autotypeset,
-.edui-toolbar [data-command="autotypeset"] {
-  cursor: pointer !important;
 }
 </style>
 <style scoped>
@@ -1289,6 +1283,7 @@ import SetMPV from './editor/SetMPV.vue';
 import InsertMPLink from './editor/InsertMPLink.vue';
 import { useDraggable } from 'vue-draggable-plus'
 import RebateProducts from "@/components/editor/RebateProducts.vue"
+import html2canvas from 'html2canvas';
 
 const props = defineProps(['account', 'appmsg', 'mode', 'mainMsg']);
 const emitEvents = defineEmits(['titleChange', 'createAppmsg', 'msgidChange'])
@@ -1397,20 +1392,66 @@ const editorConfigRef = ref({
   },
   elementPathEnabled: false,
   wordCount: false,
-  // 自定义工具栏按钮点击回调
-  toolbarCallback: function (cmd, editor) {
-    // 处理自动排版按钮点击（拦截 autotypeset 命令）
-    if (cmd === 'autotypeset') {
-      // 延迟调用，确保 handleAutoFormat 已经定义
-      setTimeout(() => {
-        if (typeof handleAutoFormat === 'function') {
-          handleAutoFormat()
-        }
-      }, 0)
-      return true // 返回 true 表示已经处理，阻止默认行为
-    }
-    return false
-  }
+  toolbars:[[
+    "fullscreen",   // 全屏
+    "|",
+    "undo",         // 撤销
+    "redo",         // 重做
+    "|",
+    "bold",         // 加粗
+    "italic",       // 斜体
+    "underline",    // 下划线
+    "strikethrough",// 删除线
+    "removeformat", // 清除格式
+    "autotypeset",  // 自动排版
+    "|",
+    "forecolor",    // 字体颜色
+    "backcolor",    // 背景色
+    "insertorderedlist",   // 有序列表
+    "insertunorderedlist", // 无序列表
+    "|",
+    "rowspacingtop",// 段前距
+    "rowspacingbottom",    // 段后距
+    "lineheight",          // 行间距
+    "letterspacing",          // 字间距
+    "|",
+    "fontsize",            // 字号
+    "|",
+    "justifyleft",         // 居左对齐
+    "justifycenter",       // 居中对齐
+    "justifyright",
+    "justifyjustify",      // 两端对齐
+    "|",
+    "link",                // 超链接
+    "unlink",              // 取消链接
+    "|",
+    "imagenone",           // 图片默认
+    "imageleft",           // 图片左浮动
+    "imagecenter",         // 图片居中
+    "imageright",          // 图片右浮动
+    "|",
+    "simpleupload",        // 单图上传
+    "insertimage",         // 多图上传
+    "emotion",             // 表情
+    "insertvideo",         // 视频
+    "|",
+    "horizontal",          // 分隔线
+    "|",
+    "preview",             // 预览
+    "searchreplace",       // 查询替换
+    "|",
+    "contentimport",
+  ]],
+  shortcutMenu:[
+    "fontsize",     // 字号
+    "bold",         // 加粗
+    "italic",       // 斜体
+    "underline",    // 下划线
+    "strikethrough",// 删除线
+    "forecolor",    // 字体颜色
+    "lineheight",        // 行间距
+    "letterspacing" ,    // 字间距
+  ]
 })
 
 // component
@@ -1665,103 +1706,10 @@ const currentArticleRef = ref({
 })
 
 /// ueditor methods
-
 function ready(editorInstance) {
-  console.log(`编辑器实例${editorInstance.key}: `, editorInstance);
+  console.log(`编辑器实例`, editorInstance);
   editorRef.value = editorInstance;
-
-  // 重写 execCommand 方法，完全阻止 autotypeset 命令的默认执行
-  const originalExecCommand = editorInstance.execCommand
-  editorInstance.execCommand = function(cmd, value) {
-    // 拦截 autotypeset 命令，使用自定义实现
-    if (cmd === 'autotypeset' || cmd === 'autotype') {
-      // 调用自定义的自动排版函数
-      if (typeof handleAutoFormat === 'function') {
-        handleAutoFormat()
-      }
-      return true // 返回 true 表示命令已处理
-    }
-    // 其他命令使用原始方法
-    try {
-      return originalExecCommand.call(this, cmd, value)
-    } catch (e) {
-      console.warn('执行命令失败:', cmd, e)
-      return false
-    }
-  }
-
-  // 设置自动排版按钮的点击事件，并移除下拉箭头
-  nextTick(() => {
-    // 使用 setTimeout 确保 DOM 完全渲染
-    setTimeout(() => {
-      // 查找自动排版按钮（autotypeset 命令对应的按钮）
-      const selectors = [
-        '[data-command="autotypeset"]',
-        '.edui-toolbar .edui-for-autotypeset',
-        '.edui-toolbar [title*="自动排版"]',
-        '.edui-toolbar [title*="排版"]',
-        '.edui-toolbar .edui-splitbutton[title*="排版"]'
-      ]
-
-      let autoFormatBtn = null
-      for (const selector of selectors) {
-        autoFormatBtn = document.querySelector(selector)
-        if (autoFormatBtn) break
-      }
-
-      if (autoFormatBtn) {
-        // 移除所有可能的下拉箭头元素
-        const arrowSelectors = ['.edui-splitborder', '.edui-arrow', '.edui-splitbutton-arrow', '.edui-menu']
-        arrowSelectors.forEach(selector => {
-          const arrows = autoFormatBtn.querySelectorAll(selector)
-          arrows.forEach(arrow => {
-            arrow.style.display = 'none'
-          })
-        })
-
-        // 查找父级分割按钮容器
-        const splitButton = autoFormatBtn.closest('.edui-splitbutton') || autoFormatBtn.parentElement
-        if (splitButton && splitButton.classList.contains('edui-splitbutton')) {
-          // 移除分割按钮样式
-          splitButton.style.borderRight = 'none'
-          splitButton.style.paddingRight = '0'
-        }
-
-        // 阻止下拉菜单的显示
-        const handleClick = function(e) {
-          e.preventDefault()
-          e.stopPropagation()
-          e.stopImmediatePropagation()
-          handleAutoFormat()
-          return false
-        }
-
-        // 移除旧的事件监听器（如果存在）
-        autoFormatBtn.removeEventListener('click', handleClick)
-        autoFormatBtn.addEventListener('click', handleClick, true) // 使用捕获阶段
-
-        // 阻止鼠标悬停时显示下拉菜单
-        autoFormatBtn.addEventListener('mouseenter', function(e) {
-          e.stopPropagation()
-        }, true)
-      }
-    }, 100) // 延迟 100ms 确保工具栏完全渲染
-  })
-
-  const wrapprHeight = ueditor_wrapper.value.clientHeight
-  console.log("wrapprHeight=>", wrapprHeight)
-  // document.querySelector('#edui1_iframeholder').style.height = 'calc(100% - 100px)';
-  const toolbarHeight = document.querySelector(".edui-editor-toolbarbox .edui-default")?.clientHeight
-  // const conatinerHeight = document.querySelector("#edui1").clientHeight
-  // console.log("toolbarHeight:", toolbarHeight)
-  // console.log("conatinerHeight:", conatinerHeight)
-  // editorInstance.setHeight(wrapprHeight - toolbarHeight - 40 + 1)
-  // listHeightRef.value = `${wrapprHeight-120}px`
-  // elListMsgsRef.value.style.height = `${wrapprHeight - 120}px`
-
 }
-
-
 
 // 帮助方法
 /** 获取appmsgid */
@@ -1954,7 +1902,7 @@ const loadArticle = (mp_msg, before_save) => {
   // console.log("mp_msg2=>", mp_msg.picture_page_info_list)
   // appmsgidRef.value = mp_msg.appmsgid
   console.log("mp_msg3=>", mp_msg)
-  
+
   currentArticleRef.value = {
     ...mp_msg,
   }
@@ -2568,7 +2516,7 @@ const _saveAppMsg = async (push_to_remote) => {
   if (!validateAccount()) {
     return false
   }
-  
+
   // 检查是否添加了标题和封面
   if (!validateMsgData()) {
     return false
@@ -5333,7 +5281,7 @@ const handleUseTemplate = (data) => {
 }
 
 // 自动排版功能
-const handleAutoFormat = async () => {
+async function handleAutoFormat() {
   if (!currentArticleRef.value || !currentArticleRef.value.content_noencode) {
     ElMessage({
       message: '编辑器内容为空',
@@ -5350,7 +5298,6 @@ const handleAutoFormat = async () => {
   })
 
   try {
-    // 获取编辑器纯文本内容（去除HTML标签）
     const htmlContent = currentArticleRef.value.content_noencode || ''
     const tempDiv = document.createElement('div')
     tempDiv.innerHTML = htmlContent
@@ -5365,8 +5312,6 @@ const handleAutoFormat = async () => {
       loading.close()
       return
     }
-
-    console.log('准备发送排版请求，文本长度:', textContent.length)
 
     // 调用自动排版接口（流式响应）
     const response = await axios.post('https://img.aiguidehub.com/api/v1/open-api/ai/', {
@@ -5385,8 +5330,6 @@ const handleAutoFormat = async () => {
       responseType: 'text',
       transformResponse: [(data) => data] // 禁用自动转换，保持原始文本
     })
-
-    console.log('收到响应，状态码:', response.status)
 
     // 解析流式响应
     let formattedContent = ''
@@ -5424,50 +5367,17 @@ const handleAutoFormat = async () => {
     const docMatch = formattedContent.match(/\[doc\]([\s\S]*?)\[\/doc\]/)
     if (docMatch && docMatch[1]) {
       const cleanedContent = docMatch[1].trim()
+      currentArticleRef.value.content_noencode = `<div>${cleanedContent}</div>`
 
-      // 使用编辑器的 setContent 方法更新内容，避免直接修改 v-model 导致的状态不一致
-      if (editorRef.value) {
-        try {
-          // 先更新 v-model 绑定的内容
-          currentArticleRef.value.content_noencode = cleanedContent
-
-          // 等待 DOM 更新
-          await nextTick()
-
-          // 使用 setContent 方法更新编辑器内容（第二个参数 false 表示不触发内容变化事件）
-          editorRef.value.setContent(cleanedContent, false)
-
-          // 再等待一下，确保编辑器内部状态更新完成
-          await new Promise(resolve => setTimeout(resolve, 100))
-
-          ElMessage({
-            message: '排版成功',
-            type: 'success',
-            duration: 2000
-          })
-        } catch (e) {
-          console.error('更新编辑器内容失败:', e)
-          // 如果 setContent 失败，至少 v-model 已经更新了
-          ElMessage({
-            message: '排版成功（编辑器状态可能未完全更新）',
-            type: 'warning',
-            duration: 2000
-          })
-        }
-      } else {
-        // 编辑器未初始化，直接更新 v-model
-        currentArticleRef.value.content_noencode = cleanedContent
-        ElMessage({
-          message: '排版成功',
-          type: 'success',
-          duration: 2000
-        })
-      }
+      ElMessage({
+        message: '排版成功',
+        type: 'success',
+        duration: 2000
+      })
     } else {
       throw new Error('接口返回格式错误，未找到排版内容')
     }
   } catch (error) {
-    console.error('自动排版失败:', error)
     ElMessage({
       message: error.response?.data?.message || error.message || '自动排版失败，请稍后重试',
       type: 'error',
@@ -5479,7 +5389,7 @@ const handleAutoFormat = async () => {
 }
 
 const operationList = [
-{
+  {
     title: '提取链接内容',
     icon: 'ph:link-bold',
     action: () => { openExtractMpArticleUrlDialog() }
@@ -5489,16 +5399,6 @@ const operationList = [
     icon: 'tdesign:clear-formatting-1',
     action: () => { runEditorCMD('cleardoc') }
   },
-  // {
-  //   title: '批量提取链接内容',
-  //   icon: 'fluent:link-add-20-filled',
-  //   component: BatchExtractMpArticle,
-  //   componentProps: {
-  //     modelValue: mp_msgsRef,
-  //     'onUpdate:modelValue': (val) => { mp_msgsRef.value = val },
-  //     onConfirm: onBatchExtractMp
-  //   }
-  // },
   {
     title: '设置广告',
     icon: 'ic:sharp-attach-money',
@@ -5561,8 +5461,37 @@ const operationList = [
     icon: 'mdi:bug-outline',
     action: () => { openDebugDialog() },
     isShow: !isDebugRef.value
+  },
+  {
+    title: 'AI排版',
+    icon: 'bxs:magic-wand',
+    action: handleAutoFormat,
+  },
+  {
+    title: '截图',
+    icon: 'mingcute:screenshot-fill',
+    action: screenshot,
   }
 ]
+const screenshotUrl = ref()
+const screenshotVisible = ref(false)
+function screenshot() {
+  html2canvas(editorRef.value.body,{
+    useCORS: true, // 开启跨域支持
+    allowTaint: true, // 允许跨域图片
+    logging: true,     // 输出调试信息
+    scale: 2,          // 提高截图分辨率
+  }).then(function(canvas) {
+    screenshotUrl.value = canvas.toDataURL();
+    screenshotVisible.value = true
+  });
+}
+const saveScreenshot = () => {
+  const downloadLink = document.createElement('a');
+  downloadLink.href = screenshotUrl.value;
+  downloadLink.download = 'screenshot.png';
+  downloadLink.click()
+}
 
 // 小店分佣商品的弹框
 const rebateProductsVisible = ref(false)

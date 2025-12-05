@@ -29,15 +29,10 @@ export function tplWithCommission(data) {
   if (cardtype === 12 && data.product_imageurl) {
     return buildImageLinkTemplate(windowproduct, title, data.product_imageurl, productTag, productInfo);
   }
-
+  console.log(cardtype);
   // 文字链接样式（cardtype=2）
   if (cardtype === 2) {
-    return `<span product-obj='${productInfo}' class="product_card_text_wrp" data-weui-theme="light">
-      <a href="javascript:void(0);" class="product_text_link" style="color: rgb(87, 107, 149);">
-        ${escapeHtml(title)}
-      </a>
-      <iframe src="#" scrolling="no" frameborder="0" class="iframe_style" style="width: 350px; display: none;"></iframe>
-    </span>`;
+    return `<section product-obj='${productInfo}'><span leaf=""><mp-common-product data-windowproduct="${windowproduct}" data-cardtype="2" data-title="${escapeHtml(title)}" data-type="0"></mp-common-product></span></section>`;
   }
 
   // 默认：包装在 wrapper 中
@@ -117,13 +112,6 @@ function buildLargeCardPreview(title, img) {
               <span></span><span>${escapeHtml(title)}</span>
             </section>
           </section>
-          <section class="product-tag__outer large">
-            <section class="product-tag">
-              <section class="tag-body primary" style="visibility: visible;">先用后付</section>
-              <section class="tag-body primary" style="visibility: visible;">运费险</section>
-              <section class="tag-body primary" style="visibility: visible;">7天无理由</section>
-            </section>
-          </section>
           <section class="product-info__outer">
             <section class="product-info">
               <section class="left">
@@ -181,13 +169,6 @@ function buildSmallCardPreview(title, img) {
                 <section class="product-title__outer little">
                   <section class="product-title two-line">
                     <span></span><span>${escapeHtml(title)}</span>
-                  </section>
-                </section>
-                <section class="product-tag__outer little">
-                  <section class="product-tag">
-                    <section class="tag-body primary" style="visibility: visible;">先用后付</section>
-                    <section class="tag-body primary" style="visibility: visible;">运费险</section>
-                    <section class="tag-body primary" style="visibility: visible;">7天无理由</section>
                   </section>
                 </section>
                 <section class="history little">
