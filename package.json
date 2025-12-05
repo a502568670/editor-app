@@ -20,7 +20,7 @@
   "main": "background.js",
   "dependencies": {
     "@element-plus/icons-vue": "^2.1.0",
-    "@mayasabha/ckeditor4-vue3": "^1.0.9",
+    "@mayasabha/ckeditor4-vue3": "^1.0.9", 
     "@vueuse/components": "^13.3.0",
     "@vueuse/core": "^13.3.0",
     "@wangeditor/editor-for-vue": "^5.1.12",
