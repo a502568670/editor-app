@@ -150,7 +150,7 @@
   <!-- <SyncToOtherAccountsDialog :dialogVisible="dialogSyncToOtherAccountsVisibleRef" :accounts="otherAccountsRef"
     @instant-send="handleInstantSend" @dialog-closed="dialogSyncToOtherAccountsVisibleRef = false" /> -->
   <OperateProgressDialog :dialogVisible="dialogOperateProgressVisbleRef" :percent="percentRef"
-    :progressDesc="progressDescRef" :progressResult="progressResultRef"
+    :progressDesc="progressDescRef" :progressResult="progressResultRef" :accountProgress="accountProgressRef"
     @dialog-closed="dialogOperateProgressVisbleRef = false" />
   <PublishAppMsgDialog :dialogVisible="dialogPublishVisbleRef" :processing="isPublishingRef"
     :selectedAccount="selectedAccountRef" :appmsgid="currentOperateAppMsgRef?.app_id" @publish="handlePublishToWechat"
@@ -285,6 +285,7 @@ const dialogOperateProgressVisbleRef = ref(false)
 const percentRef = ref(0)
 const progressDescRef = ref("")
 const progressResultRef = ref(null)
+const accountProgressRef = ref([])
 
 // appmsg发表对话框
 const dialogPublishVisbleRef = ref(false)
@@ -760,6 +761,7 @@ const sendToOtherAccount = async (appmsgid, otherAccountsChoosed) => {
   percentRef.value = 0
   progressDescRef.value = "开始处理"
   progressResultRef.value = null
+  accountProgressRef.value = []
 
   let timeoutId = setTimeout(() => {
     dialogOperateProgressVisbleRef.value = false
@@ -778,17 +780,20 @@ const sendToOtherAccount = async (appmsgid, otherAccountsChoosed) => {
   }, (data) => {
     // console.log("step raw=>", data)
     try {
-      const v = data.replaceAll(/data: /gi, "")
+      const v = data.replaceAll(/data: /gi, "").trim()
+      // 跳过空数据
+      if (!v) return
       stepRet = JSON5.parse(v)
       // console.log("step data=>", v)
       percentRef.value = stepRet.percent
       progressDescRef.value = stepRet.desc
-      // console.log("percentRef.value=>", percentRef.value)
-      // console.log("progressDescRef.value=>", progressDescRef.value)
+      // 更新账号进度列表
+      if (stepRet.account_progress) {
+        accountProgressRef.value = stepRet.account_progress
+      }
     } catch (e) {
-      console.log("step data failed=>", e)
-      percentRef.value = 0;
-      progressDescRef.value = ""
+      // 解析失败时不重置进度，只记录日志
+      console.log("step data parse warning=>", e, data)
     }
   })
   if (stepRet) {
