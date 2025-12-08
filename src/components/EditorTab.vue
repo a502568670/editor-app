@@ -1393,6 +1393,7 @@ const editorConfigRef = ref({
   elementPathEnabled: false,
   wordCount: false,
   toolbars:[[
+    "source",       // 源码
     "fullscreen",   // 全屏
     "|",
     "undo",         // 撤销
