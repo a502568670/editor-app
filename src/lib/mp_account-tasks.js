@@ -26,12 +26,12 @@ const detectWechatUrlType = (url) => {
     const searchParams = urlObj.searchParams;
     
     // 临时链接：包含 tempkey 参数
-    if (searchParams.has('tempkey')) {
+    if (searchParams.has('tempkey','__biz')) {
       return 'temp';
     }
     
     // 长链接：包含 __biz, mid, idx, sn 等参数
-    if (searchParams.has('__biz')) {
+    if (searchParams.has('__biz','mid','idx','sn')) {
       return 'long';
     }
     
@@ -92,6 +92,7 @@ export const localExtractMpArticleUrlUseRequest = async function (url, timeout =
   
   // 如果是临时链接，不支持
   if (urlType === 'temp') {
+
     throw new Error('不支持临时链接，临时链接会过期，请使用长链接或短链接');
   }
   
