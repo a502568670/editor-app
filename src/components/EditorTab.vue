@@ -740,6 +740,11 @@
       </div>
     </template>
   </el-dialog>
+  <UploadDocxDialog 
+  ref="uploadDocxDialogRef" 
+  @insert-docx-content="handleInsertDocxContent"
+/>
+
 </template>
 <style>
 .edui-editor {
@@ -899,6 +904,10 @@ import SetMPCard from "@/components/editor/SetMPCard.vue"
 import SetMPV from './editor/SetMPV.vue';
 import InsertMPLink from './editor/InsertMPLink.vue';
 import { useDraggable } from 'vue-draggable-plus'
+import UploadDocxDialog from '@/components/editor/UploadDocxDialog.vue'
+
+
+
 
 const props = defineProps(['account', 'appmsg', 'mode', 'mainMsg']);
 const emitEvents = defineEmits(['titleChange', 'createAppmsg', 'msgidChange'])
@@ -1186,6 +1195,9 @@ const currentArticleRef = ref({
   content_noencode: "",
   picture_page_info_list: [],
 })
+
+//导入文档
+const uploadDocxDialogRef = ref(null)
 
 
 /// ueditor methods
@@ -3755,6 +3767,14 @@ watch(() => [props.mainMsg], async (newVal) => {
 
 })
 
+//处理文档插入
+const handleInsertDocxContent = (html) => {
+  const editor = editorRef.value
+  if (editor == null) return
+  editor.execCommand('inserthtml', html)
+}
+
+
 // 文章拖拽
 const { start } = useDraggable(elListMsgsRef, mp_msgsRef, {
   animation: 150,
@@ -3838,7 +3858,14 @@ const operationList = [
     icon: 'mdi:bug-outline',
     action: () => { openDebugDialog() },
     isShow: !isDebugRef.value
-  }
+  },
+    {
+  title: '文档导入',
+  icon: 'mdi:file-document-outline', 
+  action: () => { uploadDocxDialogRef.value.openDialog() }
+}
+
+
 ]
 
 // 组件生命周期
