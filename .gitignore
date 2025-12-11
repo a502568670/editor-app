@@ -131,3 +131,5 @@ jsconfig.json
 extensions/
 accounts.txt
 .vscode/
+
+components.d.ts
