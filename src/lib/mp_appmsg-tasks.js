@@ -40,8 +40,15 @@ const api = {
   search_in_publish: (tk, query, begin, count, fakeid) => `${baseUrl}/cgi-bin/appmsgpublish?sub=search&begin=${begin}&count=${count}&query=${query}&token=${tk}&lang=zh_CN&f=json${fakeid ? `&fakeid=${fakeid}` : ''}`,
 
   // 获取分组通知地区列表
-  get_regions: (id = 0) => `${baseUrl}/cgi-bin/getregions?t=setting/ajax-getregions&id=${id}&lang=zh_CN&f=json&ajax=1`
-  
+  get_regions: (id = 0) => `${baseUrl}/cgi-bin/getregions?t=setting/ajax-getregions&id=${id}&lang=zh_CN&f=json&ajax=1`,
+
+  // 获取小店返佣商品
+  get_shop_commodity: (tk) => `${baseUrl}/shop-faas/mmeckolnode/mp/listTalentSelectionSpuItems?token=${tk}&lang=zh_CN`,
+  get_shop_commodity_search: (tk) => `${baseUrl}/shop-faas/mmeckolnode/mp/searchTalentSelectionSpuItems?token=${tk}&lang=zh_CN`,
+  // 获取 windowproduct (product_encrypt_key)
+  get_windowproduct: () => `${baseUrl}/cgi-bin/windowproduct?action=get_windowproduct`,
+  // 获取文章链接信息
+  get_linkinfo: () => `${baseUrl}/cgi-bin/getlinkinfo`
 };
 // &is_release_publish_page=1
 
@@ -151,7 +158,7 @@ const deleteAppmsg = async ({ cookies, token, appmsgids }) => {
   verbose_log("urls=>", urls)
   verbose_log("formdatas=>", formdatas)
   const netFetchs = urls.map((url, idx) => netFetch(url, { ...opts, body: formdatas[idx] }))
-
+  console.log('123123123',netFetchs);
   const data = await Promise.allSettled(netFetchs);
   const items = data.map((ret, idx) => {
     // verbose_log("ret:", ret)
@@ -216,12 +223,22 @@ const getAppmsgInDraftBox = async ({ cookies, token, appmsgid }) => {
       err_msg: base_resp.err_msg
     }
   }
-
+  verbose_log("res=>",res)
   const appmsg_info = JSON.parse(res.app_msg_info)
   // verbose_log("------------appmsg_info begin---------------")
-  // verbose_log(appmsg_info)
   // verbose_log("------------appmsg_info end---------------")
-
+  verbose_log("appmsg_info=>!before",appmsg_info)
+  // 确保 multi_item 始终是数组格式
+  if (appmsg_info.item && Array.isArray(appmsg_info.item)) {
+    appmsg_info.item.forEach(item => {
+      if (item && !Array.isArray(item.multi_item)) {
+        // 如果 multi_item 不是数组，转换为数组或初始化为空数组
+        item.multi_item = item.multi_item ? [item.multi_item] : []
+      }
+    })
+  }
+  verbose_log("appmsg_info=>!",appmsg_info)
+  
   return {
     success: true,
     appmsg_info
@@ -318,6 +335,135 @@ const getRegions = async ({ cookies, id = 0 }) => {
   }
 }
 
+const getShopCommodity = async (data) => {
+  const listCondition = JSON.parse(data.listCondition);
+  const body = data.keyword === '' ? { listCondition } : { keyword: data.keyword, listCondition };
+  const opts = {
+    method: 'POST',
+    headers: {
+      ...getDefaultHeader(),
+      cookie: data.cookie,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(body)
+  };
+  console.log('data.keyword', data);
+  let url = data.keyword === '' ? api.get_shop_commodity(data.token) : api.get_shop_commodity_search(data.token);
+  verbose_log('api url:', url);
+  verbose_log('api opts:', opts);
+  let res = await netFetch(url, { ...opts });
+  res = JSON.parse(res);
+  if (res.respStatusCode) {
+    return {
+      success: false,
+      err_msg: res.msg
+    };
+  }
+  if (res.code === 0) {
+    return {
+      success: true,
+      talentSpuItems: res.talentSpuItems ? res.talentSpuItems : [],
+      pageContextResp: res.pageContextResp ? res.pageContextResp : {}
+    };
+  } else {
+    return {
+      success: false,
+      err_msg: '请求商品失败，未知错误'
+    };
+  }
+}
+
+const getWindowProduct = async ({ cookie, token, product_id }) => {
+  // 构造 data 字段，保持与 Python 示例一致
+  const dataField = {
+    base_req: {
+      action: 'GetCpsProductEncryptKey'
+    },
+    ext_info: JSON.stringify({
+      product_id: [...product_id],
+      cps_id: []
+    })
+  };
+  const data = {
+    data: JSON.stringify(dataField),
+    fingerprint: '6555fc3f05dcfff720e073c3c67d7c0a',
+    token,
+    lang: 'zh_CN',
+    f: 'json',
+    ajax: 1
+  };
+  const body = new URLSearchParams(data).toString();
+  const opts = {
+    method: 'POST',
+    headers: {
+      ...getDefaultHeader(),
+      Cookie: cookie,
+      'Content-Type': 'application/x-www-form-urlencoded'
+    },
+    body
+  };
+
+  let url = api.get_windowproduct();
+  verbose_log('getWindowProduct api url:', url);
+  verbose_log('getWindowProduct opts:', opts);
+
+  let res = await netFetch(url, { ...opts });
+  console.log('getWindowProduct res:', res);
+  try {
+    return JSON.parse(res);
+  } catch (e) {
+    verbose_error('getWindowProduct parse error', e, res);
+    return res;
+  }
+}
+const getLinkInfo = async ({ cookies, token, link, scene = 4 }) => {
+  const opts = {
+    method: "POST",
+    headers: { ...getDefaultHeader(), cookie: cookies }
+  };
+  let url = api.get_linkinfo()
+  verbose_log('get_linkinfo api url:', url)
+
+  // 构造请求数据
+  const dataObj = {
+    scene: scene,
+    link: link
+  }
+  const formdata = `data=${encodeURIComponent(JSON.stringify(dataObj))}&token=${token}&lang=zh_CN&f=json&ajax=1`
+
+  verbose_log('get_linkinfo api opts:', opts)
+  verbose_log('get_linkinfo formdata:', formdata)
+
+  let res = (await netFetch(url, { ...opts, body: formdata }))
+  verbose_log("get_linkinfo res:", typeof res, res)
+
+  res = JSON.parse(res)
+  let base_resp = res.base_resp
+  if (base_resp.ret !== 0) {
+    return {
+      success: false,
+      err_msg: base_resp.err_msg
+    }
+  }
+
+  // 解析 detail_info JSON 字符串
+  let detail_info = null
+  if (res.detail_info) {
+    try {
+      detail_info = JSON.parse(res.detail_info)
+    } catch (e) {
+      verbose_error("解析 detail_info 失败:", e)
+      detail_info = res.detail_info
+    }
+  }
+
+  return {
+    success: true,
+    link_type: res.link_type,
+    detail_info: detail_info
+  }
+}
+
 exports.publishAppmsg = publishAppmsg;
 exports.deleteAppmsg = deleteAppmsg;
 exports.listAppmsgsInDraftBox = listAppmsgsInDraftBox;
@@ -325,3 +471,6 @@ exports.getAppmsgInDraftBox = getAppmsgInDraftBox;
 exports.listAppmsgsInPublishForQuerys = listAppmsgsInPublishForQuerys
 exports.searchAppmsgsInPublishForQuerys = searchAppmsgsInPublishForQuerys
 exports.getRegions = getRegions
+exports.getShopCommodity = getShopCommodity
+exports.getWindowProduct = getWindowProduct
+exports.getLinkInfo = getLinkInfo

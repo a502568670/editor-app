@@ -122,7 +122,7 @@ tmp/
 # public/ckeditor/
 # public/ckeditor2/
 # public/UEditorPlus/
-public2/
+# public2/
 
 .gitconfig
 a.js
@@ -131,5 +131,3 @@ jsconfig.json
 extensions/
 accounts.txt
 .vscode/
-
-components.d.ts

@@ -17,7 +17,7 @@ service.interceptors.request.use(
     const token = getToken()
     config.headers.Authorization =  `Bearer ${token}`;
     // if (config.method === 'post') {
-      
+
     // }
     // else if (config.method === 'get') {
     //   config.params = {

@@ -10,7 +10,7 @@ import { nativeTheme, screen, dialog, Notification, app, ipcMain, webContents, n
 import { localExtractMpArticleUrlUseRequest } from "./mp_account-tasks.js"
 import {
   publishAppmsg, deleteAppmsg, listAppmsgsInDraftBox, getAppmsgInDraftBox,
-  searchAppmsgsInPublishForQuerys, listAppmsgsInPublishForQuerys
+  searchAppmsgsInPublishForQuerys, listAppmsgsInPublishForQuerys, getShopCommodity, getWindowProduct,getLinkInfo
 } from "./mp_appmsg-tasks.js"
 import { deleteFile, deleteVideo, listFiles, listVideos } from "./mp_file-tasks.js"
 import { searchMiniApp } from "./mpa-tasks.js"
@@ -523,6 +523,7 @@ async function reactToIpcObjectData(data, tabbedWin, viewContents) {
       // verbose_log("extract html:", html)
       const ret = await postJsonToJZLApi(`/prase_html_to_json?api_key=${encodeURIComponent("du&cgIYuosQcaSm6")}`, { html })
       verbose_log("extract result:", ret)
+      // 返回链接抽取结果
       viewContents.send('fromMain', { tag: 'appmsg-ret:localExtractMpArticleUrlResult', data: { source, ret } })
       break;
     }
@@ -587,6 +588,7 @@ async function reactToIpcObjectData(data, tabbedWin, viewContents) {
       break
     }
     case 'appmsg:getAppmsgInDraftBox': {
+      // 获取文章
       verbose_log("===== listen getAppmsgInDraftBox in main ====", data)
       const { source, token, getData } = data
       // token => userToken
@@ -787,6 +789,33 @@ async function reactToIpcObjectData(data, tabbedWin, viewContents) {
         });
       }
       break;
+    }
+    case 'appmsg:getShopCommodity': {
+      verbose_log('===== getShopCommodity ====', data);
+      const res = await getShopCommodity(data);
+      viewContents.send('fromMain', { tag: 'appmsg-ret:getShopCommodity', data: res });
+    }
+    case 'appmsg:getWindowProduct': {
+      verbose_log('===== getWindowProduct ====', data);
+      try {
+        const res = await getWindowProduct(data);
+        viewContents.send('fromMain', { tag: 'appmsg-ret:getWindowProduct', data: res });
+      } catch (e) {
+        verbose_error('getWindowProduct error', e);
+        viewContents.send('fromMain', { tag: 'appmsg-ret:getWindowProduct', data: { success: false, err: e && e.message ? e.message : e } });
+      }
+    }
+    case 'appmsg:getLinkInfo': {
+      verbose_log("===== listen getLinkInfo in main ====", data)
+      const { source, token, linkData } = data
+      const ret = await getLinkInfo(linkData)
+      if (!ret.success) {
+        verbose_log("===== 获取文章链接信息失败 ====", ret.err_msg)
+      } else {
+        verbose_log("===== 获取文章链接信息成功 ====", ret)
+      }
+      viewContents.send('fromMain', { tag: 'appmsg-ret:getLinkInfo', data: { source, ret } })
+      break
     }
 
     default: {

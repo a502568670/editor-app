@@ -26,6 +26,9 @@
               </template>
             </el-input>
           </div>
+          <el-checkbox v-if="$props.multiple" :model-value="isAllSelected" :indeterminate="isIndeterminate" @change="toggleSelectAll">
+            全选
+          </el-checkbox>
           <div style="width: 200px;">
             <el-select
               v-model="selectedGroupId"
@@ -290,6 +293,55 @@ const flattenGroupTree = (tree, level = 0, result = []) => {
     }
   })
   return result
+}
+
+// 获取当前可选择的账号（筛选后的、未过期的、微信平台的）
+const selectableAccounts = computed(() => {
+  return filteredAccounts.value.filter(account => 
+    !account.expired && account.platform_id === 4
+  )
+})
+
+// 判断是否已全选（当前筛选后的账号）
+const isAllSelected = computed(() => {
+  if (selectableAccounts.value.length === 0) return false
+  return selectableAccounts.value.every(account => 
+    selectedAccountIds.value.includes(account.id)
+  )
+})
+
+// 判断是否部分选中（用于显示 indeterminate 状态）
+const isIndeterminate = computed(() => {
+  if (selectableAccounts.value.length === 0) return false
+  const selectedCount = selectableAccounts.value.filter(account => 
+    selectedAccountIds.value.includes(account.id)
+  ).length
+  return selectedCount > 0 && selectedCount < selectableAccounts.value.length
+})
+
+// 切换全选/取消全选
+const toggleSelectAll = () => {
+  if (!props.multiple) return
+  
+  if (isAllSelected.value) {
+    // 取消全选：移除当前筛选后的账号
+    const selectableIds = selectableAccounts.value.map(a => a.id)
+    selectedAccountIds.value = selectedAccountIds.value.filter(id => 
+      !selectableIds.includes(id)
+    )
+  } else {
+    // 全选：添加当前筛选后的账号
+    const selectableIds = selectableAccounts.value.map(a => a.id)
+    const newIds = [...new Set([...selectedAccountIds.value, ...selectableIds])]
+    selectedAccountIds.value = newIds
+  }
+}
+
+const selectAll = () => {
+  if (props.multiple) {
+    const filtered = all_accounts.value.list.filter(item => !props.hideAccount.includes(item.id) && item.platform_id === 4 && !item.expired)
+    selectedAccountIds.value = filtered.map((item) => item.id)
+  }
 }
 
 // 生命周期

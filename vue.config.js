@@ -53,7 +53,7 @@ module.exports = {
         publish: [
           {
             provider: 'generic',
-            url: 'http://47.96.22.8:8006/autoupdate'
+            url: 'http://47.96.22.8:8005/autoupdate'
           }
         ],
         appId: "com.electron.client",
@@ -70,8 +70,9 @@ module.exports = {
           oneClick: false,
           perMachine: true,
           runAfterFinish: false,
+          unicode: true,
         },
-        asar: false,
+        asar: true,
         win: {
           target: "nsis",  // 打包为免安装应用，可以改为portable,但是启动要十几秒
           icon: "./build/icon.ico",
