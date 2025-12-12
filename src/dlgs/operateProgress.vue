@@ -48,9 +48,17 @@
             </div>
             
             <!-- 状态文字 -->
-            <div class="status-text flex-shrink-0 w-16 text-xs text-right"
+            <div class="status-text flex-shrink-0 text-xs text-right flex items-center gap-1"
               :class="getStatusTextClass(account.status)">
-              {{ getStatusText(account) }}
+              <span>{{ getStatusText(account) }}</span>
+              <el-tooltip v-if="account.status === 'failed' && account.reason" 
+                :content="account.reason" 
+                placement="top"
+                :show-after="200">
+                <el-icon class="cursor-help text-red-400" :size="14">
+                  <QuestionFilled />
+                </el-icon>
+              </el-tooltip>
             </div>
           </div>
         </div>
@@ -98,7 +106,7 @@
 
 <script setup>
 import { ref, watch, computed } from 'vue'
-import { CircleCheckFilled, CircleCloseFilled, Loading, Clock } from '@element-plus/icons-vue'
+import { CircleCheckFilled, CircleCloseFilled, Loading, Clock, QuestionFilled } from '@element-plus/icons-vue'
 
 const props = defineProps(['dialogVisible', 'percent', 'progressDesc', 'progressResult', 'accountProgress']);
 
