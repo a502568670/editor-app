@@ -47,6 +47,11 @@
     </el-col>
     <el-col :span="4">
       <!-- <div class="flex justify-end items-center h-full">
+        <div class="p-2 cursor-pointer" @click="openNotify">
+          <Icon style="font-size: 20px;" icon="mdi:bell" />
+        </div>
+      </div> -->
+      <!-- <div class="flex justify-end items-center h-full">
         <el-dropdown @command="handleCommand">
           <el-icon :size="25">
             <Menu />
@@ -196,6 +201,10 @@ const handleCommand = (command) => {
       break;
   }
 }
+
+const openNotify = () => {
+  router.push('/notify')
+}
 </script>
 
 <style  scoped>
@@ -229,3 +238,4 @@ const handleCommand = (command) => {
   color:#51ce94;
 }
 </style>
+

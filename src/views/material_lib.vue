@@ -127,13 +127,13 @@
                   </el-icon>
                 </el-tooltip>
               </div>
-              <div v-if="checkIsLocal(item.app_id)" class="absolute right-1 top-1 text-xs text-blue-400">
+              <!-- <div v-if="checkIsLocal(item.app_id)" class="absolute right-1 top-1 text-xs text-blue-400">
                 <el-tooltip class="box-item" effect="dark" content="本地" placement="top">
                   <el-icon :size="16" class="flex justify-center">
                     <MonitorDown />
                   </el-icon>
                 </el-tooltip>
-              </div>
+              </div> -->
             </div>
           </VueFlexWaterfall>
         </div>
@@ -150,7 +150,7 @@
   <!-- <SyncToOtherAccountsDialog :dialogVisible="dialogSyncToOtherAccountsVisibleRef" :accounts="otherAccountsRef"
     @instant-send="handleInstantSend" @dialog-closed="dialogSyncToOtherAccountsVisibleRef = false" /> -->
   <OperateProgressDialog :dialogVisible="dialogOperateProgressVisbleRef" :percent="percentRef"
-    :progressDesc="progressDescRef" :progressResult="progressResultRef"
+    :progressDesc="progressDescRef" :progressResult="progressResultRef" :accountProgress="accountProgressRef"
     @dialog-closed="dialogOperateProgressVisbleRef = false" />
   <PublishAppMsgDialog :dialogVisible="dialogPublishVisbleRef" :processing="isPublishingRef"
     :selectedAccount="selectedAccountRef" :appmsgid="currentOperateAppMsgRef?.app_id" @publish="handlePublishToWechat"
@@ -214,6 +214,7 @@ import { newlistArticlesByAppMsg } from '@/api/mp_msg';
 import { format_to_UEditor_html } from "@/utils/dom";
 import AccountList from '@/components/accountList.vue'
 import AccountPickerModal from '@/components/AccountPickerModal.vue'
+import { mapShareInfoFromAppmsg } from '@/lib/share-info'
 
 const AccountListRef = ref()
 
@@ -284,6 +285,7 @@ const dialogOperateProgressVisbleRef = ref(false)
 const percentRef = ref(0)
 const progressDescRef = ref("")
 const progressResultRef = ref(null)
+const accountProgressRef = ref([])
 
 // appmsg发表对话框
 const dialogPublishVisbleRef = ref(false)
@@ -452,6 +454,8 @@ const handleSwitchToDraftBox = async () => {
 }
 
 const handleAppmsgEdit = async (appmsg) => {
+
+  console.log("localAppmsgsRef.value=>", localAppmsgsRef.value)
   console.log("handleAppmsgEdit=>", appmsg, checkIsLocal(appmsg.app_id))
   currentOperateAppMsgRef.value = appmsg
   currentOperateName.value = "edit"
@@ -568,6 +572,7 @@ const handlePublishToWechat = async ({ send_time, isFreePublish, hasNotify, repr
 }
 
 const checkIsLocal = (remote_appmsgid) => {
+  console.log("localAppmsgsRef.value=>", localAppmsgsRef.value)
   const idx = localAppmsgsRef.value.findIndex(v => v.appmsgid == remote_appmsgid)
   return idx !== -1
 }
@@ -663,9 +668,14 @@ const _getAppmsgInDraftBox = async (appmsgid) => {
 const syncRemoteToLocal = async (appmsg_info) => {
   const { token, id, session_id } = selectedAccountRef.value
 
-  console.log("syncRemoteToLocal appmsg_info to local:", appmsg_info.item[0])
-  const appmsgid = appmsg_info.item[0].app_id
-  const material_list = appmsg_info.item[0].multi_item.map(mi => {
+  console.log("syncRemoteToLocal appmsg_info to local:", appmsg_info)
+  const firstItem = appmsg_info.item[0]
+  const appmsgid = firstItem.app_id
+  const material_list = firstItem.multi_item.map(mi => {
+    // 调试日志：查看 claim_source 数据
+    console.log("syncRemoteToLocal - mi.claim_source:", mi.claim_source)
+    console.log("syncRemoteToLocal - mi.claim_source_type:", mi.claim_source_type)
+    
     const material_item = {
       msg_id: 0,
       item_show_type: mi.share_page_type,
@@ -680,6 +690,14 @@ const syncRemoteToLocal = async (appmsg_info) => {
       insert_ad_mode: mi.insert_ad_mode,
       can_insert_ad: mi.can_insert_ad,
       claim_source_type: mi.claim_source_type,
+      claim_source_info: mi.claim_source
+    }
+    
+    // 调试日志：查看最终的 material_item
+    console.log("syncRemoteToLocal - material_item.claim_source_info:", material_item.claim_source_info)
+    const shareInfo = mapShareInfoFromAppmsg(mi)
+    if (shareInfo) {
+      material_item.share_info = shareInfo
     }
     if (material_item.item_show_type === 0) {
       material_item.content_noencode = format_to_UEditor_html(mi.content)
@@ -751,6 +769,7 @@ const sendToOtherAccount = async (appmsgid, otherAccountsChoosed) => {
   percentRef.value = 0
   progressDescRef.value = "开始处理"
   progressResultRef.value = null
+  accountProgressRef.value = []
 
   let timeoutId = setTimeout(() => {
     dialogOperateProgressVisbleRef.value = false
@@ -769,17 +788,20 @@ const sendToOtherAccount = async (appmsgid, otherAccountsChoosed) => {
   }, (data) => {
     // console.log("step raw=>", data)
     try {
-      const v = data.replaceAll(/data: /gi, "")
+      const v = data.replaceAll(/data: /gi, "").trim()
+      // 跳过空数据
+      if (!v) return
       stepRet = JSON5.parse(v)
       // console.log("step data=>", v)
       percentRef.value = stepRet.percent
       progressDescRef.value = stepRet.desc
-      // console.log("percentRef.value=>", percentRef.value)
-      // console.log("progressDescRef.value=>", progressDescRef.value)
+      // 更新账号进度列表
+      if (stepRet.account_progress) {
+        accountProgressRef.value = stepRet.account_progress
+      }
     } catch (e) {
-      console.log("step data failed=>", e)
-      percentRef.value = 0;
-      progressDescRef.value = ""
+      // 解析失败时不重置进度，只记录日志
+      console.log("step data parse warning=>", e, data)
     }
   })
   if (stepRet) {
@@ -861,6 +883,7 @@ const registerChannels = () => {
         })
       } else if (tag === 'appmsg-ret:getAppmsgInDraftBox') {
         const { success, appmsg_info, err_msg } = ret
+        console.log("appmsg-ret:getAppmsgInDraftBox appmsg_info=>", appmsg_info)
         if (!success) {
           let message = err_msg === "invalid session" ? apperrmsg.invalid_session : err_msg
           ElMessageBox.alert(message, '错误', {
@@ -945,6 +968,9 @@ const registerChannels = () => {
 
 onActivated(async () => {
   registerChannels()
+  if(materialTypeRef.value === 1){
+    handleSwitchToDraftBox()
+  }
 })
 
 onDeactivated(async () => {

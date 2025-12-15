@@ -3,7 +3,7 @@
     <transition name="progress-toast-fade">
       <div v-if="visible" class="progress-toast-container">
         <!-- 最小化状态：圆形按钮 -->
-        <div 
+        <div
           v-if="minimized" 
           class="progress-toast-minimized"
           :class="{ 'is-completed': completed, 'is-stopped': stopped }"

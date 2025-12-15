@@ -24,7 +24,7 @@ global.common = {
   MIN_LOG_LEVEL: "info",
   APP_SCHEME: 'app',
   WAIT_FOR_BEFORE_UNLOAD: false,  // 关闭标签页面之前是否触发页面的beforeunload事件,目前只支持false,设置为true会造成有beforeunload事件的标签页面在关闭时不能正常销毁页面而导致内存不能释放
-  BACKEND_URL: process.env.BACKEND_URL || "http://47.96.22.8:8006",
+  BACKEND_URL: process.env.BACKEND_URL || "http://47.96.22.8:8005",
   JZL_URL: process.env.JZL_URL || "http://47.96.22.8:8091",
   DEV_CHECK_UPDATE: process.env.DEV_CHECK_UPDATE || 'false',
   DEFAULT_TIMEOUT: 60 * 1000,
