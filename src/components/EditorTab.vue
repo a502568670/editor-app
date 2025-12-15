@@ -5496,11 +5496,11 @@ const operationList = [
     icon: 'mingcute:screenshot-fill',
     action: screenshot,
   },
-    {
+  {
   title: '文档导入',
   icon: 'mdi:file-document-outline', 
   action: () => { uploadDocxDialogRef.value.openDialog() }
-}
+  }
 
 
 ]
