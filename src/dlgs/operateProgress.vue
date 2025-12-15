@@ -18,7 +18,7 @@
         <div class="text-sm text-gray-600 mb-2">账号同步状态</div>
         <div class="account-items">
           <div v-for="(account, index) in accountProgressRef" :key="index" 
-            class="account-item flex items-center gap-3 py-2 px-3 rounded-lg mb-2"
+            class="account-item flex items-center gap-3 py-2 px-3 rounded-lg mb-2" 
             :class="getAccountBgClass(account.status)">
             <!-- 状态图标 -->
             <div class="status-icon flex-shrink-0">

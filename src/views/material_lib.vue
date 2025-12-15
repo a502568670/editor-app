@@ -784,21 +784,27 @@ const sendToOtherAccount = async (appmsgid, otherAccountsChoosed) => {
     target_wechat_ids: otherAccountsChoosed
   }, (data) => {
     // console.log("step raw=>", data)
-    try {
-      const v = data.replaceAll(/data: /gi, "").trim()
-      // 跳过空数据
-      if (!v) return
-      stepRet = JSON5.parse(v)
-      // console.log("step data=>", v)
-      percentRef.value = stepRet.percent
-      progressDescRef.value = stepRet.desc
-      // 更新账号进度列表
-      if (stepRet.account_progress) {
-        accountProgressRef.value = stepRet.account_progress
+    // 按行分割，正确处理一个 chunk 中包含多条 SSE 消息的情况
+    const lines = data.split('\n')
+    for (const line of lines) {
+      const trimmedLine = line.trim()
+      // 跳过空行和非 data 行
+      if (!trimmedLine || !trimmedLine.startsWith('data:')) continue
+      try {
+        const jsonStr = trimmedLine.substring(5).trim() // 去掉 "data:" 前缀
+        if (!jsonStr) continue
+        stepRet = JSON5.parse(jsonStr)
+        // console.log("step data=>", stepRet)
+        percentRef.value = stepRet.percent
+        progressDescRef.value = stepRet.desc
+        // 更新账号进度列表
+        if (stepRet.account_progress) {
+          accountProgressRef.value = stepRet.account_progress
+        }
+      } catch (e) {
+        // 解析失败时不重置进度，只记录日志
+        console.log("step data parse warning=>", e, line)
       }
-    } catch (e) {
-      // 解析失败时不重置进度，只记录日志
-      console.log("step data parse warning=>", e, data)
     }
   })
   if (stepRet) {

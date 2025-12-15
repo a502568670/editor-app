@@ -96,7 +96,7 @@ export function useDraftSync(channelSource = 'draft_sync') {
       if (shareInfo) {
         material_item.share_info = shareInfo
       }
-      console.log("material_list=>", material_list)
+      console.log("material_item=>", material_item)
       // 根据不同类型处理内容
       if (material_item.item_show_type === 0) {
         // 图文消息
@@ -184,6 +184,7 @@ export function useDraftSync(channelSource = 'draft_sync') {
           }
           
           // 获取成功，同步到本地
+          const firstItem = appmsg_info.item[0]
           const appmsgid = firstItem.app_id
           const idx = pendingDraftsToSync.value.findIndex(p => p.appmsgid === appmsgid)
           

@@ -1049,11 +1049,11 @@ const startProcessingTasks = async (tasks) => {
           soruce_appmsgid: appmsgid,
           target_wechat_ids: [targetWechatId]
         }, (data) => {
-          try {
-            // 解析SSE数据
-            const lines = data.split('\n').filter(line => line.trim())
-            for (const line of lines) {
-              if (line.startsWith('data: ')) {
+          // 解析SSE数据
+          const lines = data.split('\n').filter(line => line.trim())
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              try {
                 const jsonStr = line.substring(6)
                 const stepData = JSON5.parse(jsonStr)
                 
@@ -1066,10 +1066,10 @@ const startProcessingTasks = async (tasks) => {
                 if (stepData.result) {
                   syncResult = stepData.result
                 }
+              } catch (err) {
+                console.error('解析SSE数据行失败:', err, line)
               }
             }
-          } catch (err) {
-            console.error('解析SSE数据失败:', err)
           }
         })
 

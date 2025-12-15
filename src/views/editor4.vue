@@ -1996,15 +1996,22 @@ const handleSendToOtherAccount = async () => {
     target_wechat_ids: otherAccountsChoosedRef.value
   }, (data) => {
     // console.log("step raw=>", data)
-    try {
-      const v = data.replaceAll(/data: /gi, "")
-      stepRet = JSON5.parse(v)
-      // console.log("step data=>", o)
-      percentRef.value = stepRet.percent
-      progressDescRef.value = stepRet.desc
-    } catch {
-      percentRef.value = 0;
-      progressDescRef.value = ""
+    // 按行分割，正确处理一个 chunk 中包含多条 SSE 消息的情况
+    const lines = data.split('\n')
+    for (const line of lines) {
+      const trimmedLine = line.trim()
+      // 跳过空行和非 data 行
+      if (!trimmedLine || !trimmedLine.startsWith('data:')) continue
+      try {
+        const jsonStr = trimmedLine.substring(5).trim() // 去掉 "data:" 前缀
+        if (!jsonStr) continue
+        stepRet = JSON5.parse(jsonStr)
+        percentRef.value = stepRet.percent
+        progressDescRef.value = stepRet.desc
+      } catch (e) {
+        // 解析失败时不重置进度，只记录日志
+        console.log("step data parse warning=>", e, line)
+      }
     }
   })
   if (stepRet) {
