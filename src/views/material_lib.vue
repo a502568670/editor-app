@@ -147,8 +147,6 @@
     :hideAccount="[currentAccountId]"
     @confirm="handleInstantSend"
   />
-  <!-- <SyncToOtherAccountsDialog :dialogVisible="dialogSyncToOtherAccountsVisibleRef" :accounts="otherAccountsRef"
-    @instant-send="handleInstantSend" @dialog-closed="dialogSyncToOtherAccountsVisibleRef = false" /> -->
   <OperateProgressDialog :dialogVisible="dialogOperateProgressVisbleRef" :percent="percentRef"
     :progressDesc="progressDescRef" :progressResult="progressResultRef" :accountProgress="accountProgressRef"
     @dialog-closed="dialogOperateProgressVisbleRef = false" />
@@ -188,7 +186,6 @@
 <script setup>
 import { ref, toRefs, useTemplateRef, computed, nextTick, onMounted, onActivated, onDeactivated, provide, toRaw, effect } from 'vue';
 import { vScroll } from '@vueuse/components'
-import SyncToOtherAccountsDialog from "@/dlgs/syncToOtherAccounts"
 import OperateProgressDialog from "@/dlgs/operateProgress"
 import PublishAppMsgDialog from "@/dlgs/publishAppMsg"
 import { ElMessage, ElMessageBox, ElLoading } from 'element-plus'

@@ -148,7 +148,8 @@ const flatGroupList = ref([])
 
 // 计算属性
 const filteredAccounts = computed(() => {
-  let accounts = all_accounts.value.list
+  // 只显示公众号账号（platform_id === 4）
+  let accounts = all_accounts.value.list.filter(account => account.platform_id === 4)
 
   if(props.hideAccount.length){
     accounts = accounts.filter(account => {
@@ -209,10 +210,6 @@ const selectAccount = (account) => {
   if (account.expired) {
     ElMessage.warning('该账号未登录，无法选择')
     return
-  }
-  if (account.platform_id !== 4) {
-    ElMessage.warning('该平台不支持此操作');
-    return;
   }
 
   if (props.multiple) {
@@ -295,11 +292,9 @@ const flattenGroupTree = (tree, level = 0, result = []) => {
   return result
 }
 
-// 获取当前可选择的账号（筛选后的、未过期的、微信平台的）
+// 获取当前可选择的账号（筛选后的、未过期的）
 const selectableAccounts = computed(() => {
-  return filteredAccounts.value.filter(account => 
-    !account.expired && account.platform_id === 4
-  )
+  return filteredAccounts.value.filter(account => !account.expired)
 })
 
 // 判断是否已全选（当前筛选后的账号）

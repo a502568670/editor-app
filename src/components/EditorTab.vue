@@ -647,8 +647,12 @@
       </div>
     </template>
   </el-dialog>
-  <SyncToOtherAccountsDialog :dialogVisible="dialogSendArticleVisibleRef" :accounts="otherAccountsRef"
-    @instant-send="handleInstantSend" @dialog-closed="dialogSendArticleVisibleRef = false" />
+  <AccountPickerModal
+    v-model="dialogSendArticleVisibleRef"
+    :multiple="true"
+    :hideAccount="selectedAccount?.id ? [selectedAccount.id] : []"
+    @confirm="handleAccountPickerConfirm"
+  />
 
   <el-dialog :close-on-click-modal="false" title="操作进度" v-model="dialogPercentVisbleRef" width="360px">
     <div class="flex flex-col w-full">
@@ -1271,7 +1275,7 @@ import axios from 'axios'
 import JSON5 from "json5"
 import ImgCrop from '@/components/ImgCrop.vue';
 import BatchExtractMpArticle from '@/components/editor/BatchExtractMpArticle.vue';
-import SyncToOtherAccountsDialog from "@/dlgs/syncToOtherAccounts"
+import AccountPickerModal from "@/components/AccountPickerModal.vue"
 import SimplePager from "@/components/SimplePager"
 import ImgPicker from '@/components/editor/ImgPicker.vue';
 import ImgListPicker from '@/components/editor/ImgListPicker.vue';
@@ -1583,7 +1587,6 @@ const copyrightCheckListRef = ref([])
 let selectedAccount = ref(null)
 let accountsRef = ref([])
 const dialogSendArticleVisibleRef = ref(false)
-let otherAccountsRef = ref([])
 let otherAccountsChoosedRef = ref([])
 const timeoutSendToOneAccount = 3 * 60 * 1000; // ms
 
@@ -3492,12 +3495,11 @@ const removeArticle = async (msg_id) => {
 
 const openSendArticleDialog = () => {
   otherAccountsChoosedRef.value = []
-  otherAccountsRef.value = accountsRef.value.filter(v => v.id !== selectedAccount.value?.id)
   dialogSendArticleVisibleRef.value = true
 }
 
-function handleInstantSend({ otherAccountsChoosed }) {
-  otherAccountsChoosedRef.value = otherAccountsChoosed
+function handleAccountPickerConfirm(selectedAccounts) {
+  otherAccountsChoosedRef.value = selectedAccounts.map(account => account.id)
   handleSendToOtherAccount()
 }
 const handleSendToOtherAccount = async () => {
@@ -3562,13 +3564,6 @@ const handleSendToOtherAccount = async () => {
   }
 }
 
-const clickAllOtherAccounts = (checkedAll) => {
-  if (checkedAll) {
-    otherAccountsChoosedRef.value = otherAccountsRef.value.map(v => v.id)
-  } else {
-    otherAccountsChoosedRef.value = []
-  }
-}
 
 // event handler
 const emitChangeForPublishTimingDate = async (val) => {
