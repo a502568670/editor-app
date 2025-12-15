@@ -1454,7 +1454,7 @@ const editorConfigRef = ref({
     "preview",             // 预览
     "searchreplace",       // 查询替换
     "|",
-    "contentimport",
+    // "contentimport",
   ]],
   shortcutMenu:[
     "fontsize",     // 字号
