@@ -12,7 +12,7 @@ import { contextBridge, ipcRenderer } from "electron";
 // console.log("BACKEND_URL=>", process.env.BACKEND_URL);
 
 contextBridge.exposeInMainWorld('envVars', {
-  backend_url: process.env.BACKEND_URL || "http://47.96.22.8:8006",
+  backend_url: process.env.BACKEND_URL || "http://47.96.22.8:8005",
   is_debug: (process.env.DEBUG || 'false').includes('True'),
 });
 

@@ -227,7 +227,6 @@ const getAppmsgInDraftBox = async ({ cookies, token, appmsgid }) => {
   const appmsg_info = JSON.parse(res.app_msg_info)
   // verbose_log("------------appmsg_info begin---------------")
   // verbose_log("------------appmsg_info end---------------")
-  verbose_log("appmsg_info=>!before",appmsg_info)
   // 确保 multi_item 始终是数组格式
   if (appmsg_info.item && Array.isArray(appmsg_info.item)) {
     appmsg_info.item.forEach(item => {
@@ -237,8 +236,7 @@ const getAppmsgInDraftBox = async ({ cookies, token, appmsgid }) => {
       }
     })
   }
-  verbose_log("appmsg_info=>!",appmsg_info)
-  
+  verbose_log("appmsg_info=>#", JSON.stringify(appmsg_info, null, 2))
   return {
     success: true,
     appmsg_info

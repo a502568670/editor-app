@@ -672,6 +672,10 @@ const syncRemoteToLocal = async (appmsg_info) => {
   const firstItem = appmsg_info.item[0]
   const appmsgid = firstItem.app_id
   const material_list = firstItem.multi_item.map(mi => {
+    // 调试日志：查看 claim_source 数据
+    console.log("syncRemoteToLocal - mi.claim_source:", mi.claim_source)
+    console.log("syncRemoteToLocal - mi.claim_source_type:", mi.claim_source_type)
+    
     const material_item = {
       msg_id: 0,
       item_show_type: mi.share_page_type,
@@ -686,7 +690,11 @@ const syncRemoteToLocal = async (appmsg_info) => {
       insert_ad_mode: mi.insert_ad_mode,
       can_insert_ad: mi.can_insert_ad,
       claim_source_type: mi.claim_source_type,
+      claim_source_info: mi.claim_source
     }
+    
+    // 调试日志：查看最终的 material_item
+    console.log("syncRemoteToLocal - material_item.claim_source_info:", material_item.claim_source_info)
     const shareInfo = mapShareInfoFromAppmsg(mi)
     if (shareInfo) {
       material_item.share_info = shareInfo
