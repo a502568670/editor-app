@@ -26,12 +26,12 @@ const detectWechatUrlType = (url) => {
     const searchParams = urlObj.searchParams;
     
     // 临时链接：包含 tempkey 参数
-    if (searchParams.has('tempkey')) {
+    if (searchParams.has('tempkey','__biz')) {
       return 'temp';
     }
     
     // 长链接：包含 __biz, mid, idx, sn 等参数
-    if (searchParams.has('__biz')) {
+    if (searchParams.has('__biz','mid','idx','sn')) {
       return 'long';
     }
     
@@ -58,7 +58,7 @@ const convertLongUrlToShort = async (longUrl, token) => {
     // Base64 编码长链接
     const encodedUrl = Buffer.from(longUrl).toString('base64');
     
-    verbose_log(`[长链接转短链接] 开始转换: ${longUrl}`);
+    verbose_log(`[链接] 开始转换: ${longUrl}`);
     
     // 调用后端接口
     const result = await postJsonToEditorApi(
@@ -70,14 +70,14 @@ const convertLongUrlToShort = async (longUrl, token) => {
     if (result.code === 200 && result.data && result.data.ourl) {
       // Base64 解码得到短链接
       const shortUrl = Buffer.from(result.data.ourl, 'base64').toString('utf-8');
-      verbose_log(`[长链接转短链接] 转换成功: ${shortUrl}`);
+      verbose_log(`[链接] 转换成功: ${shortUrl}`);
       return shortUrl;
     } else {
       throw new Error(result.message || '转换失败');
     }
   } catch (error) {
-    verbose_error('[长链接转短链接] 转换失败:', error);
-    throw new Error(`长链接转短链接失败: ${error.message}`);
+    verbose_error('[链接] 转换失败:', error);
+    throw new Error(`链接转换失败: ${error.message}`);
   }
 }
 
@@ -89,14 +89,18 @@ export const localExtractMpArticleUrlUseRequest = async function (url, timeout =
   
   const urlType = detectWechatUrlType(url);
   verbose_log(`[URL类型检测] ${url} => ${urlType}`);
-  
+  let finalUrl = url;
   // 如果是临时链接，不支持
   if (urlType === 'temp') {
-    throw new Error('不支持临时链接，临时链接会过期，请使用长链接或短链接');
+    if (!token) {
+      throw new Error('临时链接转换需要提供用户token');
+    }
+    finalUrl = await convertLongUrlToShort(url, token);
+    // throw new Error('不支持临时链接，临时链接会过期，请使用长链接或短链接');
   }
   
   // 如果是长链接，需要先转换为短链接
-  let finalUrl = url;
+  
   if (urlType === 'long') {
     if (!token) {
       throw new Error('长链接转换需要提供用户token');
