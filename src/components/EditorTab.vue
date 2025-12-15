@@ -2471,6 +2471,7 @@ const handleLocalExtractMpArticleUrl = async () => {
     dialogExtractMpAritcleUrlRef.value = false
   }, timeoutExtract)
 }
+
 async function onBatchExtractMpOld(list) {
   for (var item of list) {
     globalLoadingRef.value = true

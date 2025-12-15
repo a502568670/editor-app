@@ -7,32 +7,54 @@
     @close="resetState"
   >
     <!-- 上传区域 -->
-    <div v-if="!previewHtml" class="flex flex-col items-center py-8">
-      <el-upload
-        ref="uploadRef"
-        :auto-upload="false"
-        :show-file-list="false"
-        :on-change="handleFileChange"
-        accept=".docx"
-        drag
-      >
-        <el-icon class="el-upload__icon"><Upload /></el-icon>
-        <div class="el-upload__text">
-          将 Word 文档拖到此处，或<em>点击上传</em>
-        </div>
-      </el-upload>
-      <div class="text-gray-500 text-sm mt-2">仅支持 .docx 格式</div>
+      <div v-if="!previewHtml" class="flex flex-col items-center py-8">
+        <el-upload
+          ref="uploadRef"
+          :auto-upload="false"
+          :show-file-list="false"
+          :on-change="handleFileChange"
+          accept=".docx"
+          drag
+        >
+          <el-icon class="el-upload__icon"><Upload /></el-icon>
+          <div class="el-upload__text">
+            将 Word 文档拖到此处，或<em>点击上传</em>
+          </div>
+        </el-upload>
 
-      <el-button
-        class="mt-4"
-        type="success"
-        :loading="parsing"
-        :disabled="!selectedFile"
-        @click="parseDocx"
-      >
-        解析文档
-      </el-button>
-    </div>
+        <!-- 已选文件展示区 -->
+        <div v-if="selectedFile" class="mt-4 w-full max-w-[500px]">
+          <div class="flex items-center justify-between bg-gray-50 border border-gray-200 rounded px-3 py-2 text-sm">
+            <div class="flex items-center truncate">
+              <el-icon class="mr-2 text-gray-500"><Document /></el-icon>
+              <span class="truncate">{{ selectedFile.name }}</span>
+              <span class="ml-2 text-gray-400 text-xs">
+                ({{ formatFileSize(selectedFile.size) }})
+              </span>
+            </div>
+            <el-button
+              type="text"
+              size="small"
+              @click="clearFile"
+              class="text-gray-500 hover:text-red-500"
+            >
+              <el-icon><Close /></el-icon>
+            </el-button>
+          </div>
+        </div>
+
+        <div class="text-gray-500 text-sm mt-2">仅支持 .docx 格式</div>
+
+        <el-button
+          class="mt-4"
+          type="success"
+          :loading="parsing"
+          :disabled="!selectedFile"
+          @click="parseDocx"
+        >
+          解析文档
+        </el-button>
+      </div>
 
     <!-- 预览区域 -->
     <div v-else class="py-4 max-h-[400px] overflow-auto border rounded p-4 bg-white">
@@ -59,7 +81,7 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { ElMessage } from 'element-plus'
-import { Upload } from '@element-plus/icons-vue'
+import { Upload, Document, Close } from '@element-plus/icons-vue'
 import mammoth from 'mammoth'
 
 const emit = defineEmits(['insert-docx-content'])
@@ -74,6 +96,22 @@ const uploadRef = ref(null)
 const dialogTitle = computed(() =>
   previewHtml.value ? '预览 Word 文档内容' : '上传并解析 Word 文档'
 )
+
+
+function formatFileSize(bytes) {
+  if (bytes === 0) return '0 B'
+  const k = 1024
+  const sizes = ['B', 'KB', 'MB', 'GB']
+  const i = Math.floor(Math.log(bytes) / Math.log(k))
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
+}
+
+function clearFile() {
+  selectedFile.value = null
+  uploadRef.value?.clearFiles?.()
+}
+
+
 
 function handleFileChange(file) {
   if (file.raw.type !== 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
