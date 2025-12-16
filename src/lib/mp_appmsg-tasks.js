@@ -414,6 +414,37 @@ const getWindowProduct = async ({ cookie, token, product_id }) => {
     return res;
   }
 }
+const checkAppmsgCopyrightStat = async ({ cookies, token, url }) => {
+  const opts = {
+    method: "POST",
+    headers: { ...getDefaultHeader(), cookie: cookies }
+  };
+  const apiUrl = `${baseUrl}/cgi-bin/operate_appmsg?sub=check_appmsg_copyright_stat`
+  verbose_log('check_appmsg_copyright_stat api url:', apiUrl)
+
+  const formdata = `url=${encodeURIComponent(url)}&token=${token}&lang=zh_CN&f=json&ajax=1`
+  verbose_log('check_appmsg_copyright_stat formdata:', formdata)
+
+  let res = (await netFetch(apiUrl, { ...opts, body: formdata }))
+  verbose_log("check_appmsg_copyright_stat res:", typeof res, res)
+
+  res = JSON.parse(res)
+  let base_resp = res.base_resp
+  if (base_resp.ret !== 0) {
+    return {
+      success: false,
+      err_msg: base_resp.err_msg
+    }
+  }
+
+  return {
+    success: true,
+    list: res.list || [],
+    total: res.total || 0,
+    open_ad_reprint_status: res.open_ad_reprint_status || ''
+  }
+}
+
 const getLinkInfo = async ({ cookies, token, link, scene = 4 }) => {
   const opts = {
     method: "POST",
@@ -472,3 +503,4 @@ exports.getRegions = getRegions
 exports.getShopCommodity = getShopCommodity
 exports.getWindowProduct = getWindowProduct
 exports.getLinkInfo = getLinkInfo
+exports.checkAppmsgCopyrightStat = checkAppmsgCopyrightStat

@@ -19,12 +19,16 @@
                   @click="emitEvents('createAppmsg', { type: 0, account_id: props.account.id, item_show_type: 8 })">创建当前公众号小绿书</el-dropdown-item>
                 <el-dropdown-item
                   @click="emitEvents('createAppmsg', { type: 0, account_id: props.account.id, item_show_type: 5 })">创建当前公众号视频素材</el-dropdown-item>
+                <el-dropdown-item
+                  @click="emitEvents('createAppmsg', { type: 0, account_id: props.account.id, is_reprint: true })">创建当前公众号转载素材</el-dropdown-item>
                 <el-dropdown-item divided
                   @click="emitEvents('createAppmsg', { type: 1 })">创建其他公众号图文素材</el-dropdown-item>
                 <el-dropdown-item
                   @click="emitEvents('createAppmsg', { type: 1, item_show_type: 8 })">创建其他公众号小绿书</el-dropdown-item>
                 <el-dropdown-item
                   @click="emitEvents('createAppmsg', { type: 1, item_show_type: 5 })">创建其他公众号视频素材</el-dropdown-item>
+                <el-dropdown-item
+                  @click="emitEvents('createAppmsg', { type: 1, is_reprint: true })">创建其他公众号转载素材</el-dropdown-item>
               </el-dropdown-menu>
             </template>
           </el-dropdown>
