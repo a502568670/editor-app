@@ -17,10 +17,10 @@
             @keyup.enter="handleSearch"
           >
             <template #suffix>
-              <el-icon v-if="searchKeyword" class="cursor-pointer mr-1" @click="searchKeyword = ''">
+              <el-icon v-if="searchKeyword" class="cursor-pointer mr-2" :size="16" @click="searchKeyword = ''">
                 <CircleClose />
               </el-icon>
-              <el-icon class="cursor-pointer" @click="handleSearch">
+              <el-icon class="cursor-pointer" :size="16" @click="handleSearch">
                 <Search />
               </el-icon>
             </template>

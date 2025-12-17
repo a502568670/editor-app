@@ -62,6 +62,7 @@
                         <el-dropdown-item @click="handleCreateAppMsg({ type: 0, account_id: selectedAccountRef?.id })">创建图文素材</el-dropdown-item>
                         <el-dropdown-item @click="handleCreateAppMsg({ type: 0, account_id: selectedAccountRef?.id, item_show_type: 8 })">创建小绿书</el-dropdown-item>
                         <el-dropdown-item @click="handleCreateAppMsg({ type: 0, account_id: selectedAccountRef?.id, item_show_type: 5 })">创建视频素材</el-dropdown-item>
+                        <el-dropdown-item @click="handleCreateAppMsg({ type: 0, account_id: selectedAccountRef?.id, is_reprint: true })">创建转载素材</el-dropdown-item>
                       </el-dropdown-menu>
                     </template>
                   </el-dropdown>

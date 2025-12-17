@@ -2565,12 +2565,7 @@ const _saveAppMsg = async (push_to_remote) => {
     if(newMaterial.new_content_noencode) {
       newMaterial.content_noencode = newMaterial.new_content_noencode.replace(/<p>\u000b<\/p>$/, '')
     }
-    // 分享文章处理：如果 share_info 存在且 guide_words 为空，使用默认值
-    if (item.share_info && item.item_show_type === 0) {
-      if (!item.guide_words || item.guide_words.trim() === '') {
-        item.guide_words = "分享一篇文章"
-      }
-    }
+
     // 小绿书处理有图片和无图片的类型
     if([8, 10].includes(newMaterial.item_show_type)) {
       if (newMaterial.cdn_url === '' && !newMaterial.picture_page_info_list?.length){
