@@ -414,7 +414,7 @@ const getWindowProduct = async ({ cookie, token, product_id }) => {
     return res;
   }
 }
-const checkAppmsgCopyrightStat = async ({ cookies, token, url }) => {
+const checkAppmsgCopyrightStat = async ({ cookies, token, url, begin = 0, count = 10 }) => {
   const opts = {
     method: "POST",
     headers: { ...getDefaultHeader(), cookie: cookies }
@@ -422,7 +422,7 @@ const checkAppmsgCopyrightStat = async ({ cookies, token, url }) => {
   const apiUrl = `${baseUrl}/cgi-bin/operate_appmsg?sub=check_appmsg_copyright_stat`
   verbose_log('check_appmsg_copyright_stat api url:', apiUrl)
 
-  const formdata = `url=${encodeURIComponent(url)}&token=${token}&lang=zh_CN&f=json&ajax=1`
+  const formdata = `url=${encodeURIComponent(url)}&allow_reprint=0&begin=${begin}&count=${count}&token=${token}&lang=zh_CN&f=json&ajax=1`
   verbose_log('check_appmsg_copyright_stat formdata:', formdata)
 
   let res = (await netFetch(apiUrl, { ...opts, body: formdata }))

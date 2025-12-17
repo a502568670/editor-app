@@ -905,7 +905,13 @@ function initRpc() {
             verbose_error('checkAppmsgCopyrightStat parse account error:', e);
           }
         }
-        return checkAppmsgCopyrightStat({ cookies, token, url: data.url });
+        return checkAppmsgCopyrightStat({ 
+          cookies, 
+          token, 
+          url: data.url, 
+          begin: data.begin, 
+          count: data.count 
+        });
       }
       default: {
         console.error(new Error(`Unknown RPC call: ${name}`));
