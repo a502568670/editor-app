@@ -162,7 +162,7 @@
         <div ref="ueditor_wrapper" class="flex-1">
           <div class="h-full flex flex-col" v-if="msg_idRef !== 0 && currentArticleRef.item_show_type === 0">
             <!-- 当 share_info 存在时，显示推荐语输入框而不是编辑器 -->
-            <div v-if="currentArticleRef.share_info && currentArticleRef.share_info.url" class="p-4">
+            <div v-if="currentArticleRef.share_info && currentArticleRef.share_info.source_username" class="p-4">
               <el-input
                 v-model="shareRecommendWords"
                 type="textarea"
@@ -184,7 +184,7 @@
               :editorDependencies="['ueditor.config.js', 'ueditor.all.js']"
             />
             <!-- 分享文章卡片 -->
-            <div v-if="currentArticleRef.share_info && currentArticleRef.share_info.url" class="mt-4 p-4 bg-white border border-gray-200 rounded-lg shadow-sm max-w-full">
+            <div v-if="currentArticleRef.share_info && currentArticleRef.share_info.source_username" class="mt-4 p-4 bg-white border border-gray-200 rounded-lg shadow-sm max-w-full">
               <!-- 头像 + 标题 + 原创标签 在同一行 -->
               <div class="flex items-center mb-3 pb-3 border-b border-gray-100">
                 <img

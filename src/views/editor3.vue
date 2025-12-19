@@ -292,6 +292,8 @@ const handleReprintConfirm = (shareInfo) => {
       is_reprint: true, 
       share_info: shareInfo 
     })
+    console.log("shareInfo!!!=>", shareInfo);
+    
   } else {
     // 其他公众号：存储 share_info，然后弹出账号选择对话框
     pendingCreateOptions.value = { item_show_type, is_reprint: false, share_info: shareInfo }
