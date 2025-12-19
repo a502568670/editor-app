@@ -240,7 +240,7 @@ const handleCreateAppMsg = ({ type, account_id, item_show_type = 0, cdnUrls = []
       title: `新标题${++tabIndex}`,
       author: "",
       copyright_type: 0,
-      cdn_url: "",
+      cdn_url: share_info?.cover_url || "",
       desc: "",
       need_open_comment: 1,
       only_fans_can_comment: 0,

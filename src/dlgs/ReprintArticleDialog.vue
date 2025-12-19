@@ -352,7 +352,9 @@ const handleConfirm = () => {
     reprint_style: selected._reprintType === 'share' ? "2" : "1",
     reprint_type: selected._reprintType === 'share' ? "2" : "1",
     content_noencode: selected.content || "",
-    title: selected.title || ""
+    // 非share_info参数
+    title: selected.title || "",
+    cover_url: selected.cover_url || ""
   }
 
   emit('confirm', shareInfo)
