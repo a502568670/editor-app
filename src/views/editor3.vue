@@ -62,6 +62,7 @@
                         <el-dropdown-item @click="handleCreateAppMsg({ type: 0, account_id: selectedAccountRef?.id })">创建图文素材</el-dropdown-item>
                         <el-dropdown-item @click="handleCreateAppMsg({ type: 0, account_id: selectedAccountRef?.id, item_show_type: 8 })">创建小绿书</el-dropdown-item>
                         <el-dropdown-item @click="handleCreateAppMsg({ type: 0, account_id: selectedAccountRef?.id, item_show_type: 5 })">创建视频素材</el-dropdown-item>
+                        <el-dropdown-item @click="handleCreateAppMsg({ type: 0, account_id: selectedAccountRef?.id, is_reprint: true })">创建转载素材</el-dropdown-item>
                       </el-dropdown-menu>
                     </template>
                   </el-dropdown>
@@ -74,6 +75,11 @@
     </div>
     <ChooseAccountDialog :dialogVisible="dialogChooseAccountVisibleRef"
       @dialog-closed="dialogChooseAccountVisibleRef = false" @account-choose="handleAccountChoose" />
+    <!-- 转载文章选择对话框 -->
+    <ReprintArticleDialog 
+      v-model="reprintDialogVisible" 
+      @confirm="handleReprintConfirm" 
+    />
 </template>
 <style>
 .editor-tabs>.el-tabs__content {
@@ -93,6 +99,7 @@ import { onActivated, onDeactivated, onMounted, ref, toRefs,provide } from 'vue'
 import { ElMessageBox } from 'element-plus'
 import EditorTab from "@/components/EditorTab"
 import ChooseAccountDialog from "@/dlgs/chooseAccount"
+import ReprintArticleDialog from "@/dlgs/ReprintArticleDialog"
 import { Plus } from '@element-plus/icons-vue'
 import { toDeepRaw } from "@/utils/convert"
 import { v4 as uuidv4 } from 'uuid';
@@ -123,6 +130,11 @@ provide('selectedAccount', selectedAccountRef)
 // const selectedIndexRef = ref()
 
 const dialogChooseAccountVisibleRef = ref(false)
+const pendingCreateOptions = ref({ item_show_type: 0, is_reprint: false })
+
+// 转载文章对话框相关
+const reprintDialogVisible = ref(false)
+const pendingReprintOptions = ref({ type: 0, account_id: null, item_show_type: 0 })
 
 let tabIndex = 0
 const editableTabsValue = ref('')
@@ -205,7 +217,13 @@ const handleAccountSelect = async (account) => {
 // const formatTitleSuffix = (account_name) => {
 //   return account_name ? `-<${account_name}>` : ""
 // }
-const handleCreateAppMsg = ({ type, account_id, item_show_type = 0,cdnUrls=[] }) => {
+const handleCreateAppMsg = ({ type, account_id, item_show_type = 0, cdnUrls = [], is_reprint = false, share_info = null }) => {
+  // 如果是转载素材且还没有选择转载文章，先弹出转载文章选择对话框
+  if (is_reprint && !share_info) {
+    pendingReprintOptions.value = { type, account_id, item_show_type }
+    reprintDialogVisible.value = true
+    return
+  }
 
   if (type === 0) {
     if(!account_id){
@@ -233,6 +251,10 @@ const handleCreateAppMsg = ({ type, account_id, item_show_type = 0,cdnUrls=[] })
       content_noencode: "",
       picture_page_info_list: cdnUrls.map(url=>({url,bg:'#fff'})),
     }
+    // 如果是转载素材，添加 share_info 结构
+    if (share_info) {
+      new_mp_msg.share_info = share_info
+    }
     const newAppMsg = {
       appmsgid: new_appmsgid,
       title: new_mp_msg.title,
@@ -251,15 +273,43 @@ const handleCreateAppMsg = ({ type, account_id, item_show_type = 0,cdnUrls=[] })
       addTab(account, newAppMsg, { icon: account.avatar, mode: 'create' })
     }
   } else {
+    // 对于其他公众号的素材，需要存储相关状态以便后续使用
+    pendingCreateOptions.value = { item_show_type, is_reprint: false, share_info }
     dialogChooseAccountVisibleRef.value = true
   }
 }
 
+// 转载文章对话框确认回调
+const handleReprintConfirm = (shareInfo) => {
+  const { type, account_id, item_show_type } = pendingReprintOptions.value
+  
+  if (type === 0) {
+    // 当前公众号：直接创建带有 share_info 的素材
+    handleCreateAppMsg({ 
+      type: 0, 
+      account_id, 
+      item_show_type, 
+      is_reprint: true, 
+      share_info: shareInfo 
+    })
+  } else {
+    // 其他公众号：存储 share_info，然后弹出账号选择对话框
+    pendingCreateOptions.value = { item_show_type, is_reprint: false, share_info: shareInfo }
+    dialogChooseAccountVisibleRef.value = true
+  }
+  
+  // 重置转载选项
+  pendingReprintOptions.value = { type: 0, account_id: null, item_show_type: 0 }
+}
+
 const handleAccountChoose = ({ choosed }) => {
+  const { item_show_type, is_reprint, share_info } = pendingCreateOptions.value
   choosed.forEach((acc) => {
-    handleCreateAppMsg({ type: 0, account_id: acc.id })
+    handleCreateAppMsg({ type: 0, account_id: acc.id, item_show_type, is_reprint, share_info })
   })
   dialogChooseAccountVisibleRef.value = false
+  // 重置待处理的创建选项
+  pendingCreateOptions.value = { item_show_type: 0, is_reprint: false, share_info: null }
 }
 
 const handleTitleChange = ({ appmsgid, title }) => {

@@ -10,7 +10,8 @@ import { nativeTheme, screen, dialog, Notification, app, ipcMain, webContents, n
 import { localExtractMpArticleUrlUseRequest } from "./mp_account-tasks.js"
 import {
   publishAppmsg, deleteAppmsg, listAppmsgsInDraftBox, getAppmsgInDraftBox,
-  searchAppmsgsInPublishForQuerys, listAppmsgsInPublishForQuerys, getShopCommodity, getWindowProduct,getLinkInfo
+  searchAppmsgsInPublishForQuerys, listAppmsgsInPublishForQuerys, getShopCommodity, getWindowProduct, getLinkInfo,
+  checkAppmsgCopyrightStat
 } from "./mp_appmsg-tasks.js"
 import { deleteFile, deleteVideo, listFiles, listVideos } from "./mp_file-tasks.js"
 import { searchMiniApp } from "./mpa-tasks.js"
@@ -889,6 +890,28 @@ function initRpc() {
       };
       case 'batchWxAggregate':{
         return batchWxAggregateSafe(data);
+      }
+      case 'checkAppmsgCopyrightStat': {
+        let cookies = '';
+        let token = 0;
+        if (data.account) {
+          try {
+            const sessionData = typeof data.account.session_id === 'string' 
+              ? JSON.parse(data.account.session_id) 
+              : data.account.session_id;
+            cookies = serializeCookie(sessionData.cookie);
+            token = parseInt(data.account.token);
+          } catch (e) {
+            verbose_error('checkAppmsgCopyrightStat parse account error:', e);
+          }
+        }
+        return checkAppmsgCopyrightStat({ 
+          cookies, 
+          token, 
+          url: data.url, 
+          begin: data.begin, 
+          count: data.count 
+        });
       }
       default: {
         console.error(new Error(`Unknown RPC call: ${name}`));

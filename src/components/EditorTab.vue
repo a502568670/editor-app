@@ -19,12 +19,16 @@
                   @click="emitEvents('createAppmsg', { type: 0, account_id: props.account.id, item_show_type: 8 })">创建当前公众号小绿书</el-dropdown-item>
                 <el-dropdown-item
                   @click="emitEvents('createAppmsg', { type: 0, account_id: props.account.id, item_show_type: 5 })">创建当前公众号视频素材</el-dropdown-item>
+                <el-dropdown-item
+                  @click="emitEvents('createAppmsg', { type: 0, account_id: props.account.id, is_reprint: true })">创建当前公众号转载素材</el-dropdown-item>
                 <el-dropdown-item divided
                   @click="emitEvents('createAppmsg', { type: 1 })">创建其他公众号图文素材</el-dropdown-item>
                 <el-dropdown-item
                   @click="emitEvents('createAppmsg', { type: 1, item_show_type: 8 })">创建其他公众号小绿书</el-dropdown-item>
                 <el-dropdown-item
                   @click="emitEvents('createAppmsg', { type: 1, item_show_type: 5 })">创建其他公众号视频素材</el-dropdown-item>
+                <el-dropdown-item
+                  @click="emitEvents('createAppmsg', { type: 1, is_reprint: true })">创建其他公众号转载素材</el-dropdown-item>
               </el-dropdown-menu>
             </template>
           </el-dropdown>
@@ -158,7 +162,7 @@
         <div ref="ueditor_wrapper" class="flex-1">
           <div class="h-full flex flex-col" v-if="msg_idRef !== 0 && currentArticleRef.item_show_type === 0">
             <!-- 当 share_info 存在时，显示推荐语输入框而不是编辑器 -->
-            <div v-if="currentArticleRef.share_info" class="p-4">
+            <div v-if="currentArticleRef.share_info && currentArticleRef.share_info.url" class="p-4">
               <el-input
                 v-model="shareRecommendWords"
                 type="textarea"
@@ -180,25 +184,22 @@
               :editorDependencies="['ueditor.config.js', 'ueditor.all.js']"
             />
             <!-- 分享文章卡片 -->
-            <div v-if="currentArticleRef.share_info" class="mt-4 p-4 bg-white border border-gray-200 rounded-lg shadow-sm max-w-full">
-              <div class="flex items-start mb-3">
+            <div v-if="currentArticleRef.share_info && currentArticleRef.share_info.url" class="mt-4 p-4 bg-white border border-gray-200 rounded-lg shadow-sm max-w-full">
+              <!-- 头像 + 标题 + 原创标签 在同一行 -->
+              <div class="flex items-center mb-3 pb-3 border-b border-gray-100">
                 <img
                   :src="currentArticleRef.share_info.source_headimg"
-                  class="w-10 h-10 rounded-full mr-3 flex-shrink-0 object-cover"
+                  class="w-8 h-8 rounded-full mr-2 flex-shrink-0 object-cover"
                   alt="头像"
                   @error="(e) => e.target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMjAiIGZpbGw9IiNlNWU3ZWIiLz48L3N2Zz4='"
                 />
-                <div class="flex-1 min-w-0">
-                  <div class="text-sm font-medium text-gray-900 mb-1">{{ currentArticleRef.share_info.platform }}</div>
-                  <div class="flex items-start gap-2 mb-2">
-                    <div class="text-sm text-gray-900 font-medium flex-1 break-words"
-                      v-html="extractTitleFromContent(currentArticleRef.share_info.content_noencode)"></div>
-                    <span v-if="currentArticleRef.share_info.copyright_stat === '2'"
-                      class="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded flex-shrink-0 whitespace-nowrap">原创</span>
-                  </div>
-                </div>
+                <div class="text-base text-gray-900 font-bold leading-snug line-clamp-1"
+                  v-html="currentArticleRef.share_info.title"></div>
+                <span v-if="currentArticleRef.share_info.copyright_stat === '2'"
+                  class="text-xs text-green-600 bg-green-50 px-1.5 py-0.5 rounded flex-shrink-0 whitespace-nowrap ml-1.5">原创</span>
               </div>
-              <div class="text-sm text-gray-700 mb-3 overflow-hidden"
+              <!-- 文章摘要 -->
+              <div class="text-sm text-gray-600 mb-3 overflow-hidden leading-relaxed"
                 v-html="extractPreviewContent(currentArticleRef.share_info.content_noencode)"
                 style="display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; word-break: break-word;"></div>
               <a
@@ -2564,12 +2565,7 @@ const _saveAppMsg = async (push_to_remote) => {
     if(newMaterial.new_content_noencode) {
       newMaterial.content_noencode = newMaterial.new_content_noencode.replace(/<p>\u000b<\/p>$/, '')
     }
-    // 分享文章处理：如果 share_info 存在且 guide_words 为空，使用默认值
-    if (item.share_info && item.item_show_type === 0) {
-      if (!item.guide_words || item.guide_words.trim() === '') {
-        item.guide_words = "分享一篇文章"
-      }
-    }
+
     // 小绿书处理有图片和无图片的类型
     if([8, 10].includes(newMaterial.item_show_type)) {
       if (newMaterial.cdn_url === '' && !newMaterial.picture_page_info_list?.length){
@@ -4696,27 +4692,24 @@ const extractTitleFromContent = (html) => {
   }
 }
 
-// 从HTML内容中提取预览内容（去除第一个p标签和所有img标签后的内容）
+// 从HTML内容中提取预览内容（将富文本转换为纯文本，移除所有HTML标签）
 const extractPreviewContent = (html) => {
   if (!html) return ''
   try {
     const parser = new DOMParser()
     const doc = parser.parseFromString(html, 'text/html')
-    const firstP = doc.querySelector('p')
-    if (firstP) {
-      // 移除第一个p标签
-      firstP.remove()
-    }
-    // 移除所有img标签
-    const imgs = doc.querySelectorAll('img')
-    imgs.forEach(img => img.remove())
-    // 移除所有br标签，用空格替换
-    const brs = doc.querySelectorAll('br')
-    brs.forEach(br => {
-      const space = doc.createTextNode(' ')
-      br.parentNode.replaceChild(space, br)
+    
+    // 将 img 标签替换为 [图片] 文字
+    doc.querySelectorAll('img').forEach(img => {
+      const placeholder = doc.createTextNode('[图片]')
+      img.parentNode.replaceChild(placeholder, img)
     })
-    return doc.body.innerHTML.trim()
+    
+    // 提取纯文本内容（textContent 会自动移除所有HTML标签）
+    const text = doc.body.textContent || ''
+    
+    // 清理文本：合并多个空白字符为单个空格，去除首尾空白
+    return text.replace(/\s+/g, ' ').trim()
   } catch (e) {
     console.error('提取预览内容失败:', e)
     return ''
@@ -4730,7 +4723,11 @@ const parseExtractMpArticleData = (ret, opts = {}) => {
   let guide_words = "", vid = ""
   console.log("item_show_type=>", item_show_type)
   // const { video_page_infos } = msg.data
-
+  // 为share_info添加title字段
+  console.log("share_info！=>",JSON.stringify(share_info))
+  if( item_show_type === 0 && share_info.url){
+    share_info.title = title
+  }
   if (item_show_type === 5 && video_page_info) {
     // 独立视频
     // console.log("video_page_infos=>",)
