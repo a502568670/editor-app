@@ -51,12 +51,6 @@
     return result
   }
   
-  // 获取当前话题数量作为 data-topic 值
-  const getNextDataTopic = () => {
-    if (!editorRef.value) return '1'
-    const existingTopics = editorRef.value.querySelectorAll('.topic-tag')
-    return String(existingTopics.length + 1)
-  }
   
   // 将原始内容转换为可显示的 HTML
   const convertToDisplayHtml = (content) => {
@@ -268,7 +262,7 @@ const processTopicNodes = (nodesToProcess) => {
     
     // 创建话题标签元素
     const topicId = generateTopicId()
-    const dataTopic = getNextDataTopic()
+    const dataTopic = "1"
     const topicSpan = document.createElement('span')
     topicSpan.className = 'topic-tag'
     topicSpan.contentEditable = 'false'
