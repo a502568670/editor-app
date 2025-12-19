@@ -260,9 +260,9 @@
             </el-row>
             <el-row :gutter="4" class="mb-1 w-full ">
               <el-col :span="24" class="flex w-full">
-                <!-- <el-input v-model="currentArticleRef.author" clearable class="w-full" placeholder="请输入视频介绍,可以不填" /> -->
-                <el-mention v-model="currentArticleRef.guide_words" type="textarea" class="w-full h-20"
-                  placeholder="填写描述信息，让大家了解更多内容" />
+                <GuideWordsEditor v-model="currentArticleRef.guide_words" class="w-full"
+                  placeholder="填写描述信息，让大家了解更多内容" 
+                  @update:modelValue="syncToList('guide_words')" />
               </el-col>
             </el-row>
           </div>
@@ -1294,6 +1294,7 @@ import { useDraggable } from 'vue-draggable-plus'
 import RebateProducts from "@/components/editor/RebateProducts.vue"
 import html2canvas from 'html2canvas';
 import UploadDocxDialog from '@/components/editor/UploadDocxDialog.vue'
+import GuideWordsEditor from '@/components/editor/GuideWordsEditor.vue'
 
 
 
@@ -2523,10 +2524,11 @@ const throttle = (fn, delay = 200) => {
     }
   }
 }
-const throttledAutoSave = throttle(automaticSave, 5000) // 只创建一次
-watch(()=>currentArticleRef.value.content_noencode,()=>{
-  throttledAutoSave(0)
-})
+// 暂时关闭自动保存功能
+// const throttledAutoSave = throttle(automaticSave, 5000) // 只创建一次
+// watch(()=>currentArticleRef.value.content_noencode,()=>{
+//   throttledAutoSave(0)
+// })
 
 const _saveAppMsg = async (push_to_remote) => {
   if (!validateAccount()) {
@@ -4800,7 +4802,7 @@ const parseExtractMpArticleData = (ret, opts = {}) => {
   if (opts.import_settings?.clear_content_url) {
     content_noencode = clearContentUrl(content_noencode)
   }
-  if (opts.import_settings?.clear_abstract && item_show_type !== 10) {
+  if (opts.import_settings?.clear_abstract && item_show_type !== 10 && item_show_type !== 8) {
     guide_words = ""
   }
   if (opts.import_settings?.clear_author) {
