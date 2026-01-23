@@ -451,9 +451,6 @@ const handleSwitchToDraftBox = async () => {
 }
 
 const handleAppmsgEdit = async (appmsg) => {
-
-  console.log("localAppmsgsRef.value=>", localAppmsgsRef.value)
-  console.log("handleAppmsgEdit=>", appmsg, checkIsLocal(appmsg.app_id))
   currentOperateAppMsgRef.value = appmsg
   currentOperateName.value = "edit"
   if (!checkIsLocal(appmsg.app_id)) {
@@ -669,13 +666,10 @@ const syncRemoteToLocal = async (appmsg_info) => {
   const firstItem = appmsg_info.item[0]
   const appmsgid = firstItem.app_id
   const material_list = firstItem.multi_item.map(mi => {
-    // 调试日志：查看 claim_source 数据
-    console.log("syncRemoteToLocal - mi.claim_source:", mi.claim_source)
-    console.log("syncRemoteToLocal - mi.claim_source_type:", mi.claim_source_type)
-    
     const material_item = {
       msg_id: 0,
       item_show_type: mi.share_page_type,
+      share_page_type: mi.share_page_type,
       cdn_url: mi.cdn_url,
       title: mi.title,
       author: mi.author,
@@ -690,8 +684,6 @@ const syncRemoteToLocal = async (appmsg_info) => {
       claim_source_info: mi.claim_source
     }
     
-    // 调试日志：查看最终的 material_item
-    console.log("syncRemoteToLocal - material_item.claim_source_info:", material_item.claim_source_info)
     const shareInfo = mapShareInfoFromAppmsg(mi)
     if (shareInfo) {
       material_item.share_info = shareInfo

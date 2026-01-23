@@ -77,7 +77,7 @@ export class TabbedWindow extends EventEmitter {
     this.commonWebPreferences = {
       minimumFontSize: 12,
       contextIsolation: !process.env.ELECTRON_NODE_INTEGRATION,
-      devTools: this.options.debug,
+      devTools: true, // 始终启用开发者工具，支持 Ctrl+Shift+I 快捷键
       nodeIntegrationInSubFrames: false,
       nodeIntegration: process.env.ELECTRON_NODE_INTEGRATION, // See https://nklayman.github.io/vue-cli-plugin-electron-builder/guide/security.html#node-integration for more info.
       preload: path.join(__dirname, 'preload.js'),

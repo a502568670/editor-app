@@ -118,19 +118,21 @@
       <el-col :span="12" class="h-full" v-loading="globalLoadingRef">
         <div class="h-full flex flex-col">
           <div ref="ueditor_wrapper" style="height:calc(100vh - 140px)">
-            <vue-ueditor-wrap v-if="msg_idRef !== 0 && currentArticleRef.item_show_type === 0"
+            <!-- 图文编辑器: share_page_type == 0 -->
+            <vue-ueditor-wrap v-if="msg_idRef !== 0 && currentArticleRef.share_page_type == 0"
               v-model="currentArticleRef.content_noencode" editor-id="editor" @ready="ready" :config="editorConfigRef"
               :editorDependencies="['ueditor.config.js', 'ueditor.all.js']" />
-            <div v-if="msg_idRef !== 0 && currentArticleRef.item_show_type === 5" class="w-full p-2">
+            
+            <!-- 视频编辑器: share_page_type == 5 -->
+            <div v-else-if="msg_idRef !== 0 && currentArticleRef.share_page_type == 5" class="w-full p-2">
               <el-row :gutter="4" class="mb-1 w-full">
                 <el-col :span="24">
-                  <el-input v-model="currentArticleRef.title" clearable class="w-full" placeholder="请输入文章标题"
+                  <el-input v-model="currentArticleRef.title" clearable class="w-full" placeholder="请输入视频标题"
                     @input="syncToList('title')" />
                 </el-col>
               </el-row>
               <el-row :gutter="4" class="mb-1 w-full">
                 <el-col :span="24" class="flex w-full">
-                  <!-- <el-input v-model="currentArticleRef.author" clearable class="w-full" placeholder="请输入视频介绍,可以不填" /> -->
                   <el-mention v-model="currentArticleRef.guide_words" type="textarea" class="w-full"
                     placeholder="请输入视频介绍,可以不填" />
                 </el-col>
@@ -145,6 +147,112 @@
                   </div>
                 </el-col>
               </el-row>
+            </div>
+            
+            <!-- 纯音乐编辑器: share_page_type == 7 -->
+            <div v-else-if="msg_idRef !== 0 && currentArticleRef.share_page_type == 7" class="w-full p-2">
+              <el-row :gutter="4" class="mb-1 w-full">
+                <el-col :span="24">
+                  <el-input v-model="currentArticleRef.title" clearable class="w-full" placeholder="请输入音乐标题"
+                    @input="syncToList('title')" />
+                </el-col>
+              </el-row>
+              <el-row :gutter="4" class="mb-1 w-full">
+                <el-col :span="24">
+                  <el-input v-model="currentArticleRef.guide_words" type="textarea" :rows="4" class="w-full"
+                    placeholder="请输入音乐介绍" />
+                </el-col>
+              </el-row>
+              <el-row :gutter="4" class="mb-1 w-full">
+                <el-col :span="24" class="flex justify-center items-center">
+                  <div class="text-center text-gray-500">
+                    <p>音乐素材功能开发中...</p>
+                  </div>
+                </el-col>
+              </el-row>
+            </div>
+            
+            <!-- 小绿书编辑器: share_page_type == 8 -->
+            <div v-else-if="msg_idRef !== 0 && currentArticleRef.share_page_type == 8" class="w-full p-2 overflow-auto">
+              <el-row :gutter="4" class="mb-1 w-full">
+                <el-col :span="24">
+                  <el-input v-model="currentArticleRef.title" clearable class="w-full" placeholder="请输入小绿书标题"
+                    @input="syncToList('title')" />
+                </el-col>
+              </el-row>
+              <el-row :gutter="4" class="mb-1 w-full">
+                <el-col :span="24">
+                  <el-input v-model="currentArticleRef.content_noencode" type="textarea" :rows="15" class="w-full"
+                    placeholder="请输入小绿书内容（纯文本）" />
+                </el-col>
+              </el-row>
+            </div>
+            
+            <!-- 纯文字编辑器: share_page_type == 10 -->
+            <div v-else-if="msg_idRef !== 0 && currentArticleRef.share_page_type == 10" class="w-full p-2 overflow-auto">
+              <el-row :gutter="4" class="mb-1 w-full">
+                <el-col :span="24">
+                  <el-input v-model="currentArticleRef.title" clearable class="w-full" placeholder="请输入文章标题"
+                    @input="syncToList('title')" />
+                </el-col>
+              </el-row>
+              <el-row :gutter="4" class="mb-1 w-full">
+                <el-col :span="24">
+                  <el-input v-model="currentArticleRef.content_noencode" type="textarea" :rows="20" class="w-full"
+                    placeholder="请输入纯文字内容" />
+                </el-col>
+              </el-row>
+            </div>
+            
+            <!-- 转载编辑器: share_page_type == 11 -->
+            <div v-else-if="msg_idRef !== 0 && currentArticleRef.share_page_type == 11" class="w-full p-2">
+              <el-row :gutter="4" class="mb-1 w-full">
+                <el-col :span="24">
+                  <el-input v-model="currentArticleRef.title" clearable class="w-full" placeholder="请输入转载文章标题"
+                    @input="syncToList('title')" />
+                </el-col>
+              </el-row>
+              <el-row :gutter="4" class="mb-1 w-full">
+                <el-col :span="24">
+                  <el-input v-model="currentArticleRef.sourceurl" clearable class="w-full" placeholder="请输入原文链接" />
+                </el-col>
+              </el-row>
+              <el-row :gutter="4" class="mb-1 w-full">
+                <el-col :span="24">
+                  <el-input v-model="currentArticleRef.guide_words" type="textarea" :rows="4" class="w-full"
+                    placeholder="请输入转载说明或编辑推荐语" />
+                </el-col>
+              </el-row>
+            </div>
+            
+            <!-- 直播预告编辑器: share_page_type == 19 -->
+            <div v-else-if="msg_idRef !== 0 && currentArticleRef.share_page_type == 19" class="w-full p-2">
+              <el-row :gutter="4" class="mb-1 w-full">
+                <el-col :span="24">
+                  <el-input v-model="currentArticleRef.title" clearable class="w-full" placeholder="请输入直播标题"
+                    @input="syncToList('title')" />
+                </el-col>
+              </el-row>
+              <el-row :gutter="4" class="mb-1 w-full">
+                <el-col :span="24">
+                  <el-input v-model="currentArticleRef.guide_words" type="textarea" :rows="6" class="w-full"
+                    placeholder="请输入直播预告内容" />
+                </el-col>
+              </el-row>
+              <el-row :gutter="4" class="mb-1 w-full">
+                <el-col :span="24">
+                  <el-date-picker v-model="currentArticleRef.live_time" type="datetime" placeholder="选择直播时间"
+                    class="w-full" />
+                </el-col>
+              </el-row>
+            </div>
+            
+            <!-- 其他类型编辑器提示 -->
+            <div v-else-if="msg_idRef !== 0" class="w-full h-full flex items-center justify-center">
+              <div class="text-center">
+                <p class="text-lg text-gray-500 mb-2">暂不支持该类型的编辑</p>
+                <p class="text-sm text-gray-400">share_page_type: {{ currentArticleRef.share_page_type }} (类型: {{ typeof currentArticleRef.share_page_type }})</p>
+              </div>
             </div>
           </div>
         </div>
@@ -810,6 +918,7 @@ const channelSource = 'editor4'
 // 文章正文
 const currentArticleRef = ref({
   item_show_type: 0, // 0:图文 5:纯视频 7:纯音乐 8:纯图片 10:纯文字 11:转载文章
+  share_page_type: 0, // 页面类型：0:图文 5:视频 7:纯音乐 8:小绿书 10:纯文字 11:转载 19:直播预告
   title: "",
   author: "",
   copyright_type: 0,
@@ -822,8 +931,9 @@ const currentArticleRef = ref({
   insert_ad_mode: 2,
   can_insert_ad: 1,
   claim_source_type: 0,
-  guide_words: "", // item_show_type=5
-  vid: "",
+  guide_words: "", // 视频介绍、转载说明、直播预告等
+  vid: "", // 视频ID
+  live_time: null, // 直播时间
   // content_noencode: "<section>hello</section>",
   content_noencode: "",
 })
@@ -1125,6 +1235,15 @@ const listArticles = async () => {
 }
 
 const loadArticle = (mp_msg, before_save) => {
+  // 调试：打印创建类型
+  console.log("=== 点击编辑，跳转到编辑页面 ===")
+  console.log("创建类型 (item_show_type):", mp_msg.item_show_type)
+  console.log("页面类型 (share_page_type):", mp_msg.share_page_type)
+  console.log("item_show_type 类型:", typeof mp_msg.item_show_type)
+  console.log("share_page_type 类型:", typeof mp_msg.share_page_type)
+  console.log("文章标题:", mp_msg.title)
+  console.log("================================")
+  
   if (before_save) {
     if (msg_idRef.value === mp_msg.msg_id) {
       return
@@ -1144,6 +1263,7 @@ const loadArticle = (mp_msg, before_save) => {
   // mp_msg.content_noencode = format_to_wangEditor_html(formated)
   mp_msg.content_noencode = formated
   // appmsgidRef.value = mp_msg.appmsgid
+  
   currentArticleRef.value = {
     ...mp_msg,
   }

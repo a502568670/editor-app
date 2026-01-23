@@ -235,6 +235,13 @@ export async function createTabbedWin(stockList) {
   if (process.env.NODE_ENV === 'development') {
     tabbedWin.win.webContents.openDevTools();
   }
+  
+  // 添加快捷键强制打开开发者工具
+  tabbedWin.win.webContents.on('before-input-event', (event, input) => {
+    if (input.control && input.shift && input.key.toLowerCase() === 'i') {
+      tabbedWin.win.webContents.toggleDevTools();
+    }
+  });
 
 
   // 监听tab控制事件
