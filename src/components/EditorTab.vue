@@ -2390,6 +2390,16 @@ const saveOthersToListForCustomTag = (msg_id) => {
 }
 
 const validateMsgData = () => {
+  // 检查是否有内容
+  if (!mp_msgsRef.value || mp_msgsRef.value.length === 0) {
+    ElMessage({
+      message: `请先新建内容`,
+      type: 'error',
+      duration: 2 * 1000
+    })
+    return false
+  }
+  
   return mp_msgsRef.value.every(v => {
     if ([8, 10].includes(v.item_show_type)) return true
     if (!v.title) {
