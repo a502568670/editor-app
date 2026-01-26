@@ -1358,7 +1358,7 @@ const editorConfigRef = ref({
         ElMessage({
           message: `当前账号(${name})未登录,请重新登录`,
           type: 'error',
-          duration: 2 * 1000
+          duration: 5 * 1000
         })
         return
       }
@@ -1868,10 +1868,13 @@ const listArticles = async () => {
   if (appmsgid > 0 || props.mode === 'edit') {
     const { wechat_id } = selectedAccount.value
     mp_msgsRef.value = await newlistArticlesByAppMsg(wechat_id, appmsgid).catch((err) => { }).then(response => {
-      response.data.forEach(gen_picture_page_info_list)
-      normalizeClaimSourceInfo(response.data)
-      console.log('aaa',response)
-      return response.data;
+      if (response && response.data) {
+        response.data.forEach(gen_picture_page_info_list)
+        normalizeClaimSourceInfo(response.data)
+        console.log('aaa',response)
+        return response.data;
+      }
+      return []
     })
     console.log("mp_msgsRef.value=>", mp_msgsRef.value)
   } else {
@@ -2217,10 +2220,37 @@ const newArticle = async (before_save = true, item_show_type = 0, hydrateMsgIdx 
 
 }
 
+// 提取错误信息的辅助函数
+const extractErrorMessage = (err) => {
+  // 优先级1: 检查 err_msg
+  let errorMessage = err?.data?.base_resp?.err_msg || err?.base_resp?.err_msg
+  
+  // 优先级2: 如果没有 err_msg，使用 ret 查询 wxretmsg
+  if (!errorMessage) {
+    const retCode = err?.data?.ret || err?.data?.base_resp?.ret || err?.ret
+    if (retCode && wxretmsg[retCode]) {
+      errorMessage = wxretmsg[retCode]
+    }
+  }
+  
+  // 优先级3: 如果都没有，使用 message
+  if (!errorMessage) {
+    errorMessage = err?.message || err?.data?.message || err
+  }
+  
+  return errorMessage
+}
+
 const handleActionErr = (account_name, e) => {
   console.error('handleActionErr:', e);
-  const err = e.response.data.detail
-  if (err?.base_resp?.err_msg?.includes("session")) {
+  // 处理两种错误格式：
+  // 1. axios 错误: e.response.data.detail
+  // 2. 手动抛出的错误: e.data.data (从 saveAppMsg 的 then 中 throw 出来的)
+  const err = e.response?.data?.detail || e.data?.data
+  const errorMessage = extractErrorMessage(err)
+  
+  // 特殊处理 session 错误
+  if (errorMessage && typeof errorMessage === 'string' && errorMessage.includes("session")) {
     ElMessageBox.alert(apperrmsg.invalid_session, '错误', {
       confirmButtonText: '确定',
       type: 'error'
@@ -2232,7 +2262,7 @@ const handleActionErr = (account_name, e) => {
     // callback.error(`当前账号(${name})session过期,请重新登录`)
   } else {
     ElMessage({
-      message: `服务器错误:${err}`,
+      message: `服务器错误:${errorMessage}`,
       type: 'error',
       duration: 2 * 1000
     })
@@ -2490,11 +2520,13 @@ const automaticSave = async (push_to_remote) => {
   }
 
   await saveAppMsg(postData).then(async (res) => {
-    res.data.data.mp_msgs.forEach(gen_picture_page_info_list)
-    mp_msgsRef.value = res.data.data.mp_msgs.map((item, index)=>({
-      ...item,
-      content_noencode: mp_msgsRef.value[index].content_noencode
-    }))
+    if (res.data.data.mp_msgs) {
+      res.data.data.mp_msgs.forEach(gen_picture_page_info_list)
+      mp_msgsRef.value = res.data.data.mp_msgs.map((item, index)=>({
+        ...item,
+        content_noencode: mp_msgsRef.value[index].content_noencode
+      }))
+    }
     normalizeClaimSourceInfo(res.data.data.mp_msgs)
 
 
@@ -2607,15 +2639,23 @@ const _saveAppMsg = async (push_to_remote) => {
 
   let saveSuccess = false
   await saveAppMsg(postData).then(async (res) => {
+    // 检查响应是否成功
+    if (res.data.code !== 1) {
+      // 保存失败，不显示成功消息，让 catch 处理
+      throw res
+    }
+    
     ElMessage({
       message: `消息${push_to_remote === 0 ? "暂存" : "同步"}成功`,
       type: 'success',
       duration: 2 * 1000
     })
     console.log("saveAppMsg res=>", res)
-    res.data.data.mp_msgs.forEach(gen_picture_page_info_list)
-    normalizeClaimSourceInfo(res.data.data.mp_msgs)
-    mp_msgsRef.value = res.data.data.mp_msgs
+    if (res.data.data.mp_msgs) {
+      res.data.data.mp_msgs.forEach(gen_picture_page_info_list)
+      normalizeClaimSourceInfo(res.data.data.mp_msgs)
+      mp_msgsRef.value = res.data.data.mp_msgs
+    }
     // ### todo: mp_msg_exs
 
     const isCreateNewAppMsg = appmsgid <= 0 && res.data.data.appmsgid > 0
