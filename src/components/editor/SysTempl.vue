@@ -20,8 +20,8 @@
         <!-- 系统模板：直接显示内容 -->
         <div v-else class="p-2" v-html="item.content" @click="insert(item)"></div>
         
-        <!-- 显示模板名称 -->
-        <div class="text-center my-1">{{ item.name }}</div>
+        <!-- 系统模板：显示模板名称 -->
+        <div v-if="actId !== -1" class="text-center my-1">{{ item.name }}</div>
         
         <!-- 我的样式：悬浮显示操作按钮 -->
         <div v-if="actId === -1" class="templ-actions absolute top-0 left-0">
@@ -176,17 +176,15 @@ async function saveTemplate() {
   
   const html = editorInst.getContent()
   if(!html.trim()){
-    ElMessageBox.alert('当前编辑内容不能为空', '提示', {
-      type: 'warning',
-      confirmButtonText: '确定',
-    })
+    ElMessage.warning('当前编辑内容不能为空')
     return
   }
   
-  const result = await ElMessageBox.prompt('请输入模板名称', '保存到我的样式', {}).catch(()=>{})
-  if(!result?.value) return
+  // 生成默认模板名称：模板 + 时间戳
+  const timestamp = new Date().getTime()
+  const templateName = `模板${timestamp}`
   
-  await saveUserTempl({template_name: result.value, content: html.trim()})
+  await saveUserTempl({template_name: templateName, content: html.trim()})
   ElMessage.success('保存成功')
   // 重新加载模板列表
   await loadTemplates()
@@ -194,12 +192,7 @@ async function saveTemplate() {
 
 // 收藏系统模板到我的样式
 async function favoriteTemplate(item) {
-  const result = await ElMessageBox.prompt('请输入模板名称', '收藏到我的样式', {
-    inputValue: item.name || '未命名模板'
-  }).catch(()=>{})
-  if(!result?.value) return
-  
-  await saveUserTempl({template_name: result.value, content: item.content})
+  await saveUserTempl({template_name: item.name || '未命名模板', content: item.content})
   ElMessage.success('收藏成功')
 }
 </script>
