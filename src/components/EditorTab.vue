@@ -2639,8 +2639,8 @@ const _saveAppMsg = async (push_to_remote) => {
 
   let saveSuccess = false
   await saveAppMsg(postData).then(async (res) => {
-    // 检查响应是否成功
-    if (res.data.code !== 1) {
+    // 检查响应是否成功 (code 为 0 表示成功)
+    if (res.data.code !== 0) {
       // 保存失败，不显示成功消息，让 catch 处理
       throw res
     }
