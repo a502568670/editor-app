@@ -879,6 +879,58 @@ function initRpc() {
             })
         ))
       };
+      case 'extractMpUrlDirect': {
+        // 直接使用 BrowserWindow 提取，不经过 API，避免长链接转换问题
+        const url = data.url;
+        verbose_log('extractMpUrlDirect: 开始提取', url);
+        
+        return new Promise(async (resolve, reject) => {
+          try {
+            const win = new BrowserWindow({
+              show: false,
+              webPreferences: {
+                nodeIntegration: false,
+                contextIsolation: true
+              }
+            });
+            
+            let _i = 0;
+            async function extractMpArticle() {
+              try {
+                const html = await win.webContents.executeJavaScript(`document.querySelector('#js_content')?.innerHTML`);
+                if (!html && _i++ < 15) {
+                  await new Promise(r => setTimeout(r, 1000));
+                  return extractMpArticle();
+                }
+                return html || '';
+              } catch (e) {
+                verbose_error('extractMpArticle error:', e);
+                return '';
+              }
+            }
+            
+            await win.loadURL(url);
+            const content_noencode = await extractMpArticle();
+            win.close();
+            
+            if (content_noencode) {
+              resolve({
+                success: true,
+                content_noencode: content_noencode,
+                base_resp: { ret: 0 }
+              });
+            } else {
+              resolve({
+                success: false,
+                error: '无法提取文章内容'
+              });
+            }
+          } catch (error) {
+            verbose_error('extractMpUrlDirect error:', error);
+            reject(error);
+          }
+        });
+      };
       case 'wxListImages': {
         var {account,group_id,page,limit}=data;
         var cookies= serializeCookie(JSON.parse(account.session_id)["cookie"])
@@ -918,6 +970,27 @@ function initRpc() {
           url: data.url, 
           begin: data.begin, 
           count: data.count 
+        });
+      }
+      case 'getLinkInfo': {
+        let cookies = '';
+        let token = 0;
+        if (data.account) {
+          try {
+            const sessionData = typeof data.account.session_id === 'string' 
+              ? JSON.parse(data.account.session_id) 
+              : data.account.session_id;
+            cookies = serializeCookie(sessionData.cookie);
+            token = parseInt(data.account.token);
+          } catch (e) {
+            verbose_error('getLinkInfo parse account error:', e);
+          }
+        }
+        return getLinkInfo({ 
+          cookies, 
+          token, 
+          link: data.link,
+          scene: data.scene || 4
         });
       }
       default: {

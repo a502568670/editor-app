@@ -237,9 +237,9 @@ const handleCreateAppMsg = ({ type, account_id, item_show_type = 0, cdnUrls = []
     const new_mp_msg = {
       msg_id: 0 - (+new Date()),
       item_show_type,
-      title: `新标题${++tabIndex}`,
-      author: "",
-      copyright_type: 0,
+      title: share_info?.title || `新标题${++tabIndex}`,
+      author: share_info?.author || "",
+      copyright_type: share_info?.copyright_type || 0,
       cdn_url: share_info?.cover_url || "",
       desc: "",
       need_open_comment: 1,
@@ -248,7 +248,7 @@ const handleCreateAppMsg = ({ type, account_id, item_show_type = 0, cdnUrls = []
       sourceurl: "",
       insert_ad_mode: 2,
       can_insert_ad: 1,
-      content_noencode: "",
+      content_noencode: share_info?.content_noencode || "",
       picture_page_info_list: cdnUrls.map(url=>({url,bg:'#fff'})),
     }
     // 如果是转载素材，添加 share_info 结构
@@ -282,7 +282,7 @@ const handleCreateAppMsg = ({ type, account_id, item_show_type = 0, cdnUrls = []
 // 转载文章对话框确认回调
 const handleReprintConfirm = (shareInfo) => {
   const { type, account_id, item_show_type } = pendingReprintOptions.value
-  
+
   if (type === 0) {
     // 当前公众号：直接创建带有 share_info 的素材
     handleCreateAppMsg({ 

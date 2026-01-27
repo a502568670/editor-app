@@ -244,8 +244,6 @@ const handleSearch = async () => {
       count: pageSize.value
     })
 
-    console.log('搜索结果:', result)
-
     if (result && result.success) {
       // 为每条结果添加默认的转载类型
       searchResults.value = (result.list || []).map(item => ({
@@ -296,8 +294,6 @@ const loadMore = async () => {
       count: pageSize.value
     })
 
-    console.log('加载更多结果:', result)
-
     if (result && result.success) {
       const newItems = (result.list || []).map(item => ({
         ...item,
@@ -331,34 +327,105 @@ const handleScroll = (event) => {
 }
 
 // 确认选择
-const handleConfirm = () => {
+const handleConfirm = async () => {
   if (!selectedRow.value) {
     ElMessage.warning('请选择要转载的文章')
     return
   }
 
   const selected = selectedRow.value
-  
-  console.log("转载的文章",selected)
 
-  // 构建 share_info 结构
-  const shareInfo = {
-    platform: selected.nickname,
-    reprint_url: selected.url || "",
-    source_username: selected.nickname || "",
-    source_headimg: selected.head_img_url || "",
-    guide_words: "分享一篇文章。",
-    copyright_stat: "2",
-    reprint_style: selected._reprintType === 'share' ? "2" : "1",
-    reprint_type: selected._reprintType === 'share' ? "2" : "1",
-    content_noencode: selected.content || "",
-    // 非share_info参数
-    title: selected.title || "",
-    cover_url: selected.cover_url || ""
+  // 如果是转载方式，使用 extractMpUrlDirect 直接提取完整文章内容
+  if (selected._reprintType === 'reprint') {
+    try {
+      loading.value = true
+      
+      // 调用 extractMpUrlDirect RPC 方法直接提取完整文章内容（避免长链接转换问题）
+      const result = await window.webBridge.callRpc('extractMpUrlDirect', {
+        url: selected.url
+      })
+      
+      if (!result || !result.success) {
+        ElMessage.error('获取文章内容失败：' + (result?.error || '未知错误'))
+        loading.value = false
+        return
+      }
+      
+      if (!result.content_noencode) {
+        ElMessage.error('文章内容为空')
+        loading.value = false
+        return
+      }
+      
+      // 构建微信标准的转载卡片（名片部分不添加链接，避免微信检测拦截）
+      const reprintCard = `
+<section class="reprint_card_wrp" style="margin: 16px 0; padding: 16px; border: 1px solid #e7e7eb; border-radius: 4px; background-color: #fafafa;">
+  <div class="reprint_card_title" style="font-size: 14px; color: #576b95; margin-bottom: 8px;">
+    编者荐语：
+  </div>
+  <div class="reprint_card_desc" style="font-size: 14px; color: #888; margin-bottom: 12px;">
+    说说你推荐文章的理由
+  </div>
+  <div class="reprint_card_source" style="font-size: 12px; color: #888; margin-bottom: 16px;">
+    文章来源于${selected.nickname || ''}，作者${selected.author || selected.nickname || ''}
+  </div>
+  <div class="reprint_card_account" style="display: flex; align-items: flex-start; padding-top: 12px; border-top: 1px solid #e7e7eb;">
+    <img src="${selected.head_img_url || ''}" style="width: 48px; height: 48px; border-radius: 50%; margin-right: 12px; flex-shrink: 0;" referrerpolicy="no-referrer" />
+    <div style="flex: 1; display: flex; flex-direction: column; justify-content: center;">
+      <div style="font-size: 15px; color: #333; font-weight: 600; margin-bottom: 6px; line-height: 1.4;">${selected.nickname || ''}</div>
+      <div style="font-size: 13px; color: #888; line-height: 1.5;">${selected.profile_description || '原创公众号'}</div>
+    </div>
+  </div>
+</section>
+      `
+      
+      // 转载卡片在上面，完整文章内容在下面
+      const contentWithCard = reprintCard + result.content_noencode
+      
+      // 构建转载信息
+      const reprintInfo = {
+        platform: selected.nickname,
+        reprint_url: selected.url || "",
+        source_username: selected.nickname || "",
+        source_headimg: selected.head_img_url || "",
+        guide_words: "说说你推荐文章的理由",
+        copyright_stat: "2",
+        reprint_style: "1", // 转载
+        reprint_type: "1", // 转载
+        content_noencode: contentWithCard, // 转载卡片 + 完整文章内容
+        title: selected.title || "",
+        cover_url: selected.cover_url || "",
+        author: selected.author || selected.nickname || "",
+        copyright_type: 0
+      }
+      
+      emit('confirm', reprintInfo)
+      handleClose()
+    } catch (error) {
+      console.error('构建转载内容出错:', error)
+      ElMessage.error('构建转载内容出错：' + error.message)
+    } finally {
+      loading.value = false
+    }
+  } else {
+    // 分享方式，保持原有逻辑
+    const shareInfo = {
+      platform: selected.nickname,
+      reprint_url: selected.url || "",
+      source_username: selected.nickname || "",
+      source_headimg: selected.head_img_url || "",
+      guide_words: "分享一篇文章。",
+      copyright_stat: "2",
+      reprint_style: "2", // 分享
+      reprint_type: "2", // 分享
+      content_noencode: selected.content || "",
+      title: selected.title || "",
+      cover_url: selected.cover_url || ""
+    }
+
+    emit('confirm', shareInfo)
+    handleClose()
   }
-
-  emit('confirm', shareInfo)
-  handleClose()
 }
 
 // 关闭对话框

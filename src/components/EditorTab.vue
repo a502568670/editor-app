@@ -183,8 +183,8 @@
               :config="editorConfigRef"
               :editorDependencies="['ueditor.config.js', 'ueditor.all.js']"
             />
-            <!-- 分享文章卡片 -->
-            <div v-if="currentArticleRef.share_info && currentArticleRef.share_info.source_username" class="mt-4 p-4 bg-white border border-gray-200 rounded-lg shadow-sm max-w-full">
+            <!-- 分享文章卡片 - 仅分享方式显示 -->
+            <div v-if="currentArticleRef.share_info && currentArticleRef.share_info.source_username && currentArticleRef.share_info.reprint_style === '2'" class="mt-4 p-4 bg-white border border-gray-200 rounded-lg shadow-sm max-w-full">
               <!-- 头像 + 标题 + 原创标签 在同一行 -->
               <div class="flex items-center mb-3 pb-3 border-b border-gray-100">
                 <img
@@ -209,6 +209,14 @@
               >
                 阅读全文
               </a>
+            </div>
+
+            <!-- 转载文章完整内容展示区域 - 仅转载方式显示 -->
+            <div v-if="currentArticleRef.share_info && currentArticleRef.share_info.reprint_style === '1'" class="mt-6">
+              <!-- 文章完整HTML内容 - 直接显示 -->
+              <div class="reprint-full-content">
+                <div class="content-body" v-html="currentArticleRef.share_info.content_noencode"></div>
+              </div>
             </div>
           </div>
 
@@ -1225,6 +1233,56 @@
   text-align: end;
 }
 </style>
+
+<style scoped>
+/* 转载文章完整内容样式 */
+.reprint-full-content {
+  background: transparent;
+  padding: 0;
+  max-height: 600px;
+  overflow-y: auto;
+}
+
+.reprint-full-content .content-body {
+  line-height: 1.8;
+  color: #2c3e50;
+  font-size: 15px;
+}
+
+.reprint-full-content .content-body :deep(img) {
+  max-width: 100%;
+  height: auto;
+  border-radius: 4px;
+  margin: 12px 0;
+}
+
+.reprint-full-content .content-body :deep(p) {
+  margin: 12px 0;
+}
+
+.reprint-full-content .content-body :deep(section) {
+  margin: 8px 0;
+}
+
+.reprint-full-content::-webkit-scrollbar {
+  width: 8px;
+}
+
+.reprint-full-content::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.reprint-full-content::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+}
+
+.reprint-full-content::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+</style>
+
 <script setup>
 import { ref, toRefs, shallowRef, onMounted, onBeforeUnmount, nextTick, onActivated, onDeactivated, onUnmounted, watch, computed, provide, toRaw, unref, reactive } from 'vue';
 // import { listAccount } from '@/api/account'
@@ -2373,7 +2431,15 @@ const saveCurrentToList = (msg_id) => {
   // 评论区广告
   currentArticleRef.value.open_comment_ad = commentAreaAdvertise.value
 
-  const to_save_content_noencode = currentArticleRef.value.content_noencode;
+  let to_save_content_noencode = currentArticleRef.value.content_noencode;
+  
+  // 如果是转载方式，使用 share_info 中的完整内容，并清除 share_info（避免预览时显示分享卡片）
+  if (currentArticleRef.value.share_info && currentArticleRef.value.share_info.reprint_style === '1') {
+    to_save_content_noencode = currentArticleRef.value.share_info.content_noencode || to_save_content_noencode
+    console.log('使用转载内容，长度:', to_save_content_noencode.length)
+    // 转载方式：将完整内容放到 content_noencode，清除 share_info 避免预览时显示分享卡片
+    currentArticleRef.value.content_noencode = to_save_content_noencode
+  }
 
   const category_id_list = adCategoryChoosedRef.value.join("|")
   let vhtml = restore_ad_content_from_UEditor(to_save_content_noencode, category_id_list, ad_idRef.value)
@@ -2389,7 +2455,16 @@ const saveCurrentToList = (msg_id) => {
   console.log("abc",currentArticleRef.value)
   const idx = mp_msgsRef.value.findIndex(v => v.msg_id === msg_id)
   if (idx !== -1) {
-    mp_msgsRef.value[idx] = currentArticleRef.value
+    // 保存到列表
+    const articleToSave = { ...currentArticleRef.value }
+    
+    // 如果是转载方式，清除 share_info，避免预览时显示分享卡片
+    if (articleToSave.share_info && articleToSave.share_info.reprint_style === '1') {
+      console.log('转载方式：清除 share_info，使用完整内容')
+      delete articleToSave.share_info
+    }
+    
+    mp_msgsRef.value[idx] = articleToSave
   }
 
   return idx
@@ -2508,6 +2583,12 @@ const automaticSave = async (push_to_remote) => {
         }
       }
     }
+    
+    // 转载文章处理：如果是转载方式（reprint_style === '1'），移除 share_info
+    if (newMaterial.reprint_style === '1' && newMaterial.share_info) {
+      delete newMaterial.share_info
+    }
+    
     return newMaterial
   })
   const postData = {
@@ -2622,6 +2703,12 @@ const _saveAppMsg = async (push_to_remote) => {
         }
       }
     }
+    
+    // 转载文章处理：如果是转载方式（reprint_style === '1'），移除 share_info
+    if (newMaterial.reprint_style === '1' && newMaterial.share_info) {
+      delete newMaterial.share_info
+    }
+    
     return newMaterial
   })
   const postData = {
