@@ -74,10 +74,17 @@ module.exports = {
         },
         asar: true,
         win: {
-          target: "nsis",  // 打包为免安装应用，可以改为portable,但是启动要十几秒
+          target: [
+            {
+              target: "dir",  // 只打包成目录，完全不需要 NSIS
+              arch: ["x64"]
+            }
+          ],
           icon: "./build/icon.ico",
           requestedExecutionLevel: 'asInvoker',  // 启动模式，普通用户或管理员权限
-          verifyUpdateCodeSignature: false
+          verifyUpdateCodeSignature: false,
+          signDlls: false,
+          sign: undefined
         },
         protocols: {
             "name": "app",
@@ -89,11 +96,15 @@ module.exports = {
           category: "public.app-category.utilities",
           target: [
             {
-              arch: ["arm64", "x64"],
-              target: "default", // Squirrel.Mac requires the zip target. Reference: https://www.electron.build/auto-update#quick-setup-guide
-            },
+              target: "dir",  // 只打包成目录，避免需要签名
+              arch: ["x64", "arm64"]
+            }
           ],
-          extendInfo: "app"
+          icon: "./build/icon.icns",  // 需要准备 .icns 格式的图标
+          hardenedRuntime: false,
+          gatekeeperAssess: false,
+          entitlements: null,
+          entitlementsInherit: null
         },
       },
       mainProcessWatch: ['src/lib'],
