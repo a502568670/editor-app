@@ -120,8 +120,8 @@ export const ad_categorys = [{
   "id": 68
 }]
 
-export const adMarkerContentInUEditor = `<section style="display:flex;justify-content:center;align-items:center;width:100%;height:60px;border:solid 1px #ccc;background-color:#8c8c8c;padding:2px;">===手工广告区域，请勿修改===<\/section>`
-const regAdMarkerInUEditor = /<section style="display:flex;justify-content:center;align-items:center;width:100%;height:60px;border:solid 1px #ccc;background-color:#8c8c8c;padding:2px;">===手工广告区域，请勿修改===<\/section>/gm
+export const adMarkerContentInUEditor = `<section style="background-color:#8c8c8c;border:solid 1px #ccc;padding:8px;text-align:center;"><span style="color:#fff;font-weight:bold;">===手工广告区域，请勿修改===</span></section>`
+const regAdMarkerInUEditor = /<section style="background-color:#8c8c8c;border:solid 1px #ccc;padding:8px;text-align:center;"><span style="color:#fff;font-weight:bold;">===手工广告区域，请勿修改===<\/span><\/section>/gm
 
 export const adMarkerContentInWangEditor = `<h1>===手工广告，请勿修改===<\/h1>`
 const regAdMarkerInWangEditor = /<h1>===手工广告，请勿修改===<\/h1>/gm
