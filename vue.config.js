@@ -96,7 +96,7 @@ module.exports = {
           category: "public.app-category.utilities",
           target: [
             {
-              target: "dmg",  // 生成 DMG 磁盘镜像
+              target: "dir",  // 改为 dir，生成目录形式，避免 DMG 创建问题
               arch: ["x64", "arm64"]
             }
           ],
