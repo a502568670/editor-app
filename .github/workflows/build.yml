@@ -33,11 +33,6 @@ jobs:
         with:
           python-version: '3.11'
       
-      - name: Create Python symlink
-        run: |
-          sudo ln -sf $(which python3) /usr/bin/python
-          python --version
-      
       - name: Install dependencies
         run: npm install
         env:
@@ -46,6 +41,15 @@ jobs:
       
       - name: Fix dmg-builder for Python 3
         run: npm run fix-dmg-builder
+      
+      - name: Patch dmg-builder to use python3
+        run: |
+          # 修改 dmg-builder 使用 python3 而不是 python
+          DMG_BUILDER_PATH="node_modules/dmg-builder/out/dmg.js"
+          if [ -f "$DMG_BUILDER_PATH" ]; then
+            sed -i.bak 's|/usr/bin/python|/usr/bin/python3|g' "$DMG_BUILDER_PATH"
+            echo "Patched dmg-builder to use python3"
+          fi
       
       - name: Build macOS app
         run: npm run electron:build:mac
