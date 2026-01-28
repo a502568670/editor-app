@@ -33,6 +33,11 @@ jobs:
         with:
           python-version: '3.11'
       
+      - name: Create Python symlink
+        run: |
+          sudo ln -sf $(which python3) /usr/bin/python
+          python --version
+      
       - name: Install dependencies
         run: npm install
         env:
