@@ -76,7 +76,7 @@ module.exports = {
         win: {
           target: [
             {
-              target: "dir",  // 只打包成目录，完全不需要 NSIS
+              target: "nsis",  // 生成 NSIS 安装程序
               arch: ["x64"]
             }
           ],
@@ -96,11 +96,11 @@ module.exports = {
           category: "public.app-category.utilities",
           target: [
             {
-              target: "dir",  // 只打包成目录，避免需要签名
+              target: "dmg",  // 生成 DMG 磁盘镜像
               arch: ["x64", "arm64"]
             }
           ],
-          icon: "./build/icon.icns",  // 需要准备 .icns 格式的图标
+          icon: "./build/icon.ico",  // 暂时使用 .ico，在 Mac 上打包时需要改为 .icns
           hardenedRuntime: false,
           gatekeeperAssess: false,
           entitlements: null,

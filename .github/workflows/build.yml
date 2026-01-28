@@ -1,68 +1,72 @@
-name: Build/release
+name: Build Electron App
 
 on:
   push:
+    branches:
+      - main
+      - master
     tags:
-      - 'v*'  # 当推送 v 开头的 tag 时触发，如 v1.0.0
-  workflow_dispatch:  # 允许手动触发
+      - 'v*'
+  pull_request:
+  workflow_dispatch:
 
 jobs:
-  release:
+  build:
     runs-on: ${{ matrix.os }}
-
+    
     strategy:
       matrix:
-        os: [macos-latest, windows-latest]
-
+        os: [windows-latest, macos-latest]
+    
     steps:
-      - name: Check out Git repository
+      - name: Checkout code
         uses: actions/checkout@v3
-
-      - name: Install Node.js
+      
+      - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: 16
-
-      - name: Install Dependencies
+          node-version: '16'
+          cache: 'npm'
+      
+      - name: Install dependencies
         run: npm install
-
-      - name: Build Electron App (Windows)
+      
+      - name: Build Windows
         if: matrix.os == 'windows-latest'
-        run: npm run electron:build
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Build Electron App (macOS)
+        run: npm run electron:build:win
+      
+      - name: Build macOS
         if: matrix.os == 'macos-latest'
-        run: npm run electron:build_mac
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Upload artifacts (Windows)
+        run: npm run electron:build:mac
+      
+      - name: Upload Windows artifacts
         if: matrix.os == 'windows-latest'
         uses: actions/upload-artifact@v3
         with:
-          name: windows-build
+          name: windows-installer
           path: |
             dist_electron/*.exe
-            dist_electron/*.zip
-
-      - name: Upload artifacts (macOS)
+            dist_electron/*.exe.blockmap
+            dist_electron/*.yml
+      
+      - name: Upload macOS artifacts
         if: matrix.os == 'macos-latest'
         uses: actions/upload-artifact@v3
         with:
-          name: macos-build
+          name: macos-installer
           path: |
             dist_electron/*.dmg
-            dist_electron/*.zip
-
-      - name: Release
-        uses: softprops/action-gh-release@v1
+            dist_electron/*.dmg.blockmap
+            dist_electron/*.yml
+      
+      - name: Create Release
         if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v1
         with:
           files: |
             dist_electron/*.exe
             dist_electron/*.dmg
-            dist_electron/*.zip
+            dist_electron/*.blockmap
+            dist_electron/*.yml
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
