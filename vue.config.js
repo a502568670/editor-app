@@ -100,7 +100,7 @@ module.exports = {
               arch: ["x64", "arm64"]
             }
           ],
-          icon: "./build/icon.ico",  // 暂时使用 .ico，在 Mac 上打包时需要改为 .icns
+          // icon: "./build/icon.ico",  // 暂时注释掉，使用默认图标
           hardenedRuntime: false,
           gatekeeperAssess: false,
           entitlements: null,
