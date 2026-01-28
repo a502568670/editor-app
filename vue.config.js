@@ -96,7 +96,11 @@ module.exports = {
           category: "public.app-category.utilities",
           target: [
             {
-              target: "dir",  // 改为 dir，生成目录形式，避免 DMG 创建问题
+              target: "dmg",  // 生成 DMG
+              arch: ["x64", "arm64"]
+            },
+            {
+              target: "zip",  // 同时生成 ZIP（备用）
               arch: ["x64", "arm64"]
             }
           ],

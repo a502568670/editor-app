@@ -56,8 +56,9 @@ jobs:
         with:
           name: macos-installer
           path: |
-            dist_electron/mac/**/*.app
-            dist_electron/mac-arm64/**/*.app
+            dist_electron/*.dmg
+            dist_electron/*.zip
+            dist_electron/*.yml
       
       - name: Create Release
         if: startsWith(github.ref, 'refs/tags/')
