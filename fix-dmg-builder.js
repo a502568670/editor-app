@@ -10,6 +10,9 @@ if (fs.existsSync(corePyPath)) {
   // 移除 reload(sys) 这一行
   content = content.replace(/reload\(sys\)\s*#\s*Reload is a hack\n/g, '# reload(sys) removed for Python 3 compatibility\n');
   
+  // 移除 sys.setdefaultencoding('UTF8') 这一行（Python 3 不支持）
+  content = content.replace(/sys\.setdefaultencoding\('UTF8'\)\n/g, '# sys.setdefaultencoding removed for Python 3 compatibility\n');
+  
   fs.writeFileSync(corePyPath, content, 'utf8');
   console.log('✓ 已修复 dmg-builder Python 3 兼容性问题');
 } else {
