@@ -96,11 +96,7 @@ module.exports = {
           category: "public.app-category.utilities",
           target: [
             {
-              target: "dmg",  // 生成 DMG
-              arch: ["x64", "arm64"]
-            },
-            {
-              target: "zip",  // 同时生成 ZIP（备用）
+              target: "zip",  // 只生成 ZIP，避免 DMG 的 Python 问题
               arch: ["x64", "arm64"]
             }
           ],
