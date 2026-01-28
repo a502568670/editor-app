@@ -1,0 +1,30 @@
+version: 2.1
+
+jobs:
+  build-mac:
+    macos:
+      xcode: "13.4.1"
+    steps:
+      - checkout
+      - run:
+          name: Install Node.js
+          command: |
+            brew install node@16
+            echo 'export PATH="/usr/local/opt/node@16/bin:$PATH"' >> ~/.bash_profile
+            source ~/.bash_profile
+      - run:
+          name: Install dependencies
+          command: npm install
+      - run:
+          name: Build macOS app
+          command: npm run electron:build:mac
+      - store_artifacts:
+          path: dist_electron
+          destination: builds
+
+workflows:
+  version: 2
+  build:
+    jobs:
+      - build-mac
+

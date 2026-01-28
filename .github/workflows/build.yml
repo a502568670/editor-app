@@ -8,80 +8,100 @@ on:
     tags:
       - 'v*'
   pull_request:
+    branches:
+      - main
+      - master
   workflow_dispatch:
 
 jobs:
-  build:
-    runs-on: ${{ matrix.os }}
-    
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [windows-latest, macos-latest]
+  build-mac:
+    name: Build macOS
+    runs-on: macos-latest
     
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v3
       
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v3
         with:
           node-version: '16'
           cache: 'npm'
       
-      - name: Setup Python (macOS only)
-        if: matrix.os == 'macos-latest'
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-      
-      - name: Verify Python (macOS only)
-        if: matrix.os == 'macos-latest'
-        run: |
-          python3 --version
-          which python3
-      
       - name: Install dependencies
         run: npm install
+        env:
+          ELECTRON_MIRROR: https://npmmirror.com/mirrors/electron/
+          ELECTRON_CUSTOM_DIR: '{{ version }}'
       
-      - name: Build Windows
-        if: matrix.os == 'windows-latest'
-        run: npm run electron:build:win
+      - name: Fix dmg-builder for Python 3
+        run: npm run fix-dmg-builder
       
-      - name: Build macOS
-        if: matrix.os == 'macos-latest'
+      - name: Build macOS app
         run: npm run electron:build:mac
         env:
-          PYTHON_PATH: /usr/local/bin/python3
-      
-      - name: Upload Windows artifacts
-        if: matrix.os == 'windows-latest'
-        uses: actions/upload-artifact@v4
-        with:
-          name: windows-installer
-          path: |
-            dist_electron/*.exe
-            dist_electron/*.exe.blockmap
-            dist_electron/*.yml
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       
       - name: Upload macOS artifacts
-        if: matrix.os == 'macos-latest'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v3
         with:
-          name: macos-installer
+          name: macos-builds
           path: |
             dist_electron/*.dmg
             dist_electron/*.zip
-            dist_electron/*.yml
+          retention-days: 7
+
+  build-windows:
+    name: Build Windows
+    runs-on: windows-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '16'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm install
+        env:
+          ELECTRON_MIRROR: https://npmmirror.com/mirrors/electron/
+          ELECTRON_CUSTOM_DIR: '{{ version }}'
+      
+      - name: Build Windows app
+        run: npm run electron:build:win
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Upload Windows artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: windows-builds
+          path: |
+            dist_electron/*.exe
+            dist_electron/*.zip
+          retention-days: 7
+
+  release:
+    name: Create Release
+    needs: [build-mac, build-windows]
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v3
       
       - name: Create Release
-        if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v1
         with:
           files: |
-            dist_electron/*.exe
-            dist_electron/*.dmg
-            dist_electron/*.blockmap
-            dist_electron/*.yml
+            macos-builds/*
+            windows-builds/*
+          draft: false
+          prerelease: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
