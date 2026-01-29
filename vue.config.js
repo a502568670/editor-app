@@ -53,7 +53,7 @@ module.exports = {
         publish: [
           {
             provider: 'generic',
-            url: 'http://47.96.22.8:8005/autoupdate'
+            url: 'https://download.dajiala.com/autoupdate'
           }
         ],
         appId: "com.electron.client",  // 保持与 0.5.9 相同，确保可以自动更新
