@@ -13,7 +13,7 @@ onMounted(() => {
   //     percentage.value = parseInt(arg.percent)
   // })
 
-  console.log(window.envVars.is_debug)
+  console.log(window.envVars.is_debug) 
   window.ipcRenderer.receive('downloadProgress', async (arg) => {
     console.log("downloadProgress==>", arg)
     percentage.value = parseInt(arg.percent)
