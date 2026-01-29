@@ -56,7 +56,7 @@ module.exports = {
             url: 'http://47.96.22.8:8006/autoupdate'
           }
         ],
-        appId: "com.electron.client",
+        appId: "com.electron.client.${version}",  // 每个版本使用不同的 appId
         artifactName: "${name}_${version}_${os}_${arch}.${ext}",
         generateUpdatesFilesForAllChannels: true,
         nsis: {
@@ -64,13 +64,15 @@ module.exports = {
           createStartMenuShortcut: true,
           allowToChangeInstallationDirectory: true,
           createDesktopShortcut: "always",
-          shortcutName: "稿轻松",
+          shortcutName: "稿轻松 ${version}",  // 快捷方式名称包含版本号
           installerLanguages: "zh_CN",
           language: "2052",
           oneClick: false,
-          perMachine: true,
+          perMachine: false,  // 改为 false，允许每个用户独立安装
           runAfterFinish: false,
           unicode: true,
+          deleteAppDataOnUninstall: false,  // 卸载时不删除应用数据
+          include: "build/installer.nsh",  // 自定义安装脚本（可选）
         },
         asar: true,
         win: {
