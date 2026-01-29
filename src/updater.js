@@ -1,5 +1,5 @@
 import { autoUpdater } from "electron-updater"
-const { dialog, BrowserWindow } = require('electron')
+const { dialog, BrowserWindow, app } = require('electron')
 import { createProtocol } from "vue-cli-plugin-electron-builder/lib";
 
 import global from "./lib/global.js";
@@ -11,6 +11,7 @@ autoUpdater.logger = log
 autoUpdater.logger.transports.file.level = "info"
 
 const path = require('path')
+const fs = require('fs')
 
 const isDevelopment = process.env.NODE_ENV === 'development'
 
@@ -19,8 +20,88 @@ if (isDevelopment) {
   autoUpdater.updateConfigPath = path.join(__dirname, '../dev-app-update.yml')
 }
 
+// 获取用户数据目录
+const userDataPath = app.getPath('userData')
+const versionInfoPath = path.join(userDataPath, 'version-info.json')
+
+// 保存版本信息
+function saveVersionInfo(version, latestVersion) {
+  const versionInfo = {
+    currentVersion: version,
+    latestVersion: latestVersion,
+    lastCheckTime: new Date().toISOString()
+  }
+  try {
+    fs.writeFileSync(versionInfoPath, JSON.stringify(versionInfo, null, 2))
+    log.info("版本信息已保存:", versionInfo)
+  } catch (err) {
+    log.error("保存版本信息失败:", err)
+  }
+}
+
+// 读取版本信息
+function loadVersionInfo() {
+  try {
+    if (fs.existsSync(versionInfoPath)) {
+      const data = fs.readFileSync(versionInfoPath, 'utf8')
+      return JSON.parse(data)
+    }
+  } catch (err) {
+    log.error("读取版本信息失败:", err)
+  }
+  return null
+}
+
+// 比较版本号
+function compareVersions(v1, v2) {
+  const parts1 = v1.split('.').map(Number)
+  const parts2 = v2.split('.').map(Number)
+  
+  for (let i = 0; i < Math.max(parts1.length, parts2.length); i++) {
+    const part1 = parts1[i] || 0
+    const part2 = parts2[i] || 0
+    
+    if (part1 > part2) return 1
+    if (part1 < part2) return -1
+  }
+  return 0
+}
+
 export default () => {
   let win = null
+  const currentVersion = app.getVersion()
+  
+  log.info("当前应用版本:", currentVersion)
+  
+  // 读取上次保存的版本信息
+  const savedVersionInfo = loadVersionInfo()
+  if (savedVersionInfo) {
+    log.info("上次保存的版本信息:", savedVersionInfo)
+    
+    // 如果发现有更新的版本存在，提示用户
+    if (savedVersionInfo.latestVersion && 
+        compareVersions(savedVersionInfo.latestVersion, currentVersion) > 0) {
+      log.info("检测到有更新版本可用:", savedVersionInfo.latestVersion)
+      
+      // 延迟3秒后显示提示，避免启动时立即弹窗
+      setTimeout(() => {
+        dialog.showMessageBox({
+          type: 'warning',
+          title: '版本过旧提醒',
+          message: `您正在使用旧版本！\n\n当前版本: ${currentVersion}\n最新版本: ${savedVersionInfo.latestVersion}\n\n强烈建议更新到最新版本以获得更好的体验和安全性。`,
+          detail: '点击"立即更新"将自动下载并安装最新版本',
+          buttons: ['立即更新', '继续使用旧版'],
+          defaultId: 0,
+          cancelId: 1
+        }).then(resp => {
+          if (resp.response === 0) {
+            // 立即检查更新
+            autoUpdater.checkForUpdates()
+          }
+        })
+      }, 3000)
+    }
+  }
 
   //设置自动下载
   autoUpdater.autoDownload = false
@@ -34,12 +115,16 @@ export default () => {
 
   autoUpdater.on('update-not-available', res => {
     log.info("没有可更新版本:" + res)
+    // 保存当前版本信息
+    saveVersionInfo(currentVersion, currentVersion)
   })
 
   autoUpdater.on('update-available', res => {
     log.info("发现新版本:", res)
-    const currentVersion = require('electron').app.getVersion()
     const newVersion = res.version || '未知版本'
+    
+    // 保存最新版本信息
+    saveVersionInfo(currentVersion, newVersion)
     
     dialog.showMessageBox({
       type: 'info',
