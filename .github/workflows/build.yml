@@ -51,10 +51,23 @@ jobs:
             echo "Patched dmg-builder to use python3"
           fi
       
+      - name: Clean up disk mounts before build
+        run: |
+          # 清理可能存在的挂载点
+          hdiutil info | grep "/dev/disk" | awk '{print $1}' | xargs -I {} hdiutil detach {} 2>/dev/null || true
+          echo "Cleaned up disk mounts"
+      
       - name: Build macOS app
         run: npm run electron:build:mac
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Clean up disk mounts after build
+        if: always()
+        run: |
+          # 构建后清理挂载点
+          hdiutil info | grep "/dev/disk" | awk '{print $1}' | xargs -I {} hdiutil detach {} -force 2>/dev/null || true
+          echo "Cleaned up disk mounts after build"
       
       - name: Upload macOS artifacts
         uses: actions/upload-artifact@v4
