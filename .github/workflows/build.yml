@@ -1,16 +1,14 @@
 name: Build Electron App
 
 on:
+  # 只在推送 tag 时触发构建，避免重复
   push:
-    branches:
-      - main
-      - master
     tags:
       - 'v*'
-  pull_request:
-    branches:
-      - main
-      - master
+  # pull_request:
+  #   branches:
+  #     - main
+  #     - master
   workflow_dispatch:
 
 jobs:
@@ -135,80 +133,81 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  upload-to-server:
-    name: Upload to Update Server
-    needs: [build-windows]
-    runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/v')
-    
-    steps:
-      - name: Download Windows artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: windows-builds
-          path: artifacts
-      
-      - name: List downloaded files
-        run: |
-          echo "Downloaded files:"
-          ls -lah artifacts/
-      
-      - name: Upload to update server via SCP
-        env:
-          SERVER_HOST: ${{ secrets.UPDATE_SERVER_HOST }}
-          SERVER_USER: ${{ secrets.UPDATE_SERVER_USER }}
-          SERVER_PASSWORD: ${{ secrets.UPDATE_SERVER_PASSWORD }}
-          SERVER_PATH: ${{ secrets.UPDATE_SERVER_PATH }}
-        run: |
-          # 安装 sshpass 用于密码认证
-          sudo apt-get update
-          sudo apt-get install -y sshpass
-          
-          # 上传文件到服务器
-          echo "Uploading files to update server..."
-          
-          # 上传 latest.yml
-          if [ -f "artifacts/latest.yml" ]; then
-            sshpass -p "$SERVER_PASSWORD" scp -o StrictHostKeyChecking=no \
-              artifacts/latest.yml \
-              ${SERVER_USER}@${SERVER_HOST}:${SERVER_PATH}/latest.yml
-            echo "✅ Uploaded latest.yml"
-          fi
-          
-          # 上传 .exe 文件
-          for file in artifacts/*.exe; do
-            if [ -f "$file" ]; then
-              sshpass -p "$SERVER_PASSWORD" scp -o StrictHostKeyChecking=no \
-                "$file" \
-                ${SERVER_USER}@${SERVER_HOST}:${SERVER_PATH}/$(basename "$file")
-              echo "✅ Uploaded $(basename "$file")"
-            fi
-          done
-          
-          # 上传 .blockmap 文件
-          for file in artifacts/*.blockmap; do
-            if [ -f "$file" ]; then
-              sshpass -p "$SERVER_PASSWORD" scp -o StrictHostKeyChecking=no \
-                "$file" \
-                ${SERVER_USER}@${SERVER_HOST}:${SERVER_PATH}/$(basename "$file")
-              echo "✅ Uploaded $(basename "$file")"
-            fi
-          done
-          
-          echo "🎉 All files uploaded successfully!"
-      
-      - name: Verify upload
-        env:
-          UPDATE_SERVER_URL: http://47.96.22.8:8005/autoupdate
-        run: |
-          echo "Verifying uploaded files..."
-          
-          # 检查 latest.yml 是否可访问
-          if curl -f -s "${UPDATE_SERVER_URL}/latest.yml" > /dev/null; then
-            echo "✅ latest.yml is accessible"
-            echo "Content:"
-            curl -s "${UPDATE_SERVER_URL}/latest.yml"
-          else
-            echo "❌ latest.yml is not accessible"
-            exit 1
-          fi
+  # 手动上传，不使用自动上传
+  # upload-to-server:
+  #   name: Upload to Update Server
+  #   needs: [build-windows]
+  #   runs-on: ubuntu-latest
+  #   if: startsWith(github.ref, 'refs/tags/v')
+  #   
+  #   steps:
+  #     - name: Download Windows artifacts
+  #       uses: actions/download-artifact@v4
+  #       with:
+  #         name: windows-builds
+  #         path: artifacts
+  #     
+  #     - name: List downloaded files
+  #       run: |
+  #         echo "Downloaded files:"
+  #         ls -lah artifacts/
+  #     
+  #     - name: Upload to update server via SCP
+  #       env:
+  #         SERVER_HOST: ${{ secrets.UPDATE_SERVER_HOST }}
+  #         SERVER_USER: ${{ secrets.UPDATE_SERVER_USER }}
+  #         SERVER_PASSWORD: ${{ secrets.UPDATE_SERVER_PASSWORD }}
+  #         SERVER_PATH: ${{ secrets.UPDATE_SERVER_PATH }}
+  #       run: |
+  #         # 安装 sshpass 用于密码认证
+  #         sudo apt-get update
+  #         sudo apt-get install -y sshpass
+  #         
+  #         # 上传文件到服务器
+  #         echo "Uploading files to update server..."
+  #         
+  #         # 上传 latest.yml
+  #         if [ -f "artifacts/latest.yml" ]; then
+  #           sshpass -p "$SERVER_PASSWORD" scp -o StrictHostKeyChecking=no \
+  #             artifacts/latest.yml \
+  #             ${SERVER_USER}@${SERVER_HOST}:${SERVER_PATH}/latest.yml
+  #           echo "✅ Uploaded latest.yml"
+  #         fi
+  #         
+  #         # 上传 .exe 文件
+  #         for file in artifacts/*.exe; do
+  #           if [ -f "$file" ]; then
+  #             sshpass -p "$SERVER_PASSWORD" scp -o StrictHostKeyChecking=no \
+  #               "$file" \
+  #               ${SERVER_USER}@${SERVER_HOST}:${SERVER_PATH}/$(basename "$file")
+  #             echo "✅ Uploaded $(basename "$file")"
+  #           fi
+  #         done
+  #         
+  #         # 上传 .blockmap 文件
+  #         for file in artifacts/*.blockmap; do
+  #           if [ -f "$file" ]; then
+  #             sshpass -p "$SERVER_PASSWORD" scp -o StrictHostKeyChecking=no \
+  #               "$file" \
+  #               ${SERVER_USER}@${SERVER_HOST}:${SERVER_PATH}/$(basename "$file")
+  #             echo "✅ Uploaded $(basename "$file")"
+  #           fi
+  #         done
+  #         
+  #         echo "🎉 All files uploaded successfully!"
+  #     
+  #     - name: Verify upload
+  #       env:
+  #         UPDATE_SERVER_URL: http://47.96.22.8:8005/autoupdate
+  #       run: |
+  #         echo "Verifying uploaded files..."
+  #         
+  #         # 检查 latest.yml 是否可访问
+  #         if curl -f -s "${UPDATE_SERVER_URL}/latest.yml" > /dev/null; then
+  #           echo "✅ latest.yml is accessible"
+  #           echo "Content:"
+  #           curl -s "${UPDATE_SERVER_URL}/latest.yml"
+  #         else
+  #           echo "❌ latest.yml is not accessible"
+  #           exit 1
+  #         fi
