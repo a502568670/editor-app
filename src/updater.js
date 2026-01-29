@@ -37,15 +37,30 @@ export default () => {
   })
 
   autoUpdater.on('update-available', res => {
+    log.info("发现新版本:", res)
+    const currentVersion = require('electron').app.getVersion()
+    const newVersion = res.version || '未知版本'
+    
     dialog.showMessageBox({
       type: 'info',
-      title: '软件更新',
-      message: '发现新版本, 确定更新?',
-      buttons: ['确定', '取消']
+      title: '发现新版本',
+      message: `检测到新版本可用！\n\n当前版本: ${currentVersion}\n最新版本: ${newVersion}\n\n是否立即下载更新？`,
+      detail: '更新后将获得最新功能和修复',
+      buttons: ['立即更新', '稍后提醒', '忽略此版本'],
+      defaultId: 0,
+      cancelId: 1
     }).then(resp => {
-      if (resp.response == 0) {
+      if (resp.response === 0) {
+        // 立即更新
         createWindow()
         autoUpdater.downloadUpdate()
+      } else if (resp.response === 1) {
+        // 稍后提醒 - 下次启动时再次检查
+        log.info("用户选择稍后更新")
+      } else if (resp.response === 2) {
+        // 忽略此版本
+        log.info("用户选择忽略版本:", newVersion)
+        // 可以将忽略的版本号保存到本地，下次不再提示
       }
     })
   })
@@ -109,11 +124,20 @@ export default () => {
 
   autoUpdater.on('update-downloaded', () => {
     dialog.showMessageBox({
-      title: '下载完成',
-      message: '最新版本已下载完成, 退出程序进行安装'
-    }).then(() => {
-      globalThis.__UPDATING__=1
-      autoUpdater.quitAndInstall()
+      type: 'info',
+      title: '更新下载完成',
+      message: '新版本已下载完成！',
+      detail: '点击"立即安装"将退出应用并安装新版本\n点击"稍后安装"将在下次启动时安装',
+      buttons: ['立即安装', '稍后安装'],
+      defaultId: 0,
+      cancelId: 1
+    }).then((resp) => {
+      if (resp.response === 0) {
+        globalThis.__UPDATING__ = 1
+        autoUpdater.quitAndInstall()
+      } else {
+        log.info("用户选择稍后安装，下次启动时将自动安装")
+      }
     })
   })
 }
