@@ -53,10 +53,10 @@ module.exports = {
         publish: [
           {
             provider: 'generic',
-            url: 'http://47.96.22.8:8005/autoupdate'
+            url: 'http://47.96.22.8:8006/autoupdate'  // 保持与 0.5.9 相同的端口
           }
         ],
-        appId: "com.electron.client.${version}",  // 每个版本使用不同的 appId
+        appId: "com.electron.client",  // 保持与 0.5.9 相同，确保可以自动更新
         artifactName: "${name}_${version}_${os}_${arch}.${ext}",
         generateUpdatesFilesForAllChannels: true,
         nsis: {
@@ -64,7 +64,7 @@ module.exports = {
           createStartMenuShortcut: true,
           allowToChangeInstallationDirectory: true,
           createDesktopShortcut: "always",
-          shortcutName: "稿轻松 ${version}",  // 快捷方式名称包含版本号
+          shortcutName: "稿轻松",  // 固定的快捷方式名称
           installerLanguages: "zh_CN",
           language: "2052",
           oneClick: false,
