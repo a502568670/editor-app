@@ -2,8 +2,8 @@
   "name": "gaoqingsong",
   "version": "0.6.2",
   "private": true,
-  "description": "稿轻松Pro",
-  "author": "gaoqingsong-pro",
+  "description": "稿轻松",
+  "author": "gaoqingsong",
   "scripts": {
     "serve": "vue-cli-service serve",
     "build": "vue-cli-service build",

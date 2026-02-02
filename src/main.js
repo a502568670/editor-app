@@ -45,6 +45,12 @@ const router = createRouter({
       // hidden: true
     },
     {
+      path: '/download-progress',
+      name: 'download-progress',
+      component: () => import('@/components/DownloadProgress'),
+      hidden: true
+    },
+    {
       path: '/auth-redirect',
       component: () => import('@/views/login/authredirect'),
       hidden: true

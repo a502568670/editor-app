@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>下载进度</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: "Microsoft YaHei", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: transparent;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+    }
+    
+    .download-progress-overlay {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .download-progress-container {
+      background: white;
+      padding: 30px 40px;
+      padding-top: 40px;
+      border-radius: 12px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+      min-width: 450px;
+      position: relative;
+    }
+    
+    .window-controls {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      display: flex;
+      gap: 8px;
+    }
+    
+    .window-btn {
+      width: 32px;
+      height: 32px;
+      border: none;
+      background: #f0f0f0;
+      border-radius: 6px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      transition: background 0.2s;
+    }
+    
+    .window-btn:hover {
+      background: #e0e0e0;
+    }
+    
+    .window-btn.close:hover {
+      background: #f56c6c;
+      color: white;
+    }
+    
+    .progress-title {
+      font-size: 18px;
+      font-weight: bold;
+      color: #333;
+      margin-bottom: 24px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .icon {
+      font-size: 24px;
+    }
+    
+    .progress-bar-wrapper {
+      margin-bottom: 16px;
+    }
+    
+    .progress-bar-bg {
+      width: 100%;
+      height: 24px;
+      background: #f0f0f0;
+      border-radius: 12px;
+      overflow: hidden;
+      position: relative;
+    }
+    
+    .progress-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #67c23a, #85ce61);
+      border-radius: 12px;
+      transition: width 0.3s ease, background 0.3s ease;
+      position: relative;
+    }
+    
+    .progress-bar-fill.low {
+      background: linear-gradient(90deg, #f56c6c, #f78989);
+    }
+    
+    .progress-bar-fill.medium {
+      background: linear-gradient(90deg, #e6a23c, #ebb563);
+    }
+    
+    .progress-bar-fill.high {
+      background: linear-gradient(90deg, #67c23a, #85ce61);
+    }
+    
+    .progress-text {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 12px;
+      font-weight: bold;
+      color: white;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+      z-index: 1;
+      width: 100%;
+      text-align: center;
+    }
+    
+    .progress-info {
+      font-size: 14px;
+      color: #666;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="download-progress-overlay">
+    <div class="download-progress-container">
+      <div class="window-controls">
+        <button class="window-btn minimize" id="minimizeBtn" title="最小化">−</button>
+        <button class="window-btn close" id="closeBtn" title="关闭">×</button>
+      </div>
+      
+      <div class="progress-title">
+        <span class="icon">📥</span>
+        <span>正在下载更新...</span>
+      </div>
+      
+      <div class="progress-bar-wrapper">
+        <div class="progress-bar-bg">
+          <div class="progress-bar-fill" id="progressFill" style="width: 0%"></div>
+          <div class="progress-text" id="percentText">0%</div>
+        </div>
+      </div>
+      
+      <div class="progress-info" id="progressInfo">
+        准备下载...
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const { ipcRenderer } = require('electron');
+    
+    const progressFill = document.getElementById('progressFill');
+    const percentText = document.getElementById('percentText');
+    const progressInfo = document.getElementById('progressInfo');
+    const minimizeBtn = document.getElementById('minimizeBtn');
+    const closeBtn = document.getElementById('closeBtn');
+    
+    console.log('进度窗口已加载，开始监听进度事件');
+    
+    // 最小化按钮
+    minimizeBtn.addEventListener('click', () => {
+      console.log('点击最小化按钮');
+      ipcRenderer.send('minimize-progress-window');
+    });
+    
+    // 关闭按钮
+    closeBtn.addEventListener('click', () => {
+      console.log('点击关闭按钮');
+      ipcRenderer.send('close-progress-window');
+    });
+    
+    // 更新进度条的函数
+    function updateProgressBar(progress) {
+      const percent = parseFloat(progress.percent.toFixed(1));
+      const downloadedMB = (progress.transferred / 1024 / 1024).toFixed(2);
+      const totalMB = (progress.total / 1024 / 1024).toFixed(2);
+      
+      console.log('更新进度条:', percent + '%', downloadedMB + 'MB /', totalMB + 'MB');
+      
+      // 更新进度条
+      progressFill.style.width = percent + '%';
+      
+      // 更新颜色
+      if (percent < 30) {
+        progressFill.className = 'progress-bar-fill low';
+      } else if (percent < 70) {
+        progressFill.className = 'progress-bar-fill medium';
+      } else {
+        progressFill.className = 'progress-bar-fill high';
+      }
+      
+      // 更新文字
+      const percentStr = percent + '%';
+      percentText.textContent = percentStr;
+      progressInfo.textContent = `已下载: ${downloadedMB} MB / ${totalMB} MB`;
+    }
+    
+    // 监听来自主进程的进度更新
+    ipcRenderer.on('download-progress', (event, progress) => {
+      console.log('收到进度更新:', progress);
+      updateProgressBar(progress);
+    });
+  </script>
+</body>
+</html>
+

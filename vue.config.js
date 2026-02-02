@@ -28,7 +28,8 @@ module.exports = {
       require('unplugin-icons/webpack')({autoInstall: true,}),
       new CopyWebpackPlugin({
         patterns: [
-          { from: './src/preload', to: '', toType: 'dir' }
+          { from: './src/preload', to: '', toType: 'dir' },
+          { from: './public/download-progress.html', to: 'download-progress.html' }
         ]
       })
     ],

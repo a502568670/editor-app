@@ -1,0 +1,13 @@
+version: 0.6.2
+files:
+  - url: 稿轻松_0.6.2_mac_x64.dmg
+    sha512: 从 dmg 文件计算或留空
+    size: 文件大小（字节）
+  - url: 稿轻松_0.6.2_mac_arm64.dmg
+    sha512: 从 dmg 文件计算或留空
+    size: 文件大小（字节）
+path: 稿轻松_0.6.2_mac_x64.dmg
+sha512: 从 dmg 文件计算或留空
+releaseDate: '2026-01-29T12:00:00.000Z'
+
+
