@@ -1,20 +1,26 @@
-name: Build Electron App
+name: Build and Release
 
 on:
-  # 只在推送 tag 时触发构建，避免重复
   push:
+    branches:
+      - main
+      - master
     tags:
       - 'v*'
-  # pull_request:
-  #   branches:
-  #     - main
-  #     - master
+  pull_request:
+    branches:
+      - main
+      - master
   workflow_dispatch:
 
 jobs:
-  build-mac:
-    name: Build macOS
-    runs-on: macos-latest
+  build:
+    runs-on: ${{ matrix.os }}
+    
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest]
     
     steps:
       - name: Checkout code
@@ -23,194 +29,98 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '16'
+          node-version: '18'
           cache: 'npm'
       
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-      
       - name: Install dependencies
-        run: npm install
-        env:
-          ELECTRON_MIRROR: https://npmmirror.com/mirrors/electron/
-          ELECTRON_CUSTOM_DIR: '{{ version }}'
+        run: npm ci
       
-      - name: Fix dmg-builder for Python 3
-        run: npm run fix-dmg-builder
-      
-      - name: Patch dmg-builder to use python3
-        run: |
-          # 修改 dmg-builder 使用 python3 而不是 python
-          DMG_BUILDER_PATH="node_modules/dmg-builder/out/dmg.js"
-          if [ -f "$DMG_BUILDER_PATH" ]; then
-            sed -i.bak 's|/usr/bin/python|/usr/bin/python3|g' "$DMG_BUILDER_PATH"
-            echo "Patched dmg-builder to use python3"
-          fi
-      
-      - name: Clean up disk mounts before build
-        run: |
-          # 清理可能存在的挂载点
-          hdiutil info | grep "/dev/disk" | awk '{print $1}' | xargs -I {} hdiutil detach {} 2>/dev/null || true
-          echo "Cleaned up disk mounts"
-      
-      - name: Build macOS app
-        run: npm run electron:build:mac
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      
-      - name: Clean up disk mounts after build
-        if: always()
-        run: |
-          # 构建后清理挂载点
-          hdiutil info | grep "/dev/disk" | awk '{print $1}' | xargs -I {} hdiutil detach {} -force 2>/dev/null || true
-          echo "Cleaned up disk mounts after build"
-      
-      - name: Upload macOS artifacts
-        uses: actions/upload-artifact@v4
+      - name: Cache Electron
+        uses: actions/cache@v4
         with:
-          name: macos-builds
           path: |
-            dist_electron/*.dmg
-            dist_electron/*.yml
-            dist_electron/*.blockmap
-          retention-days: 7
-
-  build-windows:
-    name: Build Windows
-    runs-on: windows-latest
-    
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+            ~/.cache/electron
+            ~/.cache/electron-builder
+          key: ${{ runner.os }}-electron-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-electron-
       
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '16'
-          cache: 'npm'
-      
-      - name: Install dependencies
-        run: npm install
+      - name: Build application
         env:
-          ELECTRON_MIRROR: https://npmmirror.com/mirrors/electron/
-          ELECTRON_CUSTOM_DIR: '{{ version }}'
+          BACKEND_URL: http://47.96.22.8:8005
+        run: npm run build
       
-      - name: Build Windows app
-        run: npm run electron:build:win
+      - name: Build Electron app (Windows)
+        if: matrix.os == 'windows-latest'
         env:
+          BACKEND_URL: http://47.96.22.8:8005
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npm run electron:build:win
       
-      - name: Upload Windows artifacts
+      - name: Build Electron app (macOS)
+        if: matrix.os == 'macos-latest'
+        env:
+          BACKEND_URL: http://47.96.22.8:8005
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+        run: npm run electron:build:mac
+      
+      - name: List build output
+        run: |
+          echo "Build output:"
+          ls -la dist_electron/ || dir dist_electron\
+        shell: bash
+      
+      - name: Upload artifacts (Windows)
+        if: matrix.os == 'windows-latest'
         uses: actions/upload-artifact@v4
         with:
-          name: windows-builds
+          name: windows-build
           path: |
             dist_electron/*.exe
-            dist_electron/*.yml
-            dist_electron/*.blockmap
-          retention-days: 7
+            dist_electron/*.exe.blockmap
+            dist_electron/latest.yml
+          if-no-files-found: warn
+      
+      - name: Upload artifacts (macOS)
+        if: matrix.os == 'macos-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-build
+          path: |
+            dist_electron/*.dmg
+            dist_electron/*.dmg.blockmap
+            dist_electron/latest-mac.yml
+          if-no-files-found: warn
 
-  # 如果不需要 GitHub Release，可以禁用
-  # release:
-  #   name: Create Release
-  #   needs: [build-mac, build-windows]
-  #   runs-on: ubuntu-latest
-  #   if: startsWith(github.ref, 'refs/tags/v')
-  #   
-  #   steps:
-  #     - name: Download all artifacts
-  #       uses: actions/download-artifact@v4
-  #       with:
-  #         path: artifacts
-  #     
-  #     - name: Create Release
-  #       uses: softprops/action-gh-release@v1
-  #       with:
-  #         files: |
-  #           artifacts/macos-builds/*
-  #           artifacts/windows-builds/*
-  #         draft: false
-  #         prerelease: false
-  #       env:
-  #         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  # 手动上传，不使用自动上传
-  # upload-to-server:
-  #   name: Upload to Update Server
-  #   needs: [build-windows]
-  #   runs-on: ubuntu-latest
-  #   if: startsWith(github.ref, 'refs/tags/v')
-  #   
-  #   steps:
-  #     - name: Download Windows artifacts
-  #       uses: actions/download-artifact@v4
-  #       with:
-  #         name: windows-builds
-  #         path: artifacts
-  #     
-  #     - name: List downloaded files
-  #       run: |
-  #         echo "Downloaded files:"
-  #         ls -lah artifacts/
-  #     
-  #     - name: Upload to update server via SCP
-  #       env:
-  #         SERVER_HOST: ${{ secrets.UPDATE_SERVER_HOST }}
-  #         SERVER_USER: ${{ secrets.UPDATE_SERVER_USER }}
-  #         SERVER_PASSWORD: ${{ secrets.UPDATE_SERVER_PASSWORD }}
-  #         SERVER_PATH: ${{ secrets.UPDATE_SERVER_PATH }}
-  #       run: |
-  #         # 安装 sshpass 用于密码认证
-  #         sudo apt-get update
-  #         sudo apt-get install -y sshpass
-  #         
-  #         # 上传文件到服务器
-  #         echo "Uploading files to update server..."
-  #         
-  #         # 上传 latest.yml
-  #         if [ -f "artifacts/latest.yml" ]; then
-  #           sshpass -p "$SERVER_PASSWORD" scp -o StrictHostKeyChecking=no \
-  #             artifacts/latest.yml \
-  #             ${SERVER_USER}@${SERVER_HOST}:${SERVER_PATH}/latest.yml
-  #           echo "✅ Uploaded latest.yml"
-  #         fi
-  #         
-  #         # 上传 .exe 文件
-  #         for file in artifacts/*.exe; do
-  #           if [ -f "$file" ]; then
-  #             sshpass -p "$SERVER_PASSWORD" scp -o StrictHostKeyChecking=no \
-  #               "$file" \
-  #               ${SERVER_USER}@${SERVER_HOST}:${SERVER_PATH}/$(basename "$file")
-  #             echo "✅ Uploaded $(basename "$file")"
-  #           fi
-  #         done
-  #         
-  #         # 上传 .blockmap 文件
-  #         for file in artifacts/*.blockmap; do
-  #           if [ -f "$file" ]; then
-  #             sshpass -p "$SERVER_PASSWORD" scp -o StrictHostKeyChecking=no \
-  #               "$file" \
-  #               ${SERVER_USER}@${SERVER_HOST}:${SERVER_PATH}/$(basename "$file")
-  #             echo "✅ Uploaded $(basename "$file")"
-  #           fi
-  #         done
-  #         
-  #         echo "🎉 All files uploaded successfully!"
-  #     
-  #     - name: Verify upload
-  #       env:
-  #         UPDATE_SERVER_URL: http://47.96.22.8:8005/autoupdate
-  #       run: |
-  #         echo "Verifying uploaded files..."
-  #         
-  #         # 检查 latest.yml 是否可访问
-  #         if curl -f -s "${UPDATE_SERVER_URL}/latest.yml" > /dev/null; then
-  #           echo "✅ latest.yml is accessible"
-  #           echo "Content:"
-  #           curl -s "${UPDATE_SERVER_URL}/latest.yml"
-  #         else
-  #           echo "❌ latest.yml is not accessible"
-  #           exit 1
-  #         fi
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      contents: write
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+      
+      - name: Display structure of downloaded files
+        run: ls -R artifacts
+      
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            artifacts/windows-build/*
+            artifacts/macos-build/*
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+          fail_on_unmatched_files: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

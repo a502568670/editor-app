@@ -131,3 +131,12 @@ jsconfig.json
 extensions/
 accounts.txt
 .vscode/
+
+# Build artifacts
+*.exe
+*.dmg
+*.AppImage
+*.deb
+*.rpm
+*.blockmap
+*.yml.bak
