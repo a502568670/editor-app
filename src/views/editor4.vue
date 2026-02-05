@@ -1155,11 +1155,73 @@ const createBase64Image = async (fileObject) => {
   };
   reader.readAsDataURL(fileObject);
 }
-function handleImageUpload(info) {
-  cdnRef.value = { cdn_content_type: info.type, cdn_base64_image: info.data, cdn_filename: info.name }
-  uploadCover()
-}
-
+// function handleImageUpload(info) {
+//   cdnRef.value = { cdn_content_type: info.type, cdn_base64_image: info.data, cdn_filename: info.name }
+//   uploadCover()
+// }
+async function handleImageUpload(info) {
+    console.log("handleImageUpload 裁剪数据:", info)
+    
+    // 如果有 raw_img（原始微信 CDN URL），直接用它调用裁剪接口
+    if (info.raw_img && info.raw_img.includes('mmbiz.qpic.cn')) {
+      try {
+        const { session_id, token } = selectedAccount.value
+        const cookies = serializeCookie(JSON.parse(session_id)["cookie"])
+        
+        console.log("使用原始图片 URL 调用微信裁剪接口:", info.raw_img)
+        
+        const cropData = {
+          cookies: cookies,
+          token: parseInt(token),
+          imgurl: info.raw_img,
+          size_count: 2,
+          crop_info: [
+            {
+              size_x1: 0,
+              size_y1: 0.19117647058823528,
+              size_x2: 1,
+              size_y2: 0.8107008760951189,
+              format: '2.35_1'
+            },
+            {
+              size_x1: 0.1569468267581475,
+              size_y1: 0,
+              size_x2: 0.8430531732418525,
+              size_y2: 1,
+              format: '1_1'
+            }
+          ]
+        }
+        
+        const cropResult = await cropImage(cropData)
+        console.log("裁剪结果:", cropResult)
+        
+        let cdn_url = info.raw_img
+        if (cropResult.data && cropResult.data.base_resp && cropResult.data.base_resp.ret === 0) {
+          if (cropResult.data.result && cropResult.data.result.length > 0) {
+            cdn_url = cropResult.data.result[0].cdnurl
+            console.log("使用微信裁剪后的 cdn_url:", cdn_url)
+          }
+        }
+        
+        currentArticleRef.value.cdn_url = cdn_url
+        syncToList("cdn_url")
+        refImgPicker.value.uploadSucc(cdn_url)
+        return
+      } catch (error) {
+        console.error("裁剪失败:", error)
+        // 裁剪失败，使用原始图片
+        currentArticleRef.value.cdn_url = info.raw_img
+        syncToList("cdn_url")
+        refImgPicker.value.uploadSucc(info.raw_img)
+        return
+      }
+    }
+    
+    // 没有 raw_img，需要先上传
+    cdnRef.value = { cdn_content_type: info.type, cdn_base64_image: info.data, cdn_filename: info.name }
+    uploadCover()
+  }
 const uploadCover = async () => {
   const { session_id, token } = selectedAccount.value
   console.log("uploadCover=>", cdnRef.value)

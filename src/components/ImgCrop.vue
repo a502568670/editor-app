@@ -24,17 +24,20 @@
             </el-tooltip>
         </div>
         <el-dialog v-model="open" title="裁剪图片">
-            <div class="w-full">
-                <el-radio-group class="mb-2" v-model="fixVal">
-                    <el-radio value="1">横图(16:7)</el-radio>
-                    <el-radio value="2">竖图(3:4)</el-radio>
-                    <el-radio value="3">正方形(1:1)</el-radio>
-                    <el-radio value="4">横图2(5:4)</el-radio>
-                    <el-radio value="5">自由比例</el-radio>
-                </el-radio-group>
-                <div class="w-full h-[50vh]">
+            <div class="w-full relative">
+                <div class="w-full h-[50vh] relative">
                     <VueCropper ref="cropper" :img="cropperSrc" :fixed="fixed" :fixed-number="fixedNumber" v-bind="opt">
                     </VueCropper>
+                    <!-- 裁剪比例选择浮动层 -->
+                    <div class="crop-ratio-overlay">
+                        <el-radio-group v-model="fixVal" class="crop-ratio-group">
+                            <!-- <el-radio value="1">横图(16:7)</el-radio> -->
+                            <el-radio value="2">竖图(3:4)</el-radio>
+                            <el-radio value="3">正方形(1:1)</el-radio>
+                            <el-radio value="4">横图2(5:4)</el-radio>
+                            <!-- <el-radio value="5">自由比例</el-radio> -->
+                        </el-radio-group>
+                    </div>
                 </div>
             </div>
             <template #footer>
@@ -51,7 +54,7 @@ import 'vue-cropper/dist/index.css'
 import { UploadFilled, Crop } from '@element-plus/icons-vue'
 import store from '@/store';
 import { ElMessage } from 'element-plus'
-import { uploadImage } from '@/api/img';
+import { uploadImage, cropImage } from '@/api/img';
 import { serializeCookie } from '@/utils/cookie';
 
 var { imgSrc, button, upload, nul, forbidCrop } = defineProps({
@@ -62,13 +65,20 @@ var { imgSrc, button, upload, nul, forbidCrop } = defineProps({
     forbidCrop: Boolean,
 })
 var opt = {
-    centerBox: true, mode: 'contain', outputType: 'png', outputSize: 1,
-    autoCrop: true, autoCropWidth: 9999, autoCropHeight: 9999,
-    // fixed:true,fixedNumber:[1,0.425],
-    full: true,
+    centerBox: true,     // 限制裁剪框在图片范围内，不能超出图片
+    mode: 'contain', 
+    outputType: 'png', 
+    outputSize: 1,
+    autoCrop: true, 
+    autoCropWidth: 800,  // 默认裁剪框宽度
+    autoCropHeight: 340, // 默认裁剪框高度（16:7比例）
+    full: false,         // 改为false，让裁剪框可以更灵活
+    canMove: true,       // 允许移动图片
+    canMoveBox: true,    // 允许移动裁剪框
+    fixedBox: false,     // 裁剪框不固定大小
 }
 var refCropper = useTemplateRef('cropper');
-var fixVal = ref('1');
+var fixVal = ref('2');  // 默认选择第一个选项：竖图(3:4)
 var fixed = computed(() => fixVal.value !== '5')
 var fixedRatio = {
     1: [1, 0.425],
@@ -101,7 +111,6 @@ function onFileChange(e) {
         if (type.startsWith('image/')) {
             var reader = new FileReader()
             reader.onload = () => {
-                console.log("forbidCrop=>", forbidCrop)
                 if (!forbidCrop) {
                     open.value = true
                     cropperSrc.value = reader.result
@@ -139,26 +148,114 @@ function onImageCrop() {
 }
 var refInput = useTemplateRef('input')
 var selectedAccount = inject('selectedAccount')
-function onConfirm() {
+async function onConfirm() {
     open.value = false;
-    refCropper.value.getCropData((data) => {
+    refCropper.value.getCropData(async (data) => {
         previewSrc.value = data;
         opt.extraData.data = data.substring(22)
         if (upload) {
             try {
                 const { session_id, token } = selectedAccount.value
                 const cookies = serializeCookie(JSON.parse(session_id)["cookie"])
-                uploadImage({
-                    cookies: cookies,
-                    token: parseInt(token),
-                    base64_image: opt.extraData.data,
-                    filename: opt.extraData.name,
-                    content_type: opt.extraData.type,
-                }).then(res => $emit('change', res.data.cdn_url))
+                
+                // 判断 cropperSrc 是 URL 还是 base64
+                const isUrl = cropperSrc.value && (cropperSrc.value.startsWith('http://') || cropperSrc.value.startsWith('https://'))
+                
+                let cdn_url = cropperSrc.value  // 默认使用原图 URL
+                
+                // 如果是 base64（本地上传的图片），需要先上传
+                if (!isUrl) {
+                    const uploadRes = await uploadImage({
+                        cookies: cookies,
+                        token: parseInt(token),
+                        base64_image: opt.extraData.data,
+                        filename: opt.extraData.name,
+                        content_type: opt.extraData.type,
+                    })
+                    cdn_url = uploadRes.data.cdn_url
+                }
+                
+                // 获取裁剪器中的坐标和图片信息
+                const cropAxis = refCropper.value.getCropAxis()
+                
+                // 获取裁剪器中图片的实际显示尺寸（用于归一化坐标）
+                const cropperImg = new Image()
+                cropperImg.crossOrigin = 'anonymous'
+                cropperImg.onload = async () => {
+                    const imgWidth = cropperImg.naturalWidth
+                    const imgHeight = cropperImg.naturalHeight
+                    
+                    // 将裁剪坐标归一化为 0-1 范围
+                    const normalizedCrop = {
+                        size_x1: cropAxis.x1 / imgWidth,
+                        size_y1: cropAxis.y1 / imgHeight,
+                        size_x2: cropAxis.x2 / imgWidth,
+                        size_y2: cropAxis.y2 / imgHeight
+                    }
+                    
+                    const cropWidth = normalizedCrop.size_x2 - normalizedCrop.size_x1
+                    const cropHeight = normalizedCrop.size_y2 - normalizedCrop.size_y1
+                    
+                    // 为不同的 format 计算不同的裁剪坐标
+                    // format0 (2.35:1) - 横图，保持全宽，调整高度
+                    const format0_height = cropWidth / 2.35
+                    const format0_y_center = (normalizedCrop.size_y1 + normalizedCrop.size_y2) / 2
+                    const format0_crop = {
+                        size_x1: normalizedCrop.size_x1,
+                        size_y1: Math.max(0, format0_y_center - format0_height / 2),
+                        size_x2: normalizedCrop.size_x2,
+                        size_y2: Math.min(1, format0_y_center + format0_height / 2),
+                        format: '2.35_1'
+                    }
+                    
+                    // format1 (1:1) - 正方形，保持较小的边，居中裁剪
+                    const squareSize = Math.min(cropWidth, cropHeight)
+                    const format1_x_center = (normalizedCrop.size_x1 + normalizedCrop.size_x2) / 2
+                    const format1_y_center = (normalizedCrop.size_y1 + normalizedCrop.size_y2) / 2
+                    const format1_crop = {
+                        size_x1: Math.max(0, format1_x_center - squareSize / 2),
+                        size_y1: Math.max(0, format1_y_center - squareSize / 2),
+                        size_x2: Math.min(1, format1_x_center + squareSize / 2),
+                        size_y2: Math.min(1, format1_y_center + squareSize / 2),
+                        format: '1_1'
+                    }
+                    
+                    // 调用微信裁剪接口
+                    const cropData = {
+                        cookies: cookies,
+                        token: parseInt(token),
+                        imgurl: cdn_url,
+                        size_count: 2,
+                        crop_info: [format0_crop, format1_crop]
+                    }
+                    
+                    try {
+                        const cropResult = await cropImage(cropData)
+                        
+                        // 使用微信裁剪后的 URL
+                        if (cropResult.data && cropResult.data.base_resp && cropResult.data.base_resp.ret === 0) {
+                            if (cropResult.data.result && cropResult.data.result.length > 0) {
+                                cdn_url = cropResult.data.result[0].cdnurl
+                                // 更新预览图为裁剪后的 URL
+                                previewSrc.value = cdn_url
+                            }
+                        }
+                        
+                        $emit('change', cdn_url)
+                    } catch (err) {
+                        console.error("ImgCrop: 裁剪失败:", err)
+                        // 裁剪失败，使用原图 URL
+                        previewSrc.value = cdn_url
+                        $emit('change', cdn_url)
+                    }
+                }
+                cropperImg.src = cropperSrc.value
             } catch (err) {
-                console.error(err)
+                console.error("ImgCrop: 处理失败:", err)
             }
-        } else $emit('change', { ...opt.extraData, raw_img: cropperSrc.value, crop: refCropper.value.getCropAxis() })
+        } else {
+            $emit('change', { ...opt.extraData, raw_img: cropperSrc.value, crop: refCropper.value.getCropAxis() })
+        }
     })
 }
 // onMounted(()=>{
@@ -205,5 +302,44 @@ watch(() => imgSrc, () => {
 
 .container-img-crop .el-radio {
     /* margin-right: 10px; */
+}
+
+/* 裁剪比例浮动层样式 */
+.crop-ratio-overlay {
+    position: absolute;
+    top: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 10;
+    background-color: rgba(0, 0, 0, 0.75);
+    backdrop-filter: blur(8px);
+    padding: 12px 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.crop-ratio-group {
+    display: flex;
+    gap: 8px;
+}
+
+.crop-ratio-group .el-radio {
+    color: #fff;
+    margin-right: 0;
+}
+
+.crop-ratio-group .el-radio__label {
+    color: #fff;
+    font-size: 14px;
+}
+
+.crop-ratio-group .el-radio__input.is-checked .el-radio__inner {
+    background-color: var(--el-color-primary);
+    border-color: var(--el-color-primary);
+}
+
+.crop-ratio-group .el-radio__input.is-checked + .el-radio__label {
+    color: #fff;
+    font-weight: 600;
 }
 </style>

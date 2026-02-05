@@ -56,7 +56,7 @@
   </div>
 </template>
 <script setup>
-import {computed, ref, shallowRef, watchEffect,watch,inject, toRaw} from 'vue'
+import {computed, ref, shallowRef, watchEffect,watch,inject, toRaw, nextTick} from 'vue'
 import { UploadFilled, Crop, Search,Bell } from '@element-plus/icons-vue'
 import ImgCrop from '../ImgCrop.vue'
 import pagination from '../Pagination/index.vue'
@@ -171,6 +171,7 @@ async function toWxCdnUrl(url){
   return res.data.cdn_url;
 }
 var uploading=ref(false)
+
 function onConfirm(){
   var urls=imgs.value.filter((v,idx)=>selected.value.indexOf(idx)>-1).map(v=>v.cdn_url)
   // console.log(selected.value,refImgCrop.value,urls);
@@ -207,19 +208,23 @@ function onConfirm(){
       uploading.value = false;
     });
   }else{
-    $emit('confirm',urls)
-    open.value=false
+    // 公众号图片：如果是单选模式且只选择了一张图片，打开裁剪对话框
+    if(urls.length === 1 && !multiple){
+      // 调用 ImgCrop 的 cropWith 方法打开裁剪对话框，默认选择第一个选项（竖图3:4）
+      if(refImgCrop.value){
+        refImgCrop.value.cropWith(urls[0], { radio: '2' })
+      }
+      // 不关闭图片选择对话框，让两个对话框同时显示
+    }else{
+      // 多张图片或多选模式，直接确认
+      $emit('confirm',urls)
+      open.value=false
+    }
   }
 }
 function onImageCrop(data){
-  // 如果 data 是字符串（CDN URL），说明是上传成功，需要刷新列表
-  if(typeof data === 'string'){
-    // 调用 uploadSucc 更新图片列表
-    if(activeMenu.value==='material'){
-      imgs.value.pop();
-      imgs.value.unshift({cdn_url:data, name: `图片-${Date.now()}`});
-    }
-  }
+  // 关闭图片选择对话框
+  open.value = false
   $emit('change', data)
 }
 var initParams={page:1,limit:12,group_id:0};

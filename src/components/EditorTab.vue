@@ -338,7 +338,7 @@
                 <p class="set-title">封面设置</p>
                 <ImgPicker ref="refImgPicker" v-model="pickerQuery"
                   :pageInfo="pickerPageInfo" :imgSrc="currentArticleRef.cdn_url" placeholder="设置封面图"
-                  @change="handleImageUpload" @confirm="onImgPick" :editorInst="editorRef" />
+                  @change="handleImageUpload" @confirm="onImgPick" :editorInst="editorRef" :multiple="false" />
               </el-col>
               <!-- <el-col :span="24" class="h-20 py-2 w-full flex justify-center items-center" style="display: none;">
                 <img class="cursor-pointer max-h-16 block" @click="triggerFileInput" v-if="selectedCdnImageRef"
@@ -1874,8 +1874,15 @@ const validateAccount = () => {
 // }
 
 function handleImageUpload(info) {
-  cdnRef.value = { cdn_content_type: info.type, cdn_base64_image: info.data, cdn_filename: info.name }
-  uploadCover()
+  // 如果 info 是字符串，说明是裁剪后的 CDN URL
+  if (typeof info === 'string') {
+    currentArticleRef.value.cdn_url = info
+    syncToList("cdn_url")
+  } else {
+    // 否则是 base64 数据，需要上传
+    cdnRef.value = { cdn_content_type: info.type, cdn_base64_image: info.data, cdn_filename: info.name }
+    uploadCover()
+  }
 }
 var imgListPicking = false
 function onImgPick(urls) {
@@ -1888,6 +1895,8 @@ function onImgPick(urls) {
     currentArticleRef.value.picture_page_info_list = currentArticleRef.value.picture_page_info_list.slice(0, 20)
     return
   }
+  
+  // 直接设置封面图（裁剪已经在 ImgPicker 中处理）
   currentArticleRef.value.cdn_url = urls[0]
   syncToList("cdn_url")
 }

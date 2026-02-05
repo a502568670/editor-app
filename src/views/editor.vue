@@ -101,11 +101,39 @@
       </div>
       
       <!-- <hr style="margin-top: 100px;" /> -->
-      <Editor :key="currentArticleRef.msg_id" :class="{ inImportScope: isInImportScopeRef }"
-        class="min-w-[768px] min-h-[490px]"
-        style="height: calc(100vh - 312px); border:solid 1px #ccc; overflow-y: hidden;"
-        v-model="currentArticleRef.content_noencode" :defaultConfig="editorConfig" :mode="mode"
-        @onCreated="handleCreated" />
+      <!-- 编辑器容器 -->
+      <div class="editor-container">
+        <Editor :key="currentArticleRef.msg_id" :class="{ inImportScope: isInImportScopeRef }"
+          class="min-w-[768px]"
+          style="height: 350px; overflow-y: auto;"
+          v-model="currentArticleRef.content_noencode" :defaultConfig="editorConfig" :mode="mode"
+          @onCreated="handleCreated" />
+        
+        <!-- 摘要编辑区域 -->
+        <div class="summary-area">
+          <div class="summary-label">摘要</div>
+          <div class="summary-content">
+            <div class="summary-cover">
+              <img v-if="currentArticleRef.cdn_url || selectedCdnImageRef" 
+                   :src="selectedCdnImageRef || currentArticleRef.cdn_url" 
+                   alt="封面图"
+                   referrerpolicy="no-referrer" />
+              <div v-else class="cover-placeholder">封面图</div>
+            </div>
+            <div class="summary-text">
+              <el-input
+                v-model="currentArticleRef.desc"
+                type="textarea"
+                :rows="3"
+                placeholder="选填，不填写则默认抓取正文开头文字部分。摘要会在转发卡片和公众号会话展示"
+                maxlength="120"
+                show-word-limit
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+      
       <div class="block-area save-area">
         <el-select v-model="selectedAccount" :style="{ 'max-width': '200px' }" value-key="id" filterable
           placeholder="选择发布公众账号" @change="emitChangeForAccount">
@@ -221,6 +249,64 @@
   opacity: 1;
 }
 
+.editor-container {
+  width: 768px;
+  min-width: 768px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  overflow: hidden;
+  background-color: #fff;
+}
+
+.summary-area {
+  border-top: 1px solid #e4e7ed;
+  background-color: #f5f7fa;
+  padding: 12px;
+}
+
+.summary-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #303133;
+  margin-bottom: 8px;
+  letter-spacing: 0.5px;
+}
+
+.summary-content {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.summary-cover {
+  flex-shrink: 0;
+  width: 100px;
+  height: 100px;
+  border: 1px solid #dcdfe6;
+  border-radius: 4px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.summary-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.cover-placeholder {
+  color: #c0c4cc;
+  font-size: 12px;
+}
+
+.summary-text {
+  flex: 1;
+}
+
 span[data-slate-zero-width="n"] {
   padding: 0 1px !important;
 }
@@ -232,6 +318,7 @@ import { saveArticleDraft, listArticlesByAppMsg, listArticleGroups, swapArticles
 import { getArticleContent, getArticleContent2 } from '@/api/jzl'
 import { format_to_wangEditor_html, restore_from_wangEditor_html } from "@/utils/dom";
 import { ad_categorys, format_ad_content, restore_ad_content, has_ad_in_wangEditor, has_ad_in_raw } from "@/utils/ad"
+import { uploadImage, cropImage } from "@/api/img"
 import { onBeforeUnmount, ref, shallowRef, onMounted } from 'vue'
 import { Editor, Toolbar } from '@wangeditor/editor-for-vue'
 import { DomEditor } from '@wangeditor/editor';
@@ -854,17 +941,8 @@ export default {
         msg_id,
         material_list: [{
           ...currentArticleRef.value
-        }],
-        // material_list: [{
-        //     content_noencode: currentArticleRef.value.content_noencode,
-        //     // cdn_url: "https://mmbiz.qpic.cn/sz_mmbiz_jpg/4WT2I2qqeFAibhrnd1BP6uhtX6Y395tHhMxfXaJrWW5w8JpQibmicJCqfdGL1uWQErUlUVyScV2bs59oj9rhicnTaQ/640?wx_fmt=jpeg&from=appmsg&wxfrom=13&tp=wxpic",
-        //     cdn_url: "",
-        //     desc: "",
-        //     title: titleRef.value,
-        //     author: authorRef.value,
-        //     copyright_type: 0
-        //   }],
-        ...cdnRef.value
+        }]
+        // 不再发送 cdn_base64_image，因为已经在上传时获取了真实的 cdn_url
       }
       console.log("save postData=>", postData)
       const loader = ElLoading.service({
@@ -1011,23 +1089,22 @@ export default {
       // this.$emit('change', val)
     }
 
-    const createBase64Image = (fileObject) => {
+    const createBase64Image = async (fileObject) => {
       const reader = new FileReader();
+      const filename = fileObject.name;
 
-      reader.onload = (e) => {
+      reader.onload = async (e) => {
         const cover = e.target.result;
         console.log("e", e)
         console.log("e.target", e.target)
-        // console.log("cover:", cover);
         const matches = cover.match(/data:(image\/.*);base64,(.*)/);
         if (matches && matches.length >= 3) {
-          const cdn_content_type = matches[1];  // 图像MIME类型 (image/webp)
-          const cdn_base64_image = matches[2]; // Base64编码数据
+          const cdn_content_type = matches[1];
+          const cdn_base64_image = matches[2];
 
-          // console.log("cdn_content_type:", cdn_content_type);
-          // console.log("cdn_base64_image:", cdn_base64_image);
-          cdnRef.value = { cdn_content_type, cdn_base64_image }
-
+          cdnRef.value = { cdn_content_type, cdn_base64_image, cdn_filename: filename }
+          // 立即上传图片获取cdn_url
+          await uploadCover()
         } else {
           ElMessage({
             message: '无效的图片',
@@ -1035,19 +1112,138 @@ export default {
             duration: 2 * 1000
           })
         }
-        // console.log('image_base64:',cover.value)
-        // this.uploadImage();
         selectedCdnImageRef.value = reader.result
       };
       reader.readAsDataURL(fileObject);
     }
 
-    const handleImage = (e) => {
-      const selectedImage = e.target.files[0]; // get first file
+    const uploadCover = async () => {
+      if (!selectedAccount.value) {
+        ElMessage({
+          message: '请先选择公众账号',
+          type: 'error',
+          duration: 2 * 1000
+        })
+        return false
+      }
+
+      const { session_id, token } = selectedAccount.value
+      console.log("uploadCover=>", cdnRef.value)
+      
+      if (cdnRef.value) {
+        const loader = ElLoading.service({
+          target: '.main',
+          text: '正在上传封面图片...'
+        })
+
+        try {
+          const imgData = {
+            cookies: serializeCookie(JSON.parse(session_id)["cookie"]),
+            token: parseInt(token),
+            base64_image: cdnRef.value.cdn_base64_image,
+            filename: cdnRef.value.cdn_filename,
+            content_type: cdnRef.value.cdn_content_type
+          }
+          
+          console.log("上传图片响应:", data)
+          const { data } = await uploadImage(imgData)
+          let { cdn_url } = data
+          
+          console.log("原始上传的 cdn_url:", cdn_url)
+          
+          // 上传成功后，自动裁剪图片（生成 2.35:1 和 1:1 两种尺寸）
+          loader.setText('正在裁剪封面图片...')
+          
+          const cropData = {
+            cookies: serializeCookie(JSON.parse(session_id)["cookie"]),
+            token: parseInt(token),
+            imgurl: cdn_url,
+            size_count: 2,
+            crop_info: [
+              {
+                size_x1: 0,
+                size_y1: 0.19117647058823528,
+                size_x2: 1,
+                size_y2: 0.8107008760951189,
+                format: '2.35_1'
+              },
+              {
+                size_x1: 0.1569468267581475,
+                size_y1: 0,
+                size_x2: 0.8430531732418525,
+                size_y2: 1,
+                format: '1_1'
+              }
+            ]
+          }
+          
+          console.log("准备调用裁剪接口，参数:", cropData)
+          console.log("开始调用 cropImage...")
+          
+          const cropResult = await cropImage(cropData)
+          console.log("裁剪结果完整响应:", cropResult)
+          console.log("裁剪结果 data:", cropResult.data)
+          
+          // 微信接口直接返回 { base_resp: {...}, result: [...] }
+          if (cropResult.data) {
+            const responseData = cropResult.data
+            
+            // 检查是否有 base_resp 和 result
+            if (responseData.base_resp && responseData.base_resp.ret === 0) {
+              if (responseData.result && responseData.result.length > 0) {
+                // 使用第一个裁剪结果（2.35:1 比例）作为封面
+                cdn_url = responseData.result[0].cdnurl
+                console.log("裁剪后的 cdn_url:", cdn_url)
+              } else {
+                console.warn("裁剪结果为空，使用原始图片")
+              }
+            } else {
+              console.error("裁剪失败:", responseData.base_resp)
+              ElMessage({
+                message: `图片裁剪失败: ${responseData.base_resp?.err_msg || '未知错误'}`,
+                type: 'warning',
+                duration: 3 * 1000
+              })
+            }
+          }
+          
+          // 更新封面 URL
+          currentArticleRef.value.cdn_url = cdn_url
+          
+          // 显示预览图
+          selectedCdnImageRef.value = cdn_url
+          
+          ElMessage({
+            message: '封面图片上传并裁剪成功',
+            type: 'success',
+            duration: 2 * 1000
+          })
+          
+          return true
+        } catch (error) {
+          console.error('上传或裁剪封面图片失败:', error)
+          console.error('错误详情:', error.response)
+          console.error('错误堆栈:', error.stack)
+          ElMessage({
+            message: `封面图片处理失败: ${error.message || '未知错误'}`,
+            type: 'error',
+            duration: 3 * 1000
+          })
+          return false
+        } finally {
+          loader.close()
+        }
+      }
+    }
+
+    const handleImage = async (e) => {
+      const selectedImage = e.target.files[0];
       if (selectedImage) {
-        createBase64Image(selectedImage);
+        await createBase64Image(selectedImage);
       } else {
         selectedCdnImageRef.value = null
+        currentArticleRef.value.cdn_url = ""
+        cdnRef.value = null
         cdnFileInputRef.value.value = ""
       }
     }

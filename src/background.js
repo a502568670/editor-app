@@ -150,6 +150,29 @@ app.on('ready', async () => {
     callback({ requestHeaders: details.requestHeaders })
   });
 
+  // 为微信裁剪接口设置自定义请求头
+  var wxCropImage = { urls: ['https://mp.weixin.qq.com/cgi-bin/cropimage?action=crop_multi'] }
+  session.defaultSession.webRequest.onBeforeSendHeaders(wxCropImage, (details, callback) => {
+    // 设置自定义 User-Agent
+    details.requestHeaders['User-Agent'] = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36'
+    // 设置自定义 Referer
+    details.requestHeaders['Referer'] = 'https://mp.weixin.qq.com/'
+    
+    // 从自定义头中获取 Cookie 并设置到真实的 Cookie 头
+    if (details.requestHeaders['X-Custom-Cookie']) {
+      details.requestHeaders['Cookie'] = details.requestHeaders['X-Custom-Cookie']
+      delete details.requestHeaders['X-Custom-Cookie']  // 删除自定义头
+    }
+    
+    console.log('微信裁剪接口请求头已修改:', {
+      'User-Agent': details.requestHeaders['User-Agent'],
+      'Referer': details.requestHeaders['Referer'],
+      'Cookie': details.requestHeaders['Cookie'] ? '已设置（长度: ' + details.requestHeaders['Cookie'].length + '）' : '未设置'
+    })
+    
+    callback({ requestHeaders: details.requestHeaders })
+  });
+
   tabbedWin = await createTabbedWin()
   var confirmed=false;
   tabbedWin.win.on('close',async (evt)=>{
