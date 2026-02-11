@@ -21,14 +21,36 @@ export function checkWxSession(v) {
   const session_id = v.session_id;
   const required = ['slave_user', 'slave_sid', 'data_ticket', 'data_bizuin'];
   if (session_id) {
-    const { cookie } = JSON.parse(session_id);
-    const t = Date.now() / 1000;
-    const expired = required.some(k => {
-      const ck = cookie.find(v => v.name == k);
-      if (!ck) return true;
-      return ck.expirationDate < t;
-    });
-    return expired;
+    try {
+      const { cookie } = JSON.parse(session_id);
+      
+      // 兼容处理：如果 cookie 不是数组，转换为数组
+      let cookieArray = [];
+      if (Array.isArray(cookie)) {
+        cookieArray = cookie;
+      } else if (typeof cookie === 'object' && cookie !== null) {
+        // 如果是对象格式，转换为数组
+        cookieArray = Object.keys(cookie).map(name => ({
+          name: name,
+          value: cookie[name],
+          expirationDate: Date.now() / 1000 + 86400 * 30 // 默认30天后过期
+        }));
+      } else {
+        // 格式不正确，认为已过期
+        return true;
+      }
+      
+      const t = Date.now() / 1000;
+      const expired = required.some(k => {
+        const ck = cookieArray.find(v => v.name == k);
+        if (!ck) return true;
+        return ck.expirationDate < t;
+      });
+      return expired;
+    } catch (e) {
+      console.error('checkWxSession 解析失败:', e);
+      return true; // 解析失败，认为已过期
+    }
   }
   return true;
 }

@@ -74,12 +74,51 @@
       <!-- 账号管理区域 -->
       <AccountManagement v-if="showAccountManagement" style="flex: 1;" />
     </div>
+
+    <!-- Python代码显示弹框 -->
+    <el-dialog
+      v-model="showPythonDialog"
+      title="微信公众号登录代码"
+      width="800px"
+      :close-on-click-modal="false"
+    >
+      <div class="python-code-container">
+        <pre><code>{{ pythonCode }}</code></pre>
+      </div>
+      <template #footer>
+        <el-button @click="showPythonDialog = false">关闭</el-button>
+        <el-button type="primary" @click="copyPythonCode">复制代码</el-button>
+      </template>
+    </el-dialog>
+
+    <!-- 二维码登录弹框 -->
+    <el-dialog
+      v-model="showQRCodeDialogVisible"
+      title="微信公众号登录（可连续添加多个账号）"
+      width="500px"
+      :close-on-click-modal="false"
+      @close="handleQRCodeDialogClose"
+    >
+      <div class="qrcode-container">
+        <div v-if="qrcodeImageUrl" class="qrcode-image-wrapper">
+          <img :src="qrcodeImageUrl" alt="二维码" class="qrcode-image" />
+        </div>
+        <div v-else class="qrcode-loading">
+          <el-icon class="is-loading"><Loading /></el-icon>
+          <p>正在生成二维码...</p>
+        </div>
+        <div class="scan-status" :style="{ color: scanStatusColor }">
+          {{ scanStatus }}
+        </div>
+      </div>
+    </el-dialog>
   </div>
 </template>
 
 <script setup>
-import { nextTick, onMounted, onActivated, ref, onDeactivated, onBeforeUnmount, watch, provide, toRefs } from 'vue'
-import { ElNotification } from 'element-plus'
+import { nextTick, onMounted, onActivated, ref, onDeactivated, onBeforeUnmount, watch, provide, toRefs, h } from 'vue'
+import { ElNotification, ElMessageBox } from 'element-plus'
+import { Loading } from '@element-plus/icons-vue'
 import { useRoute } from 'vue-router'
 import { getToken } from "@/utils/auth";
 import store from '@/store'
@@ -114,6 +153,112 @@ const isDebugRef = ref(window.envVars.is_debug)
 const selected_account_id = ref(0)
 const accounts_mapping_tabs = ref([])
 const showAccountManagement = ref(true)
+const showPythonDialog = ref(false)
+const showQRCodeDialogVisible = ref(false)
+const qrcodeImageUrl = ref('')
+const scanStatus = ref('等待扫码...')
+const scanStatusColor = ref('#666')
+const pythonCode = ref(`# -*- coding: utf-8 -*-
+"""
+-------------------------------------------------
+   File Name：     公众号登录
+   Description :   
+   Author :        Xiaoxing
+   date：          2026/2/6  14:00:50
+-------------------------------------------------
+"""
+import requests
+import time
+
+def login_mp():
+    # 创建一个 session 对象，用于保持 cookies 和其他上下文
+    session = requests.Session()
+
+    api_url = "https://mp.weixin.qq.com/cgi-bin/bizlogin"
+
+    # action=prelogin&fingerprint=64f379b133f5d29df7b2d4d72faf8812&token=&lang=zh_CN&f=json&ajax=1
+    post_data = {
+        "action": "prelogin",
+        "fingerprint": "64f379b133f5d29df7b2d4d72faf8812",
+        "token": "",
+        "lang": "zh_CN",
+        "f": "json",
+        "ajax": 1
+    }
+
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36",
+        "Referer": "https://mp.weixin.qq.com"
+    }
+    # 发送 POST 请求，session 会自动处理 cookies
+    response = session.post(api_url, data=post_data, headers=headers)
+    result = response.json()
+    print(result)
+
+    api_url2 = "https://mp.weixin.qq.com/cgi-bin/bizlogin?action=startlogin"
+
+    #userlang=zh_CN&redirect_url=&login_type=3&sessionid=177035784965959&fingerprint=64f379b133f5d29df7b2d4d72faf8812&token=&lang=zh_CN&f=json&ajax=1
+    post_data2 = {
+        "userlang": "zh_CN",
+        "redirect_url": "",
+        "login_type": 3,
+        "sessionid": int(time.time() * 1000),
+        "fingerprint": "64f379b133f5d29df7b2d4d72faf8812",
+        "token": "",
+        "lang": "zh_CN",
+        "f": "json",
+        "ajax": 1
+    }
+    response2 = session.post(api_url2, data=post_data2, headers=headers)
+
+    result2 = response2.json()
+    print(result2)
+
+    qrcoe_url = "https://mp.weixin.qq.com/cgi-bin/scanloginqrcode"
+    #?action=getqrcode&random=1770358465250&login_appid=
+    params = {
+        "action": "getqrcode",
+        "random": int(time.time() * 1000),
+        "login_appid": ""
+    }
+    qrcoe_content = session.get(qrcoe_url, params=params, headers=headers).content
+    with open("qrcode.png", "wb") as f:
+        f.write(qrcoe_content)
+        print("二维码已保存到 qrcode.png")
+
+
+    #从此处开始检测 无限循环请求
+    for i in range(300):
+        api_url3 = "https://mp.weixin.qq.com/cgi-bin/scanloginqrcode"
+        # ?action=ask&fingerprint=64f379b133f5d29df7b2d4d72faf8812&token=&lang=zh_CN&f=json&ajax=1
+        params = {
+            "action": "ask",
+            "fingerprint": "64f379b133f5d29df7b2d4d72faf8812",
+            "token": "",
+            "lang": "zh_CN",
+            "f": "json",
+            "ajax": 1
+        }
+        response3 = session.get(api_url3, params=params, headers=headers)
+
+        result3 = response3.json()
+        print(result3)
+
+        # 判断是否扫码成功
+        if result3["status"] == 1 and result3["user_category"] >= 2:
+            print("扫码成功")
+            break
+        time.sleep(1)
+
+    #{'acct_size': 0, 'base_resp': {'err_msg': 'ok', 'ret': 0}, 'binduin': 0, 'status': 0, 'user_category': 0}
+    # 检测是否扫码成功
+    #status=0   表示未扫码或未授权   status=4 表示已扫码 等待确认   status=6 表示 正在输入密码 status=1 表示扫码成功
+    #user_category=3  表示  运营者登录  user_category=2 表示管理员登录 user_category=4 表示临时运营者扫码登录  user_category=1表示发送给管理员授权登录
+    #acct_size  表示 当前微信有几个公众号可以登录
+
+if __name__ == '__main__':
+    login_mp()
+`)
 
 const handleFilter = () => {
   return AccountListRef.value.getList()
@@ -123,12 +268,271 @@ const platform_list = ref([])
 
 /** 根据传递过来的平台参数，打开对应的窗口 */
 const handleAddMPAccount = (platform) => {
+  // 如果是微信公众号，使用 wechat.js 的登录逻辑，但在弹框中显示
+  if (platform.id === 4) {
+    loginWechatMPWithDialog()
+  } else {
+    // 其他平台保持原有逻辑
+    window.ipcRenderer.send('toMain', {
+      tag: 'addAccount',
+      token: getToken(),
+      ...platform,
+      session_id: null
+    })
+  }
+}
+
+/** 微信公众号登录 - 使用 wechat.js 的登录逻辑，在弹框中显示 */
+const loginWechatMPWithDialog = async () => {
+  // 重置状态
+  qrcodeImageUrl.value = ''
+  scanStatus.value = '正在初始化...'
+  scanStatusColor.value = '#666'
+  
+  // 显示弹框
+  showQRCodeDialogVisible.value = true
+  
+  // 等待弹框渲染完成
+  await nextTick()
+  
+  // 通知主进程创建登录视图（使用 wechat.js 的逻辑）
   window.ipcRenderer.send('toMain', {
-    tag: 'addAccount',
-    token: getToken(),
-    ...platform,
-    session_id: null
+    tag: 'wechat:createLoginViewInDialog',
+    token: getToken()
   })
+}
+
+/** 旧的登录方法（使用 RPC）- 保留作为备用 */
+const loginWechatMP = async () => {
+  // 重置状态
+  qrcodeImageUrl.value = ''
+  scanStatus.value = '正在生成二维码...'
+  scanStatusColor.value = '#666'
+  
+  // 显示弹框
+  showQRCodeDialogVisible.value = true
+  
+  // 等待弹框渲染完成
+  await nextTick()
+  
+  // 调用 RPC 获取二维码
+  const fingerprint = '64f379b133f5d29df7b2d4d72faf8812'
+  
+  try {
+    const result = await window.webBridge.callRpc('wechat:getQRCode', { fingerprint })
+    
+    if (result.success) {
+      qrcodeImageUrl.value = result.qrcodeBase64
+      scanStatus.value = '请使用微信扫描二维码登录'
+      scanStatusColor.value = '#07c160'
+      
+      // 开始轮询检查扫码状态
+      startCheckScanStatus(fingerprint)
+    } else {
+      scanStatus.value = '获取二维码失败: ' + result.error
+      scanStatusColor.value = 'red'
+    }
+  } catch (error) {
+    scanStatus.value = '获取二维码失败'
+    scanStatusColor.value = 'red'
+  }
+}
+
+let checkScanInterval = null
+
+/** 开始轮询检查扫码状态 */
+const startCheckScanStatus = (fingerprint) => {
+  let checkCount = 0
+  const maxChecks = 300 // 最多检查300次（5分钟）
+  
+  checkScanInterval = setInterval(async () => {
+    checkCount++
+    
+    if (checkCount > maxChecks) {
+      clearInterval(checkScanInterval)
+      scanStatus.value = '二维码已过期，请重新登录'
+      scanStatusColor.value = 'red'
+      return
+    }
+    
+    try {
+      const result = await window.webBridge.callRpc('wechat:checkScan', { 
+        fingerprint, 
+        token: getToken() 
+      })
+      
+      if (result.status === 4) {
+        scanStatus.value = '已扫码，请在手机上确认登录'
+        scanStatusColor.value = '#07c160'
+      } else if (result.status === 6) {
+        scanStatus.value = '正在输入密码...'
+        scanStatusColor.value = '#07c160'
+      } else if (result.status === 1 && result.user_category >= 2) {
+        clearInterval(checkScanInterval)
+        
+        if (result.accountAdded) {
+          scanStatus.value = '✅ 登录成功！'
+          scanStatusColor.value = '#07c160'
+          
+          // 关闭弹框
+          setTimeout(() => {
+            showQRCodeDialogVisible.value = false
+            
+            ElNotification({
+              type: 'success',
+              title: '成功',
+              message: '登录成功！'
+            })
+            
+            // 刷新账号列表
+            store.dispatch('ListAccounts').then(() => {
+              handleFilter()
+            })
+          }, 1000)
+        } else {
+          scanStatus.value = '❌ 账号添加失败'
+          scanStatusColor.value = 'red'
+        }
+      }
+    } catch (error) {
+      // 忽略错误，继续检查
+    }
+  }, 1000)
+}
+
+/** 关闭弹框时清理 */
+const handleQRCodeDialogClose = () => {
+  // 清除轮询
+  if (checkScanInterval) {
+    clearInterval(checkScanInterval)
+    checkScanInterval = null
+  }
+  
+  // 通知主进程清理倒计时定时器
+  window.ipcRenderer.send('toMain', {
+    tag: 'wechat:cleanupCountdown'
+  })
+  
+  // 重置状态
+  qrcodeImageUrl.value = ''
+  scanStatus.value = '等待扫码...'
+  scanStatusColor.value = '#666'
+}
+
+// 监听登录相关事件
+if (window.ipcRenderer) {
+  window.ipcRenderer.receive('fromMain', (data) => {
+    // 兼容旧的字符串格式
+    if (data === 'wechat-login-success') {
+      console.log('收到登录成功消息（旧格式）')
+      showQRCodeDialogVisible.value = false
+      
+      ElNotification({
+        type: 'success',
+        title: '成功',
+        message: '登录成功！'
+      })
+      
+      // 刷新账号列表
+      store.dispatch('ListAccounts').then(() => {
+        handleFilter()
+      })
+      return
+    }
+    
+    // 处理新的对象格式消息
+    if (typeof data === 'object' && data.tag) {
+      switch (data.tag) {
+        case 'wechat:qrcodeReady':
+          // 收到二维码数据
+          console.log('收到二维码数据')
+          qrcodeImageUrl.value = data.data.qrcode
+          scanStatus.value = '请使用微信扫描二维码登录'
+          scanStatusColor.value = '#07c160'
+          break
+          
+        case 'wechat:statusUpdate':
+          // 收到状态更新
+          console.log('收到状态更新:', data.data.status)
+          scanStatus.value = data.data.status
+          
+          // 根据状态文本设置颜色
+          if (data.data.status.includes('成功') || data.data.status.includes('✅')) {
+            scanStatusColor.value = '#07c160'
+          } else if (data.data.status.includes('失败') || data.data.status.includes('❌') || data.data.status.includes('过期')) {
+            scanStatusColor.value = 'red'
+          } else if (data.data.status.includes('扫码') || data.data.status.includes('确认') || data.data.status.includes('密码')) {
+            scanStatusColor.value = '#07c160'
+          } else {
+            scanStatusColor.value = '#666'
+          }
+          break
+          
+        case 'wechat:loginSuccess':
+          // 登录成功
+          console.log('登录成功:', data.data)
+          scanStatus.value = '✅ 登录成功！正在刷新二维码...'
+          scanStatusColor.value = '#07c160'
+          
+          // 显示成功通知
+          ElNotification({
+            type: 'success',
+            title: '成功',
+            message: `${data.data.name} 登录成功！`
+          })
+          
+          // 刷新账号列表
+          store.dispatch('ListAccounts').then(() => {
+            handleFilter()
+          })
+          
+          // 刷新右侧当前标签页
+          if (currentTabId.value) {
+            setTimeout(() => {
+              window.ipcRenderer.send('refresh-tab', currentTabId.value)
+            }, 500)
+          }
+          
+          // 不关闭弹框，等待新二维码
+          // 清空当前二维码，显示加载状态
+          setTimeout(() => {
+            qrcodeImageUrl.value = ''
+            scanStatus.value = '正在生成新的二维码...'
+            scanStatusColor.value = '#666'
+          }, 1500)
+          break
+          
+        case 'wechat:loginFailed':
+          // 登录失败
+          console.error('登录失败:', data.data.error)
+          scanStatus.value = '❌ 登录失败: ' + data.data.error
+          scanStatusColor.value = 'red'
+          break
+      }
+    }
+  })
+}
+
+
+
+/** 复制Python代码 */
+const copyPythonCode = () => {
+  navigator.clipboard.writeText(pythonCode.value)
+    .then(() => {
+      ElNotification({
+        type: 'success',
+        title: '成功',
+        message: '代码已复制到剪贴板'
+      })
+    })
+    .catch((err) => {
+      console.error('复制失败:', err)
+      ElNotification({
+        type: 'error',
+        title: '错误',
+        message: '复制失败'
+      })
+    })
 }
 
 var account = useAccountStore()
@@ -673,5 +1077,78 @@ window.ipcRenderer.send('control-ready')
 
 .not-draggable {
   cursor: no-drop;
+}
+
+.python-code-container {
+  max-height: 600px;
+  overflow-y: auto;
+  background-color: #f5f5f5;
+  border-radius: 4px;
+  padding: 16px;
+}
+
+.python-code-container pre {
+  margin: 0;
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-size: 14px;
+  line-height: 1.6;
+  color: #333;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+.python-code-container code {
+  font-family: inherit;
+}
+
+.qrcode-container {
+  text-align: center;
+  padding: 20px;
+}
+
+.qrcode-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 300px;
+  gap: 16px;
+}
+
+.qrcode-loading .el-icon {
+  font-size: 32px;
+  color: #409eff;
+}
+
+.qrcode-loading p {
+  font-size: 14px;
+  color: #666;
+}
+
+.qrcode-tip {
+  margin-bottom: 20px;
+  font-size: 16px;
+  color: #333;
+}
+
+.qrcode-image-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.qrcode-image {
+  width: 300px;
+  height: 300px;
+  border: 1px solid #eee;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.scan-status {
+  margin-top: 16px;
+  font-size: 14px;
+  font-weight: 500;
 }
 </style>

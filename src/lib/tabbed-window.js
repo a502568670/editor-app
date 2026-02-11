@@ -178,6 +178,17 @@ export class TabbedWindow extends EventEmitter {
     const view = this.views[viewId];
     if (view && view.webContents && !view.webContents.isDestroyed() && !this.win.isDestroyed()) {
       verbose_log('before removeBrowserView');
+      
+      // 如果视图有清理函数，先调用清理函数
+      if (view.cleanupQRCode && typeof view.cleanupQRCode === 'function') {
+        verbose_log('调用视图的清理函数');
+        try {
+          view.cleanupQRCode();
+        } catch (error) {
+          verbose_error('调用清理函数失败:', error);
+        }
+      }
+      
       this.win.removeBrowserView(view);
       view.webContents.stop();
       view.webContents.close({ waitForBeforeUnload: global.common.WAIT_FOR_BEFORE_UNLOAD });

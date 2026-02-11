@@ -191,8 +191,8 @@ const universalFormRules = {
 // 分组数据
 const accountGroups = ref([]);
 
-// 活跃的折叠面板
-const activeGroups = ref([]);
+// 活跃的折叠面板（默认展开未分组）
+const activeGroups = ref(['group-0']);
 
 const listQuery = ref({
   page: 1,
