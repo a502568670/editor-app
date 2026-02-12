@@ -1454,18 +1454,22 @@ async function reactToIpcObjectData(data, tabbedWin, viewContents) {
     }
     case 'appmsg:getShopCommodity': {
       verbose_log('===== getShopCommodity ====', data);
+      const { source } = data;
       const res = await getShopCommodity(data);
-      viewContents.send('fromMain', { tag: 'appmsg-ret:getShopCommodity', data: res });
+      viewContents.send('fromMain', { tag: 'appmsg-ret:getShopCommodity', data: { source, ...res } });
+      break;
     }
     case 'appmsg:getWindowProduct': {
       verbose_log('===== getWindowProduct ====', data);
+      const { source } = data;
       try {
         const res = await getWindowProduct(data);
-        viewContents.send('fromMain', { tag: 'appmsg-ret:getWindowProduct', data: res });
+        viewContents.send('fromMain', { tag: 'appmsg-ret:getWindowProduct', data: { source, ...res } });
       } catch (e) {
         verbose_error('getWindowProduct error', e);
-        viewContents.send('fromMain', { tag: 'appmsg-ret:getWindowProduct', data: { success: false, err: e && e.message ? e.message : e } });
+        viewContents.send('fromMain', { tag: 'appmsg-ret:getWindowProduct', data: { source, success: false, err: e && e.message ? e.message : e } });
       }
+      break;
     }
     case 'appmsg:getLinkInfo': {
       verbose_log("===== listen getLinkInfo in main ====", data)

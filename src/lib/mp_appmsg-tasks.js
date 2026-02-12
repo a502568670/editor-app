@@ -334,6 +334,19 @@ const getRegions = async ({ cookies, id = 0 }) => {
 }
 
 const getShopCommodity = async (data) => {
+  // 参数验证和日志
+  verbose_log('getShopCommodity 接收到的参数:', data);
+  verbose_log('cookie:', data.cookie ? '存在' : '不存在', data.cookie ? data.cookie.substring(0, 50) + '...' : '');
+  verbose_log('token:', data.token);
+  
+  if (!data.cookie || !data.token) {
+    verbose_error('getShopCommodity 缺少必需参数: cookie 或 token');
+    return {
+      success: false,
+      err_msg: '缺少必需参数: cookie 或 token'
+    };
+  }
+  
   const listCondition = JSON.parse(data.listCondition);
   const body = data.keyword === '' ? { listCondition } : { keyword: data.keyword, listCondition };
   const opts = {
@@ -345,12 +358,17 @@ const getShopCommodity = async (data) => {
     },
     body: JSON.stringify(body)
   };
-  console.log('data.keyword', data);
+  
   let url = data.keyword === '' ? api.get_shop_commodity(data.token) : api.get_shop_commodity_search(data.token);
-  verbose_log('api url:', url);
-  verbose_log('api opts:', opts);
+  verbose_log('getShopCommodity api url:', url);
+  verbose_log('getShopCommodity 请求头:', JSON.stringify(opts.headers, null, 2));
+  
   let res = await netFetch(url, { ...opts });
+  verbose_log('getShopCommodity 原始响应:', res);
+  
   res = JSON.parse(res);
+  verbose_log('getShopCommodity 解析后响应:', res);
+  
   if (res.respStatusCode) {
     return {
       success: false,
@@ -366,7 +384,7 @@ const getShopCommodity = async (data) => {
   } else {
     return {
       success: false,
-      err_msg: '请求商品失败，未知错误'
+      err_msg: res.msg || '请求商品失败，未知错误'
     };
   }
 }

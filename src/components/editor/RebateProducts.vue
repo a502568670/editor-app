@@ -358,6 +358,7 @@ const getCommodity = () => {
 
   window.ipcRenderer.send('toMain', {
     tag: 'appmsg:getShopCommodity',
+    source: props.selectedAccount.id || props.selectedAccount.originalUsername,
     token,
     cookie,
     keyword: '',
@@ -441,6 +442,7 @@ const handleNext = () => {
   awaitingWindowProduct.value = true;
   window.ipcRenderer.send('toMain', {
     tag: 'appmsg:getWindowProduct',
+    source: props.selectedAccount.id || props.selectedAccount.originalUsername,
     token,
     cookie,
     product_id

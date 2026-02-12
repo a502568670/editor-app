@@ -452,7 +452,12 @@ if (window.ipcRenderer) {
           break
           
         case 'wechat:statusUpdate':
-          // 收到状态更新
+          // 收到状态更新 - 只有在弹窗打开时才更新
+          if (!showQRCodeDialogVisible.value) {
+            console.log('弹窗已关闭，忽略状态更新:', data.data.status)
+            break
+          }
+          
           console.log('收到状态更新:', data.data.status)
           scanStatus.value = data.data.status
           
