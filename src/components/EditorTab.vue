@@ -1462,19 +1462,56 @@ const editorConfigRef = ref({
     console.log('uploadServiceUpload', type, file, callback, option);
     const editor = editorRef.value
     
-    // 直接将图片转为 base64，不调用上传接口
+    // 上传图片到服务器
     const blob = file instanceof Blob ? file : file.blob.source;
     const reader = new FileReader();
     
-    reader.onload = function(e) {
+    reader.onload = async function(e) {
       const base64Data = e.target.result;
-      console.log('图片已转为 base64');
+      console.log('开始上传图片到服务器');
       
-      // 直接返回 base64 URL
-      callback.success({
-        "state": "SUCCESS",
-        "url": base64Data,
-      });
+      try {
+        // 提取 base64 数据和文件类型
+        const matches = base64Data.match(/data:(.*);base64,(.*)/);
+        if (!matches || matches.length < 3) {
+          throw new Error('无效的 base64 数据');
+        }
+        
+        const content_type = matches[1];
+        const base64_image = matches[2];
+        const filename = file.name || `image-${Date.now()}.${content_type.split('/')[1]}`;
+        
+        // 获取账号信息
+        if (!selectedAccount.value || !selectedAccount.value.session_id) {
+          throw new Error('账号未登录');
+        }
+        
+        const { session_id, token } = selectedAccount.value;
+        
+        // 调用上传接口
+        const response = await uploadImage({
+          cookies: serializeCookie(JSON.parse(session_id)["cookie"]),
+          token: parseInt(token),
+          base64_image,
+          filename,
+          content_type
+        });
+        
+        const { cdn_url } = response.data;
+        console.log('图片上传成功:', cdn_url);
+        
+        // 返回 CDN URL
+        callback.success({
+          "state": "SUCCESS",
+          "url": cdn_url,
+        });
+      } catch (error) {
+        console.error('上传图片失败:', error);
+        callback.error({
+          "state": "ERROR",
+          "message": error.message || "上传图片失败"
+        });
+      }
     };
     
     reader.onerror = function(e) {
