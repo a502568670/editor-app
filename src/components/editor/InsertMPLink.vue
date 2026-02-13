@@ -207,7 +207,7 @@
     </el-dialog>
     
     <!-- 图片选择器 -->
-    <ImgPicker 
+    <!-- <ImgPicker 
       ref="imgPickerRef" 
       :modelValue="props.pickerQuery"
       @update:modelValue="$emits('update:pickerQuery', $event)"
@@ -217,7 +217,7 @@
       :upload="true"
       placeholder="选择图片"
       @confirm="handleImagePick"
-    />
+    /> -->
   </div>
 </template>
 

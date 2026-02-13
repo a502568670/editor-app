@@ -1119,6 +1119,40 @@
   @insert-docx-content="handleInsertDocxContent"
 />
 
+  <!-- 图片裁剪对话框 -->
+  <el-dialog
+    v-model="cropperDialogVisible"
+    title="裁剪图片"
+    width="800px"
+    :close-on-click-modal="false"
+    @closed="handleCropperCancel"
+  >
+    <div class="w-full h-[60vh] relative">
+      <VueCropper
+        ref="cropperRef"
+        :img="cropperOptions.img"
+        :outputSize="cropperOptions.outputSize"
+        :outputType="cropperOptions.outputType"
+        :canScale="cropperOptions.canScale"
+        :autoCrop="cropperOptions.autoCrop"
+        :autoCropWidth="cropperOptions.autoCropWidth"
+        :autoCropHeight="cropperOptions.autoCropHeight"
+        :fixedBox="cropperOptions.fixedBox"
+        :fixed="cropperOptions.fixed"
+        :full="cropperOptions.full"
+        :canMoveBox="cropperOptions.canMoveBox"
+        :original="cropperOptions.original"
+        :centerBox="cropperOptions.centerBox"
+        :infoTrue="cropperOptions.infoTrue"
+        :mode="cropperOptions.mode"
+      />
+    </div>
+    <template #footer>
+      <el-button @click="handleCropperCancel">取消</el-button>
+      <el-button type="primary" @click="handleCropperConfirm">确认</el-button>
+    </template>
+  </el-dialog>
+
 </template>
 <style>
 .edui-editor {
@@ -1232,6 +1266,24 @@
   font-weight: 600;
   text-align: end;
 }
+
+/* 图片裁剪按钮样式 */
+.image-crop-button-container {
+  transition: opacity 0.2s;
+}
+
+.image-crop-button {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+.image-crop-button:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+}
+
+.image-crop-button:active {
+  transform: scale(0.95);
+}
 </style>
 
 <style scoped>
@@ -1300,7 +1352,9 @@ import {
   query_appmsg_publish_qrcode_validate_events, getQrcodeMobileValidate
 } from "@/api/mp_wechat"
 import { format_to_UEditor_html, clearContentUrl, clearWeApp, restore_from_UEditor_html } from "@/utils/dom";
-import { uploadImage } from "@/api/img"
+import { uploadImage, cropImage } from "@/api/img"
+import { VueCropper } from 'vue-cropper'
+import 'vue-cropper/dist/index.css'
 import {
   listSensitiveWordGroups,
   createSensitiveWordGroup,
@@ -1407,61 +1461,31 @@ const editorConfigRef = ref({
   uploadServiceUpload: function (type, file, callback, option) {
     console.log('uploadServiceUpload', type, file, callback, option);
     const editor = editorRef.value
-    var call = function () {
-      const formData = new FormData();
-      let blob = file instanceof Blob ? file : file.blob.source
-      formData.append(editor.getOpt("imageFieldName"), blob, blob.name);
-      const { token, name, session_id } = selectedAccount.value
-      if (!session_id) {
-        ElMessage({
-          message: `当前账号(${name})未登录,请重新登录`,
-          type: 'error',
-          duration: 5 * 1000
-        })
-        return
-      }
-      const cookies = serializeCookie(JSON.parse(session_id)["cookie"])
-      formData.append("cookies", cookies)
-      formData.append("token", token)
-      axios.post(envVars.backend_url + '/upload-editor-image',
-        formData,
-        {
-          headers: {
-            'Content-Type': 'multipart/form-data'
-          }
-        }
-      ).then(function (data) {
-        console.log(data.data.data);
-        callback.success({
-          "state": "SUCCESS",
-          "url": data.data.data.url,
-        })
-      }).catch(function (e) {
-        console.log('FAILURE!!', e);
-        const err = e.response.data.detail
-        if (err.includes("redis ticket invalid")) {
-          // ElMessage({
-          //   message: `当前账号(${name})session过期,请切换到账号中心重新登录`,
-          //   type: 'error',
-          //   duration: 2 * 1000
-          // })
-          ElMessageBox.alert(apperrmsg.invalid_session, '错误', {
-            confirmButtonText: '确定',
-            type: 'error'
-          }).then(() => {
-            console.log("then")
-          }).catch(() => {
-            console.log("catch")
-          })
-          // callback.error(`当前账号(${name})session过期,请重新登录`)
-        } else {
-          callback.error(err)
-        }
+    
+    // 直接将图片转为 base64，不调用上传接口
+    const blob = file instanceof Blob ? file : file.blob.source;
+    const reader = new FileReader();
+    
+    reader.onload = function(e) {
+      const base64Data = e.target.result;
+      console.log('图片已转为 base64');
+      
+      // 直接返回 base64 URL
+      callback.success({
+        "state": "SUCCESS",
+        "url": base64Data,
       });
-
-      return;
-    }
-    call();
+    };
+    
+    reader.onerror = function(e) {
+      console.error('读取图片失败:', e);
+      callback.error({
+        "state": "ERROR",
+        "message": "读取图片失败"
+      });
+    };
+    
+    reader.readAsDataURL(blob);
   },
   elementPathEnabled: false,
   wordCount: false,
@@ -1785,6 +1809,321 @@ const uploadDocxDialogRef = ref(null)
 function ready(editorInstance) {
   console.log(`编辑器实例`, editorInstance);
   editorRef.value = editorInstance;
+  
+  // 添加图片选中监听，显示裁剪按钮
+  setupImageCropListener(editorInstance);
+}
+
+// 图片裁剪相关
+const currentCropImageElement = ref(null)
+const cropperDialogVisible = ref(false)
+const cropperImageUrl = ref('')
+const cropperRef = ref(null)
+const cropperOptions = ref({
+  img: '',
+  outputSize: 1,
+  outputType: 'png',
+  canScale: true,
+  autoCrop: true,
+  autoCropWidth: 200,
+  autoCropHeight: 200,
+  fixedBox: false,
+  fixed: false,
+  full: false,
+  canMoveBox: true,
+  original: false,
+  centerBox: true,
+  infoTrue: true,
+  mode: 'contain'
+})
+
+// 设置图片裁剪监听器
+function setupImageCropListener(editor) {
+  if (!editor) return;
+  
+  console.log('设置图片裁剪监听器', editor);
+  
+  // 等待编辑器完全加载
+  setTimeout(() => {
+    const editorBody = editor.body;
+    if (!editorBody) {
+      console.error('编辑器 body 不存在');
+      return;
+    }
+    
+    console.log('编辑器 body 已就绪', editorBody);
+    
+    // 使用多种事件监听方式
+    const handleImageClick = (e) => {
+      // 如果正在拖动裁剪框，完全忽略
+      if (isDraggingCrop.value) {
+        return;
+      }
+      
+      // 如果正在裁剪模式，不处理点击事件（让裁剪框自己处理）
+      if (isCropping.value) {
+        return;
+      }
+      
+      console.log('检测到点击事件:', e.target.tagName, e.target);
+      let target = e.target;
+      
+      // 如果点击的是裁剪按钮或其子元素，不处理
+      if (target.closest('.image-crop-button-container')) {
+        console.log('点击了裁剪按钮，不处理');
+        return;
+      }
+      
+      // 检查是否点击了图片，或者点击了包含图片的元素
+      if (target.tagName === 'IMG') {
+        console.log('直接点击了图片:', target.src);
+        showImageCropButton(target);
+        return;
+      }
+      
+      // 检查点击的元素内是否有图片
+      const img = target.querySelector('img');
+      if (img) {
+        console.log('点击的元素内有图片:', img.src);
+        showImageCropButton(img);
+        return;
+      }
+      
+      // 检查父元素是否是图片
+      let parent = target.parentElement;
+      while (parent && parent !== editorBody) {
+        if (parent.tagName === 'IMG') {
+          console.log('父元素是图片:', parent.src);
+          showImageCropButton(parent);
+          return;
+        }
+        // 检查父元素内是否有图片
+        const parentImg = parent.querySelector('img');
+        if (parentImg && parent.children.length === 1) {
+          console.log('父元素内有唯一图片:', parentImg.src);
+          showImageCropButton(parentImg);
+          return;
+        }
+        parent = parent.parentElement;
+      }
+      
+      // 如果点击的不是图片相关元素，隐藏裁剪按钮
+      hideImageCropButton();
+    };
+    
+    // 同时监听 click 和 mousedown 事件
+    editorBody.addEventListener('click', handleImageClick, true);
+    editorBody.addEventListener('mousedown', handleImageClick, true);
+    
+    // 监听图片插入事件
+    editor.addListener('afterinsertimage', (t, arg) => {
+      console.log('图片插入完成:', arg);
+      // 图片插入后，等待一下再尝试选中
+      setTimeout(() => {
+        if (arg && arg.length > 0) {
+          const lastImg = arg[arg.length - 1];
+          if (lastImg && lastImg.src) {
+            // 查找刚插入的图片元素
+            const imgs = editorBody.querySelectorAll('img');
+            for (let img of imgs) {
+              if (img.src === lastImg.src) {
+                console.log('找到刚插入的图片，显示裁剪按钮');
+                showImageCropButton(img);
+                break;
+              }
+            }
+          }
+        }
+      }, 100);
+    });
+    
+    // 监听内容变化
+    editor.addListener('contentchange', () => {
+      console.log('内容发生变化');
+    });
+    
+    // 监听编辑器滚动，更新裁剪按钮位置
+    editorBody.addEventListener('scroll', () => {
+      if (currentCropImageElement.value) {
+        updateImageCropButtonPosition(currentCropImageElement.value);
+      }
+    });
+  }, 500);
+}
+
+// 裁剪状态
+const isCropping = ref(false);
+const isDraggingCrop = ref(false);
+const cropBoxData = ref({ x: 0, y: 0, width: 0, height: 0 });
+
+// 显示图片裁剪按钮
+function showImageCropButton(imgElement) {
+  // 移除之前的裁剪按钮
+  hideImageCropButton();
+  
+  const imgRect = imgElement.getBoundingClientRect();
+  const editorBody = editorRef.value.body;
+  const editorRect = editorBody.getBoundingClientRect();
+  
+  // 创建裁剪按钮容器（覆盖在图片上方）
+  const cropButtonContainer = document.createElement('div');
+  cropButtonContainer.className = 'image-crop-button-container';
+  cropButtonContainer.style.cssText = `
+    position: absolute;
+    top: ${imgRect.top - editorRect.top + editorBody.scrollTop}px;
+    left: ${imgRect.left - editorRect.left + editorBody.scrollLeft}px;
+    width: ${imgRect.width}px;
+    height: ${imgRect.height}px;
+    pointer-events: none;
+    z-index: 1000;
+    border: 2px solid #409EFF;
+    box-sizing: border-box;
+  `;
+  
+  // 创建裁剪按钮
+  const cropButton = document.createElement('button');
+  cropButton.className = 'image-crop-button';
+  cropButton.innerHTML = `
+    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M6.13 1L6 16a2 2 0 0 0 2 2h15"></path>
+      <path d="M1 6.13L16 6a2 2 0 0 1 2 2v15"></path>
+    </svg>
+    <span>裁剪</span>
+  `;
+  cropButton.style.cssText = `
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: rgba(0, 0, 0, 0.7);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 6px 12px;
+    cursor: pointer;
+    pointer-events: auto;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 14px;
+    transition: background 0.2s;
+  `;
+  
+  cropButton.addEventListener('mouseenter', () => {
+    cropButton.style.background = 'rgba(0, 0, 0, 0.85)';
+  });
+  
+  cropButton.addEventListener('mouseleave', () => {
+    cropButton.style.background = 'rgba(0, 0, 0, 0.7)';
+  });
+  
+  cropButton.addEventListener('mousedown', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    console.log('裁剪按钮 mousedown');
+  });
+  
+  cropButton.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    console.log('裁剪按钮 click，打开裁剪对话框');
+    openCropperDialog(imgElement);
+  });
+  
+  cropButtonContainer.appendChild(cropButton);
+  editorBody.appendChild(cropButtonContainer);
+  
+  // 保存当前图片元素引用
+  currentCropImageElement.value = imgElement;
+  
+  // 给图片添加选中样式
+  imgElement.style.outline = '2px solid #409EFF';
+  imgElement.style.outlineOffset = '-2px';
+}
+
+// 打开裁剪对话框
+function openCropperDialog(imgElement) {
+  const imgSrc = imgElement.getAttribute('src');
+  if (!imgSrc) return;
+  
+  // 先保存图片元素引用
+  currentCropImageElement.value = imgElement;
+  
+  // 设置裁剪器选项
+  cropperImageUrl.value = imgSrc;
+  cropperOptions.value.img = imgSrc;
+  
+  // 隐藏裁剪按钮
+  hideImageCropButton();
+  
+  // 打开对话框
+  cropperDialogVisible.value = true;
+}
+
+// 确认裁剪
+function handleCropperConfirm() {
+  console.log('handleCropperConfirm 被调用');
+  console.log('cropperRef.value:', cropperRef.value);
+  console.log('currentCropImageElement.value:', currentCropImageElement.value);
+  
+  if (!cropperRef.value || !currentCropImageElement.value) {
+    console.error('cropperRef 或 currentCropImageElement 不存在');
+    ElMessage.error('裁剪失败，请重试');
+    return;
+  }
+  
+  // 获取裁剪后的图片数据（base64）
+  cropperRef.value.getCropData((data) => {
+    console.log('获取到裁剪数据，长度:', data.length);
+    // 直接替换图片的 src
+    currentCropImageElement.value.src = data;
+    
+    // 关闭对话框
+    cropperDialogVisible.value = false;
+    currentCropImageElement.value = null;
+    
+    ElMessage.success('图片裁剪成功');
+  });
+}
+
+// 取消裁剪
+function handleCropperCancel() {
+  cropperDialogVisible.value = false;
+  currentCropImageElement.value = null;
+}
+
+// 更新图片裁剪按钮位置
+function updateImageCropButtonPosition(imgElement) {
+  const editorBody = editorRef.value?.body;
+  if (!editorBody) return;
+  
+  const existingButton = editorBody.querySelector('.image-crop-button-container');
+  if (!existingButton) return;
+  
+  const imgRect = imgElement.getBoundingClientRect();
+  const editorRect = editorBody.getBoundingClientRect();
+  
+  existingButton.style.top = `${imgRect.top - editorRect.top + editorBody.scrollTop}px`;
+  existingButton.style.left = `${imgRect.left - editorRect.left + editorBody.scrollLeft}px`;
+}
+
+// 隐藏图片裁剪按钮
+function hideImageCropButton() {
+  const editorBody = editorRef.value?.body;
+  if (!editorBody) return;
+  
+  const existingButton = editorBody.querySelector('.image-crop-button-container');
+  if (existingButton) {
+    existingButton.remove();
+  }
+  
+  // 移除之前图片的选中样式
+  if (currentCropImageElement.value) {
+    currentCropImageElement.value.style.outline = '';
+    currentCropImageElement.value.style.outlineOffset = '';
+  }
+  
+  // 注意：不要在这里清空 currentCropImageElement，因为裁剪时还需要用到
+  // currentCropImageElement.value = null;
 }
 
 // 帮助方法
