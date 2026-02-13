@@ -5257,10 +5257,124 @@ watch(() => [props.mainMsg], async (newVal) => {
 })
 
 //处理文档插入
-const handleInsertDocxContent = (html) => {
+const handleInsertDocxContent = async (html) => {
+  
   const editor = editorRef.value
-  if (editor == null) return
-  editor.execCommand('inserthtml', html)
+  if (editor == null) {
+    console.error('编辑器实例不存在')
+    return
+  }
+  
+  
+  try {
+    // 创建临时 DOM 来解析 HTML
+    const tempDiv = document.createElement('div')
+    tempDiv.innerHTML = html
+    
+    // 提取所有图片元素
+    const images = tempDiv.querySelectorAll('img')
+    
+    if (images.length > 0) {
+      // 显示加载提示
+      const loading = ElLoading.service({
+        lock: true,
+        text: `正在上传 ${images.length} 张图片...`,
+        background: 'rgba(0, 0, 0, 0.7)'
+      })
+      
+      try {
+        // 将所有 base64 图片上传到服务器
+        const uploadPromises = Array.from(images).map(async (img, index) => {
+          const src = img.getAttribute('src')
+          if (src && src.startsWith('data:image')) {
+            
+            // 将 base64 转换为 Blob
+            const base64Data = src.split(',')[1]
+            const contentType = src.match(/data:(.*);base64/)[1]
+            const byteCharacters = atob(base64Data)
+            const byteNumbers = new Array(byteCharacters.length)
+            for (let i = 0; i < byteCharacters.length; i++) {
+              byteNumbers[i] = byteCharacters.charCodeAt(i)
+            }
+            const byteArray = new Uint8Array(byteNumbers)
+            const blob = new Blob([byteArray], { type: contentType })
+            
+            // 设置文件名
+            const extension = contentType.split('/')[1]
+            blob.name = `word_image_${index + 1}.${extension}`
+            blob.lastModified = Date.now()
+            
+            // 使用编辑器的上传服务上传图片
+            return new Promise((resolve, reject) => {
+              const uploadConfig = editor.getOpt('uploadServiceUpload')
+              if (uploadConfig) {
+                uploadConfig('image', blob, {
+                  success: (response) => {
+                    console.log(`图片 ${index + 1} 上传成功:`, response)
+                    // response 格式: {"state": "SUCCESS", "url": "..."}
+                    if (response && response.url) {
+                      img.setAttribute('src', response.url)
+                      resolve(response.url)
+                    } else {
+                      reject(new Error('上传响应格式错误'))
+                    }
+                  },
+                  error: (err) => {
+                    console.error(`图片 ${index + 1} 上传失败:`, err)
+                    reject(err)
+                  }
+                }, {
+                  from: 'docx-upload'
+                })
+              } else {
+                reject(new Error('上传服务未配置'))
+              }
+            })
+          }
+          return Promise.resolve()
+        })
+        
+        // 等待所有图片上传完成
+        await Promise.all(uploadPromises)
+        
+        loading.close()
+        
+        // 插入处理后的 HTML（图片已替换为 CDN URL）
+        const processedHtml = tempDiv.innerHTML
+        editor.execCommand('inserthtml', processedHtml)
+        
+        ElMessage({
+          message: `Word 文档内容已插入（包含 ${images.length} 张图片）`,
+          type: 'success',
+          duration: 2000
+        })
+      } catch (error) {
+        loading.close()
+        console.error('上传图片失败:', error)
+        ElMessage({
+          message: '图片上传失败: ' + error.message,
+          type: 'error',
+          duration: 3000
+        })
+      }
+    } else {
+      // 没有图片，直接插入
+      editor.execCommand('inserthtml', html)
+      
+      ElMessage({
+        message: 'Word 文档内容已插入',
+        type: 'success',
+        duration: 2000
+      })
+    }
+  } catch (error) {
+    console.error('插入内容时出错:', error)
+    ElMessage({
+      message: '插入内容失败: ' + error.message,
+      type: 'error',
+      duration: 3000
+    })
+  }
 }
 
 

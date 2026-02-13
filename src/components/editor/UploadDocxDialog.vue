@@ -2,7 +2,7 @@
   <el-dialog
     :title="dialogTitle"
     v-model="dialogVisibleRef"
-    width="800px"
+    width="1000px"
     :close-on-click-modal="false"
     @close="resetState"
   >
@@ -57,7 +57,7 @@
       </div>
 
     <!-- 预览区域 -->
-    <div v-else class="py-4 max-h-[400px] overflow-auto border rounded p-4 bg-white">
+    <div v-else class="py-4 max-h-[600px] overflow-auto border rounded p-4 bg-white">
       <div v-html="previewHtml" class="docx-preview"></div>
     </div>
 
@@ -129,11 +129,30 @@ async function parseDocx() {
   reader.onload = async (e) => {
     try {
       const arrayBuffer = e.target.result
-      const result = await mammoth.convertToHtml({ arrayBuffer: arrayBuffer })
+      
+      // 配置 mammoth 选项，确保图片被正确转换
+      const result = await mammoth.convertToHtml({
+        arrayBuffer: arrayBuffer,
+        convertImage: mammoth.images.imgElement(function(image) {
+          return image.read("base64").then(function(imageBuffer) {
+            // 将图片转换为 base64 data URL
+            return {
+              src: "data:" + image.contentType + ";base64," + imageBuffer
+            }
+          })
+        })
+      })
+      
       // 可选：清理多余样式或空段落
       let html = result.value
       // 移除空段落（可选）
       html = html.replace(/<p><\/p>/g, '')
+      
+      // 输出警告信息（如果有）
+      if (result.messages && result.messages.length > 0) {
+        console.log('解析警告:', result.messages)
+      }
+      
       previewHtml.value = html
       ElMessage.success('文档解析成功')
     } catch (err) {
@@ -149,10 +168,27 @@ async function parseDocx() {
 
 function handleInsert() {
   if (!previewHtml.value) return
+  
+  // 处理 HTML，确保图片标签完整
+  let processedHtml = previewHtml.value
+  
+  // 确保所有 img 标签都有必要的属性
+  processedHtml = processedHtml.replace(/<img([^>]*)>/gi, (match, attrs) => {
+    // 如果没有 style 属性，添加默认样式
+    if (!attrs.includes('style=')) {
+      attrs += ' style="max-width: 100%; height: auto;"'
+    }
+    // 确保有 alt 属性
+    if (!attrs.includes('alt=')) {
+      attrs += ' alt=""'
+    }
+    return `<img${attrs}>`
+  })
+  
   inserting.value = true
   // 模拟插入延迟（实际可立即 emit）
   setTimeout(() => {
-    emit('insert-docx-content', previewHtml.value)
+    emit('insert-docx-content', processedHtml)
     inserting.value = false
     dialogVisibleRef.value = false
   }, 200)
