@@ -15,7 +15,7 @@ jobs:
 
     strategy:
       matrix:
-        os: [windows-latest, macos-latest, ubuntu-latest]
+        os: [windows-latest, macos-latest]
 
     steps:
       - name: Check out Git repository
@@ -54,13 +54,6 @@ jobs:
           PYTHON_PATH: ${{ env.pythonLocation }}/bin/python3
         run: npm run electron:build:mac
 
-      - name: Build/release Electron app (Linux)
-        if: matrix.os == 'ubuntu-latest'
-        env:
-          BACKEND_URL: http://47.96.22.8:8005
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: npm run electron:build
-
       - name: Upload artifacts (Windows)
         if: matrix.os == 'windows-latest'
         uses: actions/upload-artifact@v4
@@ -80,13 +73,3 @@ jobs:
             dist_electron/*.dmg
             dist_electron/*.dmg.blockmap
             dist_electron/latest-mac.yml
-
-      - name: Upload artifacts (Linux)
-        if: matrix.os == 'ubuntu-latest'
-        uses: actions/upload-artifact@v4
-        with:
-          name: linux-build
-          path: |
-            dist_electron/*.AppImage
-            dist_electron/*.deb
-            dist_electron/latest-linux.yml
