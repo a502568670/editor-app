@@ -35,12 +35,6 @@ jobs:
         with:
           python-version: '3.x'
 
-      - name: Create Python symlink for macOS
-        if: matrix.os == 'macos-latest'
-        run: |
-          sudo ln -sf $(which python3) /usr/bin/python
-          python --version
-
       - name: Install dmg-license for macOS
         if: matrix.os == 'macos-latest'
         run: npm install --save-dev dmg-license
@@ -57,6 +51,7 @@ jobs:
         env:
           BACKEND_URL: http://47.96.22.8:8005
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PYTHON_PATH: ${{ env.pythonLocation }}/bin/python3
         run: npm run electron:build:mac
 
       - name: Build/release Electron app (Linux)
