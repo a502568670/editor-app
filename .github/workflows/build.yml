@@ -35,6 +35,12 @@ jobs:
         with:
           python-version: '3.x'
 
+      - name: Create Python symlink for macOS
+        if: matrix.os == 'macos-latest'
+        run: |
+          sudo ln -sf $(which python3) /usr/bin/python
+          python --version
+
       - name: Install dmg-license for macOS
         if: matrix.os == 'macos-latest'
         run: npm install --save-dev dmg-license
