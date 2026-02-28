@@ -48,6 +48,10 @@
             </div>
             <div>
               <el-button type="success" @click="openBatchGroup" plain>批量修改分组</el-button>
+              <el-button type="warning" @click="handleNotify" plain>
+                <el-icon style="margin-right: 4px;"><Bell /></el-icon>
+                通知
+              </el-button>
             </div>
           </div>
         </el-form>
@@ -146,6 +150,10 @@
         <template #footer>
           <div class="dialog-footer">
             <el-button @click="dialogSetGroupVisible = false">取消</el-button>
+            <el-button type="warning" @click="handleBatchNotify" plain>
+              <el-icon style="margin-right: 4px;"><Bell /></el-icon>
+              通知
+            </el-button>
             <el-button type="primary" @click="setAccountGroup" :loading="batchLoading">提交</el-button>
           </div>
         </template>
@@ -210,18 +218,82 @@
           </div>
         </template>
       </el-dialog>
+
+      <!-- 通知列表对话框 -->
+      <el-dialog
+        :close-on-click-modal="false"
+        title="阅读量通知"
+        v-model="dialogNotifyVisible"
+        width="800px"
+      >
+        <div v-loading="notifyLoading" style="min-height: 200px;">
+          <el-alert
+            title="提示"
+            type="info"
+            :closable="false"
+            show-icon
+            style="margin-bottom: 15px"
+          >
+            已选择 {{ multipleSelection.length }} 个账号，显示阅读量大于10的文章
+          </el-alert>
+
+          <div v-if="notifyArticles.length === 0 && !notifyLoading" style="text-align: center; padding: 40px 0; color: #999;">
+            暂无阅读量大于10的文章
+          </div>
+
+          <div v-else class="notify-list">
+            <div
+              v-for="(article, index) in notifyArticles"
+              :key="index"
+              class="notify-item"
+            >
+              <div class="notify-header">
+                <div class="account-info">
+                  <img :src="article.accountAvatar" class="account-avatar" />
+                  <span class="account-name">{{ article.accountName }}</span>
+                </div>
+                <div class="publish-time">{{ formatNotifyTime(article.publishTime) }}</div>
+              </div>
+              <div class="article-title" @click="viewArticle(article)">
+                {{ article.title }}
+              </div>
+              <div class="article-stats">
+                <el-tag type="success" size="small" effect="plain">
+                  阅读 {{ formatNotifyNumber(article.readNum) }}
+                </el-tag>
+                <el-tag type="warning" size="small" effect="plain" style="margin-left: 8px;">
+                  在看 {{ formatNotifyNumber(article.likeNum) }}
+                </el-tag>
+                <el-tag type="info" size="small" effect="plain" style="margin-left: 8px;">
+                  分享 {{ formatNotifyNumber(article.shareNum) }}
+                </el-tag>
+              </div>
+            </div>
+          </div>
+        </div>
+        <template #footer>
+          <div class="dialog-footer">
+            <el-button @click="dialogNotifyVisible = false">关闭</el-button>
+            <el-button type="primary" @click="loadNotifyArticles" :loading="notifyLoading">
+              <el-icon style="margin-right: 4px;"><Refresh /></el-icon>
+              刷新
+            </el-button>
+          </div>
+        </template>
+      </el-dialog>
     </div>
   </div>
 </template>
 
 <script setup>
 import { ref, reactive, onMounted, computed, watch, inject } from 'vue'
-import { Refresh } from '@element-plus/icons-vue'
+import { Refresh, Bell } from '@element-plus/icons-vue'
 import Pagination from '@/components/Pagination'
 import SelectPlatform from '@/components/selectPlatform'
 import SelectUser from '@/components/selectUser'
 import { listAccount, moveAccountsToGroup, setOperator } from '@/api/account'
 import { getAccountGroupList, addAccountGroup } from '@/api/account-group'
+import { getPublishedArticles } from '@/api/mp_wechat'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import store from '@/store'
 import { useAccountStore } from '@/store/piniaStore'
@@ -274,6 +346,7 @@ const dataForm = reactive({
 const dialogSetGroupVisible = ref(false)
 const dialogSetUserVisible = ref(false)
 const dialogEditGroupVisible = ref(false)
+const dialogNotifyVisible = ref(false)
 
 // 批量修改分组表单
 const batchForm = reactive({
@@ -292,6 +365,11 @@ const editForm = reactive({
 })
 
 const editLoading = ref(false)
+
+// 通知相关数据
+const notifyArticles = ref([])
+const notifyLoading = ref(false)
+const currentNotifyAccount = ref(null)
 
 // 扁平化的分组列表
 const flatGroupList = ref([])
@@ -679,6 +757,252 @@ async function handleDelete(row) {
     }
   }
 }
+
+// 处理通知按钮点击
+async function handleNotify() {
+  if (multipleSelection.value.length === 0) {
+    ElMessage.warning('请先选择要通知的账号')
+    return
+  }
+
+  // 打开通知对话框并加载数据
+  dialogNotifyVisible.value = true
+  await loadNotifyArticles()
+}
+
+// 加载通知文章列表（阅读量>10的文章）
+async function loadNotifyArticles() {
+  notifyArticles.value = []
+  notifyLoading.value = true
+
+  try {
+    console.log('选中的账号列表:', multipleSelection.value)
+    
+    // 检查是否有微信公众号（platform_id 可能是 1 或 4）
+    const wechatAccounts = multipleSelection.value.filter(acc => 
+      acc.platform_id === 1 || acc.platform_id === 4 || acc.platform_name === '公众号'
+    )
+    if (wechatAccounts.length === 0) {
+      ElMessage.warning('请选择微信公众号账号')
+      notifyLoading.value = false
+      return
+    }
+    
+    // 遍历所有选中的账号
+    for (const account of multipleSelection.value) {
+      console.log(`检查账号 ${account.name}:`, {
+        id: account.id,
+        platform_id: account.platform_id,
+        platform_name: account.platform_name,
+        token: account.token ? '存在' : '不存在',
+        cookies: account.cookies ? '存在' : '不存在',
+        session_id: account.session_id ? '存在' : '不存在'
+      })
+      
+      // 只处理微信公众号（platform_id === 1 或 4，或 platform_name === '公众号'）
+      if (account.platform_id !== 1 && account.platform_id !== 4 && account.platform_name !== '公众号') {
+        console.log(`跳过账号 ${account.name}，platform_id=${account.platform_id}，不是微信公众号`)
+        continue
+      }
+
+      // 检查必要的参数
+      if (!account.token) {
+        console.warn(`账号 ${account.name} 缺少 token`)
+        ElMessage.warning(`账号 ${account.name} 缺少 token，请重新登录`)
+        continue
+      }
+
+      // 解析 session_id 中的 Cookie
+      let cookieString = ''
+      if (account.cookies) {
+        cookieString = account.cookies
+      } else if (account.session_id) {
+        try {
+          // session_id 是一个 JSON 字符串，包含 cookie 数组
+          const sessionData = JSON.parse(account.session_id)
+          if (sessionData.cookie && Array.isArray(sessionData.cookie)) {
+            // 将 cookie 数组转换为 Cookie 字符串
+            cookieString = sessionData.cookie
+              .map(c => `${c.name}=${c.value}`)
+              .join('; ')
+            console.log(`从 session_id 解析出 Cookie，共 ${sessionData.cookie.length} 个`)
+          }
+        } catch (e) {
+          console.error(`解析 session_id 失败:`, e)
+          cookieString = account.session_id
+        }
+      }
+      
+      if (!cookieString) {
+        console.warn(`账号 ${account.name} 缺少 cookies/session_id`)
+        ElMessage.warning(`账号 ${account.name} 缺少登录信息，请重新登录`)
+        continue
+      }
+
+      try {
+        console.log(`正在获取账号 ${account.name} 的文章数据...`)
+        console.log(`Token: ${account.token}`)
+        
+        // 解析 session_id 中的 cookie 数组
+        const sessionData = JSON.parse(account.session_id)
+        const cookies = sessionData.cookie || []
+        
+        console.log(`准备设置 ${cookies.length} 个 Cookie`)
+        
+        // 构建微信接口URL
+        const url = `https://mp.weixin.qq.com/cgi-bin/appmsgpublish?sub=list&begin=0&count=10&token=${account.token}&lang=zh_CN&f=json`
+        
+        console.log('请求URL:', url)
+        console.log('使用 Electron IPC 发送请求（支持自定义 Cookie）')
+        
+        // 使用 Electron IPC 发送请求，这样可以在主进程中设置 Cookie
+        // 通过 preload.js 暴露的 window.electron.ipcRenderer 访问
+        const response = await window.electron.ipcRenderer.invoke('fetch-with-cookies', {
+          url: url,
+          method: 'GET',
+          headers: {
+            'Referer': 'https://mp.weixin.qq.com/',
+            'Cache-Control': 'no-cache',
+            'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'
+          },
+          cookies: cookies
+        })
+        
+        console.log(`账号 ${account.name} 响应状态:`, response.status)
+        
+        if (!response.success) {
+          throw new Error(response.error || '请求失败')
+        }
+        
+        const data = response.data
+        console.log(`账号 ${account.name} 返回数据:`, data)
+        
+        // 如果返回 invalid session，输出更多调试信息
+        if (data.base_resp?.ret === 200003) {
+          console.error(`Session 验证失败详情:`)
+          console.error(`  账号ID: ${account.id}`)
+          console.error(`  Token: ${account.token}`)
+          console.error(`  请求URL: ${url}`)
+          console.error(`  提示: 请确认该账号的 session_id 和 token 是否匹配且未过期`)
+        }
+        
+        if (data.base_resp?.ret === 0) {
+          // 解析 publish_page 字段（它是一个JSON字符串）
+          let publishPage = data.publish_page
+          if (typeof publishPage === 'string') {
+            publishPage = JSON.parse(publishPage)
+          }
+          
+          const publishList = publishPage?.publish_list || []
+          console.log(`账号 ${account.name} 共有 ${publishList.length} 条发布记录`)
+          
+          // 遍历发布列表
+          publishList.forEach(publishItem => {
+            // 解析 publish_info 字段（也是JSON字符串）
+            let publishInfo = publishItem.publish_info
+            if (typeof publishInfo === 'string') {
+              publishInfo = JSON.parse(publishInfo)
+            }
+            
+            const appmsgInfoList = publishInfo?.appmsg_info || []
+            
+            // 遍历每篇文章
+            appmsgInfoList.forEach(article => {
+              const readNum = article.read_num || 0
+              if (readNum > 10) {
+                notifyArticles.value.push({
+                  accountId: account.id,
+                  accountName: account.name,
+                  accountAvatar: account.avatar,
+                  title: article.title || '无标题',
+                  readNum: readNum,
+                  likeNum: article.like_num || 0,
+                  shareNum: article.share_num || 0,
+                  publishTime: publishInfo.sent_info?.time || 0,
+                  url: article.content_url || ''
+                })
+              }
+            })
+          })
+        } else if (data.base_resp?.ret === 200003) {
+          console.error(`账号 ${account.name} Session 已失效`)
+          ElMessage.error(`账号 ${account.name} 登录已过期，请重新登录`)
+        } else {
+          console.error(`账号 ${account.name} 接口返回错误:`, data.base_resp)
+          ElMessage.warning(`账号 ${account.name}: ${data.base_resp?.err_msg || '获取失败'}`)
+        }
+      } catch (error) {
+        console.error(`获取账号 ${account.name} 的文章失败:`, error)
+        ElMessage.error(`获取账号 ${account.name} 失败: ${error.message}`)
+      }
+    }
+
+    // 按阅读量降序排序
+    notifyArticles.value.sort((a, b) => b.readNum - a.readNum)
+
+    if (notifyArticles.value.length === 0) {
+      ElMessage.info('没有找到阅读量大于10的文章')
+    } else {
+      ElMessage.success(`找到 ${notifyArticles.value.length} 篇阅读量大于10的文章`)
+    }
+  } catch (error) {
+    console.error('加载通知文章失败:', error)
+    ElMessage.error('加载文章数据失败: ' + error.message)
+  } finally {
+    notifyLoading.value = false
+  }
+}
+
+// 格式化时间
+function formatNotifyTime(timestamp) {
+  if (!timestamp) return '-'
+  const date = new Date(timestamp * 1000)
+  return date.toLocaleString('zh-CN', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit'
+  })
+}
+
+// 格式化数字
+function formatNotifyNumber(num) {
+  if (num === undefined || num === null) return '0'
+  return num.toLocaleString('zh-CN')
+}
+
+// 查看文章
+function viewArticle(article) {
+  if (article.url) {
+    window.open(article.url, '_blank')
+  } else {
+    ElMessage.info('暂无文章链接')
+  }
+}
+
+// 处理批量通知（在对话框中）
+function handleBatchNotify() {
+  if (multipleSelection.value.length === 0) {
+    ElMessage.warning('请先选择要通知的账号')
+    return
+  }
+
+  const accountNames = multipleSelection.value.map(acc => acc.name).join('、')
+  const groupName = batchForm.group_name || '未分组'
+
+  ElMessageBox.alert(
+    `将向以下 ${multipleSelection.value.length} 个账号发送分组变更通知：\n\n${accountNames}\n\n目标分组：${groupName}`,
+    '批量通知',
+    {
+      confirmButtonText: '确定',
+      type: 'info',
+      dangerouslyUseHTMLString: false
+    }
+  ).then(() => {
+    ElMessage.success('通知已发送')
+  })
+}
 </script>
 
 <style scoped>
@@ -753,6 +1077,72 @@ async function handleDelete(row) {
   font-size: 12px;
   color: #909399;
   line-height: 1.5;
+}
+
+.notify-list {
+  max-height: 500px;
+  overflow-y: auto;
+}
+
+.notify-item {
+  padding: 15px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  margin-bottom: 12px;
+  transition: all 0.3s;
+}
+
+.notify-item:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border-color: #409eff;
+}
+
+.notify-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.account-info {
+  display: flex;
+  align-items: center;
+}
+
+.account-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  margin-right: 8px;
+}
+
+.account-name {
+  font-size: 14px;
+  color: #333;
+  font-weight: 500;
+}
+
+.publish-time {
+  font-size: 12px;
+  color: #999;
+}
+
+.article-title {
+  font-size: 15px;
+  color: #333;
+  margin-bottom: 10px;
+  cursor: pointer;
+  line-height: 1.5;
+  transition: color 0.3s;
+}
+
+.article-title:hover {
+  color: #409eff;
+}
+
+.article-stats {
+  display: flex;
+  align-items: center;
 }
 </style>
 

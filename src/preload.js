@@ -52,6 +52,15 @@ contextBridge.exposeInMainWorld('ipcRenderer', {
     } // end if
   },
 });
+contextBridge.exposeInMainWorld('electron', {
+  ipcRenderer: {
+    invoke: (channel, data) => {
+      if (['set-cookie', 'get-cookies', 'fetch-with-cookies'].includes(channel)) {
+        return ipcRenderer.invoke(channel, data);
+      }
+    }
+  }
+});
 contextBridge.exposeInMainWorld('webBridge', {
   callRpc(name, data) {
     return ipcRenderer.invoke('callRpc', {name,data});

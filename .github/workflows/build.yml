@@ -73,3 +73,29 @@ jobs:
             dist_electron/*.dmg
             dist_electron/*.dmg.blockmap
             dist_electron/latest-mac.yml
+
+      - name: Release (Windows)
+        if: matrix.os == 'windows-latest' && startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            dist_electron/*.exe
+            dist_electron/*.exe.blockmap
+            dist_electron/latest.yml
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Release (macOS)
+        if: matrix.os == 'macos-latest' && startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            dist_electron/*.dmg
+            dist_electron/*.dmg.blockmap
+            dist_electron/latest-mac.yml
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

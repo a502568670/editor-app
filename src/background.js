@@ -7,7 +7,7 @@
  */
 'use strict'
 
-import { app, protocol, BrowserWindow, Menu,session, dialog, nativeTheme } from 'electron'
+import { app, protocol, BrowserWindow, Menu,session, dialog, nativeTheme, ipcMain } from 'electron'
 import updater from "./updater"
 import { createProtocol } from 'vue-cli-plugin-electron-builder/lib'
 import installExtension, { VUEJS3_DEVTOOLS } from 'electron-devtools-installer'
@@ -174,6 +174,129 @@ app.on('ready', async () => {
   });
 
   tabbedWin = await createTabbedWin()
+  
+  // 添加 IPC 处理器来设置 Cookie
+  ipcMain.handle('set-cookie', async (event, cookieDetails) => {
+    try {
+      await session.defaultSession.cookies.set(cookieDetails)
+      console.log('Cookie 设置成功:', cookieDetails.name)
+      return { success: true }
+    } catch (error) {
+      console.error('Cookie 设置失败:', error)
+      return { success: false, error: error.message }
+    }
+  })
+  
+  // 添加 IPC 处理器来获取 Cookie
+  ipcMain.handle('get-cookies', async (event, filter) => {
+    try {
+      const cookies = await session.defaultSession.cookies.get(filter)
+      console.log('获取到的 Cookie 数量:', cookies.length)
+      return cookies
+    } catch (error) {
+      console.error('获取 Cookie 失败:', error)
+      return []
+    }
+  })
+  
+  // 添加 IPC 处理器来发送带自定义 Cookie 的 HTTP 请求
+  ipcMain.handle('fetch-with-cookies', async (event, { url, method = 'GET', headers = {}, body = null, cookies = [] }) => {
+    try {
+      const https = require('https')
+      const http = require('http')
+      const urlModule = require('url')
+      
+      const parsedUrl = urlModule.parse(url)
+      const isHttps = parsedUrl.protocol === 'https:'
+      const httpModule = isHttps ? https : http
+      
+      // 构建 Cookie 字符串
+      let cookieString = ''
+      if (Array.isArray(cookies) && cookies.length > 0) {
+        cookieString = cookies.map(c => `${c.name}=${c.value}`).join('; ')
+      } else if (typeof cookies === 'string') {
+        cookieString = cookies
+      }
+      
+      // 合并请求头
+      const requestHeaders = {
+        'Accept': '*/*',
+        'Accept-Language': 'zh-CN,zh;q=0.9',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.5615.183 Safari/537.36',
+        ...headers
+      }
+      
+      if (cookieString) {
+        requestHeaders['Cookie'] = cookieString
+      }
+      
+      console.log('发送请求:', {
+        url,
+        method,
+        headers: requestHeaders,
+        cookieLength: cookieString.length
+      })
+      
+      return new Promise((resolve, reject) => {
+        const options = {
+          hostname: parsedUrl.hostname,
+          port: parsedUrl.port,
+          path: parsedUrl.path,
+          method: method,
+          headers: requestHeaders,
+          rejectUnauthorized: false // 忽略 SSL 证书错误
+        }
+        
+        const req = httpModule.request(options, (res) => {
+          let data = ''
+          
+          res.on('data', (chunk) => {
+            data += chunk
+          })
+          
+          res.on('end', () => {
+            try {
+              const jsonData = JSON.parse(data)
+              resolve({
+                success: true,
+                status: res.statusCode,
+                headers: res.headers,
+                data: jsonData
+              })
+            } catch (e) {
+              resolve({
+                success: true,
+                status: res.statusCode,
+                headers: res.headers,
+                data: data
+              })
+            }
+          })
+        })
+        
+        req.on('error', (error) => {
+          console.error('请求失败:', error)
+          reject({
+            success: false,
+            error: error.message
+          })
+        })
+        
+        if (body) {
+          req.write(body)
+        }
+        
+        req.end()
+      })
+    } catch (error) {
+      console.error('fetch-with-cookies 失败:', error)
+      return {
+        success: false,
+        error: error.message
+      }
+    }
+  })
+  
   var confirmed=false;
   tabbedWin.win.on('close',async (evt)=>{
     if(process.platform==='win32'&&!globalThis.__UPDATING__&&!confirmed){

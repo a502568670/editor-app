@@ -119,3 +119,12 @@ export async function query_appmsg_publish_qrcode_validate_events(data, cb) {
     abortSSEConnection(requestId)
   }
 }
+
+// 获取已发布文章列表（包含阅读数）
+export function getPublishedArticles(data) {
+  return request({
+    url: `/mp_wechat/get_published_articles`,
+    method: 'post',
+    data
+  })
+}
