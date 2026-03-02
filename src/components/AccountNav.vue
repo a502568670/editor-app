@@ -147,22 +147,28 @@ const handleInput = debounceFn((query) => {
 }, 200, false)
 
 const handleSelect = (account) => {
-  const { token, name, id, session_id } = account
-  // console.log("token=>", token)
-  // console.log("id=>", id)
-  // console.log("session_id=>", session_id)
-  if (!token || !session_id) {
-    //TODO:封装成微信错误码invalid_session
-    ElMessageBox.alert(apperrmsg.invalid_session, '错误', {
+  console.log("handleSelect 被调用，账号信息:", account)
+  const { token, name, id, session_id, expired } = account
+  console.log("token=>", token)
+  console.log("id=>", id)
+  console.log("session_id=>", session_id)
+  console.log("expired=>", expired)
+  
+  // 检查账号是否过期
+  if (expired || !token || !session_id) {
+    console.log("账号已过期或缺少登录信息，显示提示框")
+    ElMessageBox.alert('登录状态已过期，请重新登录', '提示', {
       confirmButtonText: '确定',
-      type: 'error'
+      type: 'warning'
     }).then(() => {
-      console.log("then")
+      console.log("用户确认登录过期提示")
     }).catch(() => {
-      console.log("catch")
+      console.log("用户关闭登录过期提示")
     })
     return
   }
+  
+  console.log("账号验证通过，继续选择")
   selected_account_id.value = account.id
   const idx = accountsRef.value.findIndex(v => v.id === selected_account_id.value)
   console.log("selected account.id=>", account.id)

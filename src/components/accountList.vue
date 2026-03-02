@@ -622,8 +622,8 @@ const addUniversal = async () => {
 
 /** 点击账号触发 */
 const clickAccount = account => {
-  console.log('clickAccount', account);
-  const { token, session_id, platform_id } = account;
+  const { token, session_id, platform_id, expired, wechat_id } = account;
+  
   if (platform_id === 6 && !props.isSupportUniversal) {
     ElMessageBox.alert('该平台不支持此操作，已重新选择为公众号', '提示', {
       confirmButtonText: '确定',
@@ -634,13 +634,28 @@ const clickAccount = account => {
     });
     return;
   }
-  if (props.invalidWarn && (!token || !session_id)) {
-    ElMessageBox.alert(apperrmsg.invalid_session, '错误', {
+  
+  // 检查账号是否过期（只检查 token 是否存在）
+  if (!token) {
+    ElMessageBox.confirm('登录状态已过期，是否删除该账号并重新登录？', '提示', {
       confirmButtonText: '确定',
-      type: 'error'
+      cancelButtonText: '取消',
+      type: 'warning'
+    }).then(async () => {
+      // 删除过期账号
+      await delAccount(wechat_id);
+      
+      // 打开微信公众号登录二维码
+      const wechatPlatform = platforms.find(p => p.id === 4);
+      if (wechatPlatform) {
+        addAccount(wechatPlatform);
+      }
+    }).catch(() => {
+      // 用户取消操作
     });
     return;
   }
+  
   store.commit('SET_CURRENT_ACCOUNT', account);
   emit('clickAccountTrigger', account);
 };
