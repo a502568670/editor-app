@@ -116,21 +116,8 @@ function onFileChange(e) {
                     cropperSrc.value = reader.result
                     opt.extraData = { name: `${name}.png`, type: 'image/png' }
                 } else {
-                    if (upload) {
-                        try {
-                            const { session_id, token } = selectedAccount.value
-                            const cookies = serializeCookie(JSON.parse(session_id)["cookie"])
-                            uploadImage({
-                                cookies: cookies,
-                                token: parseInt(token),
-                                base64_image: reader.result.substring(22),
-                                filename: `${name}.png`,
-                                content_type: 'image/png',
-                            }).then(res => $emit('change', res.data.cdn_url))
-                        } catch (err) {
-                            console.error(err)
-                        }
-                    }
+                    // 不再调用 uploadImage，直接提示用户
+                    ElMessage({ type: 'warning', message: '请使用已上传的图片进行裁剪' })
                 }
             }
             reader.readAsDataURL(file)
@@ -153,18 +140,19 @@ async function onConfirm() {
     refCropper.value.getCropData(async (data) => {
         previewSrc.value = data;
         opt.extraData.data = data.substring(22)
-        if (upload) {
-            try {
-                const { session_id, token } = selectedAccount.value
-                const cookies = serializeCookie(JSON.parse(session_id)["cookie"])
-                
-                // 判断 cropperSrc 是 URL 还是 base64
-                const isUrl = cropperSrc.value && (cropperSrc.value.startsWith('http://') || cropperSrc.value.startsWith('https://'))
-                
-                let cdn_url = cropperSrc.value  // 默认使用原图 URL
-                
-                // 如果是 base64（本地上传的图片），需要先上传
-                if (!isUrl) {
+        
+        try {
+            const { session_id, token } = selectedAccount.value
+            const cookies = serializeCookie(JSON.parse(session_id)["cookie"])
+            
+            // 判断 cropperSrc 是 URL 还是 base64
+            const isUrl = cropperSrc.value && (cropperSrc.value.startsWith('http://') || cropperSrc.value.startsWith('https://'))
+            
+            let cdn_url = cropperSrc.value
+            
+            // 如果是 base64（本地上传的图片），先上传到服务器
+            if (!isUrl) {
+                try {
                     const uploadRes = await uploadImage({
                         cookies: cookies,
                         token: parseInt(token),
@@ -173,90 +161,115 @@ async function onConfirm() {
                         content_type: opt.extraData.type,
                     })
                     cdn_url = uploadRes.data.cdn_url
+                    console.log("本地图片上传成功:", cdn_url)
+                } catch (err) {
+                    console.error("ImgCrop: 上传失败:", err)
+                    ElMessage({ type: 'error', message: '图片上传失败' })
+                    return
                 }
-                
-                // 获取裁剪器中的坐标和图片信息
-                const cropAxis = refCropper.value.getCropAxis()
-                
-                // 获取裁剪器中图片的实际显示尺寸（用于归一化坐标）
-                const cropperImg = new Image()
-                cropperImg.crossOrigin = 'anonymous'
-                cropperImg.onload = async () => {
-                    const imgWidth = cropperImg.naturalWidth
-                    const imgHeight = cropperImg.naturalHeight
-                    
-                    // 将裁剪坐标归一化为 0-1 范围
-                    const normalizedCrop = {
-                        size_x1: cropAxis.x1 / imgWidth,
-                        size_y1: cropAxis.y1 / imgHeight,
-                        size_x2: cropAxis.x2 / imgWidth,
-                        size_y2: cropAxis.y2 / imgHeight
-                    }
-                    
-                    const cropWidth = normalizedCrop.size_x2 - normalizedCrop.size_x1
-                    const cropHeight = normalizedCrop.size_y2 - normalizedCrop.size_y1
-                    
-                    // 为不同的 format 计算不同的裁剪坐标
-                    // format0 (2.35:1) - 横图，保持全宽，调整高度
-                    const format0_height = cropWidth / 2.35
-                    const format0_y_center = (normalizedCrop.size_y1 + normalizedCrop.size_y2) / 2
-                    const format0_crop = {
-                        size_x1: normalizedCrop.size_x1,
-                        size_y1: Math.max(0, format0_y_center - format0_height / 2),
-                        size_x2: normalizedCrop.size_x2,
-                        size_y2: Math.min(1, format0_y_center + format0_height / 2),
-                        format: '2.35_1'
-                    }
-                    
-                    // format1 (1:1) - 正方形，保持较小的边，居中裁剪
-                    const squareSize = Math.min(cropWidth, cropHeight)
-                    const format1_x_center = (normalizedCrop.size_x1 + normalizedCrop.size_x2) / 2
-                    const format1_y_center = (normalizedCrop.size_y1 + normalizedCrop.size_y2) / 2
-                    const format1_crop = {
-                        size_x1: Math.max(0, format1_x_center - squareSize / 2),
-                        size_y1: Math.max(0, format1_y_center - squareSize / 2),
-                        size_x2: Math.min(1, format1_x_center + squareSize / 2),
-                        size_y2: Math.min(1, format1_y_center + squareSize / 2),
-                        format: '1_1'
-                    }
-                    
-                    // 调用微信裁剪接口
-                    const cropData = {
-                        cookies: cookies,
-                        token: parseInt(token),
-                        imgurl: cdn_url,
-                        size_count: 2,
-                        crop_info: [format0_crop, format1_crop]
-                    }
-                    
-                    try {
-                        const cropResult = await cropImage(cropData)
-                        
-                        // 使用微信裁剪后的 URL
-                        if (cropResult.data && cropResult.data.base_resp && cropResult.data.base_resp.ret === 0) {
-                            if (cropResult.data.result && cropResult.data.result.length > 0) {
-                                cdn_url = cropResult.data.result[0].cdnurl
-                                // 更新预览图为裁剪后的 URL
-                                previewSrc.value = cdn_url
-                            }
-                        }
-                        
-                        $emit('change', cdn_url)
-                    } catch (err) {
-                        console.error("ImgCrop: 裁剪失败:", err)
-                        // 裁剪失败，使用原图 URL
-                        previewSrc.value = cdn_url
-                        $emit('change', cdn_url)
-                    }
-                }
-                cropperImg.src = cropperSrc.value
-            } catch (err) {
-                console.error("ImgCrop: 处理失败:", err)
             }
-        } else {
-            $emit('change', { ...opt.extraData, raw_img: cropperSrc.value, crop: refCropper.value.getCropAxis() })
+            
+            // 获取裁剪器中的坐标和图片信息
+            const cropAxis = refCropper.value.getCropAxis()
+            
+            // 获取裁剪器中图片的实际显示尺寸（用于归一化坐标）
+            const cropperImg = new Image()
+            cropperImg.crossOrigin = 'anonymous'
+            cropperImg.onload = async () => {
+                const imgWidth = cropperImg.naturalWidth
+                const imgHeight = cropperImg.naturalHeight
+                
+                // 将裁剪坐标归一化为 0-1 范围
+                const normalizedCrop = {
+                    size_x1: cropAxis.x1 / imgWidth,
+                    size_y1: cropAxis.y1 / imgHeight,
+                    size_x2: cropAxis.x2 / imgWidth,
+                    size_y2: cropAxis.y2 / imgHeight
+                }
+                
+                const cropWidth = normalizedCrop.size_x2 - normalizedCrop.size_x1
+                const cropHeight = normalizedCrop.size_y2 - normalizedCrop.size_y1
+                
+                // 为不同的 format 计算不同的裁剪坐标
+                // format0 (2.35:1) - 横图，保持全宽，调整高度
+                const format0_height = cropWidth / 2.35
+                const format0_y_center = (normalizedCrop.size_y1 + normalizedCrop.size_y2) / 2
+                const format0_crop = {
+                    size_x1: normalizedCrop.size_x1,
+                    size_y1: Math.max(0, format0_y_center - format0_height / 2),
+                    size_x2: normalizedCrop.size_x2,
+                    size_y2: Math.min(1, format0_y_center + format0_height / 2),
+                    format: '2.35_1'
+                }
+                
+                // format1 (1:1) - 正方形，保持较小的边，居中裁剪
+                const squareSize = Math.min(cropWidth, cropHeight)
+                const format1_x_center = (normalizedCrop.size_x1 + normalizedCrop.size_x2) / 2
+                const format1_y_center = (normalizedCrop.size_y1 + normalizedCrop.size_y2) / 2
+                const format1_crop = {
+                    size_x1: Math.max(0, format1_x_center - squareSize / 2),
+                    size_y1: Math.max(0, format1_y_center - squareSize / 2),
+                    size_x2: Math.min(1, format1_x_center + squareSize / 2),
+                    size_y2: Math.min(1, format1_y_center + squareSize / 2),
+                    format: '1_1'
+                }
+                
+                // 生成 fingerprint
+                const fingerprint = generateFingerprint(cdn_url)
+                
+                // 调用微信裁剪接口
+                const cropData = {
+                    cookies: cookies,
+                    token: parseInt(token),
+                    imgurl: cdn_url,
+                    size_count: 2,
+                    crop_info: [format0_crop, format1_crop],
+                    fingerprint: fingerprint
+                }
+                
+                try {
+                    const cropResult = await cropImage(cropData)
+                    
+                    // 使用微信裁剪后的 URL
+                    if (cropResult.data && cropResult.data.base_resp && cropResult.data.base_resp.ret === 0) {
+                        if (cropResult.data.result && cropResult.data.result.length > 0) {
+                            cdn_url = cropResult.data.result[0].cdnurl
+                            // 更新预览图为裁剪后的 URL
+                            previewSrc.value = cdn_url
+                        }
+                    }
+                    
+                    $emit('change', cdn_url)
+                } catch (err) {
+                    console.error("ImgCrop: 裁剪失败:", err)
+                    // 裁剪失败，使用上传后的原图 URL
+                    previewSrc.value = cdn_url
+                    $emit('change', cdn_url)
+                }
+            }
+            // 如果是本地图片，需要等图片加载完成后再获取尺寸
+            if (!isUrl) {
+                cropperImg.src = cdn_url
+            } else {
+                cropperImg.src = cropperSrc.value
+            }
+        } catch (err) {
+            console.error("ImgCrop: 处理失败:", err)
         }
     })
+}
+
+// 生成 fingerprint
+function generateFingerprint(url) {
+    // 简单的哈希函数，生成类似 9e083655cb3092eb7cba2d400454b06c 的字符串
+    let hash = 0;
+    const str = url + Date.now();
+    for (let i = 0; i < str.length; i++) {
+        const char = str.charCodeAt(i);
+        hash = ((hash << 5) - hash) + char;
+        hash = hash & hash;
+    }
+    return Math.abs(hash).toString(16).padStart(32, '0').substring(0, 32);
 }
 // onMounted(()=>{
 //     store.dispatch('ListAccounts')

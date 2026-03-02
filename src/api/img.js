@@ -11,8 +11,8 @@ export function uploadImage(data={cookies:'',token:0,base64_image:'',filename:''
 }
 
 // 直接调用微信的裁剪接口
-export function cropImage(data={cookies:'',token:0,imgurl:'',size_count:2,crop_info:[]}) {
-  const { cookies, token, imgurl, size_count, crop_info } = data
+export function cropImage(data={cookies:'',token:0,imgurl:'',size_count:2,crop_info:[],fingerprint:''}) {
+  const { cookies, token, imgurl, size_count, crop_info, fingerprint } = data
   
   // 构建表单数据
   const formData = {
@@ -23,6 +23,12 @@ export function cropImage(data={cookies:'',token:0,imgurl:'',size_count:2,crop_i
     f: 'json',
     ajax: 1
   }
+  
+  // 添加 fingerprint（如果提供）
+  if (fingerprint) {
+    formData.fingerprint = fingerprint
+  }
+  
   console.log('formData',formData)
   // 添加裁剪信息
   crop_info.forEach((crop, index) => {
