@@ -1,18 +1,13 @@
-name: Build
+name: Release
 
 on:
   push:
-    branches:
-      - master
-      - main
-  pull_request:
-    branches:
-      - master
-      - main
+    tags:
+      - 'v*'
   workflow_dispatch:
 
 jobs:
-  build:
+  release:
     runs-on: ${{ matrix.os }}
     
     strategy:
@@ -37,38 +32,52 @@ jobs:
         run: npm run electron:build:win
         env:
           BACKEND_URL: http://47.96.22.8:8005
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       
       - name: 构建应用 (macOS)
         if: matrix.os == 'macos-latest'
         run: npm run electron:build:mac
         env:
           BACKEND_URL: http://47.96.22.8:8005
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       
       - name: 构建应用 (Linux)
         if: matrix.os == 'ubuntu-latest'
         run: npm run electron:build
         env:
           BACKEND_URL: http://47.96.22.8:8005
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       
-      - name: 上传构建产物 (Windows)
+      - name: 上传到 Release (Windows)
         if: matrix.os == 'windows-latest'
-        uses: actions/upload-artifact@v4
+        uses: softprops/action-gh-release@v1
         with:
-          name: windows-installer
-          path: dist_electron/*.exe
+          files: |
+            dist_electron/*.exe
+            dist_electron/*.exe.blockmap
+            dist_electron/latest.yml
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       
-      - name: 上传构建产物 (macOS)
+      - name: 上传到 Release (macOS)
         if: matrix.os == 'macos-latest'
-        uses: actions/upload-artifact@v4
+        uses: softprops/action-gh-release@v1
         with:
-          name: macos-installer
-          path: dist_electron/*.dmg
+          files: |
+            dist_electron/*.dmg
+            dist_electron/*.dmg.blockmap
+            dist_electron/latest-mac.yml
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       
-      - name: 上传构建产物 (Linux)
+      - name: 上传到 Release (Linux)
         if: matrix.os == 'ubuntu-latest'
-        uses: actions/upload-artifact@v4
+        uses: softprops/action-gh-release@v1
         with:
-          name: linux-installer
-          path: |
+          files: |
             dist_electron/*.deb
             dist_electron/*.AppImage
+            dist_electron/latest-linux.yml
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
