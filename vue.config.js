@@ -54,7 +54,7 @@ module.exports = {
         publish: [
           {
             provider: 'generic',
-            url: 'http://47.96.22.8:8006/autoupdate'
+            url: 'https://static.dajiala.com:9224/static/gaoqingsong/autoupdate'
           }
         ],
         appId: "com.electron.client",  // 保持与 0.5.9 相同，确保可以自动更新
