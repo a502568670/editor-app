@@ -17,7 +17,7 @@ jobs:
     
     strategy:
       matrix:
-        os: [windows-latest, macos-latest, ubuntu-latest]
+        os: [windows-latest, macos-latest]
     
     steps:
       - name: 检出代码
@@ -48,12 +48,6 @@ jobs:
           BACKEND_URL: http://47.96.22.8:8005
           PYTHON_PATH: /usr/bin/python3
       
-      - name: 构建应用 (Linux)
-        if: matrix.os == 'ubuntu-latest'
-        run: npm run electron:build
-        env:
-          BACKEND_URL: http://47.96.22.8:8005
-      
       - name: 上传构建产物 (Windows)
         if: matrix.os == 'windows-latest'
         uses: actions/upload-artifact@v4
@@ -67,12 +61,3 @@ jobs:
         with:
           name: macos-installer
           path: dist_electron/*.dmg
-      
-      - name: 上传构建产物 (Linux)
-        if: matrix.os == 'ubuntu-latest'
-        uses: actions/upload-artifact@v4
-        with:
-          name: linux-installer
-          path: |
-            dist_electron/*.deb
-            dist_electron/*.AppImage

@@ -12,7 +12,7 @@ jobs:
     
     strategy:
       matrix:
-        os: [windows-latest, macos-latest, ubuntu-latest]
+        os: [windows-latest, macos-latest]
     
     steps:
       - name: 检出代码
@@ -45,13 +45,6 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PYTHON_PATH: /usr/bin/python3
       
-      - name: 构建应用 (Linux)
-        if: matrix.os == 'ubuntu-latest'
-        run: npm run electron:build
-        env:
-          BACKEND_URL: http://47.96.22.8:8005
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      
       - name: 上传到 Release (Windows)
         if: matrix.os == 'windows-latest'
         uses: softprops/action-gh-release@v1
@@ -71,17 +64,6 @@ jobs:
             dist_electron/*.dmg
             dist_electron/*.dmg.blockmap
             dist_electron/latest-mac.yml
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      
-      - name: 上传到 Release (Linux)
-        if: matrix.os == 'ubuntu-latest'
-        uses: softprops/action-gh-release@v1
-        with:
-          files: |
-            dist_electron/*.deb
-            dist_electron/*.AppImage
-            dist_electron/latest-linux.yml
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
