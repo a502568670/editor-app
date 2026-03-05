@@ -150,8 +150,8 @@ app.on('ready', async () => {
     callback({ requestHeaders: details.requestHeaders })
   });
 
-  // 为微信裁剪接口设置自定义请求头
-  var wxCropImage = { urls: ['https://mp.weixin.qq.com/cgi-bin/cropimage?action=crop_multi'] }
+  // 为微信裁剪接口设置自定义请求头（crop_multi / 单次 crop 都会命中）
+  var wxCropImage = { urls: ['https://mp.weixin.qq.com/cgi-bin/cropimage*'] }
   session.defaultSession.webRequest.onBeforeSendHeaders(wxCropImage, (details, callback) => {
     // 设置自定义 User-Agent
     details.requestHeaders['User-Agent'] = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36'

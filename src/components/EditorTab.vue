@@ -1352,7 +1352,7 @@ import {
   query_appmsg_publish_qrcode_validate_events, getQrcodeMobileValidate
 } from "@/api/mp_wechat"
 import { format_to_UEditor_html, clearContentUrl, clearWeApp, restore_from_UEditor_html } from "@/utils/dom";
-import { uploadImage, cropImage } from "@/api/img"
+import { uploadImage, cropImage, cropImageByAxis } from "@/api/img"
 import { VueCropper } from 'vue-cropper'
 import 'vue-cropper/dist/index.css'
 import {
@@ -1465,29 +1465,29 @@ const editorConfigRef = ref({
     // 上传图片到服务器
     const blob = file instanceof Blob ? file : file.blob.source;
     const reader = new FileReader();
-    
+
     reader.onload = async function(e) {
       const base64Data = e.target.result;
       console.log('开始上传图片到服务器');
-      
+
       try {
         // 提取 base64 数据和文件类型
         const matches = base64Data.match(/data:(.*);base64,(.*)/);
         if (!matches || matches.length < 3) {
           throw new Error('无效的 base64 数据');
         }
-        
+
         const content_type = matches[1];
         const base64_image = matches[2];
         const filename = file.name || `image-${Date.now()}.${content_type.split('/')[1]}`;
-        
+
         // 获取账号信息
         if (!selectedAccount.value || !selectedAccount.value.session_id) {
           throw new Error('账号未登录');
         }
-        
+
         const { session_id, token } = selectedAccount.value;
-        
+
         // 调用上传接口
         const response = await uploadImage({
           cookies: serializeCookie(JSON.parse(session_id)["cookie"]),
@@ -1496,10 +1496,10 @@ const editorConfigRef = ref({
           filename,
           content_type
         });
-        
+
         const { cdn_url } = response.data;
         console.log('图片上传成功:', cdn_url);
-        
+
         // 返回 CDN URL
         callback.success({
           "state": "SUCCESS",
@@ -1513,7 +1513,7 @@ const editorConfigRef = ref({
         });
       }
     };
-    
+
     reader.onerror = function(e) {
       console.error('读取图片失败:', e);
       callback.error({
@@ -1521,7 +1521,7 @@ const editorConfigRef = ref({
         "message": "读取图片失败"
       });
     };
-    
+
     reader.readAsDataURL(blob);
   },
   elementPathEnabled: false,
@@ -1874,6 +1874,31 @@ const cropperOptions = ref({
   mode: 'contain'
 })
 
+// 清理编辑内容中的裁剪辅助元素与图片 outline 样式
+function cleanEditorHtml(html) {
+  if (!html || typeof html !== 'string') return html
+  const tempDiv = document.createElement('div')
+  tempDiv.innerHTML = html
+
+  // 移除裁剪按钮容器（包含“裁剪”文字等）
+  const cropContainers = tempDiv.querySelectorAll('.image-crop-button-container')
+  cropContainers.forEach((el) => el.remove())
+
+  // 清除图片上的 outline / outline-offset 样式，避免保存后仍然存在高亮边框
+  const images = tempDiv.querySelectorAll('img')
+  images.forEach((img) => {
+    if (img.style) {
+      img.style.outline = ''
+      img.style.outlineOffset = ''
+      // 同时从 style 属性中移除对应声明
+      img.style.removeProperty('outline')
+      img.style.removeProperty('outline-offset')
+    }
+  })
+
+  return tempDiv.innerHTML
+}
+
 // 设置图片裁剪监听器
 function setupImageCropListener(editor) {
   if (!editor) return;
@@ -1992,6 +2017,68 @@ function setupImageCropListener(editor) {
 const isCropping = ref(false);
 const isDraggingCrop = ref(false);
 const cropBoxData = ref({ x: 0, y: 0, width: 0, height: 0 });
+const originalCropImageSrc = ref('');
+
+function generateFingerprint(url) {
+  let hash = 0
+  const str = String(url || '') + Date.now()
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i)
+    hash = ((hash << 5) - hash) + char
+    hash = hash & hash
+  }
+  return Math.abs(hash).toString(16).padStart(32, '0').substring(0, 32)
+}
+
+function clamp01(n) {
+  if (Number.isNaN(n) || n == null) return 0
+  return Math.min(1, Math.max(0, n))
+}
+
+function normalizeCropAxis({ cropAxis, imgAxis, imgWidth, imgHeight }) {
+  // 1) 如果 cropAxis 已经是 0-1 的归一化坐标
+  if (cropAxis && cropAxis.x2 <= 1 && cropAxis.y2 <= 1) {
+    return {
+      x1: clamp01(cropAxis.x1),
+      y1: clamp01(cropAxis.y1),
+      x2: clamp01(cropAxis.x2),
+      y2: clamp01(cropAxis.y2),
+    }
+  }
+
+  // 2) 优先判断 cropAxis 是否处在 imgAxis 同一坐标系（裁剪器显示坐标）
+  // 这种情况下直接除 naturalWidth 会产生“整体偏移”的错位
+  if (imgAxis && cropAxis) {
+    const withinImgAxis =
+      cropAxis.x1 >= imgAxis.x1 - 1 &&
+      cropAxis.y1 >= imgAxis.y1 - 1 &&
+      cropAxis.x2 <= imgAxis.x2 + 1 &&
+      cropAxis.y2 <= imgAxis.y2 + 1
+
+    if (withinImgAxis) {
+      const w = (imgAxis.x2 - imgAxis.x1) || 1
+      const h = (imgAxis.y2 - imgAxis.y1) || 1
+      return {
+        x1: clamp01((cropAxis.x1 - imgAxis.x1) / w),
+        y1: clamp01((cropAxis.y1 - imgAxis.y1) / h),
+        x2: clamp01((cropAxis.x2 - imgAxis.x1) / w),
+        y2: clamp01((cropAxis.y2 - imgAxis.y1) / h),
+      }
+    }
+  }
+
+  // 3) 如果 cropAxis 看起来是原图像素坐标（而不是显示坐标）
+  if (imgWidth && imgHeight && cropAxis && cropAxis.x2 <= imgWidth + 1 && cropAxis.y2 <= imgHeight + 1) {
+    return {
+      x1: clamp01(cropAxis.x1 / imgWidth),
+      y1: clamp01(cropAxis.y1 / imgHeight),
+      x2: clamp01(cropAxis.x2 / imgWidth),
+      y2: clamp01(cropAxis.y2 / imgHeight),
+    }
+  }
+
+  return { x1: 0, y1: 0, x2: 1, y2: 1 }
+}
 
 // 显示图片裁剪按钮
 function showImageCropButton(imgElement) {
@@ -2013,7 +2100,6 @@ function showImageCropButton(imgElement) {
     height: ${imgRect.height}px;
     pointer-events: none;
     z-index: 1000;
-    border: 2px solid #409EFF;
     box-sizing: border-box;
   `;
   
@@ -2071,10 +2157,6 @@ function showImageCropButton(imgElement) {
   
   // 保存当前图片元素引用
   currentCropImageElement.value = imgElement;
-  
-  // 给图片添加选中样式
-  imgElement.style.outline = '2px solid #409EFF';
-  imgElement.style.outlineOffset = '-2px';
 }
 
 // 打开裁剪对话框
@@ -2084,6 +2166,7 @@ function openCropperDialog(imgElement) {
   
   // 先保存图片元素引用
   currentCropImageElement.value = imgElement;
+  originalCropImageSrc.value = imgSrc;
   
   // 设置裁剪器选项
   cropperImageUrl.value = imgSrc;
@@ -2108,18 +2191,110 @@ function handleCropperConfirm() {
     return;
   }
   
-  // 获取裁剪后的图片数据（base64）
-  cropperRef.value.getCropData((data) => {
-    console.log('获取到裁剪数据，长度:', data.length);
-    // 直接替换图片的 src
-    currentCropImageElement.value.src = data;
-    
-    // 关闭对话框
-    cropperDialogVisible.value = false;
-    currentCropImageElement.value = null;
-    
-    ElMessage.success('图片裁剪成功');
-  });
+  const loading = ElLoading.service({
+    lock: true,
+    text: '正在裁剪图片...',
+    background: 'rgba(0, 0, 0, 0.7)'
+  })
+
+  try {
+    const cropAxis = cropperRef.value.getCropAxis && cropperRef.value.getCropAxis()
+    if (!cropAxis) {
+      loading.close()
+      ElMessage.error('裁剪失败：未获取到裁剪区域')
+      return
+    }
+
+    const { session_id, token } = selectedAccount.value || {}
+    if (!session_id || !token) {
+      loading.close()
+      ElMessage.error('账号未登录')
+      return
+    }
+
+    const imgurl = originalCropImageSrc.value
+    if (!imgurl || !/^https?:\/\//i.test(imgurl)) {
+      loading.close()
+      ElMessage.warning('仅支持裁剪公众号已上传图片（微信 CDN URL）。请先将图片上传到公众号素材/正文后再裁剪。')
+      // 恢复原图，避免留下 base64
+      if (originalCropImageSrc.value && currentCropImageElement.value) {
+        currentCropImageElement.value.src = originalCropImageSrc.value
+      }
+      cropperDialogVisible.value = false
+      currentCropImageElement.value = null
+      originalCropImageSrc.value = ''
+      return
+    }
+
+    // 需要原图自然尺寸，把裁剪坐标归一化为 0-1
+    const cropperImg = new Image()
+    cropperImg.crossOrigin = 'anonymous'
+    cropperImg.onload = async () => {
+      try {
+        const imgWidth = cropperImg.naturalWidth
+        const imgHeight = cropperImg.naturalHeight
+        const imgAxis = cropperRef.value?.getImgAxis ? cropperRef.value.getImgAxis() : null
+        const norm = normalizeCropAxis({ cropAxis, imgAxis, imgWidth, imgHeight })
+        const x1 = norm.x1
+        const y1 = norm.y1
+        const x2 = norm.x2
+        const y2 = norm.y2
+
+        // 保持通用提示文案，避免暴露具体实现细节
+        loading.setText('正在裁剪图片...')
+        const cropRes = await cropImageByAxis({
+          cookies: serializeCookie(JSON.parse(session_id)["cookie"]),
+          token: parseInt(token),
+          imgurl,
+          x1,
+          y1,
+          x2,
+          y2,
+          fingerprint: generateFingerprint(imgurl),
+        })
+
+        const d = cropRes?.data || {}
+        // 单次 cropimage 返回字段通常是 imgurl
+        let cdnUrl =
+          d?.imgurl ||
+          d?.cdnurl ||
+          d?.cdn_url ||
+          d?.url ||
+          d?.result?.[0]?.imgurl ||
+          d?.result?.[0]?.cdnurl ||
+          d?.result?.[0]?.url
+
+        // 有些返回会把结果包在 base_resp 中
+        const ret = d?.base_resp?.ret
+        if (ret != null && ret !== 0) {
+          throw new Error(d?.base_resp?.err_msg || '微信裁剪失败')
+        }
+
+        if (!cdnUrl) {
+          throw new Error('微信裁剪接口未返回裁剪后的图片地址')
+        }
+
+        currentCropImageElement.value.src = cdnUrl
+        cropperDialogVisible.value = false
+        currentCropImageElement.value = null
+        originalCropImageSrc.value = ''
+        loading.close()
+        ElMessage.success('图片裁剪成功')
+      } catch (e) {
+        console.error('微信裁剪失败:', e)
+        loading.close()
+        ElMessage.error(e?.message || '微信裁剪失败')
+      }
+    }
+    cropperImg.onerror = () => {
+      loading.close()
+      ElMessage.error('读取图片尺寸失败')
+    }
+    cropperImg.src = imgurl
+  } catch (e) {
+    loading.close()
+    ElMessage.error(e?.message || '裁剪失败')
+  }
 }
 
 // 取消裁剪
@@ -3044,6 +3219,13 @@ const _saveAppMsg = async (push_to_remote) => {
     return false
   }
 
+  // 保存前先移除编辑器中的裁剪按钮覆盖层及高亮样式，避免被带入草稿内容
+  try {
+    hideImageCropButton()
+  } catch (e) {
+    console.warn('hideImageCropButton 调用失败，可忽略：', e)
+  }
+
   // 检查是否添加了标题和封面
   if (!validateMsgData()) {
     return false
@@ -3074,6 +3256,11 @@ const _saveAppMsg = async (push_to_remote) => {
     // 清空文章中的垂直制表符，防止出现空白行
     if(newMaterial.new_content_noencode) {
       newMaterial.content_noencode = newMaterial.new_content_noencode.replace(/<p>\u000b<\/p>$/, '')
+    }
+
+    // 统一清理内容中的裁剪辅助元素和图片 outline，避免“裁剪”二字和边框被保存到草稿/草稿箱
+    if (newMaterial.content_noencode) {
+      newMaterial.content_noencode = cleanEditorHtml(newMaterial.content_noencode)
     }
 
     // 小绿书处理有图片和无图片的类型

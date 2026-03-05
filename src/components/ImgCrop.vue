@@ -31,11 +31,9 @@
                     <!-- 裁剪比例选择浮动层 -->
                     <div class="crop-ratio-overlay">
                         <el-radio-group v-model="fixVal" class="crop-ratio-group">
-                            <!-- <el-radio value="1">横图(16:7)</el-radio> -->
-                            <el-radio value="2">竖图(3:4)</el-radio>
-                            <el-radio value="3">正方形(1:1)</el-radio>
-                            <el-radio value="4">横图2(5:4)</el-radio>
-                            <!-- <el-radio value="5">自由比例</el-radio> -->
+                            <el-radio value="1">16:9</el-radio>
+                            <el-radio value="2">2.35:1</el-radio>
+                            <el-radio value="3">1:1</el-radio>
                         </el-radio-group>
                     </div>
                 </div>
@@ -54,7 +52,7 @@ import 'vue-cropper/dist/index.css'
 import { UploadFilled, Crop } from '@element-plus/icons-vue'
 import store from '@/store';
 import { ElMessage } from 'element-plus'
-import { uploadImage, cropImage } from '@/api/img';
+import { cropImage } from '@/api/img';
 import { serializeCookie } from '@/utils/cookie';
 
 var { imgSrc, button, upload, nul, forbidCrop } = defineProps({
@@ -71,20 +69,19 @@ var opt = {
     outputSize: 1,
     autoCrop: true, 
     autoCropWidth: 800,  // 默认裁剪框宽度
-    autoCropHeight: 340, // 默认裁剪框高度（16:7比例）
+    autoCropHeight: 450, // 默认裁剪框高度（16:9 比例）
     full: false,         // 改为false，让裁剪框可以更灵活
     canMove: true,       // 允许移动图片
     canMoveBox: true,    // 允许移动裁剪框
     fixedBox: false,     // 裁剪框不固定大小
 }
 var refCropper = useTemplateRef('cropper');
-var fixVal = ref('2');  // 默认选择第一个选项：竖图(3:4)
-var fixed = computed(() => fixVal.value !== '5')
+var fixVal = ref('1');  // 默认选择第一个选项：16:9
+var fixed = computed(() => true)
 var fixedRatio = {
-    1: [1, 0.425],
-    2: [3, 4],
-    3: [1, 1],
-    4: [5, 4]
+    1: [16, 9],   // 16:9
+    2: [1, 0.425], // ≈ 2.35:1
+    3: [1, 1]     // 1:1
 }
 var fixedNumber = computed(() => fixedRatio[fixVal.value])
 watch(fixedNumber, () => nextTick(() => refCropper.value.goAutoCrop()))
@@ -150,23 +147,11 @@ async function onConfirm() {
             
             let cdn_url = cropperSrc.value
             
-            // 如果是 base64（本地上传的图片），先上传到服务器
+            // 裁剪只支持微信 CDN URL（避免走 /upload-image）
             if (!isUrl) {
-                try {
-                    const uploadRes = await uploadImage({
-                        cookies: cookies,
-                        token: parseInt(token),
-                        base64_image: opt.extraData.data,
-                        filename: opt.extraData.name,
-                        content_type: opt.extraData.type,
-                    })
-                    cdn_url = uploadRes.data.cdn_url
-                    console.log("本地图片上传成功:", cdn_url)
-                } catch (err) {
-                    console.error("ImgCrop: 上传失败:", err)
-                    ElMessage({ type: 'error', message: '图片上传失败' })
-                    return
-                }
+                ElMessage({ type: 'warning', message: '仅支持裁剪公众号已上传图片（微信 CDN URL）。请先把图片上传到公众号素材/正文后再裁剪。' })
+                previewSrc.value = imgSrc
+                return
             }
             
             // 获取裁剪器中的坐标和图片信息
@@ -191,26 +176,37 @@ async function onConfirm() {
                 const cropHeight = normalizedCrop.size_y2 - normalizedCrop.size_y1
                 
                 // 为不同的 format 计算不同的裁剪坐标
-                // format0 (2.35:1) - 横图，保持全宽，调整高度
-                const format0_height = cropWidth / 2.35
+                // format0 (16:9) - 横图，保持全宽，调整高度
+                const format0_height = cropWidth / (16/9)
                 const format0_y_center = (normalizedCrop.size_y1 + normalizedCrop.size_y2) / 2
                 const format0_crop = {
                     size_x1: normalizedCrop.size_x1,
                     size_y1: Math.max(0, format0_y_center - format0_height / 2),
                     size_x2: normalizedCrop.size_x2,
                     size_y2: Math.min(1, format0_y_center + format0_height / 2),
+                    format: '16_9'
+                }
+                
+                // format1 (2.35:1) - 超宽横图
+                const format1_height = cropWidth / 2.35
+                const format1_y_center = (normalizedCrop.size_y1 + normalizedCrop.size_y2) / 2
+                const format1_crop = {
+                    size_x1: normalizedCrop.size_x1,
+                    size_y1: Math.max(0, format1_y_center - format1_height / 2),
+                    size_x2: normalizedCrop.size_x2,
+                    size_y2: Math.min(1, format1_y_center + format1_height / 2),
                     format: '2.35_1'
                 }
                 
-                // format1 (1:1) - 正方形，保持较小的边，居中裁剪
+                // format2 (1:1) - 正方形，保持较小的边，居中裁剪
                 const squareSize = Math.min(cropWidth, cropHeight)
-                const format1_x_center = (normalizedCrop.size_x1 + normalizedCrop.size_x2) / 2
-                const format1_y_center = (normalizedCrop.size_y1 + normalizedCrop.size_y2) / 2
-                const format1_crop = {
-                    size_x1: Math.max(0, format1_x_center - squareSize / 2),
-                    size_y1: Math.max(0, format1_y_center - squareSize / 2),
-                    size_x2: Math.min(1, format1_x_center + squareSize / 2),
-                    size_y2: Math.min(1, format1_y_center + squareSize / 2),
+                const format2_x_center = (normalizedCrop.size_x1 + normalizedCrop.size_x2) / 2
+                const format2_y_center = (normalizedCrop.size_y1 + normalizedCrop.size_y2) / 2
+                const format2_crop = {
+                    size_x1: Math.max(0, format2_x_center - squareSize / 2),
+                    size_y1: Math.max(0, format2_y_center - squareSize / 2),
+                    size_x2: Math.min(1, format2_x_center + squareSize / 2),
+                    size_y2: Math.min(1, format2_y_center + squareSize / 2),
                     format: '1_1'
                 }
                 
@@ -222,8 +218,8 @@ async function onConfirm() {
                     cookies: cookies,
                     token: parseInt(token),
                     imgurl: cdn_url,
-                    size_count: 2,
-                    crop_info: [format0_crop, format1_crop],
+                    size_count: 3,
+                    crop_info: [format0_crop, format1_crop, format2_crop],
                     fingerprint: fingerprint
                 }
                 

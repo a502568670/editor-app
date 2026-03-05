@@ -10,6 +10,45 @@ export function uploadImage(data={cookies:'',token:0,base64_image:'',filename:''
   })
 }
 
+// 微信裁剪接口（单次裁剪）：对应 /cgi-bin/cropimage 传 x1/y1/x2/y2
+export function cropImageByAxis(data = { cookies: '', token: 0, imgurl: '', x1: 0, y1: 0, x2: 1, y2: 1, fingerprint: '' }) {
+  const { cookies, token, imgurl, x1, y1, x2, y2, fingerprint } = data
+
+  const formData = {
+    imgurl,
+    x1,
+    y1,
+    x2,
+    y2,
+    token,
+    lang: 'zh_CN',
+    f: 'json',
+    ajax: 1,
+  }
+
+  if (fingerprint) {
+    formData.fingerprint = fingerprint
+  }
+
+  const requestHeaders = {
+    'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+    'X-Custom-Cookie': cookies,
+    'x-requested-with': 'XMLHttpRequest',
+    'user-agent':
+      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36',
+    'referer': 'https://mp.weixin.qq.com',
+    token: token
+  }
+
+  return axios({
+    url: 'https://mp.weixin.qq.com/cgi-bin/cropimage',
+    method: 'post',
+    headers: requestHeaders,
+    data: Qs.stringify(formData),
+    withCredentials: true
+  }).then((response) => response)
+}
+
 // 直接调用微信的裁剪接口
 export function cropImage(data={cookies:'',token:0,imgurl:'',size_count:2,crop_info:[],fingerprint:''}) {
   const { cookies, token, imgurl, size_count, crop_info, fingerprint } = data

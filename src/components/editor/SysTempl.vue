@@ -150,7 +150,41 @@ function insert(item){
   if(editorInst.isReady){
     editorInst.focus()
     try {
-      editorInst.execCommand('insertHtml', item.content)
+      // 清除当前编辑器内容中所有图片的 outline 样式（避免插入模板后出现双重 outline）
+      const editorBody = editorInst.body
+      if (editorBody) {
+        const allImages = editorBody.querySelectorAll('img')
+        allImages.forEach(img => {
+          img.style.outline = ''
+          img.style.outlineOffset = ''
+        })
+      }
+
+      // 对即将插入的模板内容进行一次清洗，移除裁剪按钮容器和图片 outline
+      let content = item.content
+      if (content) {
+        const tempDiv = document.createElement('div')
+        tempDiv.innerHTML = content
+
+        // 移除裁剪按钮容器（包含“裁剪”文字）
+        const cropContainers = tempDiv.querySelectorAll('.image-crop-button-container')
+        cropContainers.forEach(el => el.remove())
+
+        // 清理图片上的 outline 样式
+        const images = tempDiv.querySelectorAll('img')
+        images.forEach(img => {
+          if (img.style) {
+            img.style.outline = ''
+            img.style.outlineOffset = ''
+            img.style.removeProperty('outline')
+            img.style.removeProperty('outline-offset')
+          }
+        })
+
+        content = tempDiv.innerHTML
+      }
+
+      editorInst.execCommand('insertHtml', content)
     } catch (err) {
       console.error(err)
     }
@@ -174,11 +208,26 @@ async function saveTemplate() {
     return
   }
   
-  const html = editorInst.getContent()
+  let html = editorInst.getContent()
   if(!html.trim()){
     ElMessage.warning('当前编辑内容不能为空')
     return
   }
+  
+  // 清除内容中所有图片的 outline 样式，并移除裁剪按钮容器
+  const tempDiv = document.createElement('div')
+  tempDiv.innerHTML = html
+  // 移除裁剪按钮容器（包含“裁剪”文字）
+  const cropContainers = tempDiv.querySelectorAll('.image-crop-button-container')
+  cropContainers.forEach(el => el.remove())
+  const images = tempDiv.querySelectorAll('img')
+  images.forEach(img => {
+    img.style.outline = ''
+    img.style.outlineOffset = ''
+    img.style.removeProperty('outline')
+    img.style.removeProperty('outline-offset')
+  })
+  html = tempDiv.innerHTML
   
   // 生成默认模板名称：模板 + 时间戳
   const timestamp = new Date().getTime()
@@ -192,7 +241,23 @@ async function saveTemplate() {
 
 // 收藏系统模板到我的样式
 async function favoriteTemplate(item) {
-  await saveUserTempl({template_name: item.name || '未命名模板', content: item.content})
+  // 清除内容中所有图片的 outline 样式，并移除裁剪按钮容器
+  let content = item.content
+  const tempDiv = document.createElement('div')
+  tempDiv.innerHTML = content
+  // 移除裁剪按钮容器（包含“裁剪”文字）
+  const cropContainers = tempDiv.querySelectorAll('.image-crop-button-container')
+  cropContainers.forEach(el => el.remove())
+  const images = tempDiv.querySelectorAll('img')
+  images.forEach(img => {
+    img.style.outline = ''
+    img.style.outlineOffset = ''
+    img.style.removeProperty('outline')
+    img.style.removeProperty('outline-offset')
+  })
+  content = tempDiv.innerHTML
+  
+  await saveUserTempl({template_name: item.name || '未命名模板', content: content})
   ElMessage.success('收藏成功')
 }
 </script>
