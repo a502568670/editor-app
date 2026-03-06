@@ -2180,7 +2180,7 @@ function openCropperDialog(imgElement) {
 }
 
 // 确认裁剪
-function handleCropperConfirm() {
+async function handleCropperConfirm() {
   console.log('handleCropperConfirm 被调用');
   console.log('cropperRef.value:', cropperRef.value);
   console.log('currentCropImageElement.value:', currentCropImageElement.value);
@@ -2213,17 +2213,72 @@ function handleCropperConfirm() {
     }
 
     const imgurl = originalCropImageSrc.value
-    if (!imgurl || !/^https?:\/\//i.test(imgurl)) {
-      loading.close()
-      ElMessage.warning('仅支持裁剪公众号已上传图片（微信 CDN URL）。请先将图片上传到公众号素材/正文后再裁剪。')
-      // 恢复原图，避免留下 base64
-      if (originalCropImageSrc.value && currentCropImageElement.value) {
-        currentCropImageElement.value.src = originalCropImageSrc.value
+    
+    // 检查是否是有效的图片 URL
+    const isValidUrl = imgurl && /^https?:\/\//i.test(imgurl)
+    const isWechatCdn = imgurl && (imgurl.includes('mmbiz.qpic.cn') || imgurl.includes('mmbiz.qlogo.cn'))
+    
+    // 如果不是微信 CDN 图片，需要先上传到微信
+    if (!isWechatCdn) {
+      loading.setText('正在上传图片到微信...')
+      
+      try {
+        // 将图片转换为 base64
+        const canvas = document.createElement('canvas')
+        const ctx = canvas.getContext('2d')
+        const tempImg = new Image()
+        tempImg.crossOrigin = 'anonymous'
+        
+        await new Promise((resolve, reject) => {
+          tempImg.onload = () => {
+            canvas.width = tempImg.naturalWidth
+            canvas.height = tempImg.naturalHeight
+            ctx.drawImage(tempImg, 0, 0)
+            resolve()
+          }
+          tempImg.onerror = () => reject(new Error('加载图片失败'))
+          tempImg.src = imgurl
+        })
+        
+        const base64Data = canvas.toDataURL('image/jpeg', 0.9).split(',')[1]
+        
+        // 上传图片到微信
+        const uploadRes = await uploadImage({
+          cookies: serializeCookie(JSON.parse(session_id)["cookie"]),
+          token: parseInt(token),
+          base64_image: base64Data,
+          filename: 'crop_image.jpg',
+          content_type: 'image/jpeg'
+        })
+        
+        const uploadedUrl = uploadRes?.data?.cdn_url
+        if (!uploadedUrl) {
+          throw new Error('上传图片失败')
+        }
+        
+        // 使用上传后的 URL 继续裁剪流程
+        originalCropImageSrc.value = uploadedUrl
+        if (currentCropImageElement.value) {
+          currentCropImageElement.value.src = uploadedUrl
+        }
+        
+        ElMessage.success('图片已上传到微信，请重新裁剪')
+        loading.close()
+        return
+      } catch (e) {
+        console.error('上传图片失败:', e)
+        loading.close()
+        ElMessage.error(e?.message || '上传图片失败，请手动上传后再裁剪')
+        
+        // 恢复原图
+        if (originalCropImageSrc.value && currentCropImageElement.value) {
+          currentCropImageElement.value.src = originalCropImageSrc.value
+        }
+        cropperDialogVisible.value = false
+        currentCropImageElement.value = null
+        originalCropImageSrc.value = ''
+        return
       }
-      cropperDialogVisible.value = false
-      currentCropImageElement.value = null
-      originalCropImageSrc.value = ''
-      return
     }
 
     // 需要原图自然尺寸，把裁剪坐标归一化为 0-1

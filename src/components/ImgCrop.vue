@@ -1,7 +1,7 @@
 <template>
     <div class="container-img-crop" :class="{ plain: button || nul }">
         <img v-if="imgSrc" :src="previewSrc || imgSrc" class="max-h-full" alt="">
-        <el-button v-else-if="button" type="primary" :icon="UploadFilled" @click="refInput.click()">本地上传</el-button>
+        <el-button v-else-if="button" type="primary" :icon="UploadFilled" @click="refInput.click()">本地上传1</el-button>
         <i v-else-if="nul"></i>
         <template v-else>
             <el-icon :size="24">
@@ -52,7 +52,7 @@ import 'vue-cropper/dist/index.css'
 import { UploadFilled, Crop } from '@element-plus/icons-vue'
 import store from '@/store';
 import { ElMessage } from 'element-plus'
-import { cropImage } from '@/api/img';
+import { cropImage, uploadImage } from '@/api/img';
 import { serializeCookie } from '@/utils/cookie';
 
 var { imgSrc, button, upload, nul, forbidCrop } = defineProps({
@@ -108,14 +108,9 @@ function onFileChange(e) {
         if (type.startsWith('image/')) {
             var reader = new FileReader()
             reader.onload = () => {
-                if (!forbidCrop) {
-                    open.value = true
-                    cropperSrc.value = reader.result
-                    opt.extraData = { name: `${name}.png`, type: 'image/png' }
-                } else {
-                    // 不再调用 uploadImage，直接提示用户
-                    ElMessage({ type: 'warning', message: '请使用已上传的图片进行裁剪' })
-                }
+                open.value = true
+                cropperSrc.value = reader.result
+                opt.extraData = { name: `${name}.png`, type: 'image/png' }
             }
             reader.readAsDataURL(file)
         } else {
@@ -147,11 +142,30 @@ async function onConfirm() {
             
             let cdn_url = cropperSrc.value
             
-            // 裁剪只支持微信 CDN URL（避免走 /upload-image）
+            // 如果是本地图片（base64），先上传到公众号
             if (!isUrl) {
-                ElMessage({ type: 'warning', message: '仅支持裁剪公众号已上传图片（微信 CDN URL）。请先把图片上传到公众号素材/正文后再裁剪。' })
-                previewSrc.value = imgSrc
-                return
+                try {
+                    ElMessage({ type: 'info', message: '正在上传图片到公众号...' })
+                    const uploadResult = await uploadImage({
+                        cookies: cookies,
+                        token: parseInt(token),
+                        ...opt.extraData
+                    })
+                    
+                    if (uploadResult.data && uploadResult.data.cdn_url) {
+                        cdn_url = uploadResult.data.cdn_url
+                        ElMessage({ type: 'success', message: '图片上传成功' })
+                    } else {
+                        ElMessage({ type: 'error', message: '图片上传失败' })
+                        previewSrc.value = imgSrc
+                        return
+                    }
+                } catch (err) {
+                    console.error("ImgCrop: 上传失败:", err)
+                    ElMessage({ type: 'error', message: '图片上传失败' })
+                    previewSrc.value = imgSrc
+                    return
+                }
             }
             
             // 获取裁剪器中的坐标和图片信息
