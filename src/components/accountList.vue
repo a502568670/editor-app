@@ -209,9 +209,11 @@
             filterable
             placeholder="请选择要监控的账号"
             style="width: 100%;"
+            teleported
+            popper-class="monitor-config-select-popper"
           >
             <el-option
-              v-for="account in all_accounts.list"
+              v-for="account in monitorableAccounts"
               :key="account.id"
               :label="account.name"
               :value="account.id"
@@ -438,6 +440,21 @@ const emit = defineEmits([
 
 const { all_accounts, account_orders, getCurrentAccount, getPreviousWxAccount } = toRefs(store.getters);
 
+// 监控仅支持公众号账号（排除通用账号等其它平台）
+const isOfficialAccount = (acc) => {
+  if (!acc) return false
+  // platform_id 可能是数字或字符串；兼容 p.platform_id（接口有时会带该字段）
+  const pid = Number(acc.platform_id ?? acc['p.platform_id'])
+  const pname = String(acc.platform_name ?? '')
+  return pid === 1 || pid === 4 || pname === '公众号' || pname.includes('公众号')
+}
+// 兼容 store 里 list 在 data 下或根级的情况
+const monitorableAccounts = computed(() => {
+  const raw = all_accounts.value
+  const list = Array.isArray(raw?.list) ? raw.list : (raw?.data?.list ?? [])
+  return list.filter(isOfficialAccount)
+})
+
 const platforms = [
   {
     name: '微信公众号',
@@ -498,6 +515,20 @@ const monitorConfigForm = ref({
   otherMonitorItems: ['7日内违规信息'],
   triggerInterval: 30
 })
+
+// 清理已选中的非公众号账号（例如历史配置里混入通用账号）
+watch(
+  () => monitorConfigForm.value.monitorAccounts,
+  (ids) => {
+    if (!Array.isArray(ids) || ids.length === 0) return
+    const allowed = new Set(monitorableAccounts.value.map(a => a.id))
+    const filtered = ids.filter(id => allowed.has(id))
+    if (filtered.length !== ids.length) {
+      monitorConfigForm.value.monitorAccounts = filtered
+    }
+  },
+  { deep: true }
+)
 
 // 右侧平台页是 Electron BrowserView（不受 z-index 影响），弹框打开时通知父组件临时移除 BrowserView
 const anyOverlayDialogVisible = computed(
@@ -1431,5 +1462,12 @@ defineExpose({
 .manual-content strong {
   color: #1f2937;
   font-weight: 600;
+}
+</style>
+
+<!-- 监控配置弹框内的 select 下拉层需高于弹框 z-index，下拉挂到 body 后用全局样式拉高层级 -->
+<style>
+.monitor-config-select-popper {
+  z-index: 200001 !important;
 }
 </style>
