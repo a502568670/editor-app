@@ -93,7 +93,7 @@ defineExpose({
     cropWith(url, { radio }) {
         open.value = true
         cropperSrc.value = url
-        opt.extraData = { name: '图片-' + Date.now() + '.png', type: 'image/png' }
+        opt.extraData = { filename: '图片-' + Date.now() + '.png', content_type: 'image/png' }
         fixVal.value = radio
     }
 })
@@ -110,7 +110,7 @@ function onFileChange(e) {
             reader.onload = () => {
                 open.value = true
                 cropperSrc.value = reader.result
-                opt.extraData = { name: `${name}.png`, type: 'image/png' }
+                opt.extraData = { filename: name ? `${name}.png` : '图片-' + Date.now() + '.png', content_type: 'image/png' }
             }
             reader.readAsDataURL(file)
         } else {
@@ -131,7 +131,7 @@ async function onConfirm() {
     open.value = false;
     refCropper.value.getCropData(async (data) => {
         previewSrc.value = data;
-        opt.extraData.data = data.substring(22)
+        opt.extraData.base64_image = data.substring(22)
         
         try {
             const { session_id, token } = selectedAccount.value
