@@ -1720,6 +1720,39 @@ const _saveAppMsg = async (push_to_remote) => {
   // const appmsgid =  appmsgidRef.value 
   let appmsgid = _getAppMsgId()
 
+  // 处理裁剪过的图片 - 确保使用微信裁剪后的 URL
+  mp_msgsRef.value.forEach((material) => {
+    if (material.content_noencode) {
+      const tempDiv = document.createElement('div')
+      tempDiv.innerHTML = material.content_noencode
+      const images = tempDiv.querySelectorAll('img')
+      
+      if (images.length > 0) {
+        let hasModified = false
+        
+        images.forEach((img, index) => {
+          const dataSrc = img.getAttribute('data-src')
+          const src = img.getAttribute('src')
+          
+          // 如果有 data-src（微信裁剪后的 URL），使用它替换 src
+          if (dataSrc && dataSrc !== src) {
+            console.log(`文章"${material.title}" - 图片 ${index}: 使用 data-src 替换 src`)
+            console.log('  原 src:', src)
+            console.log('  新 data-src:', dataSrc)
+            img.setAttribute('src', dataSrc)
+            hasModified = true
+          }
+        })
+        
+        // 如果修改了图片，更新 content_noencode
+        if (hasModified) {
+          material.content_noencode = tempDiv.innerHTML
+          console.log(`✓ 文章"${material.title}"已更新，使用裁剪后的图片 URL`)
+        }
+      }
+    }
+  })
+
   const postData = {
     cookies: serializeCookie(JSON.parse(session_id)["cookie"]),
     token: parseInt(token),

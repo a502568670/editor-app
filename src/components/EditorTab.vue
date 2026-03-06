@@ -3149,6 +3149,47 @@ const automaticSave = async (push_to_remote) => {
       delete newMaterial.share_info
     }
     
+    // 打印裁剪过的图片信息
+    console.log('=== 检查文章内容 ===')
+    console.log('文章标题:', newMaterial.title)
+    console.log('content_noencode 是否存在:', !!newMaterial.content_noencode)
+    console.log('content_noencode 长度:', newMaterial.content_noencode?.length || 0)
+    
+    if (newMaterial.content_noencode) {
+      const tempDiv = document.createElement('div')
+      tempDiv.innerHTML = newMaterial.content_noencode
+      const images = tempDiv.querySelectorAll('img')
+      
+      console.log('找到的图片数量:', images.length)
+      
+      if (images.length > 0) {
+        const allImages = []
+        images.forEach((img, index) => {
+          const src = img.getAttribute('src')
+          allImages.push({
+            index: index,
+            src: src || '',
+            alt: img.getAttribute('alt') || '',
+            width: img.style.width || img.getAttribute('width') || '',
+            height: img.style.height || img.getAttribute('height') || '',
+            isCropped: src && (src.includes('mmbiz.qpic.cn') || src.includes('mmbiz.qlogo.cn'))
+          })
+        })
+        
+        console.log('=== 保存到草稿箱 - 文章中的图片信息 ===')
+        console.log('文章标题:', newMaterial.title)
+        console.log('文章 msg_id:', newMaterial.msg_id)
+        console.log('图片总数:', images.length)
+        console.log('所有图片信息:', allImages)
+        console.log('=====================================')
+      } else {
+        console.log('文章中没有图片')
+      }
+    } else {
+      console.log('content_noencode 为空')
+    }
+    console.log('===================')
+    
     return newMaterial
   })
   const postData = {
