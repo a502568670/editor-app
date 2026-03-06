@@ -9,6 +9,7 @@
       @clickAccountTrigger="addNewTab"
       @addAccountTrigger="handleAddMPAccount"
       @userManagementTrigger="handleUserManagement"
+      @overlayDialogVisible="handleOverlayDialogVisible"
     />
     <div class="flex flex-col flex-1 w-0">
       <div v-show="tabs.length > 0 && !showAccountManagement" class="tab-pages">
@@ -538,6 +539,26 @@ var account = useAccountStore()
 const refresh = () => {
   console.log('refresh 被调用')
   window.ipcRenderer.send('refresh-tab', currentTabId.value)
+}
+
+// accountList 的弹框需要盖住右侧 BrowserView（BrowserView 不受 z-index 影响）
+const handleOverlayDialogVisible = (visible) => {
+  if (showAccountManagement.value) return
+  if (!window.ipcRenderer) return
+
+  if (visible) {
+    // 临时从窗口移除 BrowserView，避免遮挡弹框
+    window.ipcRenderer.send('remove-tab')
+  } else {
+    // 关闭弹框后恢复当前 BrowserView
+    if (currentTabId.value) {
+      window.ipcRenderer.send('switch-tab', currentTabId.value)
+      // 恢复后重新同步 bounds，避免尺寸/位置不对
+      nextTick(() => {
+        throttleFunc()
+      })
+    }
+  }
 }
 const goBack = () => {
   console.log('goBack 被调用')

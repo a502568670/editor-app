@@ -1,7 +1,7 @@
 <template>
     <div class="container-img-crop" :class="{ plain: button || nul }">
         <img v-if="imgSrc" :src="previewSrc || imgSrc" class="max-h-full" alt="">
-        <el-button v-else-if="button" type="primary" :icon="UploadFilled" @click="refInput.click()">本地上传1</el-button>
+        <el-button v-else-if="button" type="primary" :icon="UploadFilled" @click="refInput.click()">本地上传</el-button>
         <i v-else-if="nul"></i>
         <template v-else>
             <el-icon :size="24">

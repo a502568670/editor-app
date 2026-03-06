@@ -136,6 +136,8 @@
       title="WebHook通知配置"
       width="700px"
       :close-on-click-modal="false"
+      :z-index="200000"
+      append-to-body
     >
       <template #header>
         <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
@@ -196,6 +198,8 @@
       title="监控配置"
       width="650px"
       :close-on-click-modal="false"
+      :z-index="200000"
+      append-to-body
     >
       <el-form :model="monitorConfigForm" label-width="140px" label-position="left">
         <el-form-item label="监控账号">
@@ -313,6 +317,8 @@
       title="WebHook监控使用手册"
       width="800px"
       :close-on-click-modal="false"
+      :z-index="200000"
+      append-to-body
     >
       <div class="manual-content">
         <h3>一、功能概述</h3>
@@ -387,7 +393,7 @@
 </template>
 
 <script setup>
-import { ref, toRefs, computed, onActivated, onBeforeUnmount, nextTick } from 'vue';
+import { ref, toRefs, computed, onActivated, onBeforeUnmount, nextTick, watch } from 'vue';
 import store from '@/store';
 import { toDeepRaw } from '@/utils/convert';
 import { sortByOrder, debounceFn } from '@/utils/index';
@@ -422,7 +428,13 @@ const props = defineProps({
     default: false
   }
 });
-const emit = defineEmits(['clickAccountTrigger', 'delAccountTrigger', 'addAccountTrigger', 'userManagementTrigger']);
+const emit = defineEmits([
+  'clickAccountTrigger',
+  'delAccountTrigger',
+  'addAccountTrigger',
+  'userManagementTrigger',
+  'overlayDialogVisible'
+]);
 
 const { all_accounts, account_orders, getCurrentAccount, getPreviousWxAccount } = toRefs(store.getters);
 
@@ -485,6 +497,14 @@ const monitorConfigForm = ref({
   totalIncomeThreshold: 0,
   otherMonitorItems: ['7日内违规信息'],
   triggerInterval: 30
+})
+
+// 右侧平台页是 Electron BrowserView（不受 z-index 影响），弹框打开时通知父组件临时移除 BrowserView
+const anyOverlayDialogVisible = computed(
+  () => showWebhookDialog.value || showMonitorConfigDialog.value || showManualDialog.value
+)
+watch(anyOverlayDialogVisible, (visible) => {
+  emit('overlayDialogVisible', visible)
 })
 
 // 记录已触发的通知，避免重复发送
@@ -636,25 +656,25 @@ const clickAccount = account => {
   }
   
   // 检查账号是否过期（只检查 token 是否存在）
-  if (!token) {
-    ElMessageBox.confirm('登录状态已过期，是否删除该账号并重新登录？', '提示', {
-      confirmButtonText: '确定',
-      cancelButtonText: '取消',
-      type: 'warning'
-    }).then(async () => {
-      // 删除过期账号
-      await delAccount(wechat_id);
+  // if (!token) {
+  //   ElMessageBox.confirm('登录状态已过期，是否删除该账号并重新登录？', '提示', {
+  //     confirmButtonText: '确定',
+  //     cancelButtonText: '取消',
+  //     type: 'warning'
+  //   }).then(async () => {
+  //     // 删除过期账号
+  //     await delAccount(wechat_id);
       
-      // 打开微信公众号登录二维码
-      const wechatPlatform = platforms.find(p => p.id === 4);
-      if (wechatPlatform) {
-        addAccount(wechatPlatform);
-      }
-    }).catch(() => {
-      // 用户取消操作
-    });
-    return;
-  }
+  //     // 打开微信公众号登录二维码
+  //     const wechatPlatform = platforms.find(p => p.id === 4);
+  //     if (wechatPlatform) {
+  //       addAccount(wechatPlatform);
+  //     }
+  //   }).catch(() => {
+  //     // 用户取消操作
+  //   });
+  //   return;
+  // }
   
   store.commit('SET_CURRENT_ACCOUNT', account);
   emit('clickAccountTrigger', account);
