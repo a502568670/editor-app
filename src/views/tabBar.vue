@@ -117,7 +117,7 @@
 </template>
 
 <script setup>
-import { nextTick, onMounted, onActivated, ref, onDeactivated, onBeforeUnmount, watch, provide, toRefs, h } from 'vue'
+import { nextTick, onMounted, onActivated, ref, onDeactivated, onBeforeUnmount, watch, computed, provide, toRefs, h } from 'vue'
 import { ElNotification, ElMessageBox } from 'element-plus'
 import { Loading } from '@element-plus/icons-vue'
 import { useRoute } from 'vue-router'
@@ -541,25 +541,42 @@ const refresh = () => {
   window.ipcRenderer.send('refresh-tab', currentTabId.value)
 }
 
-// accountList 的弹框需要盖住右侧 BrowserView（BrowserView 不受 z-index 影响）
+// 任何弹框打开都需要盖住右侧 BrowserView（BrowserView 不受 z-index 影响）
+const accountListOverlayVisible = ref(false)
 const handleOverlayDialogVisible = (visible) => {
-  if (showAccountManagement.value) return
+  accountListOverlayVisible.value = !!visible
+}
+
+const anyOverlayVisible = computed(
+  () =>
+    accountListOverlayVisible.value ||
+    showPythonDialog.value ||
+    showQRCodeDialogVisible.value
+)
+
+let browserViewRemovedByOverlay = false
+watch(anyOverlayVisible, (visible) => {
   if (!window.ipcRenderer) return
+  // 账号管理模式下本来就不显示 BrowserView，避免在此状态下误恢复
+  if (showAccountManagement.value) return
 
   if (visible) {
-    // 临时从窗口移除 BrowserView，避免遮挡弹框
-    window.ipcRenderer.send('remove-tab')
+    if (!browserViewRemovedByOverlay) {
+      window.ipcRenderer.send('remove-tab')
+      browserViewRemovedByOverlay = true
+    }
   } else {
-    // 关闭弹框后恢复当前 BrowserView
-    if (currentTabId.value) {
+    if (browserViewRemovedByOverlay && currentTabId.value) {
       window.ipcRenderer.send('switch-tab', currentTabId.value)
-      // 恢复后重新同步 bounds，避免尺寸/位置不对
+      browserViewRemovedByOverlay = false
       nextTick(() => {
         throttleFunc()
       })
+    } else {
+      browserViewRemovedByOverlay = false
     }
   }
-}
+}, { flush: 'post' })
 const goBack = () => {
   console.log('goBack 被调用')
   window.ipcRenderer.send('back-tab', currentTabId.value)

@@ -1465,8 +1465,8 @@ defineExpose({
 }
 </style>
 
-<!-- 监控配置弹框内的 select 下拉层需高于弹框 z-index，下拉挂到 body 后用全局样式拉高层级 -->
 <style>
+/* 监控配置弹框内的 select 下拉层需高于弹框 z-index（弹框 z-index=200000） */
 .monitor-config-select-popper {
   z-index: 200001 !important;
 }
