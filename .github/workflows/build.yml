@@ -24,7 +24,7 @@ jobs:
       - name: Install Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: 16
+          node-version: 18
 
       - name: Install dependencies
         run: npm install
@@ -44,6 +44,7 @@ jobs:
         env:
           BACKEND_URL: http://47.96.22.8:8005
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
         run: npm run electron:build:win
 
       - name: Build/release Electron app (macOS)
@@ -51,53 +52,6 @@ jobs:
         env:
           BACKEND_URL: http://47.96.22.8:8005
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
           PYTHON_PATH: ${{ env.pythonLocation }}/bin/python3
         run: npm run electron:build:mac
-
-      - name: Upload artifacts (Windows)
-        if: matrix.os == 'windows-latest'
-        uses: actions/upload-artifact@v4
-        with:
-          name: windows-build
-          retention-days: 3
-          path: |
-            dist_electron/*.exe
-            dist_electron/*.exe.blockmap
-            dist_electron/latest.yml
-
-      - name: Upload artifacts (macOS)
-        if: matrix.os == 'macos-latest'
-        uses: actions/upload-artifact@v4
-        with:
-          name: macos-build
-          retention-days: 3
-          path: |
-            dist_electron/*.dmg
-            dist_electron/*.dmg.blockmap
-            dist_electron/latest-mac.yml
-
-      - name: Release (Windows)
-        if: matrix.os == 'windows-latest' && startsWith(github.ref, 'refs/tags/')
-        uses: softprops/action-gh-release@v1
-        with:
-          files: |
-            dist_electron/*.exe
-            dist_electron/*.exe.blockmap
-            dist_electron/latest.yml
-          draft: false
-          prerelease: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Release (macOS)
-        if: matrix.os == 'macos-latest' && startsWith(github.ref, 'refs/tags/')
-        uses: softprops/action-gh-release@v1
-        with:
-          files: |
-            dist_electron/*.dmg
-            dist_electron/*.dmg.blockmap
-            dist_electron/latest-mac.yml
-          draft: false
-          prerelease: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
