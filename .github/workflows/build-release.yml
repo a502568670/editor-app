@@ -13,7 +13,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-latest, macos-latest, ubuntu-latest]
+        os: [windows-latest, macos-latest]
 
     steps:
       - name: Checkout
@@ -27,20 +27,18 @@ jobs:
 
       - name: Install dependencies
         shell: bash
-        run: npm ci
+        run: npm install
 
       - name: Build & package
         shell: bash
         env:
-          # 避免在 CI 上因为缺少签名证书导致构建失败（如需签名可自行配置证书/Secrets）
           CSC_IDENTITY_AUTO_DISCOVERY: "false"
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           if [[ "${{ matrix.os }}" == "windows-latest" ]]; then
             npm run electron:build:win
-          elif [[ "${{ matrix.os }}" == "macos-latest" ]]; then
-            npm run electron:build:mac
           else
-            npm run electron:build:linux
+            npm run electron:build:mac
           fi
 
       - name: Upload artifacts
@@ -52,10 +50,6 @@ jobs:
           path: |
             dist_electron/*.exe
             dist_electron/*.dmg
-            dist_electron/*.AppImage
-            dist_electron/*.deb
-            dist_electron/*.rpm
-            dist_electron/*.snap
             dist_electron/*.yml
             dist_electron/*.blockmap
 
@@ -78,4 +72,3 @@ jobs:
         with:
           files: artifacts/**/*
           generate_release_notes: true
-
