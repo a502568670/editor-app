@@ -291,7 +291,7 @@ import { Refresh, Bell } from '@element-plus/icons-vue'
 import Pagination from '@/components/Pagination'
 import SelectPlatform from '@/components/selectPlatform'
 import SelectUser from '@/components/selectUser'
-import { listAccount, moveAccountsToGroup, setOperator } from '@/api/account'
+import { listAccount, moveAccountsToGroup, setOperator, updateAccount } from '@/api/account'
 import { getAccountGroupList, addAccountGroup } from '@/api/account-group'
 import { getPublishedArticles } from '@/api/mp_wechat'
 import { ElMessage, ElMessageBox } from 'element-plus'
@@ -757,6 +757,7 @@ async function handleDelete(row) {
     }
   }
 }
+
 
 // 处理通知按钮点击
 async function handleNotify() {

@@ -18,6 +18,13 @@ export function setCookie(cookies, maxage = 10) {
 
 export function checkWxSession(v) {
   if (v.platform_id === 6) return false;
+  
+  // 检查是否被手动设为失效
+  try {
+    const forceInvalid = JSON.parse(localStorage.getItem('force_invalid_accounts') || '[]')
+    if (forceInvalid.includes(v.id)) return true;
+  } catch (e) { /* ignore */ }
+
   const session_id = v.session_id;
   const required = ['slave_user', 'slave_sid', 'data_ticket', 'data_bizuin'];
   if (session_id) {

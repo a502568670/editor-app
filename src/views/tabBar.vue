@@ -79,7 +79,7 @@
     <!-- Python代码显示弹框 -->
     <el-dialog
       v-model="showPythonDialog"
-      title="微信公众号登录代码"
+      title="微信公众号登录"
       width="800px"
       :close-on-click-modal="false"
     >
@@ -96,25 +96,36 @@
     <el-dialog
       v-model="showQRCodeDialogVisible"
       title="微信公众号登录（可连续添加多个账号）"
-      width="500px"
+      width="420px"
       :close-on-click-modal="false"
+      class="qrcode-dialog"
       @close="handleQRCodeDialogClose"
     >
       <div class="qrcode-container">
-        <div v-if="qrcodeImageUrl" class="qrcode-image-wrapper">
-          <img :src="qrcodeImageUrl" alt="二维码" class="qrcode-image" />
-          <div v-if="scanScanned" class="qrcode-scanned-mask">
-            <div class="qrcode-scanned-icon">✓</div>
-            <p class="qrcode-scanned-text">扫码成功</p>
-            <p class="qrcode-scanned-hint">请在手机上确认登录</p>
+        <div class="qrcode-header">
+          <span class="qrcode-header-tip">使用微信扫描二维码登录，可连续添加多个账号</span>
+        </div>
+        <div class="qrcode-frame-wrap">
+          <div v-if="qrcodeImageUrl" class="qrcode-image-wrapper">
+            <span class="qrcode-corner tl"></span>
+            <span class="qrcode-corner tr"></span>
+            <span class="qrcode-corner bl"></span>
+            <span class="qrcode-corner br"></span>
+            <img :src="qrcodeImageUrl" alt="二维码" class="qrcode-image" />
+            <div v-if="scanScanned" class="qrcode-scanned-mask">
+              <div class="qrcode-scanned-icon">✓</div>
+              <p class="qrcode-scanned-text">扫码成功</p>
+              <p class="qrcode-scanned-hint">请在手机上确认登录</p>
+            </div>
+          </div>
+          <div v-else class="qrcode-loading">
+            <div class="qrcode-loading-spinner"></div>
+            <p>正在生成二维码...</p>
           </div>
         </div>
-        <div v-else class="qrcode-loading">
-          <el-icon class="is-loading"><Loading /></el-icon>
-          <p>正在生成二维码...</p>
-        </div>
-        <div class="scan-status" :style="{ color: scanStatusColor }">
-          {{ scanStatus }}
+        <div class="scan-status" :class="getScanStatusClass">
+          <span class="scan-status-dot"></span>
+          <span>{{ scanStatus }}</span>
         </div>
       </div>
     </el-dialog>
@@ -165,6 +176,15 @@ const qrcodeImageUrl = ref('')
 const scanStatus = ref('等待扫码...')
 const scanStatusColor = ref('#666')
 const scanScanned = ref(false)
+
+const getScanStatusClass = computed(() => {
+  const s = scanStatus.value
+  if (s.includes('成功') || s.includes('✅')) return 'status-success'
+  if (s.includes('失败') || s.includes('❌') || s.includes('过期')) return 'status-error'
+  if (s.includes('已扫码') || s.includes('确认') || s.includes('密码')) return 'status-scanned'
+  if (s.includes('正在') || s.includes('初始化') || s.includes('连接') || s.includes('生成')) return 'status-loading'
+  return 'status-waiting'
+})
 const pythonCode = ref(`# -*- coding: utf-8 -*-
 """
 -------------------------------------------------
@@ -268,6 +288,7 @@ if __name__ == '__main__':
 `)
 
 const handleFilter = () => {
+  if (!AccountListRef.value) return
   return AccountListRef.value.getList()
 }
 
@@ -293,6 +314,7 @@ const handleAddMPAccount = (platform) => {
 const loginWechatMPWithDialog = async () => {
   // 重置状态
   qrcodeImageUrl.value = ''
+  scanScanned.value = false
   scanStatus.value = '正在初始化...'
   scanStatusColor.value = '#666'
   
@@ -422,6 +444,7 @@ const handleQRCodeDialogClose = () => {
   
   // 重置状态
   qrcodeImageUrl.value = ''
+  scanScanned.value = false
   scanStatus.value = '等待扫码...'
   scanStatusColor.value = '#666'
 }
@@ -1152,7 +1175,24 @@ window.ipcRenderer.send('control-ready')
 
 .qrcode-container {
   text-align: center;
-  padding: 20px;
+  padding: 8px 20px 20px;
+  background: #fff;
+}
+
+.qrcode-header {
+  margin-bottom: 16px;
+}
+
+.qrcode-header-tip {
+  font-size: 12px;
+  color: #999;
+  line-height: 1.6;
+}
+
+.qrcode-frame-wrap {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 16px;
 }
 
 .qrcode-loading {
@@ -1160,32 +1200,56 @@ window.ipcRenderer.send('control-ready')
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  height: 300px;
+  width: 260px;
+  height: 260px;
   gap: 16px;
+  background: #f9f9f9;
+  border-radius: 12px;
 }
 
-.qrcode-loading .el-icon {
-  font-size: 32px;
-  color: #409eff;
+.qrcode-loading-spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid #e8e8e8;
+  border-top-color: #07c160;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
 }
 
 .qrcode-loading p {
-  font-size: 14px;
-  color: #666;
+  font-size: 13px;
+  color: #999;
+  margin: 0;
 }
 
-.qrcode-tip {
-  margin-bottom: 20px;
-  font-size: 16px;
-  color: #333;
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
 
 .qrcode-image-wrapper {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  margin-bottom: 20px;
   position: relative;
+  display: inline-flex;
+  padding: 10px;
+  background: #fff;
+}
+
+.qrcode-corner {
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  border-color: #07c160;
+  border-style: solid;
+}
+.qrcode-corner.tl { top: 0; left: 0;  border-width: 3px 0 0 3px; border-radius: 4px 0 0 0; }
+.qrcode-corner.tr { top: 0; right: 0; border-width: 3px 3px 0 0; border-radius: 0 4px 0 0; }
+.qrcode-corner.bl { bottom: 0; left: 0;  border-width: 0 0 3px 3px; border-radius: 0 0 0 4px; }
+.qrcode-corner.br { bottom: 0; right: 0; border-width: 0 3px 3px 0; border-radius: 0 0 4px 0; }
+
+.qrcode-image {
+  width: 240px;
+  height: 240px;
+  display: block;
+  border-radius: 4px;
 }
 
 .qrcode-scanned-mask {
@@ -1200,46 +1264,81 @@ window.ipcRenderer.send('control-ready')
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 10px;
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to   { opacity: 1; transform: scale(1); }
 }
 
 .qrcode-scanned-icon {
-  width: 64px;
-  height: 64px;
+  width: 60px;
+  height: 60px;
   border-radius: 50%;
   background-color: #07c160;
   color: #fff;
-  font-size: 36px;
+  font-size: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: bold;
+  box-shadow: 0 4px 16px rgba(7, 193, 96, 0.35);
+  animation: popIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes popIn {
+  from { transform: scale(0); }
+  to   { transform: scale(1); }
 }
 
 .qrcode-scanned-text {
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 600;
   color: #07c160;
   margin: 0;
 }
 
 .qrcode-scanned-hint {
-  font-size: 13px;
-  color: #666;
+  font-size: 12px;
+  color: #999;
   margin: 0;
 }
 
-.qrcode-image {
-  width: 300px;
-  height: 300px;
-  border: 1px solid #eee;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+.scan-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+  padding: 6px 14px;
+  border-radius: 20px;
+  background: #f5f5f5;
+  color: #666;
+  transition: all 0.3s;
 }
 
-.scan-status {
-  margin-top: 16px;
-  font-size: 14px;
-  font-weight: 500;
+.scan-status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #ccc;
+  flex-shrink: 0;
+  transition: background 0.3s;
+}
+
+.scan-status.status-success { background: #f0fff6; color: #07c160; }
+.scan-status.status-success .scan-status-dot { background: #07c160; }
+.scan-status.status-error { background: #fff1f0; color: #f5222d; }
+.scan-status.status-error .scan-status-dot { background: #f5222d; }
+.scan-status.status-scanned { background: #f0fff6; color: #07c160; }
+.scan-status.status-scanned .scan-status-dot { background: #07c160; animation: pulse 1.2s ease-in-out infinite; }
+.scan-status.status-loading { background: #f0f9ff; color: #1677ff; }
+.scan-status.status-loading .scan-status-dot { background: #1677ff; animation: pulse 1.2s ease-in-out infinite; }
+.scan-status.status-waiting { background: #f5f5f5; color: #666; }
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.7); }
 }
 </style>

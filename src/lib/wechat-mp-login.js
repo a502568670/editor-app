@@ -48,7 +48,8 @@ export function createWechatMPSession() {
       headers: { ...commonHeaders, ...options.headers },
       maxRedirects: 5,
       validateStatus: () => true,
-      withCredentials: false
+      withCredentials: false,
+      timeout: 15000
     };
     if (options.responseType) config.responseType = options.responseType;
     if (cookies.length) config.headers['Cookie'] = cookieHeader(cookies);

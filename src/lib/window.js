@@ -382,6 +382,8 @@ let wechatLoginView = null;
 
 // 存储当前的倒计时定时器ID，确保只有一个倒计时在运行
 let currentQRCodeCountdownInterval = null;
+let currentWechatSession = null;
+let currentCheckInterval = null;
 
 async function reactToIpcObjectData(data, tabbedWin, viewContents) {
   switch (data['tag']) {
@@ -507,26 +509,58 @@ async function reactToIpcObjectData(data, tabbedWin, viewContents) {
       };
       
       (async () => {
-        let currentCheckInterval = null;
         try {
           sendStatus('正在初始化...');
-          const session = createWechatMPSession();
-          
-          verbose_log('步骤1: prelogin (Python 风格)');
-          sendStatus('正在连接服务器...');
-          const preRes = await session.prelogin();
-          if (preRes.status !== 200) throw new Error('prelogin 请求失败');
-          
-          verbose_log('步骤2: startlogin');
-          await session.startlogin(Date.now());
-          
+          console.log('[QR] wechat:createLoginViewInDialog 开始, currentWechatSession:', !!currentWechatSession);
+
+          // 复用已有 session 可跳过 prelogin/startlogin，直接获取新二维码
+          let session = currentWechatSession;
+          if (!session) {
+            console.log('[QR] 新建 session，走完整流程');
+            session = createWechatMPSession();
+            verbose_log('步骤1: prelogin (Python 风格)');
+            sendStatus('正在连接服务器...');
+            const preRes = await session.prelogin();
+            console.log('[QR] prelogin status:', preRes.status);
+            if (preRes.status !== 200) throw new Error('prelogin 请求失败');
+
+            verbose_log('步骤2: startlogin');
+            await session.startlogin(Date.now());
+            console.log('[QR] startlogin 完成');
+            currentWechatSession = session;
+          } else {
+            console.log('[QR] 复用已有 session，跳过 prelogin/startlogin');
+            verbose_log('复用已有 session，跳过 prelogin/startlogin');
+          }
+
           verbose_log('步骤3: 获取二维码');
           sendStatus('正在生成二维码...');
-          const qrRes = await session.getQrcode();
+          console.log('[QR] 开始请求 getQrcode...');
+          let qrRes = await session.getQrcode();
+          console.log('[QR] getQrcode 返回 status:', qrRes.status, 'data length:', qrRes.data ? qrRes.data.byteLength || qrRes.data.length : 0);
+
+          // 如果复用 session 获取二维码失败，重新走完整流程
+          if (qrRes.status !== 200 || !qrRes.data) {
+            console.log('[QR] 复用 session 获取二维码失败，重新初始化...');
+            verbose_log('复用 session 获取二维码失败，重新初始化...');
+            session = createWechatMPSession();
+            sendStatus('正在连接服务器...');
+            const preRes2 = await session.prelogin();
+            console.log('[QR] fallback prelogin status:', preRes2.status);
+            if (preRes2.status !== 200) throw new Error('prelogin 请求失败');
+            await session.startlogin(Date.now());
+            currentWechatSession = session;
+            sendStatus('正在生成二维码...');
+            qrRes = await session.getQrcode();
+            console.log('[QR] fallback getQrcode status:', qrRes.status, 'data length:', qrRes.data ? qrRes.data.byteLength || qrRes.data.length : 0);
+          }
+
           if (qrRes.status !== 200 || !qrRes.data) throw new Error('获取二维码失败');
           const qrcodeBase64 = 'data:image/png;base64,' + Buffer.from(qrRes.data).toString('base64');
+          console.log('[QR] 二维码 base64 生成完毕，长度:', qrcodeBase64.length);
           
           tabbedWin.win.webContents.send('fromMain', { tag: 'wechat:qrcodeReady', data: { qrcode: qrcodeBase64 } });
+          console.log('[QR] wechat:qrcodeReady 已发送到前端');
           
           let qrcodeCountdown = 300;
           sendStatus(`请使用微信扫描二维码登录 (${qrcodeCountdown}秒)`);
@@ -694,6 +728,8 @@ async function reactToIpcObjectData(data, tabbedWin, viewContents) {
                 const addResult = await postToken(payload, tabbedWin);
                 
                 if (addResult && addResult.code === 1) {
+                  // 登录成功后重置 session，下次刷新二维码走完整流程
+                  currentWechatSession = null;
                   tabbedWin.win.webContents.send('fromMain', { tag: 'wechat:loginSuccess', data: { name: payload.name, originalUsername: payload.originalUsername } });
                   setTimeout(() => reactToIpcObjectData({ tag: 'wechat:createLoginViewInDialog', token: data.token }, tabbedWin, tabbedWin.win.webContents), 2000);
                 } else {
@@ -718,12 +754,23 @@ async function reactToIpcObjectData(data, tabbedWin, viewContents) {
     case 'wechat:cleanupCountdown': {
       verbose_log("===== listen wechat:cleanupCountdown in main ====")
       
+      // 清理轮询定时器
+      if (currentCheckInterval) {
+        clearInterval(currentCheckInterval);
+        currentCheckInterval = null;
+        verbose_log('已清理扫码轮询定时器');
+      }
+      
       // 清理倒计时定时器
       if (currentQRCodeCountdownInterval) {
         clearInterval(currentQRCodeCountdownInterval);
         currentQRCodeCountdownInterval = null;
         verbose_log('已清理倒计时定时器');
       }
+      
+      // 关闭弹框时重置 session，下次重新打开走完整流程
+      currentWechatSession = null;
+      verbose_log('已重置 wechat session');
       
       break;
     }
