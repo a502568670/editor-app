@@ -59,6 +59,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: windows-build
+          retention-days: 3
           path: |
             dist_electron/*.exe
             dist_electron/*.exe.blockmap
@@ -69,6 +70,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: macos-build
+          retention-days: 3
           path: |
             dist_electron/*.dmg
             dist_electron/*.dmg.blockmap
