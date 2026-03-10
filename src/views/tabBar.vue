@@ -103,6 +103,11 @@
       <div class="qrcode-container">
         <div v-if="qrcodeImageUrl" class="qrcode-image-wrapper">
           <img :src="qrcodeImageUrl" alt="二维码" class="qrcode-image" />
+          <div v-if="scanScanned" class="qrcode-scanned-mask">
+            <div class="qrcode-scanned-icon">✓</div>
+            <p class="qrcode-scanned-text">扫码成功</p>
+            <p class="qrcode-scanned-hint">请在手机上确认登录</p>
+          </div>
         </div>
         <div v-else class="qrcode-loading">
           <el-icon class="is-loading"><Loading /></el-icon>
@@ -159,6 +164,7 @@ const showQRCodeDialogVisible = ref(false)
 const qrcodeImageUrl = ref('')
 const scanStatus = ref('等待扫码...')
 const scanStatusColor = ref('#666')
+const scanScanned = ref(false)
 const pythonCode = ref(`# -*- coding: utf-8 -*-
 """
 -------------------------------------------------
@@ -448,12 +454,18 @@ if (window.ipcRenderer) {
           // 收到二维码数据
           console.log('收到二维码数据')
           qrcodeImageUrl.value = data.data.qrcode
+          scanScanned.value = false
           scanStatus.value = '请使用微信扫描二维码登录'
           scanStatusColor.value = '#07c160'
           break
           
         case 'wechat:statusUpdate':
           scanStatus.value = data.data.status
+          
+          // 已扫码等待确认时显示蒙版
+          if (data.data.status.includes('已扫码') || data.data.status.includes('确认登录') || data.data.status.includes('输入密码')) {
+            scanScanned.value = true
+          }
           
           // 根据状态文本设置颜色
           if (data.data.status.includes('成功') || data.data.status.includes('✅')) {
@@ -496,6 +508,7 @@ if (window.ipcRenderer) {
           // 清空当前二维码，显示加载状态
           setTimeout(() => {
             qrcodeImageUrl.value = ''
+            scanScanned.value = false
             scanStatus.value = '正在生成新的二维码...'
             scanStatusColor.value = '#666'
           }, 1500)
@@ -1172,6 +1185,48 @@ window.ipcRenderer.send('control-ready')
   justify-content: center;
   align-items: center;
   margin-bottom: 20px;
+  position: relative;
+}
+
+.qrcode-scanned-mask {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(255, 255, 255, 0.96);
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.qrcode-scanned-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background-color: #07c160;
+  color: #fff;
+  font-size: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+}
+
+.qrcode-scanned-text {
+  font-size: 18px;
+  font-weight: 600;
+  color: #07c160;
+  margin: 0;
+}
+
+.qrcode-scanned-hint {
+  font-size: 13px;
+  color: #666;
+  margin: 0;
 }
 
 .qrcode-image {

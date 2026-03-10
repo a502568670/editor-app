@@ -3396,8 +3396,13 @@ const _saveAppMsg = async (push_to_remote) => {
   await saveAppMsg(postData).then(async (res) => {
     // 检查响应是否成功 (code 为 0 表示成功)
     if (res.data.code !== 0) {
-      // 保存失败，不显示成功消息，让 catch 处理
-      throw res
+      // 保存失败，提示用户重新登录
+      ElMessageBox.alert('登录已过期，请重新登录', '错误', {
+        confirmButtonText: '确定',
+        type: 'error'
+      }).catch(() => {})
+      saveSuccess = false
+      return
     }
     
     ElMessage({
@@ -3459,12 +3464,22 @@ const handleSyncToWechatDraftBox = async () => {
         type: 'warning',
       }
     ).then(async () => {
-      await _saveAppMsg(1)
+      const result = await _saveAppMsg(1)
+      // 检查保存结果，如果返回 false 说明保存失败（可能是 session 过期）
+      if (result === false) {
+        // _saveAppMsg 内部已经处理了错误提示，这里不需要额外处理
+        return
+      }
     }).catch(() => {
       console.log('取消openPublishToWechatDialog')
     })
   } else {
-    await _saveAppMsg(1)
+    const result = await _saveAppMsg(1)
+    // 检查保存结果，如果返回 false 说明保存失败（可能是 session 过期）
+    if (result === false) {
+      // _saveAppMsg 内部已经处理了错误提示，这里不需要额外处理
+      return
+    }
   }
 }
 

@@ -29,6 +29,7 @@ import iconv from 'iconv-lite';
 const shell = require('electron').shell;
 import * as zhCN from '../locales/zh-CN.json'
 import { serializeCookie } from "@/utils/cookie.js";
+import { createWechatMPSession } from "./wechat-mp-login.js";
 const verbose_log = global.utils.verbose_log;
 const verbose_error = global.utils.verbose_error;
 const get_backend_url_old = global.utils.get_backend_url_old;
@@ -488,154 +489,57 @@ async function reactToIpcObjectData(data, tabbedWin, viewContents) {
     case 'wechat:createLoginViewInDialog': {
       verbose_log("===== listen wechat:createLoginViewInDialog in main ====", data)
       
-      // 清理旧的倒计时定时器
       if (currentQRCodeCountdownInterval) {
         clearInterval(currentQRCodeCountdownInterval);
         currentQRCodeCountdownInterval = null;
-        verbose_log('已清理旧的倒计时定时器');
       }
       
-      // 创建隐藏的 BrowserWindow 来执行登录逻辑
-      const hiddenWin = new BrowserWindow({
-        show: false,
-        webPreferences: {
-          nodeIntegration: false,
-          contextIsolation: true,
-          partition: 'persist:wechat-login-' + Date.now()
-        }
-      });
+      const sendStatus = (s) => tabbedWin.win.webContents.send('fromMain', { tag: 'wechat:statusUpdate', data: { status: s } });
+      const handleLoginError = (errorMsg) => {
+        let countdown = 5;
+        tabbedWin.win.webContents.send('fromMain', { tag: 'wechat:loginFailed', data: { error: `${errorMsg}，${countdown}秒后自动刷新...` } });
+        const iv = setInterval(() => {
+          countdown--;
+          if (countdown > 0) sendStatus(`❌ ${errorMsg}，${countdown}秒后自动刷新...`);
+          else clearInterval(iv);
+        }, 1000);
+        setTimeout(() => reactToIpcObjectData({ tag: 'wechat:createLoginViewInDialog', token: data.token }, tabbedWin, tabbedWin.win.webContents), 5000);
+      };
       
-      // 存储当前的轮询定时器，用于清理
-      let currentCheckInterval = null;
-      
-      // 监听窗口关闭事件，确保清理所有定时器
-      hiddenWin.on('closed', () => {
-        verbose_log('hiddenWin 已关闭，清理所有定时器');
-        if (currentQRCodeCountdownInterval) {
-          clearInterval(currentQRCodeCountdownInterval);
-          currentQRCodeCountdownInterval = null;
-        }
-        if (currentCheckInterval) {
-          clearInterval(currentCheckInterval);
-          currentCheckInterval = null;
-        }
-      });
-      
-      // 通知前端：正在初始化
-      tabbedWin.win.webContents.send('fromMain', {
-        tag: 'wechat:statusUpdate',
-        data: { status: '正在初始化...' }
-      });
-      
-      // 开始登录流程
       (async () => {
+        let currentCheckInterval = null;
         try {
-          const fingerprint = '64f379b133f5d29df7b2d4d72faf8812';
+          sendStatus('正在初始化...');
+          const session = createWechatMPSession();
           
-          // 加载微信页面
-          await hiddenWin.loadURL('https://mp.weixin.qq.com/');
+          verbose_log('步骤1: prelogin (Python 风格)');
+          sendStatus('正在连接服务器...');
+          const preRes = await session.prelogin();
+          if (preRes.status !== 200) throw new Error('prelogin 请求失败');
           
-          // 步骤1: prelogin
-          verbose_log('步骤1: prelogin');
-          tabbedWin.win.webContents.send('fromMain', {
-            tag: 'wechat:statusUpdate',
-            data: { status: '正在连接服务器...' }
-          });
-          
-          await hiddenWin.webContents.executeJavaScript(`
-            (async function() {
-              const response = await fetch('https://mp.weixin.qq.com/cgi-bin/bizlogin?action=prelogin&fingerprint=${fingerprint}&token=&lang=zh_CN&f=json&ajax=1', {
-                method: 'POST',
-                credentials: 'include',
-                headers: {
-                  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-                  'Referer': 'https://mp.weixin.qq.com'
-                }
-              });
-              return await response.json();
-            })();
-          `);
-          
-          // 步骤2: startlogin
           verbose_log('步骤2: startlogin');
-          const sessionid = Date.now();
-          await hiddenWin.webContents.executeJavaScript(`
-            (async function() {
-              const body = 'userlang=zh_CN&redirect_url=&login_type=3&sessionid=${sessionid}&fingerprint=${fingerprint}&token=&lang=zh_CN&f=json&ajax=1';
-              const response = await fetch('https://mp.weixin.qq.com/cgi-bin/bizlogin?action=startlogin', {
-                method: 'POST',
-                credentials: 'include',
-                headers: {
-                  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-                  'Referer': 'https://mp.weixin.qq.com',
-                  'Content-Type': 'application/x-www-form-urlencoded'
-                },
-                body: body
-              });
-              return await response.json();
-            })();
-          `);
+          await session.startlogin(Date.now());
           
-          // 步骤3: 获取二维码
           verbose_log('步骤3: 获取二维码');
-          tabbedWin.win.webContents.send('fromMain', {
-            tag: 'wechat:statusUpdate',
-            data: { status: '正在生成二维码...' }
-          });
+          sendStatus('正在生成二维码...');
+          const qrRes = await session.getQrcode();
+          if (qrRes.status !== 200 || !qrRes.data) throw new Error('获取二维码失败');
+          const qrcodeBase64 = 'data:image/png;base64,' + Buffer.from(qrRes.data).toString('base64');
           
-          const qrcodeUrl = `https://mp.weixin.qq.com/cgi-bin/scanloginqrcode?action=getqrcode&random=${Date.now()}`;
-          const qrcodeBase64 = await hiddenWin.webContents.executeJavaScript(`
-            (async function() {
-              const response = await fetch('${qrcodeUrl}', {
-                method: 'GET',
-                credentials: 'include',
-                headers: {
-                  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-                  'Referer': 'https://mp.weixin.qq.com'
-                }
-              });
-              const arrayBuffer = await response.arrayBuffer();
-              const bytes = new Uint8Array(arrayBuffer);
-              let binary = '';
-              for (let i = 0; i < bytes.byteLength; i++) {
-                binary += String.fromCharCode(bytes[i]);
-              }
-              return 'data:image/png;base64,' + btoa(binary);
-            })();
-          `);
+          tabbedWin.win.webContents.send('fromMain', { tag: 'wechat:qrcodeReady', data: { qrcode: qrcodeBase64 } });
           
-          // 发送二维码给前端
-          tabbedWin.win.webContents.send('fromMain', {
-            tag: 'wechat:qrcodeReady',
-            data: { qrcode: qrcodeBase64 }
-          });
-          
-          // 开始300秒倒计时
           let qrcodeCountdown = 300;
-          tabbedWin.win.webContents.send('fromMain', {
-            tag: 'wechat:statusUpdate',
-            data: { status: `请使用微信扫描二维码登录 (${qrcodeCountdown}秒)` }
-          });
-          
-          // 倒计时更新 - 存储到全局变量，确保只有一个在运行
+          sendStatus(`请使用微信扫描二维码登录 (${qrcodeCountdown}秒)`);
           currentQRCodeCountdownInterval = setInterval(() => {
             qrcodeCountdown--;
-            if (qrcodeCountdown > 0) {
-              tabbedWin.win.webContents.send('fromMain', {
-                tag: 'wechat:statusUpdate',
-                data: { status: `请使用微信扫描二维码登录 (${qrcodeCountdown}秒)` }
-              });
-            } else {
-              // 倒计时结束，清理定时器
-              if (currentQRCodeCountdownInterval) {
-                clearInterval(currentQRCodeCountdownInterval);
-                currentQRCodeCountdownInterval = null;
-              }
+            if (qrcodeCountdown > 0) sendStatus(`请使用微信扫描二维码登录 (${qrcodeCountdown}秒)`);
+            else if (currentQRCodeCountdownInterval) {
+              clearInterval(currentQRCodeCountdownInterval);
+              currentQRCodeCountdownInterval = null;
             }
           }, 1000);
           
-          // 步骤4: 轮询检查扫码状态
-          verbose_log('步骤4: 开始轮询检查扫码状态');
+          verbose_log('步骤4: 开始轮询检查扫码状态 (Python 风格)');
           let checkCount = 0;
           const maxChecks = 300;
           
@@ -644,45 +548,18 @@ async function reactToIpcObjectData(data, tabbedWin, viewContents) {
             if (checkCount > maxChecks) {
               clearInterval(currentCheckInterval);
               currentCheckInterval = null;
-              
-              // 清理倒计时定时器
               if (currentQRCodeCountdownInterval) {
                 clearInterval(currentQRCodeCountdownInterval);
                 currentQRCodeCountdownInterval = null;
               }
-              
-              hiddenWin.close();
-              
-              // 显示倒计时刷新提示
-              tabbedWin.win.webContents.send('fromMain', {
-                tag: 'wechat:statusUpdate',
-                data: { status: '二维码已过期，正在刷新...' }
-              });
-              
-              // 延迟1秒后自动刷新二维码
-              setTimeout(() => {
-                reactToIpcObjectData({
-                  tag: 'wechat:createLoginViewInDialog',
-                  token: data.token
-                }, tabbedWin, tabbedWin.win.webContents);
-              }, 1000);
+              sendStatus('二维码已过期，正在刷新...');
+              setTimeout(() => reactToIpcObjectData({ tag: 'wechat:createLoginViewInDialog', token: data.token }, tabbedWin, tabbedWin.win.webContents), 1000);
               return;
             }
             
             try {
-              const checkResult = await hiddenWin.webContents.executeJavaScript(`
-                (async function() {
-                  const response = await fetch('https://mp.weixin.qq.com/cgi-bin/scanloginqrcode?action=ask&fingerprint=${fingerprint}&token=&lang=zh_CN&f=json&ajax=1', {
-                    method: 'GET',
-                    credentials: 'include',
-                    headers: {
-                      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-                      'Referer': 'https://mp.weixin.qq.com'
-                    }
-                  });
-                  return await response.json();
-                })();
-              `);
+              const askRes = await session.ask();
+              const checkResult = askRes.data;
               
               if (checkResult.status === 4) {
                 // 清理倒计时定时器
@@ -706,41 +583,37 @@ async function reactToIpcObjectData(data, tabbedWin, viewContents) {
                   tag: 'wechat:statusUpdate',
                   data: { status: '正在输入密码...' }
                 });
+              } else if (checkResult.status === 1 && checkResult.user_category === 1) {
+                clearInterval(currentCheckInterval);
+                currentCheckInterval = null;
+                if (currentQRCodeCountdownInterval) {
+                  clearInterval(currentQRCodeCountdownInterval);
+                  currentQRCodeCountdownInterval = null;
+                }
+                tabbedWin.win.webContents.send('fromMain', { tag: 'wechat:loginFailed', data: { error: '需要管理员授权，请使用管理员账号扫码登录' } });
+                setTimeout(() => reactToIpcObjectData({ tag: 'wechat:createLoginViewInDialog', token: data.token }, tabbedWin, tabbedWin.win.webContents), 5000);
+                return;
               } else if (checkResult.status === 1 && checkResult.user_category >= 2) {
                 clearInterval(currentCheckInterval);
                 currentCheckInterval = null;
-                
-                // 清理倒计时定时器
                 if (currentQRCodeCountdownInterval) {
                   clearInterval(currentQRCodeCountdownInterval);
                   currentQRCodeCountdownInterval = null;
                 }
                 
-                tabbedWin.win.webContents.send('fromMain', {
-                  tag: 'wechat:statusUpdate',
-                  data: { status: '✅ 扫码成功！正在登录...' }
-                });
+                sendStatus('✅ 扫码成功！正在登录...');
+                await new Promise(resolve => setTimeout(resolve, 1000));
                 
-                // 步骤5: 调用 action=login 获取 redirect_url
-                const loginResult = await hiddenWin.webContents.executeJavaScript(`
-                  (async function() {
-                    const body = 'userlang=zh_CN&redirect_url=&cookie_forbidden=0&cookie_cleaned=1&plugin_used=0&login_type=3&fingerprint=${fingerprint}&token=&lang=zh_CN&f=json&ajax=1';
-                    const response = await fetch('https://mp.weixin.qq.com/cgi-bin/bizlogin?action=login', {
-                      method: 'POST',
-                      credentials: 'include',
-                      headers: {
-                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-                        'Referer': 'https://mp.weixin.qq.com',
-                        'Content-Type': 'application/x-www-form-urlencoded'
-                      },
-                      body: body
-                    });
-                    return await response.json();
-                  })();
-                `);
+                const loginRes = await session.login();
+                let loginResult = typeof loginRes.data === 'object' ? loginRes.data : JSON.parse(loginRes.data || '{}');
+                if (loginResult.base_resp && loginResult.base_resp.ret !== 0 && ['default', 'invalid session'].includes(loginResult.base_resp.err_msg)) {
+                  sendStatus('⏳ session 同步中，正在重试...');
+                  await new Promise(resolve => setTimeout(resolve, 1500));
+                  const retryRes = await session.login();
+                  loginResult = typeof retryRes.data === 'object' ? retryRes.data : JSON.parse(retryRes.data || '{}');
+                }
                 
-                // 检查登录结果
-                if (loginResult.base_resp.ret !== 0) {
+                if (!loginResult.base_resp || loginResult.base_resp.ret !== 0) {
                   let errorMsg = '登录失败';
                   if (loginResult.base_resp.ret === 200007) {
                     errorMsg = '账号冻结，您目前处于访问受限状态';
@@ -749,240 +622,85 @@ async function reactToIpcObjectData(data, tabbedWin, viewContents) {
                   } else if (loginResult.base_resp.ret === 250002) {
                     errorMsg = '账号已被注销';
                   } else {
-                    errorMsg = `登录失败: ${loginResult.base_resp.err_msg || '未知错误'}`;
+                    const errMsg = loginResult.base_resp.err_msg;
+                    if (errMsg === 'default' || errMsg === 'invalid session') {
+                      errorMsg = 'session 未就绪，请重试';
+                    } else {
+                      errorMsg = `登录失败: ${errMsg || '未知错误'}`;
+                    }
                   }
                   
-                  hiddenWin.close();
-                  
-                  // 发送带倒计时的错误消息
-                  let countdown = 5;
-                  tabbedWin.win.webContents.send('fromMain', {
-                    tag: 'wechat:loginFailed',
-                    data: { error: `${errorMsg}，${countdown}秒后自动刷新...` }
-                  });
-                  
-                  const countdownInterval = setInterval(() => {
-                    countdown--;
-                    if (countdown > 0) {
-                      tabbedWin.win.webContents.send('fromMain', {
-                        tag: 'wechat:statusUpdate',
-                        data: { status: `❌ ${errorMsg}，${countdown}秒后自动刷新...` }
-                      });
-                    } else {
-                      clearInterval(countdownInterval);
-                    }
-                  }, 1000);
-                  
-                  setTimeout(() => {
-                    reactToIpcObjectData({
-                      tag: 'wechat:createLoginViewInDialog',
-                      token: data.token
-                    }, tabbedWin, tabbedWin.win.webContents);
-                  }, 5000);
+                  handleLoginError(errorMsg);
                   return;
                 }
                 
                 const redirectUrl = loginResult.redirect_url;
+                if (!redirectUrl || redirectUrl.includes('/acct/ban')) { handleLoginError('账号已被封禁'); return; }
+                if (redirectUrl.includes('acctclose')) { handleLoginError('账号已被冻结'); return; }
+                if (redirectUrl.includes('contractorpage')) { handleLoginError('账号未注册完成'); return; }
+                if (redirectUrl.includes('bind_admin_page')) { handleLoginError('管理员已被解绑'); return; }
+                if (!redirectUrl.includes('token=')) { handleLoginError('未知错误，登录失败'); return; }
                 
-                // 检查各种异常情况 - 统一处理函数
-                const handleLoginError = (errorMsg) => {
-                  hiddenWin.close();
-                  
-                  let countdown = 5;
-                  tabbedWin.win.webContents.send('fromMain', {
-                    tag: 'wechat:loginFailed',
-                    data: { error: `${errorMsg}，${countdown}秒后自动刷新...` }
-                  });
-                  
-                  const countdownInterval = setInterval(() => {
-                    countdown--;
-                    if (countdown > 0) {
-                      tabbedWin.win.webContents.send('fromMain', {
-                        tag: 'wechat:statusUpdate',
-                        data: { status: `❌ ${errorMsg}，${countdown}秒后自动刷新...` }
-                      });
-                    } else {
-                      clearInterval(countdownInterval);
-                    }
-                  }, 1000);
-                  
-                  setTimeout(() => {
-                    reactToIpcObjectData({
-                      tag: 'wechat:createLoginViewInDialog',
-                      token: data.token
-                    }, tabbedWin, tabbedWin.win.webContents);
-                  }, 5000);
-                };
-                
-                if (redirectUrl.includes('/acct/ban')) {
-                  handleLoginError('账号已被封禁');
-                  return;
-                }
-                
-                if (redirectUrl.includes('acctclose')) {
-                  handleLoginError('账号已被冻结');
-                  return;
-                }
-                
-                if (redirectUrl.includes('contractorpage')) {
-                  handleLoginError('账号未注册完成');
-                  return;
-                }
-                
-                if (redirectUrl.includes('bind_admin_page')) {
-                  handleLoginError('管理员已被解绑');
-                  return;
-                }
-                
-                if (!redirectUrl.includes('token=')) {
-                  handleLoginError('未知错误，登录失败');
-                  return;
-                }
-                
-                // 提取 token
                 const tokenMatch = redirectUrl.match(/token=(\d+)/);
                 const accountToken = tokenMatch ? tokenMatch[1] : '';
+                sendStatus('✅ 正在获取账号信息...');
                 
-                tabbedWin.win.webContents.send('fromMain', {
-                  tag: 'wechat:statusUpdate',
-                  data: { status: '✅ 正在获取账号信息...' }
-                });
+                const homeUrl = redirectUrl.startsWith('/') ? redirectUrl : redirectUrl.replace(/^https?:\/\/[^/]+/, '');
+                const homeRes = await session.getHome(homeUrl + (homeUrl.includes('?') ? '&' : '?') + 'f=json');
+                const homeResult = typeof homeRes.data === 'object' ? homeRes.data : JSON.parse(homeRes.data || '{}');
                 
-                // 步骤6: 访问公众号首页，获取完整的 cookie 和验证状态
-                const homeUrl = `https://mp.weixin.qq.com${redirectUrl}&f=json`;
-                const homeResult = await hiddenWin.webContents.executeJavaScript(`
-                  (async function() {
-                    const response = await fetch('${homeUrl}', {
-                      method: 'GET',
-                      credentials: 'include',
-                      headers: {
-                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-                        'Referer': 'https://mp.weixin.qq.com'
-                      }
-                    });
-                    return await response.json();
-                  })();
-                `);
-                
-                // 检查首页访问结果
-                if (homeResult.base_resp.ret !== 0) {
-                  let errorMsg = '登录到首页失败';
-                  if (homeResult.base_resp.ret === 200007) {
-                    errorMsg = '账号冻结，您目前处于访问受限状态';
-                  } else if (homeResult.base_resp.ret === 250003) {
-                    errorMsg = '长期未登录已被冻结';
-                  } else if (homeResult.base_resp.ret === 250002) {
-                    errorMsg = '账号已被注销';
-                  } else {
-                    errorMsg = `访问首页失败: ${homeResult.base_resp.err_msg || '未知错误'}`;
-                  }
-                  
-                  hiddenWin.close();
-                  
-                  let countdown = 5;
-                  tabbedWin.win.webContents.send('fromMain', {
-                    tag: 'wechat:loginFailed',
-                    data: { error: `${errorMsg}，${countdown}秒后自动刷新...` }
-                  });
-                  
-                  const countdownInterval = setInterval(() => {
-                    countdown--;
-                    if (countdown > 0) {
-                      tabbedWin.win.webContents.send('fromMain', {
-                        tag: 'wechat:statusUpdate',
-                        data: { status: `❌ ${errorMsg}，${countdown}秒后自动刷新...` }
-                      });
-                    } else {
-                      clearInterval(countdownInterval);
-                    }
-                  }, 1000);
-                  
-                  setTimeout(() => {
-                    reactToIpcObjectData({
-                      tag: 'wechat:createLoginViewInDialog',
-                      token: data.token
-                    }, tabbedWin, tabbedWin.win.webContents);
-                  }, 5000);
+                if (!homeResult.base_resp || homeResult.base_resp.ret !== 0) {
+                  handleLoginError(`访问首页失败: ${(homeResult.base_resp && homeResult.base_resp.err_msg) || '未知错误'}`);
                   return;
                 }
                 
-                // 获取 Cookie
-                const cookies = await hiddenWin.webContents.session.cookies.get({ domain: 'mp.weixin.qq.com' });
-                const slaveUserCookie = cookies.find(c => c.name === 'slave_user');
-                const ghid = slaveUserCookie ? slaveUserCookie.value : '';
+                const rawCookies = session.cookies();
+                const cookies = rawCookies.map(c => ({
+                  name: c.name,
+                  value: c.value,
+                  domain: c.domain || 'mp.weixin.qq.com',
+                  path: c.path || '/',
+                  secure: true,
+                  httpOnly: false,
+                  expirationDate: Math.floor(Date.now() / 1000) + 86400 * 30
+                }));
                 
-                // 步骤7: 获取用户头像、wxid 和公众号名字
-                let avatar = '';
-                let wxid = '';
-                let nickName = '';
-                
+                let avatar = '', wxid = '', nickName = '';
                 try {
-                  const safeUrl = `https://mp.weixin.qq.com/cgi-bin/safecenterstatus?action=view&t=setting/safe-index&token=${accountToken}&lang=zh_CN&f=json`;
-                  const safeResult = await hiddenWin.webContents.executeJavaScript(`
-                    (async function() {
-                      const response = await fetch('${safeUrl}', {
-                        method: 'GET',
-                        credentials: 'include',
-                        headers: {
-                          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-                          'Referer': 'https://mp.weixin.qq.com'
-                        }
-                      });
-                      return await response.json();
-                    })();
-                  `);
-                  
+                  const safeRes = await session.getSafeCenter(accountToken);
+                  const safeResult = typeof safeRes.data === 'object' ? safeRes.data : JSON.parse(safeRes.data || '{}');
                   if (safeResult.user_info) {
                     avatar = safeResult.user_info.head_img || '';
                     wxid = safeResult.user_info.alias || '';
                     nickName = safeResult.user_info.nick_name || '';
                   }
-                } catch (error) {
-                  verbose_error('获取用户信息失败:', error);
-                }
+                } catch (e) { verbose_error('获取用户信息失败:', e); }
                 
-                // 准备账号数据
+                const slaveUserCookie = rawCookies.find(c => c.name === 'slave_user');
+                const ghid = slaveUserCookie ? slaveUserCookie.value : '';
+                
                 const payload = {
                   platform: { id: 4 },
-                  cookies: cookies,
+                  cookies,
                   localStorage: {},
                   sessionStorage: {},
                   token: parseInt(accountToken) || 0,
                   originalUsername: ghid || wxid || 'wechat_' + Date.now(),
                   name: nickName || wxid || '微信公众号',
-                  avatar: avatar,
+                  avatar,
                   userToken: data.token
                 };
                 
-                // 调用 postToken 添加账号
                 const addResult = await postToken(payload, tabbedWin);
                 
-                hiddenWin.close();
-                
                 if (addResult && addResult.code === 1) {
-                  tabbedWin.win.webContents.send('fromMain', {
-                    tag: 'wechat:loginSuccess',
-                    data: {
-                      name: payload.name,
-                      originalUsername: payload.originalUsername
-                    }
-                  });
-                  
-                  // 登录成功后，延迟2秒自动刷新二维码，继续添加下一个账号
-                  setTimeout(() => {
-                    reactToIpcObjectData({
-                      tag: 'wechat:createLoginViewInDialog',
-                      token: data.token
-                    }, tabbedWin, tabbedWin.win.webContents);
-                  }, 2000);
+                  tabbedWin.win.webContents.send('fromMain', { tag: 'wechat:loginSuccess', data: { name: payload.name, originalUsername: payload.originalUsername } });
+                  setTimeout(() => reactToIpcObjectData({ tag: 'wechat:createLoginViewInDialog', token: data.token }, tabbedWin, tabbedWin.win.webContents), 2000);
                 } else {
-                  tabbedWin.win.webContents.send('fromMain', {
-                    tag: 'wechat:loginFailed',
-                    data: {
-                      error: addResult ? addResult.msg : '未知错误'
-                    }
-                  });
+                  tabbedWin.win.webContents.send('fromMain', { tag: 'wechat:loginFailed', data: { error: addResult ? addResult.msg : '未知错误' } });
                 }
+                
+                return;
               }
             } catch (error) {
               verbose_error('检查扫码状态失败:', error);
@@ -991,13 +709,7 @@ async function reactToIpcObjectData(data, tabbedWin, viewContents) {
           
         } catch (error) {
           verbose_error('登录流程出错:', error);
-          tabbedWin.win.webContents.send('fromMain', {
-            tag: 'wechat:loginFailed',
-            data: {
-              error: error.message
-            }
-          });
-          hiddenWin.close();
+          tabbedWin.win.webContents.send('fromMain', { tag: 'wechat:loginFailed', data: { error: error.message } });
         }
       })();
       
