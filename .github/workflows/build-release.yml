@@ -14,6 +14,8 @@ jobs:
       fail-fast: false
       matrix:
         os: [windows-latest, macos-latest]
+    permissions:
+      contents: write
 
     steps:
       - name: Checkout
@@ -29,7 +31,7 @@ jobs:
         shell: bash
         run: npm install
 
-      - name: Build & package
+      - name: Build & Release
         shell: bash
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: "false"
@@ -40,35 +42,3 @@ jobs:
           else
             npm run electron:build:mac
           fi
-
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: gaoqingsong-${{ matrix.os }}
-          retention-days: 3
-          if-no-files-found: warn
-          path: |
-            dist_electron/*.exe
-            dist_electron/*.dmg
-            dist_electron/*.yml
-            dist_electron/*.blockmap
-
-  release:
-    name: GitHub Release (tag)
-    if: startsWith(github.ref, 'refs/tags/v')
-    needs: [build]
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-
-    steps:
-      - name: Download artifacts
-        uses: actions/download-artifact@v4
-        with:
-          path: artifacts
-
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
-        with:
-          files: artifacts/**/*
-          generate_release_notes: true
