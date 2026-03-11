@@ -686,26 +686,12 @@ const clickAccount = account => {
     return;
   }
   
-  // 检查账号是否过期（只检查 token 是否存在）
-  // if (!token) {
-  //   ElMessageBox.confirm('登录状态已过期，是否删除该账号并重新登录？', '提示', {
-  //     confirmButtonText: '确定',
-  //     cancelButtonText: '取消',
-  //     type: 'warning'
-  //   }).then(async () => {
-  //     // 删除过期账号
-  //     await delAccount(wechat_id);
-      
-  //     // 打开微信公众号登录二维码
-  //     const wechatPlatform = platforms.find(p => p.id === 4);
-  //     if (wechatPlatform) {
-  //       addAccount(wechatPlatform);
-  //     }
-  //   }).catch(() => {
-  //     // 用户取消操作
-  //   });
-  //   return;
-  // }
+  // 检查账号是否未登录（仅针对微信公众号）
+  if (!token && (platform_id === 4 || platform_id === 1)) {
+    const wechatPlatform = platforms.find(p => p.id === 4);
+    if (wechatPlatform) addAccount(wechatPlatform);
+    return;
+  }
   
   store.commit('SET_CURRENT_ACCOUNT', account);
   emit('clickAccountTrigger', account);

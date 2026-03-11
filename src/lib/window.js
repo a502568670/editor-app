@@ -497,15 +497,27 @@ async function reactToIpcObjectData(data, tabbedWin, viewContents) {
       }
       
       const sendStatus = (s) => tabbedWin.win.webContents.send('fromMain', { tag: 'wechat:statusUpdate', data: { status: s } });
+      // 永久性错误关键词（封禁/冻结/注销等），不倒计时循环，但仍刷新二维码让用户换账号登录
+      const permanentErrors = ['封禁', '冻结', '注销', '解绑', '未注册完成', '管理员授权'];
       const handleLoginError = (errorMsg) => {
-        let countdown = 5;
-        tabbedWin.win.webContents.send('fromMain', { tag: 'wechat:loginFailed', data: { error: `${errorMsg}，${countdown}秒后自动刷新...` } });
-        const iv = setInterval(() => {
-          countdown--;
-          if (countdown > 0) sendStatus(`❌ ${errorMsg}，${countdown}秒后自动刷新...`);
-          else clearInterval(iv);
-        }, 1000);
-        setTimeout(() => reactToIpcObjectData({ tag: 'wechat:createLoginViewInDialog', token: data.token }, tabbedWin, tabbedWin.win.webContents), 5000);
+        const isPermanent = permanentErrors.some(kw => errorMsg.includes(kw));
+        // 重置 session，确保下次走完整流程拿新二维码
+        currentWechatSession = null;
+        if (isPermanent) {
+          // 永久性错误：直接显示，3秒后静默刷新二维码（不显示倒计时循环）
+          tabbedWin.win.webContents.send('fromMain', { tag: 'wechat:loginFailed', data: { error: `${errorMsg}，请换账号重新扫码` } });
+          setTimeout(() => reactToIpcObjectData({ tag: 'wechat:createLoginViewInDialog', token: data.token }, tabbedWin, tabbedWin.win.webContents), 3000);
+        } else {
+          // 暂时性错误：倒计时 5 秒后重试
+          let countdown = 5;
+          tabbedWin.win.webContents.send('fromMain', { tag: 'wechat:loginFailed', data: { error: `${errorMsg}，${countdown}秒后自动刷新...` } });
+          const iv = setInterval(() => {
+            countdown--;
+            if (countdown > 0) sendStatus(`❌ ${errorMsg}，${countdown}秒后自动刷新...`);
+            else clearInterval(iv);
+          }, 1000);
+          setTimeout(() => reactToIpcObjectData({ tag: 'wechat:createLoginViewInDialog', token: data.token }, tabbedWin, tabbedWin.win.webContents), 5000);
+        }
       };
       
       (async () => {
