@@ -45,6 +45,7 @@ jobs:
           BACKEND_URL: http://47.96.22.8:8005
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CSC_IDENTITY_AUTO_DISCOVERY: "false"
+          EP_DRAFT: "false"
         run: npm run electron:build:win
 
       - name: Build/release Electron app (macOS)
@@ -53,5 +54,6 @@ jobs:
           BACKEND_URL: http://47.96.22.8:8005
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CSC_IDENTITY_AUTO_DISCOVERY: "false"
+          EP_DRAFT: "false"
           PYTHON_PATH: ${{ env.pythonLocation }}/bin/python3
         run: npm run electron:build:mac
