@@ -35,11 +35,12 @@
             <ImgCrop ref="refImgCrop" @change="onImageCrop" button :forbidCrop="forbidCrop" :upload="upload"/>
           </div>
           <el-checkbox-group v-if="imgs.length" class="flex-1 flex flex-wrap p-2 mt-2" :model-value="selectedIdxOnPage" @update:model-value="() => {}">
-            <div class="item ml-3 mb-3" v-for="(v,idx) in imgs" :key="idx">
+            <div class="item ml-3 mb-3" v-for="(v,idx) in imgs" :key="idx" @mouseenter="activeMenu==='search' && (previewUrl=v.cdn_url)" @mouseleave="previewUrl=null">
               <el-image class="img size-[100px] object-contain" fit="contain" :src="v.cdn_url" alt=""  @click="handleImageClick(v.cdn_url)"/>
               <p class="w-[100px] truncate text-sm text-center mt-2">{{ v.name }}</p>
               <div v-if="selectedUrls.has(v.cdn_url)" class="overlay" @click.prevent="toggleUrl(v.cdn_url)"></div>
               <el-checkbox class="checkbox" :value="idx" :model-value="selectedUrls.has(v.cdn_url)"></el-checkbox>
+              <div v-if="activeMenu==='search' && previewUrl===v.cdn_url" class="img-zoom-preview"><img :src="v.cdn_url" referrerpolicy="no-referrer" /></div>
             </div>
           </el-checkbox-group>
           <div class="p-4 text-center" v-else>暂无图片</div>
@@ -98,6 +99,7 @@ var activeMenu=ref('material')
 var imgs=ref([])
 var refInput=ref(null)
 var selectedUrls=ref(new Set())
+var previewUrl=ref(null)
 var selectedIdxOnPage=computed(()=>{
   return imgs.value.map((v,idx)=>selectedUrls.value.has(v.cdn_url)?idx:-1).filter(i=>i>=0)
 })
@@ -278,6 +280,27 @@ function handleImageClick(cdnUrl){
 }
 .img-picker .btn-input {
   visibility: hidden;
+}
+.img-picker .img-zoom-preview {
+  position: absolute;
+  z-index: 9999;
+  bottom: 110%;
+  left: 50%;
+  transform: translateX(-50%);
+  pointer-events: none;
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+  padding: 4px;
+  width: 240px;
+  height: 240px;
+}
+.img-picker .img-zoom-preview img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
 }
 .img-picker .el-checkbox {
   height: auto;
