@@ -63,7 +63,7 @@ module.exports = {
           }
         ],
         appId: "com.electron.client",  // 保持与 0.5.9 相同，确保可以自动更新
-        artifactName: "${name}_${version}_${os}_${arch}.${ext}",
+        artifactName: "${name}_${os}_${arch}.${ext}",
         generateUpdatesFilesForAllChannels: true,
         nsis: {
           allowElevation: true,
