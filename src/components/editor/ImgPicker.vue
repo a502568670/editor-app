@@ -1,5 +1,5 @@
 <template>
-  <div class="img-picker" @click="openDialog">
+  <div class="img-picker" @click="openDialog()">
     <img v-if="imgSrc" :src="imgSrc" class="max-h-full" alt="">
     <template v-else>
         <el-icon :size="24">
@@ -34,23 +34,25 @@
             </div>
             <ImgCrop ref="refImgCrop" @change="onImageCrop" button :forbidCrop="forbidCrop" :upload="upload"/>
           </div>
-          <el-checkbox-group v-if="imgs.length" class="flex-1 flex flex-wrap p-2 mt-2" v-model="selected">
+          <el-checkbox-group v-if="imgs.length" class="flex-1 flex flex-wrap p-2 mt-2" :model-value="selectedIdxOnPage" @update:model-value="() => {}">
             <div class="item ml-3 mb-3" v-for="(v,idx) in imgs" :key="idx">
-              <!-- <img class="img size-[100px] object-contain" :src="v.cdn_url" alt=""  @click="selected.indexOf(idx)<0&&selected.push(idx)"/> -->
-              <el-image class="img size-[100px] object-contain" fit="contain" :src="v.cdn_url" alt=""  @click="handleImageClick(idx)"/>
+              <el-image class="img size-[100px] object-contain" fit="contain" :src="v.cdn_url" alt=""  @click="handleImageClick(v.cdn_url)"/>
               <p class="w-[100px] truncate text-sm text-center mt-2">{{ v.name }}</p>
-              <div v-if="selected.indexOf(idx)>-1" class="overlay" @click.prevent="selected=selected.filter(i=>i!==idx)"></div>
-              <el-checkbox class="checkbox" :value="idx"></el-checkbox>
+              <div v-if="selectedUrls.has(v.cdn_url)" class="overlay" @click.prevent="toggleUrl(v.cdn_url)"></div>
+              <el-checkbox class="checkbox" :value="idx" :model-value="selectedUrls.has(v.cdn_url)"></el-checkbox>
             </div>
           </el-checkbox-group>
           <div class="p-4 text-center" v-else>暂无图片</div>
           <pagination class="p-4" v-if="activeMenu==='material'" :total="total" :page="pickerQuery.page" :limit="pickerQuery.limit" @pagination="onPagination" layout="total, prev, pager, next,jumper"></pagination>
           <pagination class="p-4" v-else-if="activeMenu==='search'" :total="searchQuery.word?1500:0" :page="searchQuery.pn+1" :limit="searchQuery.rn" @pagination="onSearchPagination" layout="prev, pager, next,jumper"></pagination>
+          <div v-if="multiple_effective && selectedUrls.size > 0" class="px-4 pb-2 text-sm text-gray-500">
+            已选 {{ selectedUrls.size }}/20
+          </div>
         </div>
       </div>
       <template #footer>
         <el-button @click="open=false">取消</el-button>
-        <el-button type="primary" :disabled="selected.length===0" @click="onConfirm" :loading="uploading">确定</el-button>
+        <el-button type="primary" :disabled="selectedUrls.size===0" @click="onConfirm" :loading="uploading">确定</el-button>
       </template>
     </el-dialog>
   </div>
@@ -83,16 +85,22 @@ var total=computed(()=>groups.value.find(v=>v.id==pickerQuery.value.group_id)?.c
 var imgPickerHeight = computed(()=> h ?  h+'px' : '80px')
 var groups=shallowRef([])
 var open=ref(false)
+var _multipleOverride=ref(null)
+var multiple_effective=computed(()=>_multipleOverride.value!==null?_multipleOverride.value:multiple)
 watch(open,()=>{
   if(!open.value){
     searchQuery.value.word=''
     searchQuery.value.pn=0
+    _multipleOverride.value=null
   }
 })
 var activeMenu=ref('material')
 var imgs=ref([])
 var refInput=ref(null)
-var selected=ref([])
+var selectedUrls=ref(new Set())
+var selectedIdxOnPage=computed(()=>{
+  return imgs.value.map((v,idx)=>selectedUrls.value.has(v.cdn_url)?idx:-1).filter(i=>i>=0)
+})
 var refImgCrop=ref(null)
 var searchQuery=ref({word:'',pn:0,rn:18})
 var _w;
@@ -103,7 +111,7 @@ watch(searchQuery,debounce(async ()=>{
       searchQuery.value.pn=0;
     }
     addWordHistory(searchQuery.value.word);
-    selected.value=[]
+    selectedUrls.value=new Set()
     var search=`?${new URLSearchParams(searchQuery.value)}&tn=resultjson_com&ie=utf-8&fp=result&fr=&ala=0&applid=10806652856360252284&nojc=0&gsm=1e&newReq=1`
     var req=await fetch(`https://image.baidu.com/search/acjson${search}`);
     var res=await req.json();
@@ -131,11 +139,28 @@ function delWordHistory(word){
     localStorage.setItem('img-picker-wordHistory',wordHistory.value);
   }
 }
-
+function toggleUrl(cdnUrl){
+  var s=new Set(selectedUrls.value)
+  if(s.has(cdnUrl)){
+    s.delete(cdnUrl)
+  } else {
+    if(multiple_effective.value){
+      if(s.size<20) s.add(cdnUrl)
+    } else {
+      s.clear()
+      s.add(cdnUrl)
+    }
+  }
+  selectedUrls.value=s
+}
+function openDialog(opts={}){
+  _multipleOverride.value = opts.multiple !== undefined ? opts.multiple : null
+  const preSelected = Array.isArray(opts.preSelected) ? opts.preSelected : []
+  openDialog_internal(preSelected)
+}
 defineExpose({
   uploadSucc(url){
     if(activeMenu.value==='material'){
-      // imgs.value.shift();
       imgs.value.pop();
       imgs.value.unshift({cdn_url:url});
     }else{
@@ -152,46 +177,13 @@ watchEffect(()=>{
       imgs.value=file_item.map(({name,cdn_url})=>({name,cdn_url}));
     }
   }
-  // console.log(pickerQuery,pageInfo);
-  
 })
 var selectedAccount=inject('selectedAccount')
-async function toWxCdnUrl(url){
-  var imgReq=await fetch(url);
-  var buff=await imgReq.arrayBuffer();;
-  var base64_image=btoa(new Uint8Array(buff).reduce((s, byte) => s + String.fromCharCode(byte), ''));
-  const { session_id, token } = selectedAccount.value
-  var res=await uploadImage({
-      cookies: serializeCookie(JSON.parse(session_id)["cookie"]),
-      token: parseInt(token),
-      base64_image,
-      filename: `图片-${Date.now()}.png`,
-      content_type:'image/png',
-  });
-  return res.data.cdn_url;
-}
 var uploading=ref(false)
-
 function onConfirm(){
-  var urls=imgs.value.filter((v,idx)=>selected.value.indexOf(idx)>-1).map(v=>v.cdn_url)
-  // console.log(selected.value,refImgCrop.value,urls);
-  if(activeMenu.value==='local'){
-    // 直接使用图片，不提示裁剪
-    $emit('confirm',urls)
-    open.value=false
-  }else if(activeMenu.value==='search'){
+  var urls = Array.from(selectedUrls.value)
+  if(activeMenu.value==='search'){
     uploading.value=true;
-    // Promise.all(urls.map(toWxCdnUrl)).then(res=>{
-    //   console.log(res);
-    //   open.value=false
-    // }).catch(err=>{
-    //   console.error(err);
-    //   ElMessageBox.alert('图片上传失败，请稍后再试','错误',{
-    //     type:'error',
-    //   })
-    // }).finally(()=>{
-    //   uploading.value=false;
-    // })    
     window.webBridge.callRpc('batchWxUploadImg', {
       account: toRaw(selectedAccount.value),
       urls: toRaw(urls),
@@ -201,36 +193,30 @@ function onConfirm(){
       open.value = false;
     }).catch(err => {
       console.error(err);
-      ElMessageBox.alert('图片上传失败，请稍后再试', '错误', {
-        type: 'error',
-      });
+      ElMessageBox.alert('图片上传失败，请稍后再试', '错误', {type: 'error'});
     }).finally(() => {
       uploading.value = false;
     });
-  }else{
-    // 公众号图片：如果是单选模式且只选择了一张图片，打开裁剪对话框
-    if(urls.length === 1 && !multiple){
-      // 调用 ImgCrop 的 cropWith 方法打开裁剪对话框，默认选择第一个选项（竖图3:4）
-      if(refImgCrop.value){
-        refImgCrop.value.cropWith(urls[0], { radio: '2' })
-      }
-      // 不关闭图片选择对话框，让两个对话框同时显示
-    }else{
-      // 多张图片或多选模式，直接确认
-      $emit('confirm',urls)
-      open.value=false
+  }else if(!multiple_effective.value){
+    if(urls.length === 1 && refImgCrop.value && !forbidCrop){
+      refImgCrop.value.cropWith(urls[0], { radio: '2' })
+    } else if(urls.length === 1){
+      $emit('confirm', urls)
+      open.value = false
     }
+  }else{
+    $emit('confirm', urls)
+    open.value = false
   }
 }
 function onImageCrop(data){
-  // 关闭图片选择对话框
   open.value = false
   $emit('change', data)
 }
 var initParams={page:1,limit:12,group_id:0};
-function openDialog(){
+function openDialog_internal(preSelected=[]){
   open.value=true
-  selected.value=[]
+  selectedUrls.value=new Set(preSelected)
   getEditorImgs()
   pickerQuery.value={...initParams}
 }
@@ -240,16 +226,14 @@ function getEditorImgs(){
   imgs.value=urls;
 }
 function onSelect(index, indexPath){
-  console.log("index:", index)
-  console.log("indexPath:", indexPath)
   if(indexPath.length>1){
     activeMenu.value=indexPath[0]
     pickerQuery.value={...initParams,group_id:indexPath[1]}
   } else {
     activeMenu.value=index;
   }
-  selected.value=[]
-  if (index==='local'){
+  selectedUrls.value=new Set()
+  if(index==='local'){
     getEditorImgs()
   }else if(index==='search'){
     searchQuery.value.word=''
@@ -259,22 +243,13 @@ function onSelect(index, indexPath){
 }
 function onPagination(query){
   pickerQuery.value={...pickerQuery.value,...query}
-  selected.value=[]
 }
 function onSearchPagination(query){
   searchQuery.value.pn=query.page-1
-  selected.value=[]
+  selectedUrls.value=new Set()
 }
-function handleImageClick(idx){
-  if(multiple){
-    // 多选模式：切换选中状态
-    if(selected.value.indexOf(idx)<0){
-      selected.value.push(idx)
-    }
-  }else{
-    // 单选模式：只保留当前选中项
-    selected.value=[idx]
-  }
+function handleImageClick(cdnUrl){
+  toggleUrl(cdnUrl)
 }
 </script>
 <style>
@@ -301,7 +276,6 @@ function handleImageClick(idx){
 .img-picker .el-sub-menu1.is-active{
   background-color: var(--el-menu-hover-bg-color);
 }
-
 .img-picker .btn-input {
   visibility: hidden;
 }
@@ -334,3 +308,4 @@ function handleImageClick(idx){
   --el-checkbox-input-border: 1px solid transparent;
 }
 </style>
+  
