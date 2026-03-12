@@ -118,10 +118,23 @@
               <el-form-item label="平台首页网址(url)" prop="url">
                 <el-input v-model="universalForm.url" />
               </el-form-item>
+              <!-- <el-form-item label="批量添加数量">
+                <el-input-number
+                  v-model="universalForm.count"
+                  :min="1"
+                  :max="50"
+                  :step="1"
+                  controls-position="right"
+                  style="width: 100%"
+                />
+                <div style="font-size: 12px; color: #909399; margin-top: 4px;">
+                  数量大于1时，昵称将自动添加编号后缀
+                </div>
+              </el-form-item> -->
               <el-form-item>
                 <div class="text-right w-full">
                   <el-button @click="isUniversalForm = false">取消</el-button>
-                  <el-button type="primary" @click="addUniversal">添加</el-button>
+                  <el-button type="primary" @click="addUniversal" :loading="addingUniversal">添加</el-button>
                 </div>
               </el-form-item>
             </el-form>
@@ -478,8 +491,10 @@ const isUniversalForm = ref(false);
 const ruleFormRef = ref();
 const universalForm = ref({
   name: '',
-  url: ''
+  url: '',
+  count: 1
 });
+const addingUniversal = ref(false);
 const universalFormRules = {
   name: [{ required: true, message: '请输入昵称', trigger: 'blur' }],
   url: [{ required: true, message: '请输入平台首页', trigger: 'blur' }]
@@ -645,28 +660,46 @@ const popoverRef = ref();
 const addUniversal = async () => {
   if (!ruleFormRef.value) return;
   await ruleFormRef.value.validate(async valid => {
-    if (valid) {
-      const platform = {
-        platform_id: 6,
-        platform_name: '通用平台',
-        originalUsername: Math.floor(Date.now() / 1000),
-        session_id: '',
-        name: universalForm.value.name,
-        avatar: new URL('@/assets/image/defimg.png', import.meta.url).href,
-        platform_url: universalForm.value.url
-      };
-      const { data } = await createAccount(platform);
-      if (data.code === 1) {
-        store.dispatch('ListAccounts').then(() => {
-          setGroupedAccounts();
-        });
-        ElMessage({ type: 'success', message: data.msg || '添加成功' });
-        isUniversalForm.value = false;
-        ruleFormRef.value.resetFields();
-        popoverRef.value.hide();
-      } else {
-        ElMessage({ type: 'error', message: data.msg || '添加失败' });
+    if (!valid) return;
+    addingUniversal.value = true;
+    try {
+      const count = universalForm.value.count || 1;
+      const baseName = universalForm.value.name;
+      const avatar = new URL('@/assets/image/defimg.png', import.meta.url).href;
+      let successCount = 0;
+      let failMsg = '';
+      for (let i = 0; i < count; i++) {
+        const name = count > 1 ? `${baseName}${i + 1}` : baseName;
+        const platform = {
+          platform_id: 6,
+          platform_name: '通用平台',
+          originalUsername: Math.floor(Date.now() / 1000) + i,
+          session_id: '',
+          name,
+          avatar,
+          platform_url: universalForm.value.url
+        };
+        const { data } = await createAccount(platform);
+        if (data.code === 1) {
+          successCount++;
+        } else {
+          failMsg = data.msg || '添加失败';
+        }
       }
+      await store.dispatch('ListAccounts');
+      setGroupedAccounts();
+      if (successCount > 0) {
+        ElMessage({ type: 'success', message: `成功添加 ${successCount} 个账号` });
+      }
+      if (failMsg) {
+        ElMessage({ type: 'error', message: failMsg });
+      }
+      isUniversalForm.value = false;
+      ruleFormRef.value.resetFields();
+      universalForm.value.count = 1;
+      popoverRef.value.hide();
+    } finally {
+      addingUniversal.value = false;
     }
   });
 };

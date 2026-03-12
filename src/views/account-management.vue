@@ -240,7 +240,7 @@
         :close-on-click-modal="false"
         title="登录状态检测"
         v-model="dialogLoginCheckVisible"
-        width="900px"
+        width="1200px"
         class="login-check-dialog"
         @open="handleLoginCheckDialogOpen"
         @close="handleLoginCheckDialogClose"
