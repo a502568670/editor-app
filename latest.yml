@@ -1,8 +1,8 @@
 version: 0.7.1
 files:
   - url: https://static.dajiala.com:9224/static/gaoqingsong/autoupdate/gaoqingsong_0.7.0_win_x64.exe
-    sha512: cWNV58PJgKEpRa36u1ww/kvVZ6sA5p1h93ZHfdI1uHoy0O4wItucFbgrrv8pC4KhvkOJpEunPCr9vC6QbQXA1w==
-    size: 76809619
+    sha512: NCaZTz7R7BYDr4OULjrm2ON+kmdI57qNjTKB982Hr6N/zlaDQNSzskxkWw1E+j5Ii/dTguln2DvmuM/FBpfWYw==
+    size: 76329231
 path: https://static.dajiala.com:9224/static/gaoqingsong/autoupdate/gaoqingsong_0.7.0_win_x64.exe
-sha512: cWNV58PJgKEpRa36u1ww/kvVZ6sA5p1h93ZHfdI1uHoy0O4wItucFbgrrv8pC4KhvkOJpEunPCr9vC6QbQXA1w==
-releaseDate: '2026-03-12T00:00:00.000Z'
+sha512: NCaZTz7R7BYDr4OULjrm2ON+kmdI57qNjTKB982Hr6N/zlaDQNSzskxkWw1E+j5Ii/dTguln2DvmuM/FBpfWYw==
+releaseDate: '2026-03-12T03:48:11.147Z'
