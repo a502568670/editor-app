@@ -6,7 +6,7 @@
  * @LastEditTime: 2023-05-22 16:59:48
  */
 import { TabbedWindow } from "./tabbed-window.js";
-import { nativeTheme, screen, dialog, Notification, app, ipcMain, webContents, net, BrowserWindow } from 'electron'
+import { nativeTheme, screen, dialog, Notification, app, ipcMain, webContents, net, BrowserWindow, BrowserView } from 'electron'
 import { localExtractMpArticleUrlUseRequest } from "./mp_account-tasks.js"
 import {
   publishAppmsg, deleteAppmsg, listAppmsgsInDraftBox, getAppmsgInDraftBox,
@@ -486,6 +486,186 @@ async function reactToIpcObjectData(data, tabbedWin, viewContents) {
         wechatLoginView = null;
       }
       
+      break;
+    }
+    case 'loginCheck:openView': {
+      verbose_log("===== listen loginCheck:openView in main ====", data)
+      
+      // 销毁旧的 loginCheckView
+      if (tabbedWin._loginCheckView) {
+        tabbedWin.win.removeBrowserView(tabbedWin._loginCheckView);
+        tabbedWin._loginCheckView.webContents.destroy();
+        tabbedWin._loginCheckView = null;
+      }
+      
+      const account = data.account;
+      const bounds = data.bounds;
+      
+      // 根据 platform_id 确定登录 URL
+      let targetUrl = account.platform_url || '';
+      if (!targetUrl) {
+        if (account.platform_id === 4 || account.platform_id === 1) {
+          targetUrl = 'https://mp.weixin.qq.com/';
+        } else if (account.platform_id === 6) {
+          targetUrl = 'https://www.zhihu.com/signin?next=/';
+        } else {
+          targetUrl = 'about:blank';
+        }
+      }
+      
+      const [winWidth, winHeight] = tabbedWin.win.getContentSize();
+      console.log('[loginCheck] bounds from renderer:', bounds);
+      console.log('[loginCheck] window content size:', winWidth, winHeight);
+      console.log('[loginCheck] targetUrl:', targetUrl);
+      
+      // 解析 session_id 中的 cookie 并注入
+      let cookieArray = [];
+      if (account.session_id) {
+        try {
+          const parsed = typeof account.session_id === 'string'
+            ? JSON.parse(account.session_id)
+            : account.session_id;
+          cookieArray = parsed.cookie || [];
+        } catch(e) { verbose_error('loginCheck:openView 解析 session_id 失败:', e); }
+      }
+      
+      const partition = 'persist:login-check-' + account.id;
+      const loginCheckView = new BrowserView({
+        webPreferences: {
+          nodeIntegration: false,
+          contextIsolation: true,
+          sandbox: false,
+          partition: partition
+        }
+      });
+      
+      tabbedWin._loginCheckView = loginCheckView;
+      tabbedWin.win.addBrowserView(loginCheckView);
+      
+      // 确保 bounds 在窗口范围内
+      const finalBounds = {
+        x: Math.max(0, Math.round(bounds.x)),
+        y: Math.max(0, Math.round(bounds.y)),
+        width: Math.min(Math.round(bounds.width), winWidth - Math.round(bounds.x)),
+        height: Math.min(Math.round(bounds.height), winHeight - Math.round(bounds.y))
+      };
+      console.log('[loginCheck] finalBounds:', finalBounds);
+      
+      loginCheckView.setBounds(finalBounds);
+      loginCheckView.setBackgroundColor('#ffffff');
+      
+      // 注入 cookie
+      if (cookieArray.length > 0) {
+        try {
+          const urlObj = new URL(targetUrl);
+          const domain = urlObj.hostname;
+        for (const ck of cookieArray) {
+          try {
+            await loginCheckView.webContents.session.cookies.set({
+              url: targetUrl,
+              name: ck.name,
+              value: ck.value,
+              domain: ck.domain || domain,
+              path: ck.path || '/',
+              secure: ck.secure || false,
+              httpOnly: ck.httpOnly || false,
+              expirationDate: ck.expirationDate
+            });
+          } catch(e) { /* ignore */ }
+        }
+        } catch(e) { verbose_error('注入 cookie 失败:', e); }
+      }
+      
+      loginCheckView.webContents.loadURL(targetUrl);
+      
+      // 监听登录成功跳转
+      loginCheckView.webContents.on('did-navigate', async (event, url) => {
+        verbose_log('loginCheckView did-navigate:', url);
+        
+        // 知乎：跳转到个人主页说明登录成功
+        if (account.platform_id === 6 && (
+          url.includes('zhihu.com/people') ||
+          url.includes('zhihu.com/question') ||
+          url.includes('zhihu.com/hot') ||
+          (url.includes('zhihu.com') && !url.includes('signin') && !url.includes('login'))
+        )) {
+          // 从 cookie 中获取 uid 验证账号一致性
+          try {
+            const cookies = await loginCheckView.webContents.session.cookies.get({ domain: '.zhihu.com' });
+            const zapCookie = cookies.find(c => c.name === '_zap');
+            // 知乎 original_id 是数字 uid，通过 URL 路径或 cookie 验证
+            // URL 中的 /people/{uid} 段
+            const urlMatch = url.match(/\/people\/([^/?#]+)/);
+            if (urlMatch) {
+              const loggedUid = urlMatch[1];
+              const expectedUid = String(account.original_id);
+              if (loggedUid !== expectedUid) {
+                // 账号不匹配，立即销毁 BrowserView，禁止登录
+                if (tabbedWin._loginCheckView) {
+                  tabbedWin.win.removeBrowserView(tabbedWin._loginCheckView);
+                  tabbedWin._loginCheckView.webContents.destroy();
+                  tabbedWin._loginCheckView = null;
+                }
+                tabbedWin.win.webContents.send('fromMain', {
+                  tag: 'loginCheck:accountMismatch',
+                  data: { accountId: account.id, loggedUid, expectedUid }
+                });
+                return;
+              }
+            }
+          } catch(e) { verbose_error('验证知乎账号失败:', e); }
+          
+          tabbedWin.win.webContents.send('fromMain', { tag: 'loginCheck:loginSuccess', data: { accountId: account.id } });
+          return;
+        }
+        
+        // 公众号：跳转到后台首页说明登录成功
+        if ((account.platform_id === 4 || account.platform_id === 1) &&
+          url.includes('mp.weixin.qq.com/cgi-bin/home')) {
+          // 从 cookie 验证 slave_user 是否匹配
+          try {
+            const cookies = await loginCheckView.webContents.session.cookies.get({ domain: 'mp.weixin.qq.com' });
+            const slaveUser = cookies.find(c => c.name === 'slave_user');
+            if (slaveUser && slaveUser.value && account.original_id) {
+              const loggedUser = slaveUser.value;
+              const expectedUser = String(account.original_id);
+              if (loggedUser !== expectedUser) {
+                // 账号不匹配，立即销毁 BrowserView，禁止登录
+                if (tabbedWin._loginCheckView) {
+                  tabbedWin.win.removeBrowserView(tabbedWin._loginCheckView);
+                  tabbedWin._loginCheckView.webContents.destroy();
+                  tabbedWin._loginCheckView = null;
+                }
+                tabbedWin.win.webContents.send('fromMain', {
+                  tag: 'loginCheck:accountMismatch',
+                  data: { accountId: account.id, loggedUid: loggedUser, expectedUid: expectedUser }
+                });
+                return;
+              }
+            }
+          } catch(e) { verbose_error('验证公众号账号失败:', e); }
+          
+          tabbedWin.win.webContents.send('fromMain', { tag: 'loginCheck:loginSuccess', data: { accountId: account.id } });
+        }
+      });
+      
+      break;
+    }
+    case 'loginCheck:closeView': {
+      verbose_log("===== listen loginCheck:closeView in main ====")
+      if (tabbedWin._loginCheckView) {
+        tabbedWin.win.removeBrowserView(tabbedWin._loginCheckView);
+        tabbedWin._loginCheckView.webContents.destroy();
+        tabbedWin._loginCheckView = null;
+      }
+      break;
+    }
+    case 'loginCheck:setWindowControls': {
+      verbose_log("===== listen loginCheck:setWindowControls in main ====", data)
+      const enabled = data.enabled !== false;
+      tabbedWin.win.setMinimizable(enabled);
+      tabbedWin.win.setMaximizable(enabled);
+      tabbedWin.win.setClosable(enabled);
       break;
     }
     case 'wechat:createLoginViewInDialog': {

@@ -40,18 +40,31 @@
             </el-col>
           </el-row>
           <div class="filters-actions">
-            <div>
+            <div style="display: flex; align-items: center; gap: 8px;">
               <el-button type="primary" @click="handleRefresh" :loading="listLoading" plain>
                 <el-icon style="margin-right: 4px;"><Refresh /></el-icon>
                 刷新
               </el-button>
+              <el-button type="warning" @click="handleCheckLoginStatus" :loading="checkingLogin" plain>
+                <el-icon style="margin-right: 4px;"><Monitor /></el-icon>
+                一键检测登录状态
+              </el-button>
+              <!-- 圆形进度条 -->
+              <div v-if="checkingLogin" class="check-progress-wrap">
+                <svg class="check-progress-svg" viewBox="0 0 36 36">
+                  <circle class="check-progress-bg" cx="18" cy="18" r="15" />
+                  <circle
+                    class="check-progress-bar"
+                    cx="18" cy="18" r="15"
+                    :stroke-dasharray="checkProgressDash"
+                    stroke-dashoffset="0"
+                  />
+                </svg>
+                <span class="check-progress-text">{{ checkProgressPct }}%</span>
+              </div>
             </div>
             <div>
               <el-button type="success" @click="openBatchGroup" plain>批量修改分组</el-button>
-              <el-button type="warning" @click="handleNotify" plain>
-                <el-icon style="margin-right: 4px;"><Bell /></el-icon>
-                通知
-              </el-button>
             </div>
           </div>
         </el-form>
@@ -83,9 +96,15 @@
           <el-table-column label="平台" prop="platform_name" width="160">
             <template #default="{row}">
               <div class="plat-cell">
-                <!-- <img class="plat-icon" :src="scope.row.image" /> -->
                 <span>{{ getCurrentPlatform(row) }}</span>
               </div>
+            </template>
+          </el-table-column>
+          <el-table-column label="平台地址" min-width="200">
+            <template #default="{row}">
+              <span style="font-size: 12px; color: #666; word-break: break-all;">
+                {{ (row.platform_id === 4 || row.platform_id === 1) && !row.platform_url ? 'https://mp.weixin.qq.com/' : (row.platform_url || '-') }}
+              </span>
             </template>
           </el-table-column>
           <el-table-column label="分组" prop="cate_name" min-width="160" />
@@ -150,10 +169,6 @@
         <template #footer>
           <div class="dialog-footer">
             <el-button @click="dialogSetGroupVisible = false">取消</el-button>
-            <el-button type="warning" @click="handleBatchNotify" plain>
-              <el-icon style="margin-right: 4px;"><Bell /></el-icon>
-              通知
-            </el-button>
             <el-button type="primary" @click="setAccountGroup" :loading="batchLoading">提交</el-button>
           </div>
         </template>
@@ -219,81 +234,90 @@
         </template>
       </el-dialog>
 
-      <!-- 通知列表对话框 -->
+
+      <!-- 登录状态检测结果弹框 -->
       <el-dialog
         :close-on-click-modal="false"
-        title="阅读量通知"
-        v-model="dialogNotifyVisible"
-        width="800px"
+        title="登录状态检测"
+        v-model="dialogLoginCheckVisible"
+        width="900px"
+        class="login-check-dialog"
+        @open="handleLoginCheckDialogOpen"
+        @close="handleLoginCheckDialogClose"
       >
-        <div v-loading="notifyLoading" style="min-height: 200px;">
-          <el-alert
-            title="提示"
-            type="info"
-            :closable="false"
-            show-icon
-            style="margin-bottom: 15px"
-          >
-            已选择 {{ multipleSelection.length }} 个账号，显示阅读量大于10的文章
-          </el-alert>
-
-          <div v-if="notifyArticles.length === 0 && !notifyLoading" style="text-align: center; padding: 40px 0; color: #999;">
-            暂无阅读量大于10的文章
-          </div>
-
-          <div v-else class="notify-list">
-            <div
-              v-for="(article, index) in notifyArticles"
-              :key="index"
-              class="notify-item"
-            >
-              <div class="notify-header">
-                <div class="account-info">
-                  <img :src="article.accountAvatar" class="account-avatar" />
-                  <span class="account-name">{{ article.accountName }}</span>
+        <div class="login-check-body">
+          <!-- 左侧：失效账号列表 -->
+          <div class="login-check-left">
+            <div class="login-check-panel-title">
+              <span>失效账号</span>
+              <el-tag type="danger" size="small" effect="dark">{{ expiredAccounts.length }} 个</el-tag>
+            </div>
+            <div class="login-check-list">
+              <div
+                v-for="acc in expiredAccounts"
+                :key="acc.id"
+                class="login-check-item"
+                :class="{ active: currentLoginAccount && currentLoginAccount.id === acc.id, done: loginDoneIds.includes(acc.id) }"
+                @click="selectLoginAccount(acc)"
+              >
+                <img :src="acc.avatar" class="login-check-avatar" />
+                <div class="login-check-info">
+                  <div class="login-check-name">{{ acc.name }}</div>
+                  <div class="login-check-platform">{{ getCurrentPlatform(acc) }}</div>
                 </div>
-                <div class="publish-time">{{ formatNotifyTime(article.publishTime) }}</div>
+                <div class="login-check-status">
+                  <span v-if="loginDoneIds.includes(acc.id)" class="status-ok">已登录</span>
+                  <span v-else class="status-expired">未登录</span>
+                </div>
               </div>
-              <div class="article-title" @click="viewArticle(article)">
-                {{ article.title }}
+              <div v-if="expiredAccounts.length === 0" class="login-check-empty">
+                所有账号均已登录
               </div>
-              <div class="article-stats">
-                <el-tag type="success" size="small" effect="plain">
-                  阅读 {{ formatNotifyNumber(article.readNum) }}
-                </el-tag>
-                <el-tag type="warning" size="small" effect="plain" style="margin-left: 8px;">
-                  在看 {{ formatNotifyNumber(article.likeNum) }}
-                </el-tag>
-                <el-tag type="info" size="small" effect="plain" style="margin-left: 8px;">
-                  分享 {{ formatNotifyNumber(article.shareNum) }}
-                </el-tag>
+            </div>
+          </div>
+          <!-- 右侧：登录操作 -->
+          <div class="login-check-right">
+            <div class="login-check-panel-title">
+              <span>登录操作</span>
+              <span v-if="currentLoginAccount" class="login-check-hint">「{{ currentLoginAccount.name }}」</span>
+            </div>
+            <div class="login-check-webview-wrap" ref="loginCheckPanelRef">
+              <div v-if="!currentLoginAccount" class="login-check-placeholder">
+                <el-icon style="font-size: 48px; color: #c0c4cc;"><Monitor /></el-icon>
+                <p>请从左侧选择一个失效账号</p>
+                <p style="font-size: 12px; color: #aaa;">点击账号后将在此处显示登录页面</p>
+              </div>
+              <div v-else class="login-check-loading">
+                <div class="login-check-loading-spinner"></div>
+                <p>正在加载「{{ currentLoginAccount.name }}」登录页面...</p>
               </div>
             </div>
           </div>
         </div>
         <template #footer>
           <div class="dialog-footer">
-            <el-button @click="dialogNotifyVisible = false">关闭</el-button>
-            <el-button type="primary" @click="loadNotifyArticles" :loading="notifyLoading">
+            <el-button @click="dialogLoginCheckVisible = false">关闭</el-button>
+            <el-button type="primary" @click="handleCheckLoginStatus" :loading="checkingLogin">
               <el-icon style="margin-right: 4px;"><Refresh /></el-icon>
-              刷新
+              重新检测
             </el-button>
           </div>
         </template>
       </el-dialog>
+
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, computed, watch, inject } from 'vue'
-import { Refresh, Bell } from '@element-plus/icons-vue'
+import { ref, reactive, onMounted, computed, watch, inject, nextTick } from 'vue'
+import { Refresh, Monitor } from '@element-plus/icons-vue'
+import { checkWxSession } from '@/utils/cookie'
 import Pagination from '@/components/Pagination'
 import SelectPlatform from '@/components/selectPlatform'
 import SelectUser from '@/components/selectUser'
 import { listAccount, moveAccountsToGroup, setOperator, updateAccount } from '@/api/account'
 import { getAccountGroupList, addAccountGroup } from '@/api/account-group'
-import { getPublishedArticles } from '@/api/mp_wechat'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import store from '@/store'
 import { useAccountStore } from '@/store/piniaStore'
@@ -315,6 +339,10 @@ const getCurrentPlatform = (account) => {
 
 // 获取父组件提供的刷新方法（如果有）
 const refreshAccountList = inject('refreshAccountList', null)
+// 获取父组件提供的触发微信登录方法
+const triggerWechatLogin = inject('triggerWechatLogin', null)
+// 获取父组件提供的打开账号 tab 方法
+const openAccountTab = inject('openAccountTab', null)
 
 const tableHeight = computed(() => '100%')
 
@@ -346,7 +374,46 @@ const dataForm = reactive({
 const dialogSetGroupVisible = ref(false)
 const dialogSetUserVisible = ref(false)
 const dialogEditGroupVisible = ref(false)
-const dialogNotifyVisible = ref(false)
+const dialogLoginCheckVisible = ref(false)
+
+// 登录状态检测
+const checkingLogin = ref(false)
+const checkProgressPct = ref(0)
+const expiredAccounts = ref([])
+const currentLoginAccount = ref(null)
+const loginDoneIds = ref([])
+const loginCheckPanelRef = ref(null)
+
+// 监听主进程登录成功事件，标记当前账号已登录
+if (window.ipcRenderer) {
+  window.ipcRenderer.receive('fromMain', (data) => {
+    if (data === 'wechat-login-success' || (data && data.tag === 'wechat:loginSuccess')) {
+      if (currentLoginAccount.value && !loginDoneIds.value.includes(currentLoginAccount.value.id)) {
+        loginDoneIds.value.push(currentLoginAccount.value.id)
+        ElMessage.success(`账号「${currentLoginAccount.value.name}」登录成功`)
+      }
+    }
+    if (data && data.tag === 'loginCheck:loginSuccess') {
+      const accountId = data.data?.accountId
+      if (accountId && !loginDoneIds.value.includes(accountId)) {
+        loginDoneIds.value.push(accountId)
+        ElMessage.success('登录成功，请点击「重新检测」刷新状态')
+      }
+    }
+    if (data && data.tag === 'loginCheck:accountMismatch') {
+      const { loggedUid, expectedUid } = data.data || {}
+      // 账号不匹配，清除当前选中账号，禁止继续操作
+      currentLoginAccount.value = null
+      ElMessage.error(`账号不匹配，登录已被阻止！当前登录的是 ${loggedUid}，期望是 ${expectedUid}，请重新选择正确的账号登录`)
+    }
+  })
+}
+
+const checkProgressDash = computed(() => {
+  const circumference = 2 * Math.PI * 15 // r=15
+  const filled = (checkProgressPct.value / 100) * circumference
+  return `${filled} ${circumference}`
+})
 
 // 批量修改分组表单
 const batchForm = reactive({
@@ -365,11 +432,6 @@ const editForm = reactive({
 })
 
 const editLoading = ref(false)
-
-// 通知相关数据
-const notifyArticles = ref([])
-const notifyLoading = ref(false)
-const currentNotifyAccount = ref(null)
 
 // 扁平化的分组列表
 const flatGroupList = ref([])
@@ -726,6 +788,98 @@ async function submitEditGroup() {
   }
 }
 
+// 一键检测登录状态
+async function handleCheckLoginStatus() {
+  checkingLogin.value = true
+  checkProgressPct.value = 0
+  expiredAccounts.value = []
+  loginDoneIds.value = []
+  currentLoginAccount.value = null
+
+  try {
+    // 获取所有账号（不分页，num设大）
+    const response = await listAccount({ page: 1, num: 9999, type: 1, sort: 'id', order: 'desc' })
+    const allAccounts = (response?.data?.data?.list) || []
+    const total = allAccounts.length
+    if (total === 0) {
+      ElMessage.info('暂无账号')
+      return
+    }
+
+    const expired = []
+    for (let i = 0; i < allAccounts.length; i++) {
+      const acc = allAccounts[i]
+      // 没有 session_id 的账号直接视为未登录
+      const isExpired = !acc.session_id ? true : checkWxSession(acc)
+      if (isExpired) expired.push(acc)
+      checkProgressPct.value = Math.round(((i + 1) / total) * 100)
+      // 让UI有机会更新
+      if (i % 5 === 0) await nextTick()
+    }
+
+    expiredAccounts.value = expired
+
+    if (expired.length === 0) {
+      ElMessage.success('所有账号登录状态正常！')
+    } else {
+      ElMessage.warning(`检测完成，发现 ${expired.length} 个账号登录已失效`)
+      dialogLoginCheckVisible.value = true
+    }
+  } catch (e) {
+    console.error('检测登录状态失败:', e)
+    ElMessage.error('检测失败：' + (e.message || '未知错误'))
+  } finally {
+    checkingLogin.value = false
+  }
+}
+
+async function selectLoginAccount(acc) {
+  // 先关闭旧的 BrowserView
+  if (currentLoginAccount.value && window.ipcRenderer) {
+    window.ipcRenderer.send('toMain', { tag: 'loginCheck:closeView' })
+  }
+  currentLoginAccount.value = acc
+  // 等待 DOM 更新后获取面板坐标
+  await nextTick()
+  const plainAcc = JSON.parse(JSON.stringify(acc))
+  if (loginCheckPanelRef.value && window.ipcRenderer) {
+    const rect = loginCheckPanelRef.value.getBoundingClientRect()
+    window.ipcRenderer.send('toMain', {
+      tag: 'loginCheck:openView',
+      account: plainAcc,
+      bounds: {
+        x: Math.round(rect.left),
+        y: Math.round(rect.top),
+        width: Math.round(rect.width),
+        height: Math.round(rect.height)
+      }
+    })
+  }
+}
+
+function doLoginAccount() {
+  // 已废弃，由 selectLoginAccount 自动触发
+}
+
+function handleLoginCheckDialogOpen() {
+  // 弹框打开时，禁用窗口控制按钮
+  if (window.ipcRenderer) {
+    window.ipcRenderer.send('toMain', { tag: 'loginCheck:setWindowControls', enabled: false })
+  }
+}
+
+function handleLoginCheckDialogClose() {
+  currentLoginAccount.value = null
+  // 关闭弹框时销毁主进程中的 BrowserView
+  if (window.ipcRenderer) {
+    window.ipcRenderer.send('toMain', { tag: 'loginCheck:closeView' })
+  }
+  // 弹框关闭时，恢复窗口控制按钮
+  if (window.ipcRenderer) {
+    window.ipcRenderer.send('toMain', { tag: 'loginCheck:setWindowControls', enabled: true })
+  }
+}
+
 async function handleDelete(row) {
   try {
     await ElMessageBox.confirm('此操作将删除该账号, 是否继续?', '提示', {
@@ -759,251 +913,6 @@ async function handleDelete(row) {
 }
 
 
-// 处理通知按钮点击
-async function handleNotify() {
-  if (multipleSelection.value.length === 0) {
-    ElMessage.warning('请先选择要通知的账号')
-    return
-  }
-
-  // 打开通知对话框并加载数据
-  dialogNotifyVisible.value = true
-  await loadNotifyArticles()
-}
-
-// 加载通知文章列表（阅读量>10的文章）
-async function loadNotifyArticles() {
-  notifyArticles.value = []
-  notifyLoading.value = true
-
-  try {
-    console.log('选中的账号列表:', multipleSelection.value)
-    
-    // 检查是否有微信公众号（platform_id 可能是 1 或 4）
-    const wechatAccounts = multipleSelection.value.filter(acc => 
-      acc.platform_id === 1 || acc.platform_id === 4 || acc.platform_name === '公众号'
-    )
-    if (wechatAccounts.length === 0) {
-      ElMessage.warning('请选择微信公众号账号')
-      notifyLoading.value = false
-      return
-    }
-    
-    // 遍历所有选中的账号
-    for (const account of multipleSelection.value) {
-      console.log(`检查账号 ${account.name}:`, {
-        id: account.id,
-        platform_id: account.platform_id,
-        platform_name: account.platform_name,
-        token: account.token ? '存在' : '不存在',
-        cookies: account.cookies ? '存在' : '不存在',
-        session_id: account.session_id ? '存在' : '不存在'
-      })
-      
-      // 只处理微信公众号（platform_id === 1 或 4，或 platform_name === '公众号'）
-      if (account.platform_id !== 1 && account.platform_id !== 4 && account.platform_name !== '公众号') {
-        console.log(`跳过账号 ${account.name}，platform_id=${account.platform_id}，不是微信公众号`)
-        continue
-      }
-
-      // 检查必要的参数
-      if (!account.token) {
-        console.warn(`账号 ${account.name} 缺少 token`)
-        ElMessage.warning(`账号 ${account.name} 缺少 token，请重新登录`)
-        continue
-      }
-
-      // 解析 session_id 中的 Cookie
-      let cookieString = ''
-      if (account.cookies) {
-        cookieString = account.cookies
-      } else if (account.session_id) {
-        try {
-          // session_id 是一个 JSON 字符串，包含 cookie 数组
-          const sessionData = JSON.parse(account.session_id)
-          if (sessionData.cookie && Array.isArray(sessionData.cookie)) {
-            // 将 cookie 数组转换为 Cookie 字符串
-            cookieString = sessionData.cookie
-              .map(c => `${c.name}=${c.value}`)
-              .join('; ')
-            console.log(`从 session_id 解析出 Cookie，共 ${sessionData.cookie.length} 个`)
-          }
-        } catch (e) {
-          console.error(`解析 session_id 失败:`, e)
-          cookieString = account.session_id
-        }
-      }
-      
-      if (!cookieString) {
-        console.warn(`账号 ${account.name} 缺少 cookies/session_id`)
-        ElMessage.warning(`账号 ${account.name} 缺少登录信息，请重新登录`)
-        continue
-      }
-
-      try {
-        console.log(`正在获取账号 ${account.name} 的文章数据...`)
-        console.log(`Token: ${account.token}`)
-        
-        // 解析 session_id 中的 cookie 数组
-        const sessionData = JSON.parse(account.session_id)
-        const cookies = sessionData.cookie || []
-        
-        console.log(`准备设置 ${cookies.length} 个 Cookie`)
-        
-        // 构建微信接口URL
-        const url = `https://mp.weixin.qq.com/cgi-bin/appmsgpublish?sub=list&begin=0&count=10&token=${account.token}&lang=zh_CN&f=json`
-        
-        console.log('请求URL:', url)
-        console.log('使用 Electron IPC 发送请求（支持自定义 Cookie）')
-        
-        // 使用 Electron IPC 发送请求，这样可以在主进程中设置 Cookie
-        // 通过 preload.js 暴露的 window.electron.ipcRenderer 访问
-        const response = await window.electron.ipcRenderer.invoke('fetch-with-cookies', {
-          url: url,
-          method: 'GET',
-          headers: {
-            'Referer': 'https://mp.weixin.qq.com/',
-            'Cache-Control': 'no-cache',
-            'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'
-          },
-          cookies: cookies
-        })
-        
-        console.log(`账号 ${account.name} 响应状态:`, response.status)
-        
-        if (!response.success) {
-          throw new Error(response.error || '请求失败')
-        }
-        
-        const data = response.data
-        console.log(`账号 ${account.name} 返回数据:`, data)
-        
-        // 如果返回 invalid session，输出更多调试信息
-        if (data.base_resp?.ret === 200003) {
-          console.error(`Session 验证失败详情:`)
-          console.error(`  账号ID: ${account.id}`)
-          console.error(`  Token: ${account.token}`)
-          console.error(`  请求URL: ${url}`)
-          console.error(`  提示: 请确认该账号的 session_id 和 token 是否匹配且未过期`)
-        }
-        
-        if (data.base_resp?.ret === 0) {
-          // 解析 publish_page 字段（它是一个JSON字符串）
-          let publishPage = data.publish_page
-          if (typeof publishPage === 'string') {
-            publishPage = JSON.parse(publishPage)
-          }
-          
-          const publishList = publishPage?.publish_list || []
-          console.log(`账号 ${account.name} 共有 ${publishList.length} 条发布记录`)
-          
-          // 遍历发布列表
-          publishList.forEach(publishItem => {
-            // 解析 publish_info 字段（也是JSON字符串）
-            let publishInfo = publishItem.publish_info
-            if (typeof publishInfo === 'string') {
-              publishInfo = JSON.parse(publishInfo)
-            }
-            
-            const appmsgInfoList = publishInfo?.appmsg_info || []
-            
-            // 遍历每篇文章
-            appmsgInfoList.forEach(article => {
-              const readNum = article.read_num || 0
-              if (readNum > 10) {
-                notifyArticles.value.push({
-                  accountId: account.id,
-                  accountName: account.name,
-                  accountAvatar: account.avatar,
-                  title: article.title || '无标题',
-                  readNum: readNum,
-                  likeNum: article.like_num || 0,
-                  shareNum: article.share_num || 0,
-                  publishTime: publishInfo.sent_info?.time || 0,
-                  url: article.content_url || ''
-                })
-              }
-            })
-          })
-        } else if (data.base_resp?.ret === 200003) {
-          console.error(`账号 ${account.name} Session 已失效`)
-          ElMessage.error(`账号 ${account.name} 登录已过期，请重新登录`)
-        } else {
-          console.error(`账号 ${account.name} 接口返回错误:`, data.base_resp)
-          ElMessage.warning(`账号 ${account.name}: ${data.base_resp?.err_msg || '获取失败'}`)
-        }
-      } catch (error) {
-        console.error(`获取账号 ${account.name} 的文章失败:`, error)
-        ElMessage.error(`获取账号 ${account.name} 失败: ${error.message}`)
-      }
-    }
-
-    // 按阅读量降序排序
-    notifyArticles.value.sort((a, b) => b.readNum - a.readNum)
-
-    if (notifyArticles.value.length === 0) {
-      ElMessage.info('没有找到阅读量大于10的文章')
-    } else {
-      ElMessage.success(`找到 ${notifyArticles.value.length} 篇阅读量大于10的文章`)
-    }
-  } catch (error) {
-    console.error('加载通知文章失败:', error)
-    ElMessage.error('加载文章数据失败: ' + error.message)
-  } finally {
-    notifyLoading.value = false
-  }
-}
-
-// 格式化时间
-function formatNotifyTime(timestamp) {
-  if (!timestamp) return '-'
-  const date = new Date(timestamp * 1000)
-  return date.toLocaleString('zh-CN', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit'
-  })
-}
-
-// 格式化数字
-function formatNotifyNumber(num) {
-  if (num === undefined || num === null) return '0'
-  return num.toLocaleString('zh-CN')
-}
-
-// 查看文章
-function viewArticle(article) {
-  if (article.url) {
-    window.open(article.url, '_blank')
-  } else {
-    ElMessage.info('暂无文章链接')
-  }
-}
-
-// 处理批量通知（在对话框中）
-function handleBatchNotify() {
-  if (multipleSelection.value.length === 0) {
-    ElMessage.warning('请先选择要通知的账号')
-    return
-  }
-
-  const accountNames = multipleSelection.value.map(acc => acc.name).join('、')
-  const groupName = batchForm.group_name || '未分组'
-
-  ElMessageBox.alert(
-    `将向以下 ${multipleSelection.value.length} 个账号发送分组变更通知：\n\n${accountNames}\n\n目标分组：${groupName}`,
-    '批量通知',
-    {
-      confirmButtonText: '确定',
-      type: 'info',
-      dangerouslyUseHTMLString: false
-    }
-  ).then(() => {
-    ElMessage.success('通知已发送')
-  })
-}
 </script>
 
 <style scoped>
@@ -1080,70 +989,243 @@ function handleBatchNotify() {
   line-height: 1.5;
 }
 
-.notify-list {
-  max-height: 500px;
-  overflow-y: auto;
+/* 圆形进度条 */
+.check-progress-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 6px;
+}
+.check-progress-svg {
+  width: 30px;
+  height: 30px;
+  transform: rotate(-90deg);
+}
+.check-progress-bg {
+  fill: none;
+  stroke: #e5e7eb;
+  stroke-width: 3;
+}
+.check-progress-bar {
+  fill: none;
+  stroke: #e6a23c;
+  stroke-width: 3;
+  stroke-linecap: round;
+  transition: stroke-dasharray 0.2s ease;
+}
+.check-progress-text {
+  font-size: 12px;
+  color: #e6a23c;
+  font-weight: 600;
+  min-width: 32px;
 }
 
-.notify-item {
-  padding: 15px;
+/* 登录检测弹框 */
+.login-check-body {
+  display: flex;
+  gap: 0;
+  height: 520px;
   border: 1px solid #e5e7eb;
   border-radius: 8px;
-  margin-bottom: 12px;
-  transition: all 0.3s;
+  overflow: hidden;
 }
-
-.notify-item:hover {
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  border-color: #409eff;
-}
-
-.notify-header {
+.login-check-left {
+  width: 260px;
+  flex-shrink: 0;
+  border-right: 1px solid #e5e7eb;
   display: flex;
+  flex-direction: column;
+  background: #fafafa;
+}
+.login-check-right {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+}
+.login-check-panel-title {
+  display: flex;
+  align-items: center;
   justify-content: space-between;
-  align-items: center;
-  margin-bottom: 10px;
-}
-
-.account-info {
-  display: flex;
-  align-items: center;
-}
-
-.account-avatar {
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  margin-right: 8px;
-}
-
-.account-name {
-  font-size: 14px;
+  padding: 12px 14px;
+  font-size: 13px;
+  font-weight: 600;
   color: #333;
-  font-weight: 500;
+  border-bottom: 1px solid #e5e7eb;
+  background: #fff;
+  flex-shrink: 0;
 }
-
-.publish-time {
+.login-check-hint {
   font-size: 12px;
-  color: #999;
-}
-
-.article-title {
-  font-size: 15px;
-  color: #333;
-  margin-bottom: 10px;
-  cursor: pointer;
-  line-height: 1.5;
-  transition: color 0.3s;
-}
-
-.article-title:hover {
   color: #409eff;
+  font-weight: 400;
+  max-width: 240px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
-
-.article-stats {
+.login-check-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 6px 0;
+}
+.login-check-item {
   display: flex;
   align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  cursor: pointer;
+  border-bottom: 1px solid #f0f0f0;
+  transition: background 0.15s;
 }
+.login-check-item:hover {
+  background: #f0f7ff;
+}
+.login-check-item.active {
+  background: #e8f4ff;
+  border-left: 3px solid #409eff;
+}
+.login-check-item.done {
+  opacity: 0.6;
+}
+.login-check-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  object-fit: cover;
+}
+.login-check-info {
+  flex: 1;
+  min-width: 0;
+}
+.login-check-name {
+  font-size: 13px;
+  color: #222;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.login-check-platform {
+  font-size: 11px;
+  color: #999;
+  margin-top: 2px;
+}
+.login-check-status {
+  flex-shrink: 0;
+}
+.status-expired {
+  font-size: 11px;
+  color: #f56c6c;
+  background: #fef0f0;
+  border-radius: 4px;
+  padding: 2px 6px;
+}
+.status-ok {
+  font-size: 11px;
+  color: #67c23a;
+  background: #f0f9eb;
+  border-radius: 4px;
+  padding: 2px 6px;
+}
+.login-check-empty {
+  text-align: center;
+  color: #aaa;
+  font-size: 13px;
+  padding: 40px 0;
+}
+.login-check-webview-wrap {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+}
+.login-check-action-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  gap: 20px;
+  padding: 24px;
+}
+.login-check-acc-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: #f7f8fa;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 16px 24px;
+  width: 100%;
+  max-width: 340px;
+}
+.login-check-acc-big-avatar {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+  border: 2px solid #e5e7eb;
+}
+.login-check-acc-detail {
+  display: flex;
+  flex-direction: column;
+}
+.login-check-acc-big-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: #222;
+  margin-bottom: 4px;
+}
+.login-check-acc-big-plat {
+  font-size: 12px;
+  color: #909399;
+}
+.login-check-action-hint {
+  text-align: center;
+  color: #606266;
+  font-size: 13px;
+  line-height: 1.8;
+}
+.login-check-action-hint p {
+  margin: 0;
+}
+.login-check-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  gap: 16px;
+  color: #909399;
+  font-size: 13px;
+}
+.login-check-loading-spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid #e5e7eb;
+  border-top-color: #409eff;
+  border-radius: 50%;
+  animation: login-check-spin 0.8s linear infinite;
+}
+@keyframes login-check-spin {
+  to { transform: rotate(360deg); }
+}
+.login-check-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: #909399;
+  gap: 12px;
+}
+.login-check-placeholder p {
+  margin: 0;
+  font-size: 14px;
+}
+
+
 </style>
 

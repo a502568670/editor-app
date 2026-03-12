@@ -152,6 +152,12 @@ const { all_accounts } = toRefs(store.getters);
 const AccountListRef = ref()
 const route = useRoute()
 
+// 提供触发微信登录弹框的方法给子组件
+provide('triggerWechatLogin', () => loginWechatMPWithDialog())
+
+// 提供打开账号 tab 的方法给子组件（和点击账号列表一样）
+provide('openAccountTab', (account) => addNewTab(account))
+
 // 提供刷新 AccountList 的方法给子组件
 provide('refreshAccountList',async () => {
   if (AccountListRef.value) {
