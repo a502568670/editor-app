@@ -128,6 +128,17 @@
           <span class="scan-status-dot"></span>
           <span>{{ scanStatus }}</span>
         </div>
+        <div style="margin-top: 12px; text-align: center;">
+          <el-button
+            type="primary"
+            link
+            :disabled="isRefreshingQRCode"
+            @click="refreshQRCode"
+          >
+            <span v-if="isRefreshingQRCode">正在刷新...</span>
+            <span v-else>刷新二维码</span>
+          </el-button>
+        </div>
       </div>
     </el-dialog>
   </div>
@@ -183,6 +194,7 @@ const qrcodeImageUrl = ref('')
 const scanStatus = ref('等待扫码...')
 const scanStatusColor = ref('#666')
 const scanScanned = ref(false)
+const isRefreshingQRCode = ref(false)
 
 const getScanStatusClass = computed(() => {
   const s = scanStatus.value
@@ -336,6 +348,28 @@ const loginWechatMPWithDialog = async () => {
     tag: 'wechat:createLoginViewInDialog',
     token: getToken()
   })
+}
+
+/** 手动刷新二维码 */
+const refreshQRCode = async () => {
+  if (isRefreshingQRCode.value) return
+  isRefreshingQRCode.value = true
+  // 先通知主进程清理当前 session 和定时器
+  window.ipcRenderer.send('toMain', { tag: 'wechat:cleanupCountdown' })
+  // 重置状态
+  qrcodeImageUrl.value = ''
+  scanScanned.value = false
+  scanStatus.value = '正在刷新二维码...'
+  await nextTick()
+  // 重新触发登录流程
+  window.ipcRenderer.send('toMain', {
+    tag: 'wechat:createLoginViewInDialog',
+    token: getToken()
+  })
+  // 等待二维码就绪后恢复按钮（监听 qrcodeReady 事件时会自动更新）
+  setTimeout(() => {
+    isRefreshingQRCode.value = false
+  }, 3000)
 }
 
 /** 旧的登录方法（使用 RPC）- 保留作为备用 */
