@@ -64,6 +64,7 @@
               </div>
             </div>
             <div>
+              <el-button type="primary" @click="openAddGroup" plain>新增分组</el-button>
               <el-button type="success" @click="openBatchGroup" plain>批量修改分组</el-button>
             </div>
           </div>
@@ -129,6 +130,21 @@
           />
         </div>
       </div>
+
+      <!-- 新增分组 -->
+      <el-dialog :close-on-click-modal="false" title="新增分组" v-model="dialogAddGroupVisible" width="400px">
+        <el-form :model="addGroupForm" :rules="addGroupRules" ref="addGroupFormRef" label-position="left" label-width="80px">
+          <el-form-item label="分组名称" prop="name">
+            <el-input v-model="addGroupForm.name" placeholder="请输入分组名称" clearable />
+          </el-form-item>
+        </el-form>
+        <template #footer>
+          <div class="dialog-footer">
+            <el-button @click="dialogAddGroupVisible = false">取消</el-button>
+            <el-button type="primary" @click="submitAddGroup" :loading="addGroupLoading">确定</el-button>
+          </div>
+        </template>
+      </el-dialog>
 
       <!-- 批量分组 -->
       <el-dialog :close-on-click-modal="false" title="批量移动到分组" v-model="dialogSetGroupVisible" width="450px">
@@ -438,6 +454,41 @@ const editForm = reactive({
 })
 
 const editLoading = ref(false)
+
+// 新增分组
+const dialogAddGroupVisible = ref(false)
+const addGroupFormRef = ref(null)
+const addGroupForm = reactive({ name: '' })
+const addGroupRules = { name: [{ required: true, message: '分组名称不能为空', trigger: 'blur' }] }
+const addGroupLoading = ref(false)
+
+function openAddGroup() {
+  addGroupForm.name = ''
+  dialogAddGroupVisible.value = true
+  nextTick(() => { if (addGroupFormRef.value) addGroupFormRef.value.clearValidate() })
+}
+
+async function submitAddGroup() {
+  addGroupFormRef.value.validate(async (valid) => {
+    if (!valid) return
+    addGroupLoading.value = true
+    try {
+      const res = await addAccountGroup({ name: addGroupForm.name, parent_id: 0, sort_order: 0 })
+      if (res && res.data && res.data.code === 1) {
+        ElMessage.success(`分组"${addGroupForm.name}"创建成功`)
+        dialogAddGroupVisible.value = false
+        await loadAllGroups()
+        await refreshGlobalAccountData()
+      } else {
+        throw new Error(res?.data?.msg || '创建分组失败')
+      }
+    } catch (error) {
+      ElMessage.error(error?.data?.msg || error?.message || '创建分组失败')
+    } finally {
+      addGroupLoading.value = false
+    }
+  })
+}
 
 // 扁平化的分组列表
 const flatGroupList = ref([])

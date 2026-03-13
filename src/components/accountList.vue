@@ -41,6 +41,22 @@
                 <el-icon><FolderOpened /></el-icon>
                 <span class="group-name">{{ group.name }}</span>
                 <span class="group-count">({{ group.accounts.length }})</span>
+                <el-popconfirm
+                  v-if="group.id !== 0 && $props.showDel"
+                  :title="`确认删除分组「${group.name}」？`"
+                  placement="top-end"
+                  @confirm.stop="delGroup(group.id)"
+                >
+                  <template #reference>
+                    <el-icon
+                      class="group-del-btn"
+                      @click.prevent.stop
+                      style="color: brown; margin-left: 6px; cursor: pointer;"
+                    >
+                      <Close />
+                    </el-icon>
+                  </template>
+                </el-popconfirm>
               </div>
             </template>
             <VueDraggable
@@ -418,7 +434,7 @@ import { ElMessageBox, ElMessage, ElNotification } from 'element-plus';
 import { useAccountStore } from '@/store/piniaStore';
 import { createAccount } from '@/api/account';
 import { VueDraggable } from 'vue-draggable-plus';
-import { getAccountGroupList } from '@/api/account-group';
+import { getAccountGroupList, deleteAccountGroup } from '@/api/account-group';
 import { cachedStat } from '@/api/stat-client';
 
 const props = defineProps({
@@ -574,6 +590,19 @@ const handleInput = debounceFn(
   false
 );
 
+/** 删除分组 */
+const delGroup = async (id) => {
+  try {
+    await deleteAccountGroup(id);
+    ElMessage({ type: 'success', message: '删除分组成功' });
+    await loadAccountGroups();
+    setGroupedAccounts();
+  } catch (error) {
+    const msg = error?.data?.msg || error?.data?.message || '删除分组失败';
+    ElMessage({ type: 'error', message: msg });
+  }
+};
+
 /** 加载分组列表 */
 const loadAccountGroups = async () => {
   try {
@@ -596,8 +625,9 @@ const groupedAccounts = ref({
 });
 /** 设置分组账号 */
 const setGroupedAccounts = () => {
+
+
   const query = listQuery.value.keyword;
-  // 过滤账号
   const filteredAccounts = toDeepRaw(all_accounts.value.list.filter(a => a.name.includes(query)));
 
   const newGroup = {
@@ -615,26 +645,25 @@ const setGroupedAccounts = () => {
     };
   });
 
-  // 将账号分配到对应的分组
   filteredAccounts.forEach(account => {
     if (newGroup[account.group_id]) {
       newGroup[account.group_id].accounts.push(account);
     } else {
-      // 未分组
       newGroup[0].accounts.push(account);
     }
   });
   for (const key in newGroup) {
-    if (newGroup[key].accounts.length === 0) {
+    if (newGroup[key].accounts.length === 0 && Number(key) === 0) {
       delete newGroup[key];
-    } else {
-      // 排序
+    } else if (newGroup[key].accounts.length > 0) {
+
       const { result } = sortByOrder(newGroup[key].accounts, toDeepRaw(account_orders.value[key]));
       newGroup[key].accounts = result;
     }
   }
   groupedAccounts.value = newGroup;
 };
+
 
 const account = useAccountStore();
 /** 点击删除按钮触发 */
