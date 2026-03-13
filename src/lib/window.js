@@ -555,11 +555,10 @@ async function reactToIpcObjectData(data, tabbedWin, viewContents) {
       loginCheckView.setBounds(finalBounds);
       loginCheckView.setBackgroundColor('#ffffff');
       
-      // 非持久化 session 不注入旧 cookie，直接加载登录页
-      // 对于微信公众号，直接加载登录页而非首页，避免 cookie 自动登录到错误账号
+      // 非持久化 session 无 cookie，直接加载微信公众号首页会自动显示扫码登录界面
       let loginUrl = targetUrl;
       if (account.platform_id === 4 || account.platform_id === 1) {
-        loginUrl = 'https://mp.weixin.qq.com/cgi-bin/bizlogin?action=startlogin';
+        loginUrl = 'https://mp.weixin.qq.com/';
       }
       loginCheckView.webContents.loadURL(loginUrl);
       
