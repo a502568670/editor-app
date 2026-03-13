@@ -45,10 +45,10 @@
                 <el-icon style="margin-right: 4px;"><Refresh /></el-icon>
                 刷新
               </el-button>
-              <el-button type="warning" @click="handleCheckLoginStatus" :loading="checkingLogin" plain>
+              <!-- <el-button type="warning" @click="handleCheckLoginStatus" :loading="checkingLogin" plain>
                 <el-icon style="margin-right: 4px;"><Monitor /></el-icon>
                 一键检测登录状态
-              </el-button>
+              </el-button> -->
               <!-- 圆形进度条 -->
               <div v-if="checkingLogin" class="check-progress-wrap">
                 <svg class="check-progress-svg" viewBox="0 0 36 36">
