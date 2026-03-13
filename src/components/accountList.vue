@@ -425,7 +425,7 @@
 </template>
 
 <script setup>
-import { ref, toRefs, computed, onActivated, onBeforeUnmount, nextTick, watch } from 'vue';
+import { ref, toRefs, computed, onActivated, onBeforeUnmount, nextTick, watch, inject } from 'vue';
 import store from '@/store';
 import { toDeepRaw } from '@/utils/convert';
 import { sortByOrder, debounceFn } from '@/utils/index';
@@ -469,6 +469,11 @@ const emit = defineEmits([
 ]);
 
 const { all_accounts, account_orders, getCurrentAccount, getPreviousWxAccount } = toRefs(store.getters);
+
+// 注入父组件（tabBar.vue）提供的二维码登录触发方法
+const triggerWechatLogin = inject('triggerWechatLogin', null);
+// 记录用户是否已手动点击过已登录的公众号账号
+const hasClickedLoggedInAccount = ref(true);
 
 // 监控仅支持公众号账号（排除通用账号等其它平台）
 const isOfficialAccount = (acc) => {
@@ -753,14 +758,23 @@ const clickAccount = account => {
   }
   
   // 检查账号是否未登录（仅针对微信公众号）
-  if (!token && (platform_id === 4 || platform_id === 1)) {
-    // 管理模式下（登录状态检测弹框打开期间）完全忽略点击，不弹登录框也不切换 tab
-    if (props.isManagementMode) return;
-    const wechatPlatform = platforms.find(p => p.id === 4);
-    if (wechatPlatform) addAccount(wechatPlatform);
+  // 只有 token 和 session_id 都为空时才认为是完全未登录状态
+  if (!token && !session_id && (platform_id === 4 || platform_id === 1)) {
+    // 弹出二维码登录弹框
+    if (triggerWechatLogin) {
+      triggerWechatLogin();
+    } else {
+      const wechatPlatform = platforms.find(p => p.id === 4);
+      if (wechatPlatform) addAccount(wechatPlatform);
+    }
     return;
   }
-  
+
+  // 已登录的公众号账号，记录点击状态
+  if (token && (platform_id === 4 || platform_id === 1)) {
+    hasClickedLoggedInAccount.value = true;
+  }
+
   store.commit('SET_CURRENT_ACCOUNT', account);
   emit('clickAccountTrigger', account);
 };
