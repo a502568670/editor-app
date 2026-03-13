@@ -386,7 +386,7 @@ const loginCheckPanelRef = ref(null)
 
 // 监听主进程登录成功事件，标记当前账号已登录
 if (window.ipcRenderer) {
-  window.ipcRenderer.receive('fromMain', (data) => {
+  window.ipcRenderer.receive('fromMain', async (data) => {
     if (data === 'wechat-login-success' || (data && data.tag === 'wechat:loginSuccess')) {
       if (currentLoginAccount.value && !loginDoneIds.value.includes(currentLoginAccount.value.id)) {
         loginDoneIds.value.push(currentLoginAccount.value.id)
@@ -402,9 +402,15 @@ if (window.ipcRenderer) {
     }
     if (data && data.tag === 'loginCheck:accountMismatch') {
       const { loggedUid, expectedUid } = data.data || {}
-      // 账号不匹配，清除当前选中账号，禁止继续操作
-      currentLoginAccount.value = null
-      ElMessage.error(`账号不匹配，登录已被阻止！当前登录的是 ${loggedUid}，期望是 ${expectedUid}，请重新选择正确的账号登录`)
+      // 账号不匹配，自动重新打开当前账号的登录页重新扫码
+      const accToRetry = currentLoginAccount.value
+      if (accToRetry) {
+        currentLoginAccount.value = null
+        await nextTick()
+        selectLoginAccount(accToRetry)
+      }
+      ElMessage.warning(`账号不匹配（当前 ${loggedUid}，期望 ${expectedUid}），正在重新加载登录页...`)
+
     }
   })
 }
