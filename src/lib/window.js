@@ -563,8 +563,10 @@ async function reactToIpcObjectData(data, tabbedWin, viewContents) {
       loginCheckView.webContents.loadURL(loginUrl);
       
       // 监听登录成功跳转
+      let loginCheckHandled = false; // 防止 did-navigate 多次触发重复处理
       loginCheckView.webContents.on('did-navigate', async (event, url) => {
         verbose_log('loginCheckView did-navigate:', url);
+        if (loginCheckHandled) return; // 已处理过，忽略后续跳转
         
         // 知乎：跳转到个人主页说明登录成功
         if (account.platform_id === 6 && (
@@ -584,6 +586,7 @@ async function reactToIpcObjectData(data, tabbedWin, viewContents) {
               const loggedUid = urlMatch[1];
               const expectedUid = String(account.original_id);
               if (loggedUid !== expectedUid) {
+                loginCheckHandled = true;
                 // 账号不匹配，立即销毁 BrowserView，禁止登录
                 if (tabbedWin._loginCheckView) {
                   tabbedWin.win.removeBrowserView(tabbedWin._loginCheckView);
@@ -599,6 +602,7 @@ async function reactToIpcObjectData(data, tabbedWin, viewContents) {
             }
           } catch(e) { verbose_error('验证知乎账号失败:', e); }
           
+          loginCheckHandled = true;
           tabbedWin.win.webContents.send('fromMain', { tag: 'loginCheck:loginSuccess', data: { accountId: account.id } });
           return;
         }
@@ -614,6 +618,7 @@ async function reactToIpcObjectData(data, tabbedWin, viewContents) {
               const loggedUser = slaveUser.value;
               const expectedUser = String(account.original_id);
               if (loggedUser !== expectedUser) {
+                loginCheckHandled = true;
                 // 账号不匹配，立即销毁 BrowserView，禁止登录
                 if (tabbedWin._loginCheckView) {
                   tabbedWin.win.removeBrowserView(tabbedWin._loginCheckView);
@@ -629,6 +634,7 @@ async function reactToIpcObjectData(data, tabbedWin, viewContents) {
             }
           } catch(e) { verbose_error('验证公众号账号失败:', e); }
           
+          loginCheckHandled = true;
           tabbedWin.win.webContents.send('fromMain', { tag: 'loginCheck:loginSuccess', data: { accountId: account.id } });
         }
       });

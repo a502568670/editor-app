@@ -326,7 +326,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, computed, watch, inject, nextTick } from 'vue'
+import { ref, reactive, onMounted, onUnmounted, computed, watch, inject, nextTick } from 'vue'
 import { Refresh, Monitor } from '@element-plus/icons-vue'
 import { checkWxSession } from '@/utils/cookie'
 import Pagination from '@/components/Pagination'
@@ -401,32 +401,48 @@ const loginDoneIds = ref([])
 const loginCheckPanelRef = ref(null)
 
 // 监听主进程登录成功事件，标记当前账号已登录
-if (window.ipcRenderer) {
-  window.ipcRenderer.receive('fromMain', async (data) => {
-    if (data === 'wechat-login-success' || (data && data.tag === 'wechat:loginSuccess')) {
-      if (currentLoginAccount.value && !loginDoneIds.value.includes(currentLoginAccount.value.id)) {
-        loginDoneIds.value.push(currentLoginAccount.value.id)
-        ElMessage.success(`账号「${currentLoginAccount.value.name}」登录成功`)
+let ipcCleanup = null
+onMounted(() => {
+  if (window.ipcRenderer) {
+    ipcCleanup = window.ipcRenderer.receive('fromMain', async (data) => {
+      if (data === 'wechat-login-success' || (data && data.tag === 'wechat:loginSuccess')) {
+        if (currentLoginAccount.value && !loginDoneIds.value.includes(currentLoginAccount.value.id)) {
+          loginDoneIds.value.push(currentLoginAccount.value.id)
+          ElMessage.success(`账号「${currentLoginAccount.value.name}」登录成功`)
+        }
       }
-    }
-    if (data && data.tag === 'loginCheck:loginSuccess') {
-      const accountId = data.data?.accountId
-      if (accountId && !loginDoneIds.value.includes(accountId)) {
-        loginDoneIds.value.push(accountId)
-        ElMessage.success('登录成功，请点击「重新检测」刷新状态')
+      if (data && data.tag === 'loginCheck:loginSuccess') {
+        const accountId = data.data?.accountId
+        if (accountId && !loginDoneIds.value.includes(accountId)) {
+          loginDoneIds.value.push(accountId)
+          ElMessage.success('登录成功，请点击「重新检测」刷新状态')
+        }
       }
-    }
-    if (data && data.tag === 'loginCheck:accountMismatch') {
-      const { loggedUid, expectedUid } = data.data || {}
-      // 账号不匹配：关闭 BrowserView，重置状态，提示用户重新点击账号登录
-      if (window.ipcRenderer) {
-        window.ipcRenderer.send('toMain', { tag: 'loginCheck:closeView' })
+      if (data && data.tag === 'loginCheck:accountMismatch') {
+        const { loggedUid, expectedUid, accountId } = data.data || {}
+        // 账号不匹配：关闭 BrowserView，重置状态，提示用户重新点击账号登录
+        if (window.ipcRenderer) {
+          window.ipcRenderer.send('toMain', { tag: 'loginCheck:closeView' })
+        }
+        currentLoginAccount.value = null
+        // 尝试将 gh_xxx 转换为公众号名称
+        const allAccounts = store.state.accounts?.list || []
+        const loggedAccount = allAccounts.find(a => String(a.original_id) === String(loggedUid))
+        const expectedAccount = allAccounts.find(a => String(a.original_id) === String(expectedUid))
+        const loggedName = loggedAccount ? loggedAccount.name : loggedUid
+        const expectedName = expectedAccount ? expectedAccount.name : expectedUid
+        ElMessage.warning(`账号不匹配（当前「${loggedName}」，期望「${expectedName}」），请重新点击左侧账号登录`)
       }
-      currentLoginAccount.value = null
-      ElMessage.warning(`账号不匹配（当前 ${loggedUid}，期望 ${expectedUid}），请重新点击左侧账号登录`)
-    }
-  })
-}
+    })
+  }
+})
+
+onUnmounted(() => {
+  if (ipcCleanup) {
+    ipcCleanup()
+    ipcCleanup = null
+  }
+})
 
 const checkProgressDash = computed(() => {
   const circumference = 2 * Math.PI * 15 // r=15
