@@ -529,7 +529,8 @@ async function reactToIpcObjectData(data, tabbedWin, viewContents) {
         } catch(e) { verbose_error('loginCheck:openView 解析 session_id 失败:', e); }
       }
       
-      const partition = 'persist:login-check-' + account.id;
+      // 使用非持久化 partition，确保每次都是干净的 session，避免旧 cookie 导致自动登录到错误账号
+      const partition = 'login-check-' + account.id + '-' + Date.now();
       const loginCheckView = new BrowserView({
         webPreferences: {
           nodeIntegration: false,
@@ -554,29 +555,13 @@ async function reactToIpcObjectData(data, tabbedWin, viewContents) {
       loginCheckView.setBounds(finalBounds);
       loginCheckView.setBackgroundColor('#ffffff');
       
-      // 注入 cookie
-      if (cookieArray.length > 0) {
-        try {
-          const urlObj = new URL(targetUrl);
-          const domain = urlObj.hostname;
-        for (const ck of cookieArray) {
-          try {
-            await loginCheckView.webContents.session.cookies.set({
-              url: targetUrl,
-              name: ck.name,
-              value: ck.value,
-              domain: ck.domain || domain,
-              path: ck.path || '/',
-              secure: ck.secure || false,
-              httpOnly: ck.httpOnly || false,
-              expirationDate: ck.expirationDate
-            });
-          } catch(e) { /* ignore */ }
-        }
-        } catch(e) { verbose_error('注入 cookie 失败:', e); }
+      // 非持久化 session 不注入旧 cookie，直接加载登录页
+      // 对于微信公众号，直接加载登录页而非首页，避免 cookie 自动登录到错误账号
+      let loginUrl = targetUrl;
+      if (account.platform_id === 4 || account.platform_id === 1) {
+        loginUrl = 'https://mp.weixin.qq.com/cgi-bin/bizlogin?action=startlogin';
       }
-      
-      loginCheckView.webContents.loadURL(targetUrl);
+      loginCheckView.webContents.loadURL(loginUrl);
       
       // 监听登录成功跳转
       loginCheckView.webContents.on('did-navigate', async (event, url) => {

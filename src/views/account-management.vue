@@ -418,15 +418,12 @@ if (window.ipcRenderer) {
     }
     if (data && data.tag === 'loginCheck:accountMismatch') {
       const { loggedUid, expectedUid } = data.data || {}
-      // 账号不匹配，自动重新打开当前账号的登录页重新扫码
-      const accToRetry = currentLoginAccount.value
-      if (accToRetry) {
-        currentLoginAccount.value = null
-        await nextTick()
-        selectLoginAccount(accToRetry)
+      // 账号不匹配：关闭 BrowserView，重置状态，提示用户重新点击账号登录
+      if (window.ipcRenderer) {
+        window.ipcRenderer.send('toMain', { tag: 'loginCheck:closeView' })
       }
-      ElMessage.warning(`账号不匹配（当前 ${loggedUid}，期望 ${expectedUid}），正在重新加载登录页...`)
-
+      currentLoginAccount.value = null
+      ElMessage.warning(`账号不匹配（当前 ${loggedUid}，期望 ${expectedUid}），请重新点击左侧账号登录`)
     }
   })
 }
