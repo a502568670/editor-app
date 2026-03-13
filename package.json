@@ -33,6 +33,7 @@
     "@mayasabha/ckeditor4-vue3": "^1.0.9",
     "@vueuse/components": "^13.3.0",
     "@vueuse/core": "^13.3.0",
+    "@wangeditor/editor": "^5.1.23",
     "@wangeditor/editor-for-vue": "^5.1.12",
     "axios": "^1.7.7",
     "core-js": "^3.30.2",
