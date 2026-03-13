@@ -1,7 +1,22 @@
 name: Build & Release (Electron)
 
 on:
+  push:
+    tags:
+      - 'v*'
   workflow_dispatch:
+    inputs:
+      publish:
+        description: 'Publish release to GitHub'
+        required: false
+        default: 'false'
+        type: choice
+        options:
+          - 'true'
+          - 'false'
+
+permissions:
+  contents: write
 
 jobs:
   build:
@@ -11,31 +26,87 @@ jobs:
       fail-fast: false
       matrix:
         os: [windows-latest, macos-latest]
-    permissions:
-      contents: write
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Node
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "18"
-          cache: "npm"
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Configure npm registry
+        run: npm config set registry https://registry.npmjs.org/
 
       - name: Install dependencies
-        shell: bash
-        run: npm install
+        run: npm install --legacy-peer-deps
 
-      - name: Build & Release
+      - name: Install dmg-license (macOS only)
+        if: matrix.os == 'macos-latest'
+        run: npm install dmg-license
+
+      - name: Setup Python (macOS only)
+        if: matrix.os == 'macos-latest'
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Build Electron app (Windows)
+        if: matrix.os == 'windows-latest'
         shell: bash
         env:
-          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+          BACKEND_URL: http://47.96.22.8:8005
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+          EP_DRAFT: 'true'
         run: |
-          if [[ "${{ matrix.os }}" == "windows-latest" ]]; then
-            npm run electron:build:win
-          else
-            npm run electron:build:mac
+          PUBLISH_FLAG="never"
+          if [[ "${{ github.event_name }}" == "push" ]]; then
+            PUBLISH_FLAG="always"
+          elif [[ "${{ github.event.inputs.publish }}" == "true" ]]; then
+            PUBLISH_FLAG="always"
           fi
+          npm run electron:build:win -- --publish $PUBLISH_FLAG
+
+      - name: Build Electron app (macOS)
+        if: matrix.os == 'macos-latest'
+        shell: bash
+        env:
+          BACKEND_URL: http://47.96.22.8:8005
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+          EP_DRAFT: 'true'
+          PYTHON_PATH: ${{ env.pythonLocation }}/bin/python3
+        run: |
+          PUBLISH_FLAG="never"
+          if [[ "${{ github.event_name }}" == "push" ]]; then
+            PUBLISH_FLAG="always"
+          elif [[ "${{ github.event.inputs.publish }}" == "true" ]]; then
+            PUBLISH_FLAG="always"
+          fi
+          npm run electron:build:mac -- --publish $PUBLISH_FLAG
+
+      - name: Upload Windows artifacts
+        if: matrix.os == 'windows-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-installer
+          path: |
+            dist_electron/*.exe
+            dist_electron/*.msi
+            dist_electron/latest.yml
+          retention-days: 14
+          if-no-files-found: warn
+
+      - name: Upload macOS artifacts
+        if: matrix.os == 'macos-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-installer
+          path: |
+            dist_electron/*.dmg
+            dist_electron/latest-mac.yml
+          retention-days: 14
+          if-no-files-found: warn
