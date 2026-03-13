@@ -264,6 +264,7 @@
             format="YYYY-MM-DD"
             value-format="YYYY-MM-DD"
             style="width: 100%;"
+            popper-class="monitor-config-date-popper"
           />
         </el-form-item>
         <el-divider content-position="left">监控数据阈值设置</el-divider>
@@ -753,6 +754,8 @@ const clickAccount = account => {
   
   // 检查账号是否未登录（仅针对微信公众号）
   if (!token && (platform_id === 4 || platform_id === 1)) {
+    // 管理模式下（登录状态检测弹框打开期间）完全忽略点击，不弹登录框也不切换 tab
+    if (props.isManagementMode) return;
     const wechatPlatform = platforms.find(p => p.id === 4);
     if (wechatPlatform) addAccount(wechatPlatform);
     return;
@@ -1519,6 +1522,11 @@ defineExpose({
 <style>
 /* 监控配置弹框内的 select 下拉层需高于弹框 z-index（弹框 z-index=200000） */
 .monitor-config-select-popper {
+  z-index: 200001 !important;
+}
+
+/* 监控配置弹框内的日期选择面板需高于弹框 z-index */
+.monitor-config-date-popper {
   z-index: 200001 !important;
 }
 </style>
