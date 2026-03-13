@@ -10,6 +10,7 @@
       @addAccountTrigger="handleAddMPAccount"
       @userManagementTrigger="handleUserManagement"
       @overlayDialogVisible="handleOverlayDialogVisible"
+      @delAccountTrigger="handleDelAccount"
     />
     <div class="flex flex-col flex-1 w-0">
       <div v-show="tabs.length > 0 && !showAccountManagement" class="tab-pages">
@@ -757,6 +758,16 @@ const copy = (text) => {
 // 关闭tab页
 const removeTab = (tabId) => {
   window.ipcRenderer.send('close-tab', tabId)
+}
+
+/** 删除账号时，同步关闭该账号对应的 tab */
+const handleDelAccount = (accountId) => {
+  if (!accountId) return
+  const mapping = accounts_mapping_tabs.value.find(v => v.accountId === accountId)
+  if (mapping && mapping.tabId) {
+    removeTab(mapping.tabId)
+    accounts_mapping_tabs.value = accounts_mapping_tabs.value.filter(v => v.tabId !== mapping.tabId)
+  }
 }
 
 // 切换tab页

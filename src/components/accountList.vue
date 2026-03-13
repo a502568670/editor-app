@@ -667,12 +667,15 @@ const setGroupedAccounts = () => {
 
 const account = useAccountStore();
 /** 点击删除按钮触发 */
-const delAccount = async id => {
-  await store.dispatch('DelAccount', id);
-  account.update(account.list.filter(item => item.id !== id));
+const delAccount = async wechatId => {
+  // 删除前先找到账号的内部 id，删除后列表里就找不到了
+  const targetAccount = all_accounts.value.list.find(a => a.wechat_id === wechatId);
+  const accountId = targetAccount?.id;
+  await store.dispatch('DelAccount', wechatId);
+  account.update(account.list.filter(item => item.wechat_id !== wechatId));
   setGroupedAccounts();
   ElMessage({ type: 'success', message: '删除成功' });
-  emit('delAccountTrigger', id);
+  emit('delAccountTrigger', accountId);
 };
 
 /** 点击平台触发 */
