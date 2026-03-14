@@ -53,6 +53,11 @@ module.exports = {
       builderOptions: {
         publish: [
           {
+            provider: 'github',
+            owner: 'a502568670',
+            repo: 'editor-app'
+          },
+          {
             provider: 'generic',
             url: 'https://static.dajiala.com:9224/static/gaoqingsong/autoupdate'
           }
