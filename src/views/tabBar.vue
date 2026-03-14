@@ -1020,10 +1020,30 @@ const handleOpenAccountFromRoute = () => {
   }
 }
 
-// onActivated(() => {
-//   handleFilter();
-//   nextTick(()=>changeTab(currentTabId.value))
-// })
+onActivated(() => {
+  // 刷新账号列表数据（公众号链接等）
+  store.dispatch('ListAccounts').then(() => {
+    handleFilter()
+  })
+
+  // 如果当前有已选中的账号且有对应的 tab，恢复显示该 tab；否则退出账号管理模式
+  if (tabs.value.length > 0 && currentTabId.value) {
+    showAccountManagement.value = false
+    nextTick(() => {
+      window.ipcRenderer.send('switch-tab', currentTabId.value)
+      throttleFunc()
+    })
+  } else if (tabs.value.length === 0) {
+    // 没有打开的 tab，显示账号管理页
+    showAccountManagement.value = true
+    window.ipcRenderer.send('remove-tab')
+  } else {
+    showAccountManagement.value = false
+    nextTick(() => {
+      throttleFunc()
+    })
+  }
+})
 
 // 监听路由参数变化（用于在 tabBar 页面内部通过路由打开账号）
 watch(() => route.query.open_account_id, (newAccountId) => {
