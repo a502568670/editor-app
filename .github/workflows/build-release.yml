@@ -60,7 +60,7 @@ jobs:
           BACKEND_URL: http://47.96.22.8:8005
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
-          EP_DRAFT: 'true'
+          EP_DRAFT: 'false'
         run: |
           PUBLISH_FLAG="never"
           if [[ "${{ github.event_name }}" == "push" ]]; then
@@ -77,7 +77,7 @@ jobs:
           BACKEND_URL: http://47.96.22.8:8005
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
-          EP_DRAFT: 'true'
+          EP_DRAFT: 'false'
           PYTHON_PATH: ${{ env.pythonLocation }}/bin/python3
         run: |
           PUBLISH_FLAG="never"
